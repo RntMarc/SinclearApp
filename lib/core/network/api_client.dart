@@ -63,6 +63,33 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final response = await _client.put(
+      uri,
+      headers: _headers(token: token),
+      body: body != null ? jsonEncode(body) : null,
+    );
+    return _handleResponse(response);
+  }
+
+  Future<void> delete(
+    String path, {
+    String? token,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final response = await _client.delete(
+      uri,
+      headers: _headers(token: token),
+    );
+    if (response.statusCode == 204) return;
+    _handleResponse(response);
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     final body = response.body.isNotEmpty
         ? jsonDecode(response.body) as Map<String, dynamic>

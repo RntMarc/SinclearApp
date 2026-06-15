@@ -61,7 +61,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erfolgreich angemeldet!')),
       );
-      context.go('/');
+      context.go('/home');
     } on ApiException catch (e) {
       setState(() {
         _error = switch (e.errorCode) {
