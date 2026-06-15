@@ -15,10 +15,10 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.water_drop_rounded,
-                  size: 80,
-                  color: theme.colorScheme.primary,
+                Image.asset(
+                  'assets/logo.png',
+                  width: 96,
+                  height: 96,
                 ),
                 const SizedBox(height: 16),
                 Text(
