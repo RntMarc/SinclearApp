@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../features/auth/services/auth_service.dart';
+import '../../features/explore/services/explore_service.dart';
+import '../../features/explore/services/nominatim_service.dart';
 
 class AppScope extends InheritedWidget {
   final AuthService auth;
+  final ExploreService explore;
+  final NominatimService nominatim;
 
   const AppScope({
     super.key,
     required this.auth,
+    required this.explore,
+    required this.nominatim,
     required super.child,
   });
 
