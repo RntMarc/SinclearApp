@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
-  runApp(const MainApp());
-}
+import 'app.dart';
+import 'core/network/api_client.dart';
+import 'core/storage/token_storage.dart';
+import 'features/auth/services/auth_service.dart';
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
 
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
-    );
-  }
+  final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v2';
+
+  final api = ApiClient(baseUrl: baseUrl);
+  final storage = TokenStorage();
+  final auth = AuthService(api: api, storage: storage);
+
+  runApp(SinclearApp(auth: auth));
 }
