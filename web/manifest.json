@@ -1,12 +1,12 @@
 {
-    "name": "sinclearapp",
-    "short_name": "sinclearapp",
+    "name": "Sinclear Beyond",
+    "short_name": "Beyond",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#011219",
+    "theme_color": "#0064EA",
+    "description": "Sinclear Beyond – Deine intelligente Plattform.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
