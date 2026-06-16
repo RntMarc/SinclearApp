@@ -19,6 +19,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<ExplorePlace> _bookmarks = [];
   bool _loading = true;
   bool _loadingBookmarks = true;
+  bool _bookmarksError = false;
   bool _showMap = false;
   String? _error;
 
@@ -56,7 +57,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Future<void> _loadBookmarks() async {
-    setState(() => _loadingBookmarks = true);
+    setState(() {
+      _loadingBookmarks = true;
+      _bookmarksError = false;
+    });
     try {
       final explore = AppScope.of(context).explore;
       final response = await explore.getBookmarks(limit: 20);
@@ -67,7 +71,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loadingBookmarks = false);
+      setState(() {
+        _loadingBookmarks = false;
+        _bookmarksError = true;
+      });
     }
   }
 
@@ -251,6 +258,32 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   const Padding(
                     padding: EdgeInsets.all(24),
                     child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_bookmarksError)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.error_outline, size: 24,
+                                color: theme.colorScheme.error),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Lesezeichen konnten nicht geladen werden.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: _loadBookmarks,
+                              child: const Text('Erneut versuchen'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   )
                 else if (_bookmarks.isEmpty)
                   Card(
