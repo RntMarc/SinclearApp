@@ -101,12 +101,18 @@ class ExploreListResponse {
   const ExploreListResponse({required this.data, required this.meta});
 
   factory ExploreListResponse.fromJson(Map<String, dynamic> json) {
-    return ExploreListResponse(
-      data: (json['data'] as List)
-          .map((e) => ExplorePlace.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      meta: PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>),
-    );
+    final places = (json['data'] as List)
+        .map((e) => ExplorePlace.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final meta = json['meta'] != null
+        ? PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>)
+        : PaginationMeta(
+            page: 1,
+            limit: places.length,
+            total: places.length,
+            totalPages: 1,
+          );
+    return ExploreListResponse(data: places, meta: meta);
   }
 }
 
