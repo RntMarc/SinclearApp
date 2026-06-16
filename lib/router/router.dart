@@ -8,6 +8,7 @@ import '../features/explore/screens/explore_screen.dart';
 import '../features/explore/screens/category_screen.dart';
 import '../features/explore/screens/detail_screen.dart';
 import '../features/explore/screens/create_place_screen.dart';
+import '../features/news/screens/news_screen.dart';
 import '../features/shell/main_shell.dart';
 
 GoRouter createRouter(AuthService auth) {
@@ -19,7 +20,8 @@ GoRouter createRouter(AuthService auth) {
       final location = state.matchedLocation;
 
       final isAuth = location.startsWith('/home') ||
-          location.startsWith('/entdecken');
+          location.startsWith('/entdecken') ||
+          location.startsWith('/aktuell');
 
       if (loggedIn && location == '/') return '/home';
       if (!loggedIn && isAuth) return '/';
@@ -44,6 +46,10 @@ GoRouter createRouter(AuthService auth) {
           GoRoute(
             path: '/home',
             builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/aktuell',
+            builder: (context, state) => const NewsScreen(),
           ),
           GoRoute(
             path: '/entdecken',
