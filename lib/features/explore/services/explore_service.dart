@@ -16,6 +16,7 @@ class ExploreService {
 
   Future<ExploreListResponse> list({
     String? category,
+    String? sort,
     int page = 1,
     int limit = 20,
   }) async {
@@ -24,9 +25,57 @@ class ExploreService {
       'limit': limit.toString(),
     };
     if (category != null) params['category'] = category;
+    if (sort != null) params['sort'] = sort;
 
     final data = await _api.get(
       '/explore',
+      queryParams: params,
+      token: await _token(),
+    );
+    return ExploreListResponse.fromJson(data);
+  }
+
+  Future<ExploreListResponse> random({
+    String? category,
+    int limit = 20,
+  }) async {
+    final params = <String, String>{'limit': limit.toString()};
+    if (category != null) params['category'] = category;
+
+    final data = await _api.get(
+      '/explore/random',
+      queryParams: params,
+      token: await _token(),
+    );
+    return ExploreListResponse.fromJson(data);
+  }
+
+  Future<bool> bookmarkStatus(String id) async {
+    final data = await _api.get(
+      '/explore/$id/bookmark',
+      token: await _token(),
+    );
+    return data['data']['bookmarked'] as bool;
+  }
+
+  Future<void> setBookmark(String id) async {
+    await _api.post('/explore/$id/bookmark', token: await _token());
+  }
+
+  Future<void> removeBookmark(String id) async {
+    await _api.delete('/explore/$id/bookmark', token: await _token());
+  }
+
+  Future<ExploreListResponse> getBookmarks({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    final data = await _api.get(
+      '/explore/bookmarks',
       queryParams: params,
       token: await _token(),
     );

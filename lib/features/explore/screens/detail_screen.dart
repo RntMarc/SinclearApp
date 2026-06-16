@@ -19,6 +19,8 @@ class _DetailScreenState extends State<DetailScreen> {
   bool _loading = true;
   bool _refreshing = false;
   String? _error;
+  bool? _bookmarked;
+  bool _bookmarkToggling = false;
 
   @override
   void initState() {
@@ -30,10 +32,14 @@ class _DetailScreenState extends State<DetailScreen> {
     setState(() => _loading = true);
     try {
       final explore = AppScope.of(context).explore;
-      final place = await explore.get(widget.id);
+      final results = await Future.wait([
+        explore.get(widget.id),
+        explore.bookmarkStatus(widget.id),
+      ]);
       if (!mounted) return;
       setState(() {
-        _place = place;
+        _place = results[0] as ExplorePlace;
+        _bookmarked = results[1] as bool;
         _loading = false;
         _error = null;
       });
@@ -43,6 +49,27 @@ class _DetailScreenState extends State<DetailScreen> {
         _loading = false;
         _error = 'Ort konnte nicht geladen werden.';
       });
+    }
+  }
+
+  Future<void> _toggleBookmark() async {
+    if (_bookmarkToggling || _bookmarked == null) return;
+    setState(() => _bookmarkToggling = true);
+    try {
+      final explore = AppScope.of(context).explore;
+      if (_bookmarked!) {
+        await explore.removeBookmark(widget.id);
+      } else {
+        await explore.setBookmark(widget.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        _bookmarked = !_bookmarked!;
+        _bookmarkToggling = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _bookmarkToggling = false);
     }
   }
 
@@ -141,16 +168,22 @@ class _DetailScreenState extends State<DetailScreen> {
         place: place,
         canDelete: canDelete,
         refreshing: _refreshing,
+        bookmarked: _bookmarked ?? false,
+        bookmarkToggling: _bookmarkToggling,
         onRefresh: _refresh,
         onDelete: _delete,
+        onToggleBookmark: _toggleBookmark,
       );
     }
     return _NarrowDetail(
       place: place,
       canDelete: canDelete,
       refreshing: _refreshing,
+      bookmarked: _bookmarked ?? false,
+      bookmarkToggling: _bookmarkToggling,
       onRefresh: _refresh,
       onDelete: _delete,
+      onToggleBookmark: _toggleBookmark,
     );
   }
 }
@@ -159,15 +192,21 @@ class _WideDetail extends StatelessWidget {
   final ExplorePlace place;
   final bool canDelete;
   final bool refreshing;
+  final bool bookmarked;
+  final bool bookmarkToggling;
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
+  final VoidCallback onToggleBookmark;
 
   const _WideDetail({
     required this.place,
     required this.canDelete,
     required this.refreshing,
+    required this.bookmarked,
+    required this.bookmarkToggling,
     required this.onRefresh,
     required this.onDelete,
+    required this.onToggleBookmark,
   });
 
   @override
@@ -189,8 +228,11 @@ class _WideDetail extends StatelessWidget {
                 _ActionsCard(
                   canDelete: canDelete,
                   refreshing: refreshing,
+                  bookmarked: bookmarked,
+                  bookmarkToggling: bookmarkToggling,
                   onRefresh: onRefresh,
                   onDelete: onDelete,
+                  onToggleBookmark: onToggleBookmark,
                 ),
                 const SizedBox(height: 16),
                 // TODO: Bewertungen integrieren, sobald API-Endpunkt verfügbar
@@ -220,15 +262,21 @@ class _NarrowDetail extends StatelessWidget {
   final ExplorePlace place;
   final bool canDelete;
   final bool refreshing;
+  final bool bookmarked;
+  final bool bookmarkToggling;
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
+  final VoidCallback onToggleBookmark;
 
   const _NarrowDetail({
     required this.place,
     required this.canDelete,
     required this.refreshing,
+    required this.bookmarked,
+    required this.bookmarkToggling,
     required this.onRefresh,
     required this.onDelete,
+    required this.onToggleBookmark,
   });
 
   @override
@@ -260,8 +308,11 @@ class _NarrowDetail extends StatelessWidget {
                       _ActionsCard(
                         canDelete: canDelete,
                         refreshing: refreshing,
+                        bookmarked: bookmarked,
+                        bookmarkToggling: bookmarkToggling,
                         onRefresh: onRefresh,
                         onDelete: onDelete,
+                        onToggleBookmark: onToggleBookmark,
                       ),
                     ],
                   ),
@@ -405,24 +456,53 @@ class _MapCard extends StatelessWidget {
 class _ActionsCard extends StatelessWidget {
   final bool canDelete;
   final bool refreshing;
+  final bool bookmarked;
+  final bool bookmarkToggling;
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
+  final VoidCallback onToggleBookmark;
 
   const _ActionsCard({
     required this.canDelete,
     required this.refreshing,
+    required this.bookmarked,
+    required this.bookmarkToggling,
     required this.onRefresh,
     required this.onDelete,
+    required this.onToggleBookmark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            FilledButton.tonalIcon(
+              onPressed: bookmarkToggling ? null : onToggleBookmark,
+              icon: bookmarkToggling
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      bookmarked
+                          ? Icons.bookmark_rounded
+                          : Icons.bookmark_border_rounded,
+                    ),
+              label: Text(
+                bookmarkToggling
+                    ? '…'
+                    : bookmarked
+                        ? 'Lesezeichen entfernen'
+                        : 'Lesezeichen setzen',
+              ),
+            ),
+            const SizedBox(height: 8),
             FilledButton.tonalIcon(
               onPressed: refreshing ? null : onRefresh,
               icon: refreshing
@@ -441,7 +521,7 @@ class _ActionsCard extends StatelessWidget {
                 icon: const Icon(Icons.delete_rounded),
                 label: const Text('Ort löschen'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: theme.colorScheme.error,
                 ),
               ),
             ],

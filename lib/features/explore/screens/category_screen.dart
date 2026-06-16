@@ -22,6 +22,13 @@ class _CategoryScreenState extends State<CategoryScreen> {
   bool _loadingMore = false;
   bool _showMap = false;
   String? _error;
+  String? _sort;
+
+  static const _sortOptions = [
+    ('name', 'Alphabetisch'),
+    ('created', 'Neueste'),
+    ('rating', 'Bewertung'),
+  ];
 
   @override
   void initState() {
@@ -45,12 +52,35 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
+  void _setSort(String base) {
+    setState(() {
+      if (_sort == null || !_sort!.startsWith(base)) {
+        _sort = '${base}_${base == 'name' ? 'asc' : 'desc'}';
+      } else if (_sort!.endsWith('asc')) {
+        _sort = '${base}_desc';
+      } else {
+        _sort = null;
+      }
+      _places = [];
+      _meta = null;
+    });
+    _load();
+  }
+
+  bool _isSelected(String base) => _sort?.startsWith(base) ?? false;
+
+  String _sortLabel(String base) {
+    if (!_isSelected(base)) return '';
+    return _sort!.endsWith('asc') ? ' ↑' : ' ↓';
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
       final explore = AppScope.of(context).explore;
       final response = await explore.list(
         category: widget.category,
+        sort: _sort,
         page: 1,
         limit: 20,
       );
@@ -77,6 +107,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
       final explore = AppScope.of(context).explore;
       final response = await explore.list(
         category: widget.category,
+        sort: _sort,
         page: _meta!.page + 1,
         limit: 20,
       );
@@ -128,24 +159,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
-              // TODO: Sortierung aktivieren, sobald API sort-Parameter unterstützt
-              SortChip(
-                label: 'Alphabetisch',
-                selected: false,
-                onTap: () {},
-              ),
-              const SizedBox(width: 8),
-              SortChip(
-                label: 'Neueste',
-                selected: false,
-                onTap: () {},
-              ),
-              const SizedBox(width: 8),
-              SortChip(
-                label: 'Bewertung',
-                selected: false,
-                onTap: () {},
-              ),
+              for (final opt in _sortOptions)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: SortChip(
+                    label: '${opt.$2}${_sortLabel(opt.$1)}',
+                    selected: _isSelected(opt.$1),
+                    onTap: () => _setSort(opt.$1),
+                  ),
+                ),
               const Spacer(),
               IconButton(
                 onPressed: _searchByLocation,
