@@ -79,13 +79,17 @@ class ApiClient {
 
   Future<void> delete(
     String path, {
+    Map<String, dynamic>? body,
     String? token,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
-    final response = await _client.delete(
-      uri,
-      headers: _headers(token: token),
-    );
+    final request = http.Request('DELETE', uri);
+    request.headers.addAll(_headers(token: token));
+    if (body != null) {
+      request.body = jsonEncode(body);
+    }
+    final streamed = await _client.send(request);
+    final response = await http.Response.fromStream(streamed);
     if (response.statusCode == 204) return;
     _handleResponse(response);
   }

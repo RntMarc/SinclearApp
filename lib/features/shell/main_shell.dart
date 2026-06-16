@@ -73,6 +73,10 @@ class _DesktopShell extends StatelessWidget {
                 label: const Text('Home'),
               ),
               NavigationDrawerDestination(
+                icon: const Icon(Icons.article_rounded),
+                label: const Text('Aktuell'),
+              ),
+              NavigationDrawerDestination(
                 icon: const Icon(Icons.explore_rounded),
                 label: const Text('Entdecken'),
               ),
@@ -96,7 +100,8 @@ class _DesktopShell extends StatelessWidget {
   }
 
   int _selectedIndex(String location) {
-    if (location.startsWith('/entdecken')) return 1;
+    if (location.startsWith('/aktuell')) return 1;
+    if (location.startsWith('/entdecken')) return 2;
     return 0;
   }
 
@@ -105,8 +110,10 @@ class _DesktopShell extends StatelessWidget {
       case 0:
         context.go('/home');
       case 1:
-        context.go('/entdecken');
+        context.go('/aktuell');
       case 2:
+        context.go('/entdecken');
+      case 3:
         final auth = AppScope.of(context).auth;
         if (auth.isLoggedIn) {
           await auth.logout();
@@ -127,7 +134,11 @@ class _MobileShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = AppScope.of(context).auth;
     final location = GoRouterState.of(context).matchedLocation;
-    final title = location.startsWith('/entdecken') ? 'Entdecken' : 'Home';
+    final title = location.startsWith('/aktuell')
+        ? 'Aktuell'
+        : location.startsWith('/entdecken')
+            ? 'Entdecken'
+            : 'Home';
 
     return Scaffold(
       appBar: AppBar(
@@ -162,6 +173,15 @@ class _MobileShell extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(context);
                   context.go('/home');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.article_rounded),
+                title: const Text('Aktuell'),
+                selected: location.startsWith('/aktuell'),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go('/aktuell');
                 },
               ),
               ListTile(
