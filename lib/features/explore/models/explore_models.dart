@@ -17,6 +17,8 @@ class ExplorePlace {
   final String createdAt;
   final String lastUpdated;
   final double? distance;
+  final double? avgRating;
+  final String? bookmarkedAt;
 
   const ExplorePlace({
     required this.id,
@@ -37,6 +39,8 @@ class ExplorePlace {
     required this.createdAt,
     required this.lastUpdated,
     this.distance,
+    this.avgRating,
+    this.bookmarkedAt,
   });
 
   factory ExplorePlace.fromJson(Map<String, dynamic> json) {
@@ -59,6 +63,8 @@ class ExplorePlace {
       createdAt: json['createdAt'] as String,
       lastUpdated: json['lastUpdated'] as String,
       distance: (json['distance'] as num?)?.toDouble(),
+      avgRating: (json['avgRating'] as num?)?.toDouble(),
+      bookmarkedAt: json['bookmarkedAt'] as String?,
     );
   }
 }

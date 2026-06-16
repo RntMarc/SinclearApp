@@ -16,7 +16,9 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   final _searchController = TextEditingController();
   List<ExplorePlace> _suggestions = [];
+  List<ExplorePlace> _bookmarks = [];
   bool _loading = true;
+  bool _loadingBookmarks = true;
   bool _showMap = false;
   String? _error;
 
@@ -24,6 +26,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void initState() {
     super.initState();
     _loadSuggestions();
+    _loadBookmarks();
   }
 
   @override
@@ -36,7 +39,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     setState(() => _loading = true);
     try {
       final explore = AppScope.of(context).explore;
-      final response = await explore.list(page: 1, limit: 20);
+      final response = await explore.random(limit: 20);
       if (!mounted) return;
       setState(() {
         _suggestions = response.data;
@@ -49,6 +52,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _loading = false;
         _error = 'Vorschläge konnten nicht geladen werden.';
       });
+    }
+  }
+
+  Future<void> _loadBookmarks() async {
+    setState(() => _loadingBookmarks = true);
+    try {
+      final explore = AppScope.of(context).explore;
+      final response = await explore.getBookmarks(limit: 20);
+      if (!mounted) return;
+      setState(() {
+        _bookmarks = response.data;
+        _loadingBookmarks = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingBookmarks = false);
     }
   }
 
@@ -200,7 +219,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
         ),
-        // TODO: Suggestions durch einen API-Endpunkt für zufällige Orte ersetzen
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverGrid(
@@ -229,20 +247,37 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                // TODO: Lesezeichen-Integration, wenn API-Endpunkte verfügbar sind
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        'Lesezeichen sind bald verfügbar.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                if (_loadingBookmarks)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (_bookmarks.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: Text(
+                          'Keine Lesezeichen vorhanden.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ),
+                  )
+                else
+                  SizedBox(
+                    height: 200,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.zero,
+                      itemCount: _bookmarks.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) =>
+                          PlaceCard(place: _bookmarks[index]),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
