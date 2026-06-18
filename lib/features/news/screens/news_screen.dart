@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../../core/di/app_scope.dart';
 import '../models/news_models.dart';
 
@@ -17,18 +18,19 @@ class _NewsScreenState extends State<NewsScreen>
   final _articlesScrollController = ScrollController();
   final _archiveScrollController = ScrollController();
 
-  List<NewsArticle> _articles = [];
+  List<NewsItem> _items = [];
   PaginationMeta? _articlesMeta;
   bool _articlesLoading = true;
   bool _articlesLoadingMore = false;
   String? _articlesError;
 
-  List<NewsArticle> _archive = [];
+  List<NewsItem> _archive = [];
   PaginationMeta? _archiveMeta;
   bool _archiveLoading = true;
   bool _archiveLoadingMore = false;
 
   Set<String> _votedIds = {};
+  Set<String> _votedUrls = {};
 
   @override
   void initState() {
@@ -66,6 +68,28 @@ class _NewsScreenState extends State<NewsScreen>
     }
   }
 
+  List<NewsItem> _mergeArticles(
+    List<NewsArticle> data,
+    List<RssArticle> rss,
+  ) {
+    final urlToItem = <String, NewsItem>{};
+
+    for (final article in data) {
+      urlToItem[article.url] = NewsItem.fromDbArticle(article);
+    }
+
+    for (final article in rss) {
+      urlToItem.putIfAbsent(
+        article.url,
+        () => NewsItem.fromRssArticle(article),
+      );
+    }
+
+    final items = urlToItem.values.toList();
+    items.sort((a, b) => b.date.compareTo(a.date));
+    return items;
+  }
+
   Future<void> _loadArticles() async {
     setState(() {
       _articlesLoading = true;
@@ -78,12 +102,13 @@ class _NewsScreenState extends State<NewsScreen>
         news.getVotes(limit: 999),
       ]);
       if (!mounted) return;
+      final articlesResp = results[0];
+      final votesResp = results[1];
       setState(() {
-        final articlesResp = results[0];
-        final votesResp = results[1];
-        _articles = articlesResp.data;
+        _items = _mergeArticles(articlesResp.data, articlesResp.rss);
         _articlesMeta = articlesResp.meta;
         _votedIds = votesResp.data.map((a) => a.id).toSet();
+        _votedUrls = votesResp.data.map((a) => a.url).toSet();
         _articlesLoading = false;
       });
     } catch (_) {
@@ -109,8 +134,14 @@ class _NewsScreenState extends State<NewsScreen>
         limit: 20,
       );
       if (!mounted) return;
+      final existingUrls = _items.map((e) => e.url).toSet();
+      final newItems = response.data
+          .map(NewsItem.fromDbArticle)
+          .where((item) => !existingUrls.contains(item.url))
+          .toList();
       setState(() {
-        _articles.addAll(response.data);
+        _items.addAll(newItems);
+        _items.sort((a, b) => b.date.compareTo(a.date));
         _articlesMeta = response.meta;
         _articlesLoadingMore = false;
       });
@@ -127,7 +158,7 @@ class _NewsScreenState extends State<NewsScreen>
       final response = await news.getArchive(page: 1, limit: 20);
       if (!mounted) return;
       setState(() {
-        _archive = response.data;
+        _archive = response.data.map(NewsItem.fromDbArticle).toList();
         _archiveMeta = response.meta;
         _archiveLoading = false;
       });
@@ -152,7 +183,7 @@ class _NewsScreenState extends State<NewsScreen>
       );
       if (!mounted) return;
       setState(() {
-        _archive.addAll(response.data);
+        _archive.addAll(response.data.map(NewsItem.fromDbArticle));
         _archiveMeta = response.meta;
         _archiveLoadingMore = false;
       });
@@ -162,29 +193,54 @@ class _NewsScreenState extends State<NewsScreen>
     }
   }
 
-  Future<void> _toggleVote(NewsArticle article) async {
-    final isVoted = _votedIds.contains(article.id);
-    try {
-      final news = AppScope.of(context).news;
-      if (isVoted) {
-        await news.removeVote(article.id);
+  bool _isVoted(NewsItem item) {
+    if (item.id != null && _votedIds.contains(item.id)) return true;
+    return _votedUrls.contains(item.url);
+  }
+
+  Future<void> _toggleVote(NewsItem item) async {
+    if (_isVoted(item)) {
+      final id = item.id;
+      if (id == null) return;
+      try {
+        final news = AppScope.of(context).news;
+        await news.removeVote(id);
         if (!mounted) return;
-        setState(() => _votedIds.remove(article.id));
-      } else {
-        await news.vote(
-          url: article.url,
-          title: article.title,
-          sourceName: article.sourceName,
-          sourceIcon: article.sourceIcon,
+        setState(() {
+          _votedIds.remove(id);
+          _votedUrls.remove(item.url);
+        });
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Fehler beim Aktualisieren.')),
+        );
+      }
+    } else {
+      try {
+        final news = AppScope.of(context).news;
+        final response = await news.vote(
+          url: item.url,
+          title: item.title,
+          sourceName: item.sourceName,
+          sourceIcon: item.sourceIcon,
         );
         if (!mounted) return;
-        setState(() => _votedIds.add(article.id));
+        final articleId = response['data']['articleId'] as String;
+        setState(() {
+          _votedIds.add(articleId);
+          _votedUrls.add(item.url);
+          final index = _items.indexWhere((i) => i.url == item.url);
+          if (index != -1) {
+            _items[index] = _items[index].copyWith(id: articleId);
+          }
+        });
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Fehler beim Aktualisieren.')),
+        );
       }
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fehler beim Aktualisieren.')),
-      );
     }
   }
 
@@ -238,7 +294,7 @@ class _NewsScreenState extends State<NewsScreen>
       );
     }
 
-    if (_articles.isEmpty) {
+    if (_items.isEmpty) {
       return Center(
         child: Text(
           'Keine Artikel vorhanden.',
@@ -254,21 +310,21 @@ class _NewsScreenState extends State<NewsScreen>
       child: ListView.builder(
         controller: _articlesScrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: _articles.length + (_articlesLoadingMore ? 1 : 0),
+        itemCount: _items.length + (_articlesLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index >= _articles.length) {
+          if (index >= _items.length) {
             return const Padding(
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          final article = _articles[index];
+          final item = _items[index];
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _NewsCard(
-              article: article,
-              voted: _votedIds.contains(article.id),
-              onToggleVote: () => _toggleVote(article),
+              item: item,
+              voted: _isVoted(item),
+              onToggleVote: () => _toggleVote(item),
             ),
           );
         },
@@ -307,11 +363,11 @@ class _NewsScreenState extends State<NewsScreen>
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          final article = _archive[index];
+          final item = _archive[index];
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _NewsCard(
-              article: article,
+              item: item,
               voted: false,
               showVoteButton: false,
             ),
@@ -323,30 +379,32 @@ class _NewsScreenState extends State<NewsScreen>
 }
 
 class _NewsCard extends StatelessWidget {
-  final NewsArticle article;
+  final NewsItem item;
   final bool voted;
   final bool showVoteButton;
   final VoidCallback? onToggleVote;
 
   const _NewsCard({
-    required this.article,
+    required this.item,
     required this.voted,
     this.showVoteButton = true,
     this.onToggleVote,
   });
 
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final date = article.savedAt.length >= 10
-        ? article.savedAt.substring(0, 10)
-        : article.savedAt;
+    final dateStr = _formatDate(item.date);
 
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          final uri = Uri.tryParse(article.url);
+          final uri = Uri.tryParse(item.url);
           if (uri != null) launchUrl(uri, mode: LaunchMode.externalApplication);
         },
         child: Padding(
@@ -356,10 +414,10 @@ class _NewsCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundImage: article.sourceIcon != null
-                    ? NetworkImage(article.sourceIcon!)
+                backgroundImage: item.sourceIcon != null
+                    ? NetworkImage(item.sourceIcon!)
                     : null,
-                child: article.sourceIcon == null
+                child: item.sourceIcon == null
                     ? const Icon(Icons.rss_feed_rounded, size: 20)
                     : null,
               ),
@@ -369,7 +427,7 @@ class _NewsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      article.title,
+                      item.title,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -378,7 +436,7 @@ class _NewsCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${article.sourceName} · $date',
+                      '${item.sourceName} · $dateStr',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -391,7 +449,9 @@ class _NewsCard extends StatelessWidget {
                 IconButton(
                   onPressed: onToggleVote,
                   icon: Icon(
-                    voted ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    voted
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
                     color: voted ? Colors.red : null,
                   ),
                 ),
