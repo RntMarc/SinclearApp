@@ -31,6 +31,7 @@ class _NewsScreenState extends State<NewsScreen>
 
   Set<String> _votedIds = {};
   Set<String> _votedUrls = {};
+  int _rssCount = 0;
 
   @override
   void initState() {
@@ -104,11 +105,13 @@ class _NewsScreenState extends State<NewsScreen>
       if (!mounted) return;
       final articlesResp = results[0];
       final votesResp = results[1];
+
       setState(() {
         _items = _mergeArticles(articlesResp.data, articlesResp.rss);
         _articlesMeta = articlesResp.meta;
         _votedIds = votesResp.data.map((a) => a.id).toSet();
         _votedUrls = votesResp.data.map((a) => a.url).toSet();
+        _rssCount = articlesResp.rss.length;
         _articlesLoading = false;
       });
     } catch (_) {
@@ -310,15 +313,29 @@ class _NewsScreenState extends State<NewsScreen>
       child: ListView.builder(
         controller: _articlesScrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: _items.length + (_articlesLoadingMore ? 1 : 0),
+        itemCount: 1 + _items.length + (_articlesLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index >= _items.length) {
+          if (index == 0) {
+            final total = _items.length;
+            final dbCount = _items.where((i) => i.isFromDb).length;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '$total Artikel (DB: $dbCount, RSS: $_rssCount)',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            );
+          }
+          final itemIndex = index - 1;
+          if (itemIndex >= _items.length) {
             return const Padding(
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          final item = _items[index];
+          final item = _items[itemIndex];
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _NewsCard(
