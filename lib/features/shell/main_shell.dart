@@ -55,8 +55,8 @@ class _MobileShell extends StatelessWidget {
     final title = location.startsWith('/aktuell')
         ? 'Aktuell'
         : location.startsWith('/entdecken')
-            ? 'Entdecken'
-            : 'Home';
+        ? 'Entdecken'
+        : 'Home';
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
