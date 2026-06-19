@@ -73,7 +73,7 @@ class TravelService {
     };
 
     final data = await _api.get(
-      '/trips/0/events',
+      '/trips/standaloneevents',
       queryParams: params,
       token: await _token(),
     );
