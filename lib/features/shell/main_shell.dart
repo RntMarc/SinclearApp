@@ -32,65 +32,79 @@ class _DesktopShell extends StatelessWidget {
     return Scaffold(
       body: Row(
         children: [
-          NavigationDrawer(
+          NavigationRail(
             selectedIndex: _selectedIndex(location),
-            onDestinationSelected: (i) =>
-                _onNavigate(context, i),
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                child: SafeArea(
-                  bottom: false,
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'assets/logo.png',
-                        width: 32,
-                        height: 32,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Beyond',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+            onDestinationSelected: (i) => _onNavigate(context, i),
+            labelType: NavigationRailLabelType.all,
+            leading: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Row(
+                      children: [
+                        Image.asset('assets/logo.png', width: 32, height: 32),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Beyond',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(
-                  'Navigation',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Text(
+                    'Navigation',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
+              ],
+            ),
+            destinations: const [
+              NavigationRailDestination(
+                icon: Icon(Icons.home_rounded),
+                label: Text('Home'),
               ),
-              NavigationDrawerDestination(
-                icon: const Icon(Icons.home_rounded),
-                label: const Text('Home'),
+              NavigationRailDestination(
+                icon: Icon(Icons.article_rounded),
+                label: Text('Aktuell'),
               ),
-              NavigationDrawerDestination(
-                icon: const Icon(Icons.article_rounded),
-                label: const Text('Aktuell'),
-              ),
-              NavigationDrawerDestination(
-                icon: const Icon(Icons.explore_rounded),
-                label: const Text('Entdecken'),
-              ),
-              const Divider(),
-              ListenableBuilder(
-                listenable: auth,
-                builder: (context, _) {
-                  return NavigationDrawerDestination(
-                    icon: const Icon(Icons.logout_rounded),
-                    label: Text(auth.isLoggedIn ? 'Abmelden' : 'Anmelden'),
-                  );
-                },
+              NavigationRailDestination(
+                icon: Icon(Icons.explore_rounded),
+                label: Text('Entdecken'),
               ),
             ],
+            trailing: Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Divider(),
+                  ListenableBuilder(
+                    listenable: auth,
+                    builder: (context, _) {
+                      return IconButton(
+                        icon: Icon(
+                          Icons.logout_rounded,
+                          color: auth.isLoggedIn
+                              ? theme.colorScheme.error
+                              : null,
+                        ),
+                        onPressed: () => _onNavigate(context, 3),
+                        tooltip: auth.isLoggedIn ? 'Abmelden' : 'Anmelden',
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
           ),
           const VerticalDivider(width: 1),
           Expanded(child: child),
@@ -137,13 +151,11 @@ class _MobileShell extends StatelessWidget {
     final title = location.startsWith('/aktuell')
         ? 'Aktuell'
         : location.startsWith('/entdecken')
-            ? 'Entdecken'
-            : 'Home';
+        ? 'Entdecken'
+        : 'Home';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
+      appBar: AppBar(title: Text(title)),
       drawer: Drawer(
         child: SafeArea(
           child: Column(
@@ -151,17 +163,13 @@ class _MobileShell extends StatelessWidget {
               DrawerHeader(
                 child: Row(
                   children: [
-                    Image.asset(
-                      'assets/logo.png',
-                      width: 40,
-                      height: 40,
-                    ),
+                    Image.asset('assets/logo.png', width: 40, height: 40),
                     const SizedBox(width: 12),
                     Text(
                       'Beyond',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
