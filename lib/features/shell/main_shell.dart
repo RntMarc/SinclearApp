@@ -25,104 +25,23 @@ class _DesktopShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final auth = AppScope.of(context).auth;
     final location = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
       body: Row(
         children: [
-          NavigationDrawer(
-            selectedIndex: _selectedIndex(location),
-            onDestinationSelected: (i) =>
-                _onNavigate(context, i),
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                child: SafeArea(
-                  bottom: false,
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'assets/logo.png',
-                        width: 32,
-                        height: 32,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Beyond',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(
-                  'Navigation',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              NavigationDrawerDestination(
-                icon: const Icon(Icons.home_rounded),
-                label: const Text('Home'),
-              ),
-              NavigationDrawerDestination(
-                icon: const Icon(Icons.article_rounded),
-                label: const Text('Aktuell'),
-              ),
-              NavigationDrawerDestination(
-                icon: const Icon(Icons.explore_rounded),
-                label: const Text('Entdecken'),
-              ),
-              const Divider(),
-              ListenableBuilder(
-                listenable: auth,
-                builder: (context, _) {
-                  return NavigationDrawerDestination(
-                    icon: const Icon(Icons.logout_rounded),
-                    label: Text(auth.isLoggedIn ? 'Abmelden' : 'Anmelden'),
-                  );
-                },
-              ),
-            ],
+          SizedBox(
+            width: 288,
+            child: _NavContent(
+              currentLocation: location,
+              onNavigate: (route) => context.go(route),
+            ),
           ),
           const VerticalDivider(width: 1),
           Expanded(child: child),
         ],
       ),
     );
-  }
-
-  int _selectedIndex(String location) {
-    if (location.startsWith('/aktuell')) return 1;
-    if (location.startsWith('/entdecken')) return 2;
-    return 0;
-  }
-
-  void _onNavigate(BuildContext context, int index) async {
-    switch (index) {
-      case 0:
-        context.go('/home');
-      case 1:
-        context.go('/aktuell');
-      case 2:
-        context.go('/entdecken');
-      case 3:
-        final auth = AppScope.of(context).auth;
-        if (auth.isLoggedIn) {
-          await auth.logout();
-          if (!context.mounted) return;
-          context.go('/');
-        } else {
-          context.go('/login');
-        }
-    }
   }
 }
 
@@ -132,7 +51,6 @@ class _MobileShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = AppScope.of(context).auth;
     final location = GoRouterState.of(context).matchedLocation;
     final title = location.startsWith('/aktuell')
         ? 'Aktuell'
@@ -141,82 +59,115 @@ class _MobileShell extends StatelessWidget {
             : 'Home';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
+      appBar: AppBar(title: Text(title)),
       drawer: Drawer(
-        child: SafeArea(
-          child: Column(
-            children: [
-              DrawerHeader(
-                child: Row(
-                  children: [
-                    Image.asset(
-                      'assets/logo.png',
-                      width: 40,
-                      height: 40,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Beyond',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.home_rounded),
-                title: const Text('Home'),
-                selected: location == '/home',
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go('/home');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.article_rounded),
-                title: const Text('Aktuell'),
-                selected: location.startsWith('/aktuell'),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go('/aktuell');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.explore_rounded),
-                title: const Text('Entdecken'),
-                selected: location.startsWith('/entdecken'),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go('/entdecken');
-                },
-              ),
-              const Spacer(),
-              ListenableBuilder(
-                listenable: auth,
-                builder: (context, _) => ListTile(
-                  leading: const Icon(Icons.logout_rounded),
-                  title: Text(auth.isLoggedIn ? 'Abmelden' : 'Anmelden'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    if (auth.isLoggedIn) {
-                      await auth.logout();
-                      if (!context.mounted) return;
-                      context.go('/');
-                    } else {
-                      context.go('/login');
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
+        child: _NavContent(
+          currentLocation: location,
+          onNavigate: (route) {
+            Navigator.pop(context);
+            context.go(route);
+          },
         ),
       ),
       body: child,
     );
+  }
+}
+
+class _NavContent extends StatelessWidget {
+  final String currentLocation;
+  final void Function(String route) onNavigate;
+
+  const _NavContent({
+    required this.currentLocation,
+    required this.onNavigate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final auth = AppScope.of(context).auth;
+    final selectedIndex = _selectedIndex(currentLocation);
+
+    return SafeArea(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+            child: Row(
+              children: [
+                Image.asset(
+                  'assets/logo.png',
+                  width: 32,
+                  height: 32,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Beyond',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Navigation',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home_rounded),
+            title: const Text('Home'),
+            selected: selectedIndex == 0,
+            onTap: () => onNavigate('/home'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.article_rounded),
+            title: const Text('Aktuell'),
+            selected: selectedIndex == 1,
+            onTap: () => onNavigate('/aktuell'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.explore_rounded),
+            title: const Text('Entdecken'),
+            selected: selectedIndex == 2,
+            onTap: () => onNavigate('/entdecken'),
+          ),
+          const Spacer(),
+          const Divider(),
+          ListenableBuilder(
+            listenable: auth,
+            builder: (context, _) => ListTile(
+              leading: const Icon(Icons.logout_rounded),
+              title: Text(auth.isLoggedIn ? 'Abmelden' : 'Anmelden'),
+              onTap: () async {
+                if (auth.isLoggedIn) {
+                  await auth.logout();
+                  if (!context.mounted) return;
+                  onNavigate('/');
+                } else {
+                  onNavigate('/login');
+                }
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  int _selectedIndex(String location) {
+    if (location.startsWith('/aktuell')) return 1;
+    if (location.startsWith('/entdecken')) return 2;
+    return 0;
   }
 }
