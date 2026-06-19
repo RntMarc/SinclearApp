@@ -8,6 +8,7 @@ import 'features/auth/services/auth_service.dart';
 import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
 import 'features/news/services/news_service.dart';
+import 'features/travel/services/travel_service.dart';
 import 'router/router.dart';
 
 void main() async {
@@ -23,6 +24,7 @@ void main() async {
   await auth.init();
   final explore = ExploreService(api: api, auth: auth);
   final news = NewsService(api: api, auth: auth);
+  final travel = TravelService(api: api, auth: auth);
   final router = createRouter(auth);
 
   runApp(SinclearApp(
@@ -30,6 +32,7 @@ void main() async {
     explore: explore,
     nominatim: nominatim,
     news: news,
+    travel: travel,
     router: router,
   ));
 }

@@ -10,6 +10,7 @@ import '../features/explore/screens/detail_screen.dart';
 import '../features/explore/screens/create_place_screen.dart';
 import '../features/news/screens/news_screen.dart';
 import '../features/shell/main_shell.dart';
+import '../features/travel/screens/travel_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -21,7 +22,8 @@ GoRouter createRouter(AuthService auth) {
 
       final isAuth = location.startsWith('/home') ||
           location.startsWith('/entdecken') ||
-          location.startsWith('/aktuell');
+          location.startsWith('/aktuell') ||
+          location.startsWith('/reisen');
 
       if (loggedIn && location == '/') return '/home';
       if (!loggedIn && isAuth) return '/';
@@ -50,6 +52,10 @@ GoRouter createRouter(AuthService auth) {
           GoRoute(
             path: '/aktuell',
             builder: (context, state) => const NewsScreen(),
+          ),
+          GoRoute(
+            path: '/reisen',
+            builder: (context, state) => const TravelScreen(),
           ),
           GoRoute(
             path: '/entdecken',
