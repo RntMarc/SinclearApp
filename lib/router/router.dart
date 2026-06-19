@@ -11,6 +11,7 @@ import '../features/explore/screens/create_place_screen.dart';
 import '../features/news/screens/news_screen.dart';
 import '../features/shell/main_shell.dart';
 import '../features/travel/screens/travel_screen.dart';
+import '../features/travel/screens/trip_detail_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -56,6 +57,13 @@ GoRouter createRouter(AuthService auth) {
           GoRoute(
             path: '/reisen',
             builder: (context, state) => const TravelScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    TripDetailScreen(id: state.pathParameters['id']!),
+              ),
+            ],
           ),
           GoRoute(
             path: '/entdecken',

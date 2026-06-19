@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
@@ -15,36 +16,63 @@ class _TravelScreenState extends State<TravelScreen> {
 
   bool _loading = true;
   String? _error;
-  List<TravelTrip> _current = [];
-  List<TravelTrip> _future = [];
-  List<TravelTrip> _past = [];
+  List<TimelineEntry> _current = [];
+  List<TimelineEntry> _future = [];
+  List<TimelineEntry> _past = [];
 
   @override
   void initState() {
     super.initState();
-    _loadTrips();
+    _load();
   }
 
-  Future<void> _loadTrips() async {
+  Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      final response = await _service.list(limit: 100);
-      final now = DateTime.now();
-      final current = <TravelTrip>[];
-      final future = <TravelTrip>[];
-      final past = <TravelTrip>[];
+      final tripsFuture = _service.list(limit: 100);
+      final standaloneFuture = _service.getStandaloneEvents(limit: 100);
+      final results = await Future.wait([tripsFuture, standaloneFuture]);
 
-      for (final trip in response.data) {
-        if (trip.start.isBefore(now) && trip.end.isAfter(now)) {
-          current.add(trip);
-        } else if (trip.start.isAfter(now)) {
-          future.add(trip);
+      final trips = results[0] as TravelTripListResponse;
+      final standalone = results[1] as TravelStandaloneEventListResponse;
+
+      final entries = <TimelineEntry>[
+        for (final t in trips.data)
+          TimelineEntry(
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            start: t.start,
+            end: t.end,
+            isTrip: true,
+          ),
+        for (final e in standalone.data)
+          TimelineEntry(
+            id: e.id,
+            name: e.name,
+            description: e.description,
+            start: e.start,
+            end: e.end,
+            isTrip: false,
+          ),
+      ];
+
+      final now = DateTime.now();
+      final current = <TimelineEntry>[];
+      final future = <TimelineEntry>[];
+      final past = <TimelineEntry>[];
+
+      for (final entry in entries) {
+        if (entry.start.isBefore(now) && entry.end.isAfter(now)) {
+          current.add(entry);
+        } else if (entry.start.isAfter(now)) {
+          future.add(entry);
         } else {
-          past.add(trip);
+          past.add(entry);
         }
       }
 
@@ -77,10 +105,10 @@ class _TravelScreenState extends State<TravelScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Fehler beim Laden der Reisen'),
+            const Text('Fehler beim Laden der Reisen'),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: _loadTrips,
+              onPressed: _load,
               child: const Text('Erneut versuchen'),
             ),
           ],
@@ -88,18 +116,18 @@ class _TravelScreenState extends State<TravelScreen> {
       );
     }
 
-    final hasTrips =
+    final hasEntries =
         _current.isNotEmpty || _future.isNotEmpty || _past.isNotEmpty;
 
-    if (!hasTrips) {
+    if (!hasEntries) {
       return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.flight_rounded, size: 64, color: Colors.grey),
+            Icon(Icons.event_rounded, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
-              'Keine Reisen gefunden',
+              'Keine Reisen oder Events gefunden',
               style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
@@ -116,7 +144,7 @@ class _TravelScreenState extends State<TravelScreen> {
     );
   }
 
-  List<Widget> _buildSection(String title, List<TravelTrip> trips) {
+  List<Widget> _buildSection(String title, List<TimelineEntry> entries) {
     return [
       SliverToBoxAdapter(
         child: Padding(
@@ -131,57 +159,57 @@ class _TravelScreenState extends State<TravelScreen> {
       ),
       SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) => _TripCard(trip: trips[index]),
-          childCount: trips.length,
+          (context, index) => _TimelineCard(
+            entry: entries[index],
+            onTap: entries[index].isTrip
+                ? () => context.go('/reisen/${entries[index].id}')
+                : null,
+          ),
+          childCount: entries.length,
         ),
       ),
     ];
   }
 }
 
-class _TripCard extends StatelessWidget {
-  final TravelTrip trip;
+class _TimelineCard extends StatelessWidget {
+  final TimelineEntry entry;
+  final VoidCallback? onTap;
 
-  const _TripCard({required this.trip});
+  const _TimelineCard({required this.entry, this.onTap});
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 
-  IconData _iconForCategory(String name) {
-    if (name.contains('Urlaub') || name.contains('Strand')) {
-      return Icons.beach_access_rounded;
-    }
-    if (name.contains('Stadt') || name.contains('City')) {
-      return Icons.location_city_rounded;
-    }
-    if (name.contains('Wandern') || name.contains('Berg')) {
-      return Icons.terrain_rounded;
-    }
-    if (name.contains('Camping') || name.contains('Zelten')) {
-      return Icons.fireplace_rounded;
-    }
-    return Icons.flight_rounded;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final icon = _iconForCategory(trip.name);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
-          child: Icon(icon, color: theme.colorScheme.onPrimaryContainer),
+          backgroundColor: entry.isTrip
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.secondaryContainer,
+          child: Icon(
+            entry.isTrip ? Icons.flight_rounded : Icons.event_rounded,
+            color: entry.isTrip
+                ? theme.colorScheme.onPrimaryContainer
+                : theme.colorScheme.onSecondaryContainer,
+          ),
         ),
-        title: Text(trip.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+          entry.name,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         subtitle: Text(
-          '${_formatDate(trip.start)} – ${_formatDate(trip.end)}',
+          '${_formatDate(entry.start)} – ${_formatDate(entry.end)}',
           style: theme.textTheme.bodySmall,
         ),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        trailing: entry.isTrip ? const Icon(Icons.chevron_right_rounded) : null,
+        onTap: onTap,
       ),
     );
   }
