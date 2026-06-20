@@ -14,6 +14,7 @@ class AuthService extends ChangeNotifier {
   String? _accessToken;
   int _accessTokenExpiry = 0;
   bool _loggedIn = false;
+  Future<String>? _refreshFuture;
 
   bool get isLoggedIn => _loggedIn;
 
@@ -25,6 +26,13 @@ class AuthService extends ChangeNotifier {
 
   Future<void> init() async {
     _loggedIn = (await _storage.getRefreshToken()) != null;
+    if (_loggedIn) {
+      try {
+        await getAccessToken();
+      } catch (_) {
+        _loggedIn = false;
+      }
+    }
     notifyListeners();
   }
 
@@ -53,6 +61,16 @@ class AuthService extends ChangeNotifier {
         DateTime.now().millisecondsSinceEpoch ~/ 1000 < _accessTokenExpiry) {
       return _accessToken!;
     }
+    if (_refreshFuture != null) return _refreshFuture!;
+    _refreshFuture = _doRefresh();
+    try {
+      return await _refreshFuture!;
+    } finally {
+      _refreshFuture = null;
+    }
+  }
+
+  Future<String> _doRefresh() async {
     final refresh = await _storage.getRefreshToken();
     if (refresh == null) {
       throw ApiException(errorCode: 'not_logged_in', statusCode: 401);
