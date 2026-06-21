@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../models/news_models.dart';
+import '../widgets/news_card.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -18,7 +18,8 @@ class _NewsScreenState extends State<NewsScreen>
   final _articlesScrollController = ScrollController();
   final _archiveScrollController = ScrollController();
 
-  List<NewsItem> _items = [];
+  List<NewsItem> _dbItems = [];
+  List<NewsItem> _rssItems = [];
   PaginationMeta? _articlesMeta;
   bool _articlesLoading = true;
   bool _articlesLoadingMore = false;
@@ -31,7 +32,6 @@ class _NewsScreenState extends State<NewsScreen>
 
   Set<String> _votedIds = {};
   Set<String> _votedUrls = {};
-  int _rssCount = 0;
 
   @override
   void initState() {
@@ -53,7 +53,7 @@ class _NewsScreenState extends State<NewsScreen>
 
   void _onArticlesScroll() {
     if (_articlesScrollController.position.pixels >=
-            _articlesScrollController.position.maxScrollExtent - 200 &&
+            _articlesScrollController.position.maxScrollExtent - 300 &&
         !_articlesLoadingMore &&
         _articlesMeta?.hasMore == true) {
       _loadMoreArticles();
@@ -62,33 +62,11 @@ class _NewsScreenState extends State<NewsScreen>
 
   void _onArchiveScroll() {
     if (_archiveScrollController.position.pixels >=
-            _archiveScrollController.position.maxScrollExtent - 200 &&
+            _archiveScrollController.position.maxScrollExtent - 300 &&
         !_archiveLoadingMore &&
         _archiveMeta?.hasMore == true) {
       _loadMoreArchive();
     }
-  }
-
-  List<NewsItem> _mergeArticles(
-    List<NewsArticle> data,
-    List<RssArticle> rss,
-  ) {
-    final urlToItem = <String, NewsItem>{};
-
-    for (final article in data) {
-      urlToItem[article.url] = NewsItem.fromDbArticle(article);
-    }
-
-    for (final article in rss) {
-      urlToItem.putIfAbsent(
-        article.url,
-        () => NewsItem.fromRssArticle(article),
-      );
-    }
-
-    final items = urlToItem.values.toList();
-    items.sort((a, b) => b.date.compareTo(a.date));
-    return items;
   }
 
   Future<void> _loadArticles() async {
@@ -107,11 +85,11 @@ class _NewsScreenState extends State<NewsScreen>
       final votesResp = results[1];
 
       setState(() {
-        _items = _mergeArticles(articlesResp.data, articlesResp.rss);
+        _dbItems = articlesResp.data.map(NewsItem.fromDbArticle).toList();
+        _rssItems = articlesResp.rss.map(NewsItem.fromRssArticle).toList();
         _articlesMeta = articlesResp.meta;
         _votedIds = votesResp.data.map((a) => a.id).toSet();
         _votedUrls = votesResp.data.map((a) => a.url).toSet();
-        _rssCount = articlesResp.rss.length;
         _articlesLoading = false;
       });
     } catch (_) {
@@ -137,14 +115,13 @@ class _NewsScreenState extends State<NewsScreen>
         limit: 20,
       );
       if (!mounted) return;
-      final existingUrls = _items.map((e) => e.url).toSet();
+      final existingUrls = _dbItems.map((e) => e.url).toSet();
       final newItems = response.data
           .map(NewsItem.fromDbArticle)
           .where((item) => !existingUrls.contains(item.url))
           .toList();
       setState(() {
-        _items.addAll(newItems);
-        _items.sort((a, b) => b.date.compareTo(a.date));
+        _dbItems.addAll(newItems);
         _articlesMeta = response.meta;
         _articlesLoadingMore = false;
       });
@@ -233,9 +210,13 @@ class _NewsScreenState extends State<NewsScreen>
         setState(() {
           _votedIds.add(articleId);
           _votedUrls.add(item.url);
-          final index = _items.indexWhere((i) => i.url == item.url);
-          if (index != -1) {
-            _items[index] = _items[index].copyWith(id: articleId);
+          final dbIndex = _dbItems.indexWhere((i) => i.url == item.url);
+          if (dbIndex != -1) {
+            _dbItems[dbIndex] = _dbItems[dbIndex].copyWith(id: articleId);
+          }
+          final rssIndex = _rssItems.indexWhere((i) => i.url == item.url);
+          if (rssIndex != -1) {
+            _rssItems[rssIndex] = _rssItems[rssIndex].copyWith(id: articleId);
           }
         });
       } catch (_) {
@@ -297,7 +278,7 @@ class _NewsScreenState extends State<NewsScreen>
       );
     }
 
-    if (_items.isEmpty) {
+    if (_dbItems.isEmpty && _rssItems.isEmpty) {
       return Center(
         child: Text(
           'Keine Artikel vorhanden.',
@@ -308,45 +289,103 @@ class _NewsScreenState extends State<NewsScreen>
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadArticles,
-      child: ListView.builder(
-        controller: _articlesScrollController,
-        padding: const EdgeInsets.all(16),
-        itemCount: 1 + _items.length + (_articlesLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            final total = _items.length;
-            final dbCount = _items.where((i) => i.isFromDb).length;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                '$total Artikel (DB: $dbCount, RSS: $_rssCount)',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final grid = _computeGridLayout(constraints.maxWidth);
+        return RefreshIndicator(
+          onRefresh: _loadArticles,
+          child: CustomScrollView(
+            controller: _articlesScrollController,
+            slivers: [
+              if (_dbItems.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _SectionHeader(title: 'Empfohlene Artikel'),
                 ),
+                SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: grid.crossAxisCount,
+                    mainAxisExtent: grid.mainAxisExtent,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => NewsCard(
+                      item: _dbItems[index],
+                      voted: _isVoted(_dbItems[index]),
+                      onToggleVote: () => _toggleVote(_dbItems[index]),
+                    ),
+                    childCount: _dbItems.length,
+                  ),
+                ),
+              ],
+              if (_rssItems.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: _SectionHeader(title: 'Neueste Artikel'),
+                ),
+                SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: grid.crossAxisCount,
+                    mainAxisExtent: grid.mainAxisExtent,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => NewsCard(
+                      item: _rssItems[index],
+                      voted: _isVoted(_rssItems[index]),
+                      onToggleVote: () => _toggleVote(_rssItems[index]),
+                    ),
+                    childCount: _rssItems.length,
+                  ),
+                ),
+              ],
+              SliverToBoxAdapter(
+                child: _buildArticlesFooter(theme),
               ),
-            );
-          }
-          final itemIndex = index - 1;
-          if (itemIndex >= _items.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final item = _items[itemIndex];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _NewsCard(
-              item: item,
-              voted: _isVoted(item),
-              onToggleVote: () => _toggleVote(item),
-            ),
-          );
-        },
-      ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  Widget _buildArticlesFooter(ThemeData theme) {
+    if (_articlesLoadingMore) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 3)),
+      );
+    }
+
+    if (_articlesMeta?.hasMore == true) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _loadMoreArticles,
+            icon: const Icon(Icons.expand_more),
+            label: const Text('Mehr laden'),
+          ),
+        ),
+      );
+    }
+
+    if (_dbItems.isNotEmpty || _rssItems.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: Center(
+          child: Text(
+            'Alle Artikel geladen.',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildArchiveTab() {
@@ -367,116 +406,129 @@ class _NewsScreenState extends State<NewsScreen>
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadArchive,
-      child: ListView.builder(
-        controller: _archiveScrollController,
-        padding: const EdgeInsets.all(16),
-        itemCount: _archive.length + (_archiveLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= _archive.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final item = _archive[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _NewsCard(
-              item: item,
-              voted: false,
-              showVoteButton: false,
-            ),
-          );
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final grid = _computeGridLayout(constraints.maxWidth);
+        return RefreshIndicator(
+          onRefresh: _loadArchive,
+          child: CustomScrollView(
+            controller: _archiveScrollController,
+            slivers: [
+              SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: grid.crossAxisCount,
+                  mainAxisExtent: grid.mainAxisExtent,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => NewsCard(
+                    item: _archive[index],
+                    voted: false,
+                    showVoteButton: false,
+                  ),
+                  childCount: _archive.length,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: _buildArchiveFooter(theme),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
-}
 
-class _NewsCard extends StatelessWidget {
-  final NewsItem item;
-  final bool voted;
-  final bool showVoteButton;
-  final VoidCallback? onToggleVote;
+  Widget _buildArchiveFooter(ThemeData theme) {
+    if (_archiveLoadingMore) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 3)),
+      );
+    }
 
-  const _NewsCard({
-    required this.item,
-    required this.voted,
-    this.showVoteButton = true,
-    this.onToggleVote,
-  });
+    if (_archiveMeta?.hasMore == true) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _loadMoreArchive,
+            icon: const Icon(Icons.expand_more),
+            label: const Text('Mehr laden'),
+          ),
+        ),
+      );
+    }
 
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dateStr = _formatDate(item.date);
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () {
-          final uri = Uri.tryParse(item.url);
-          if (uri != null) launchUrl(uri, mode: LaunchMode.externalApplication);
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundImage: item.sourceIcon != null
-                    ? NetworkImage(item.sourceIcon!)
-                    : null,
-                child: item.sourceIcon == null
-                    ? const Icon(Icons.rss_feed_rounded, size: 20)
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${item.sourceName} · $dateStr',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (showVoteButton && onToggleVote != null) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: onToggleVote,
-                  icon: Icon(
-                    voted
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    color: voted ? Colors.red : null,
-                  ),
-                ),
-              ],
-            ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      child: Center(
+        child: Text(
+          'Alle Archiv-Artikel geladen.',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ),
     );
   }
+
+  _GridLayout _computeGridLayout(double width) {
+    const padding = 16.0;
+    const gap = 12.0;
+    int crossAxisCount;
+    if (width < 600) {
+      crossAxisCount = 1;
+    } else if (width < 900) {
+      crossAxisCount = 2;
+    } else {
+      crossAxisCount = 3;
+    }
+    final columnWidth =
+        (width - padding * 2 - gap * (crossAxisCount - 1)) / crossAxisCount;
+    final imageHeight = columnWidth / 16 * 9;
+    const textAreaHeight = 110.0;
+    return _GridLayout(
+      crossAxisCount: crossAxisCount,
+      mainAxisExtent: imageHeight + textAreaHeight,
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Row(
+        children: [
+          Icon(Icons.star_rounded, size: 20, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GridLayout {
+  final int crossAxisCount;
+  final double mainAxisExtent;
+
+  const _GridLayout({
+    required this.crossAxisCount,
+    required this.mainAxisExtent,
+  });
 }
