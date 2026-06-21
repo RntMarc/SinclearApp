@@ -317,7 +317,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       itemCount: _bookmarks.length,
                       separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, index) =>
-                          PlaceCard(place: _bookmarks[index]),
+                          SizedBox(
+                            width: 260,
+                            child: PlaceCard(place: _bookmarks[index]),
+                          ),
                     ),
                   ),
               ],

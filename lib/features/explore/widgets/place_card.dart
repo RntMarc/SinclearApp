@@ -28,7 +28,7 @@ class PlaceCard extends StatelessWidget {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
+                  Flexible(
                     child: Text(
                       place.name,
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -50,7 +50,7 @@ class PlaceCard extends StatelessWidget {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
-                    Expanded(
+                    Flexible(
                       child: Text(
                         place.address!,
                         style: theme.textTheme.bodySmall?.copyWith(
