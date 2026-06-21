@@ -9,15 +9,12 @@ class TravelService {
   final AuthService _auth;
 
   TravelService({required ApiClient api, required AuthService auth})
-      : _api = api,
-        _auth = auth;
+    : _api = api,
+      _auth = auth;
 
   Future<String> _token() => _auth.getAccessToken();
 
-  Future<TravelTripListResponse> list({
-    int page = 1,
-    int limit = 20,
-  }) async {
+  Future<TravelTripListResponse> list({int page = 1, int limit = 20}) async {
     final params = <String, String>{
       'page': page.toString(),
       'limit': limit.toString(),
@@ -32,22 +29,18 @@ class TravelService {
   }
 
   Future<TravelTrip> getTrip(String id) async {
-    final data = await _api.get(
-      '/trips/$id',
-      token: await _token(),
-    );
+    final data = await _api.get('/trips/$id', token: await _token());
     return TravelTrip.fromJson(data['data'] as Map<String, dynamic>);
   }
 
   Future<TravelEventListResponse> getEvents(String tripId) async {
-    final data = await _api.get(
-      '/trips/$tripId/events',
-      token: await _token(),
-    );
+    final data = await _api.get('/trips/$tripId/events', token: await _token());
     return TravelEventListResponse.fromJson(data);
   }
 
-  Future<TravelAccommodationListResponse> getAccommodations(String tripId) async {
+  Future<TravelAccommodationListResponse> getAccommodations(
+    String tripId,
+  ) async {
     final data = await _api.get(
       '/trips/$tripId/accommodations',
       token: await _token(),

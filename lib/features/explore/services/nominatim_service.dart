@@ -19,12 +19,14 @@ class NominatimService {
       await Future.delayed(_minRequestInterval - elapsed);
     }
 
-    final uri = Uri.parse('$_baseUrl/search').replace(queryParameters: {
-      'q': query,
-      'format': 'json',
-      'limit': limit.toString(),
-      'addressdetails': '1',
-    });
+    final uri = Uri.parse('$_baseUrl/search').replace(
+      queryParameters: {
+        'q': query,
+        'format': 'json',
+        'limit': limit.toString(),
+        'addressdetails': '1',
+      },
+    );
 
     final response = await _client.get(
       uri,

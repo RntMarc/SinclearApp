@@ -90,8 +90,12 @@ class TravelEvent {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       osmId: json['OSMID'] as int?,
-      participants: (json['participants'] as List?)
-              ?.map((e) => TravelParticipantBrief.fromJson(e as Map<String, dynamic>))
+      participants:
+          (json['participants'] as List?)
+              ?.map(
+                (e) =>
+                    TravelParticipantBrief.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -137,8 +141,12 @@ class TravelAccommodation {
       phone: json['phone'] as String?,
       mail: json['mail'] as String?,
       ishotel: json['ishotel'] as int,
-      users: (json['users'] as List?)
-              ?.map((e) => TravelParticipantBrief.fromJson(e as Map<String, dynamic>))
+      users:
+          (json['users'] as List?)
+              ?.map(
+                (e) =>
+                    TravelParticipantBrief.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -271,9 +279,14 @@ class TravelStandaloneEventListResponse {
   final List<TravelEvent> data;
   final PaginationMeta meta;
 
-  const TravelStandaloneEventListResponse({required this.data, required this.meta});
+  const TravelStandaloneEventListResponse({
+    required this.data,
+    required this.meta,
+  });
 
-  factory TravelStandaloneEventListResponse.fromJson(Map<String, dynamic> json) {
+  factory TravelStandaloneEventListResponse.fromJson(
+    Map<String, dynamic> json,
+  ) {
     final events = (json['data'] as List)
         .map((e) => TravelEvent.fromJson(e as Map<String, dynamic>))
         .toList();

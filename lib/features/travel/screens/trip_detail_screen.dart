@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -63,7 +64,8 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         _participants = (results[3] as TravelParticipantListResponse).data;
         _loading = false;
       });
-    } catch (e) {
+    } catch (e, st) {
+      developer.log('Failed to load trip detail', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _error = e.toString();
@@ -122,10 +124,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                   participants: _participants,
                   currentUserId: currentUserId,
                 ),
-                _EventsTab(
-                  events: _events,
-                  currentUserId: currentUserId,
-                ),
+                _EventsTab(events: _events, currentUserId: currentUserId),
                 _MapTab(
                   accommodations: _accommodations,
                   events: _events,
@@ -176,8 +175,8 @@ class _OverviewTab extends StatelessWidget {
           Text(
             '${_formatDate(trip.start)} – ${_formatDate(trip.end)}',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 16),
           if (accommodations.isNotEmpty) ...[
@@ -191,15 +190,16 @@ class _OverviewTab extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Unterkünfte',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             ...accommodations.map(
               (a) => _AccommodationCard(
                 accommodation: a,
-                isMine: currentUserId != null &&
+                isMine:
+                    currentUserId != null &&
                     a.users.any((u) => u.id == currentUserId),
               ),
             ),
@@ -208,18 +208,15 @@ class _OverviewTab extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Teilnehmer',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             ...participants.map(
               (p) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: UserTile(
-                  displayName: p.displayName,
-                  imageUrl: p.image,
-                ),
+                child: UserTile(displayName: p.displayName, imageUrl: p.image),
               ),
             ),
           ],
@@ -233,10 +230,7 @@ class _AccommodationMap extends StatelessWidget {
   final List<TravelAccommodation> accommodations;
   final String? currentUserId;
 
-  const _AccommodationMap({
-    required this.accommodations,
-    this.currentUserId,
-  });
+  const _AccommodationMap({required this.accommodations, this.currentUserId});
 
   @override
   Widget build(BuildContext context) {
@@ -266,10 +260,7 @@ class _AccommodationMap extends StatelessWidget {
       child: SizedBox(
         height: 200,
         child: FlutterMap(
-          options: MapOptions(
-            initialCenter: center,
-            initialZoom: 13,
-          ),
+          options: MapOptions(initialCenter: center, initialZoom: 13),
           children: [
             TileLayer(
               urlTemplate: OsmConfig.tileUrlTemplate,
@@ -278,7 +269,8 @@ class _AccommodationMap extends StatelessWidget {
             ),
             MarkerLayer(
               markers: coords.map((a) {
-                final isMine = currentUserId != null &&
+                final isMine =
+                    currentUserId != null &&
                     a.users.any((u) => u.id == currentUserId);
                 return Marker(
                   point: LatLng(a.latitude!, a.longitude!),
@@ -292,9 +284,8 @@ class _AccommodationMap extends StatelessWidget {
             ),
             SimpleAttributionWidget(
               source: const Text('OpenStreetMap contributors'),
-              onTap: () => launchUrl(
-                Uri.parse('https://openstreetmap.org/copyright'),
-              ),
+              onTap: () =>
+                  launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
             ),
           ],
         ),
@@ -307,10 +298,7 @@ class _AccommodationCard extends StatelessWidget {
   final TravelAccommodation accommodation;
   final bool isMine;
 
-  const _AccommodationCard({
-    required this.accommodation,
-    required this.isMine,
-  });
+  const _AccommodationCard({required this.accommodation, required this.isMine});
 
   @override
   Widget build(BuildContext context) {
@@ -343,8 +331,10 @@ class _AccommodationCard extends StatelessWidget {
                 ),
                 if (isMine)
                   Chip(
-                    label: const Text('Meine Unterkunft',
-                        style: TextStyle(fontSize: 11)),
+                    label: const Text(
+                      'Meine Unterkunft',
+                      style: TextStyle(fontSize: 11),
+                    ),
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                   ),
@@ -352,10 +342,7 @@ class _AccommodationCard extends StatelessWidget {
             ),
             if (accommodation.address != null) ...[
               const SizedBox(height: 4),
-              Text(
-                accommodation.address!,
-                style: theme.textTheme.bodySmall,
-              ),
+              Text(accommodation.address!, style: theme.textTheme.bodySmall),
             ],
             if (accommodation.users.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -389,10 +376,7 @@ class _EventsTab extends StatelessWidget {
   final List<TravelEvent> events;
   final String? currentUserId;
 
-  const _EventsTab({
-    required this.events,
-    this.currentUserId,
-  });
+  const _EventsTab({required this.events, this.currentUserId});
 
   @override
   Widget build(BuildContext context) {
@@ -429,15 +413,21 @@ class _EventsTab extends StatelessWidget {
       children: [
         if (current.isNotEmpty) ...[
           _SectionHeader('Aktuelle Events'),
-          ...current.map((e) => _EventCard(event: e, currentUserId: currentUserId)),
+          ...current.map(
+            (e) => _EventCard(event: e, currentUserId: currentUserId),
+          ),
         ],
         if (future.isNotEmpty) ...[
           _SectionHeader('Kommende Events'),
-          ...future.map((e) => _EventCard(event: e, currentUserId: currentUserId)),
+          ...future.map(
+            (e) => _EventCard(event: e, currentUserId: currentUserId),
+          ),
         ],
         if (past.isNotEmpty) ...[
           _SectionHeader('Vergangene Events'),
-          ...past.map((e) => _EventCard(event: e, currentUserId: currentUserId)),
+          ...past.map(
+            (e) => _EventCard(event: e, currentUserId: currentUserId),
+          ),
         ],
       ],
     );
@@ -454,9 +444,9 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -510,8 +500,10 @@ class _EventCard extends StatelessWidget {
                   ),
                   if (!participating)
                     Chip(
-                      label: const Text('Nicht dabei',
-                          style: TextStyle(fontSize: 11)),
+                      label: const Text(
+                        'Nicht dabei',
+                        style: TextStyle(fontSize: 11),
+                      ),
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                     ),
@@ -526,8 +518,11 @@ class _EventCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.location_on_rounded, size: 16,
-                        color: theme.colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -586,8 +581,8 @@ class _MapTab extends StatelessWidget {
 
     for (final a in accommodations) {
       if (a.latitude == null || a.longitude == null) continue;
-      final isMine = currentUserId != null &&
-          a.users.any((u) => u.id == currentUserId);
+      final isMine =
+          currentUserId != null && a.users.any((u) => u.id == currentUserId);
       markers.add(
         Marker(
           point: LatLng(a.latitude!, a.longitude!),
@@ -629,10 +624,7 @@ class _MapTab extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       clipBehavior: Clip.antiAlias,
       child: FlutterMap(
-        options: MapOptions(
-          initialCenter: first,
-          initialZoom: 12,
-        ),
+        options: MapOptions(initialCenter: first, initialZoom: 12),
         children: [
           TileLayer(
             urlTemplate: OsmConfig.tileUrlTemplate,
@@ -642,9 +634,8 @@ class _MapTab extends StatelessWidget {
           MarkerLayer(markers: markers),
           SimpleAttributionWidget(
             source: const Text('OpenStreetMap contributors'),
-            onTap: () => launchUrl(
-              Uri.parse('https://openstreetmap.org/copyright'),
-            ),
+            onTap: () =>
+                launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
           ),
         ],
       ),

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/di/app_scope.dart';
@@ -91,7 +92,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
         _loading = false;
         _error = null;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load category', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -117,7 +119,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
         _meta = response.meta;
         _loadingMore = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load more', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _loadingMore = false);
     }
@@ -140,7 +143,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
         _meta = response.meta;
         _error = null;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to search by location', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _error = 'Standort konnte nicht ermittelt werden.');
     }
@@ -176,18 +180,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
               ),
               IconButton(
                 onPressed: () => setState(() => _showMap = !_showMap),
-                icon: Icon(
-                  _showMap ? Icons.list_rounded : Icons.map_rounded,
-                ),
+                icon: Icon(_showMap ? Icons.list_rounded : Icons.map_rounded),
                 tooltip: _showMap ? 'Liste' : 'Karte',
               ),
             ],
           ),
         ),
         if (_showMap)
-          Expanded(
-            child: ExploreMap(places: _places),
-          )
+          Expanded(child: ExploreMap(places: _places))
         else
           Expanded(child: _buildList(theme, crossAxisCount)),
       ],
@@ -204,8 +204,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48,
-                color: theme.colorScheme.error),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 8),
             Text(_error!, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),

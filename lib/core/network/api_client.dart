@@ -13,20 +13,23 @@ class ApiException implements Exception {
   });
 
   @override
-  String toString() => 'ApiException($statusCode): $errorCode${message != null ? " - $message" : ""}';
+  String toString() =>
+      'ApiException($statusCode): $errorCode${message != null ? " - $message" : ""}';
 }
 
 class ApiClient {
   final String baseUrl;
   final http.Client _client;
+  final Duration timeout;
 
-  ApiClient({required this.baseUrl, http.Client? client})
-      : _client = client ?? http.Client();
+  ApiClient({
+    required this.baseUrl,
+    http.Client? client,
+    this.timeout = const Duration(seconds: 30),
+  }) : _client = client ?? http.Client();
 
   Map<String, String> _headers({String? token}) {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-    };
+    final headers = <String, String>{'Content-Type': 'application/json'};
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
     }
@@ -39,11 +42,13 @@ class ApiClient {
     String? token,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
-    final response = await _client.post(
-      uri,
-      headers: _headers(token: token),
-      body: body != null ? jsonEncode(body) : null,
-    );
+    final response = await _client
+        .post(
+          uri,
+          headers: _headers(token: token),
+          body: body != null ? jsonEncode(body) : null,
+        )
+        .timeout(timeout);
     return _handleResponse(response);
   }
 
@@ -56,10 +61,9 @@ class ApiClient {
     if (queryParams != null) {
       uri = uri.replace(queryParameters: queryParams);
     }
-    final response = await _client.get(
-      uri,
-      headers: _headers(token: token),
-    );
+    final response = await _client
+        .get(uri, headers: _headers(token: token))
+        .timeout(timeout);
     return _handleResponse(response);
   }
 
@@ -69,11 +73,13 @@ class ApiClient {
     String? token,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
-    final response = await _client.put(
-      uri,
-      headers: _headers(token: token),
-      body: body != null ? jsonEncode(body) : null,
-    );
+    final response = await _client
+        .put(
+          uri,
+          headers: _headers(token: token),
+          body: body != null ? jsonEncode(body) : null,
+        )
+        .timeout(timeout);
     return _handleResponse(response);
   }
 
@@ -88,7 +94,7 @@ class ApiClient {
     if (body != null) {
       request.body = jsonEncode(body);
     }
-    final streamed = await _client.send(request);
+    final streamed = await _client.send(request).timeout(timeout);
     final response = await http.Response.fromStream(streamed);
     if (response.statusCode == 204) return;
     _handleResponse(response);

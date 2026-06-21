@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -48,7 +49,8 @@ class _LoginScreenState extends State<LoginScreen> {
           _ => 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.',
         };
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to send OTP', error: e, stackTrace: st);
       setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -66,7 +68,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final response = await auth.discordStart();
       final uri = Uri.parse(response.url);
       if (!mounted) return;
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
       if (!launched) {
         setState(() => _error = 'Konnte den Browser nicht öffnen.');
         return;
@@ -79,7 +84,8 @@ class _LoginScreenState extends State<LoginScreen> {
           _ => 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.',
         };
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to start Discord login', error: e, stackTrace: st);
       setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -107,10 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'E-Mail-Login',
-                    style: theme.textTheme.titleLarge,
-                  ),
+                  Text('E-Mail-Login', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
                   Text(
                     'Wir senden dir einen Code per E-Mail.',

@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -33,10 +34,11 @@ class _DetailScreenState extends State<DetailScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final explore = AppScope.of(context).explore;
+      final scope = AppScope.of(context);
+      await scope.auth.getAccessToken();
       final results = await Future.wait([
-        explore.get(widget.id),
-        explore.bookmarkStatus(widget.id),
+        scope.explore.get(widget.id),
+        scope.explore.bookmarkStatus(widget.id),
       ]);
       if (!mounted) return;
       setState(() {
@@ -45,7 +47,8 @@ class _DetailScreenState extends State<DetailScreen> {
         _loading = false;
         _error = null;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load place', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -69,7 +72,8 @@ class _DetailScreenState extends State<DetailScreen> {
         _bookmarked = !_bookmarked!;
         _bookmarkToggling = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to toggle bookmark', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _bookmarkToggling = false);
     }
@@ -85,10 +89,11 @@ class _DetailScreenState extends State<DetailScreen> {
         _place = place;
         _refreshing = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OSM-Daten aktualisiert.')),
-      );
-    } catch (_) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('OSM-Daten aktualisiert.')));
+    } catch (e, st) {
+      developer.log('Failed to refresh place', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _refreshing = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -121,16 +126,17 @@ class _DetailScreenState extends State<DetailScreen> {
       final explore = AppScope.of(context).explore;
       await explore.delete(widget.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ort gelöscht.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Ort gelöscht.')));
       if (!mounted) return;
       context.pop();
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to delete place', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Löschen fehlgeschlagen.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Löschen fehlgeschlagen.')));
     }
   }
 
@@ -145,8 +151,11 @@ class _DetailScreenState extends State<DetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48,
-                color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 8),
             Text(_error ?? 'Unbekannter Fehler'),
             const SizedBox(height: 16),
@@ -302,10 +311,7 @@ class _NarrowDetail extends StatelessWidget {
                     children: [
                       _InfoContent(place: place),
                       const SizedBox(height: 16),
-                      SizedBox(
-                        height: 200,
-                        child: _MapCard(place: place),
-                      ),
+                      SizedBox(height: 200, child: _MapCard(place: place)),
                       const SizedBox(height: 16),
                       _ActionsCard(
                         canDelete: canDelete,
@@ -324,8 +330,8 @@ class _NarrowDetail extends StatelessWidget {
                   child: Text(
                     'Bewertungen erscheinen hier.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],
@@ -349,14 +355,21 @@ class _InfoContent extends StatelessWidget {
       children: [
         Text(place.name, style: theme.textTheme.headlineSmall),
         const SizedBox(height: 16),
-        if (place.address != null) _InfoRow(Icons.location_on_rounded, place.address!),
+        if (place.address != null)
+          _InfoRow(Icons.location_on_rounded, place.address!),
         if (place.phone != null) _InfoRow(Icons.phone_rounded, place.phone!),
-        if (place.website != null) _InfoRow(Icons.language_rounded, place.website!),
+        if (place.website != null)
+          _InfoRow(Icons.language_rounded, place.website!),
         if (place.email != null) _InfoRow(Icons.email_rounded, place.email!),
-        if (place.cuisine != null) _InfoRow(Icons.restaurant_rounded, place.cuisine!),
-        if (place.openingHours != null) _InfoRow(Icons.schedule_rounded, place.openingHours!),
+        if (place.cuisine != null)
+          _InfoRow(Icons.restaurant_rounded, place.cuisine!),
+        if (place.openingHours != null)
+          _InfoRow(Icons.schedule_rounded, place.openingHours!),
         const SizedBox(height: 16),
-        _MetaRow('Kategorie', place.category == 'gastronomy' ? 'Gastronomie' : 'Freizeit'),
+        _MetaRow(
+          'Kategorie',
+          place.category == 'gastronomy' ? 'Gastronomie' : 'Freizeit',
+        ),
         _MetaRow('OSM-ID', '${place.osmType ?? "?"}/${place.osmId ?? "?"}'),
         _MetaRow('Erstellt', place.createdAt.substring(0, 10)),
         _MetaRow('Letzte Aktualisierung', place.lastUpdated.substring(0, 10)),
@@ -401,9 +414,12 @@ class _MetaRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 140,
-            child: Text(label, style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            )),
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
           Text(value, style: theme.textTheme.bodySmall),
         ],
@@ -445,15 +461,18 @@ class _MapCard extends StatelessWidget {
               markers: [
                 Marker(
                   point: LatLng(place.latitude!, place.longitude!),
-                  child: const Icon(Icons.location_on, color: Colors.red, size: 36),
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 36,
+                  ),
                 ),
               ],
             ),
             SimpleAttributionWidget(
               source: const Text('OpenStreetMap contributors'),
-              onTap: () => launchUrl(
-                Uri.parse('https://openstreetmap.org/copyright'),
-              ),
+              onTap: () =>
+                  launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
             ),
           ],
         ),
@@ -507,8 +526,8 @@ class _ActionsCard extends StatelessWidget {
                 bookmarkToggling
                     ? '…'
                     : bookmarked
-                        ? 'Lesezeichen entfernen'
-                        : 'Lesezeichen setzen',
+                    ? 'Lesezeichen entfernen'
+                    : 'Lesezeichen setzen',
               ),
             ),
             const SizedBox(height: 8),
@@ -521,7 +540,9 @@ class _ActionsCard extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.refresh_rounded),
-              label: Text(refreshing ? 'Aktualisiere…' : 'OSM-Daten aktualisieren'),
+              label: Text(
+                refreshing ? 'Aktualisiere…' : 'OSM-Daten aktualisieren',
+              ),
             ),
             if (canDelete) ...[
               const SizedBox(height: 8),

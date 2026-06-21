@@ -38,7 +38,10 @@ class DiscordStartResponse {
 class RefreshTokenResponse {
   final String refreshToken;
   final int expiresAt;
-  const RefreshTokenResponse({required this.refreshToken, required this.expiresAt});
+  const RefreshTokenResponse({
+    required this.refreshToken,
+    required this.expiresAt,
+  });
 
   factory RefreshTokenResponse.fromJson(Map<String, dynamic> json) {
     return RefreshTokenResponse(

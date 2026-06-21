@@ -27,12 +27,14 @@ void main() async {
   final travel = TravelService(api: api, auth: auth);
   final router = createRouter(auth);
 
-  runApp(SinclearApp(
-    auth: auth,
-    explore: explore,
-    nominatim: nominatim,
-    news: news,
-    travel: travel,
-    router: router,
-  ));
+  runApp(
+    SinclearApp(
+      auth: auth,
+      explore: explore,
+      nominatim: nominatim,
+      news: news,
+      travel: travel,
+      router: router,
+    ),
+  );
 }

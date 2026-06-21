@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import '../../../core/di/app_scope.dart';
 import '../models/news_models.dart';
@@ -101,7 +102,8 @@ class _NewsScreenState extends State<NewsScreen>
         _votedUrls = votesResp.data.map((a) => a.url).toSet();
         _articlesLoading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load articles', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _articlesLoading = false;
@@ -134,7 +136,8 @@ class _NewsScreenState extends State<NewsScreen>
         _articlesMeta = response.meta;
         _articlesLoadingMore = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load more articles', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _articlesLoadingMore = false);
     }
@@ -154,7 +157,8 @@ class _NewsScreenState extends State<NewsScreen>
         _archiveMeta = response.meta;
         _archiveLoading = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load archive', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _archiveLoading = false;
@@ -180,7 +184,8 @@ class _NewsScreenState extends State<NewsScreen>
         _archiveMeta = response.meta;
         _archiveLoadingMore = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load more archive', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _archiveLoadingMore = false);
     }
@@ -203,7 +208,8 @@ class _NewsScreenState extends State<NewsScreen>
           _votedIds.remove(id);
           _votedUrls.remove(item.url);
         });
-      } catch (_) {
+      } catch (e, st) {
+        developer.log('Failed to remove vote', error: e, stackTrace: st);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Fehler beim Aktualisieren.')),
@@ -232,7 +238,8 @@ class _NewsScreenState extends State<NewsScreen>
             _rssItems[rssIndex] = _rssItems[rssIndex].copyWith(id: articleId);
           }
         });
-      } catch (_) {
+      } catch (e, st) {
+        developer.log('Failed to vote', error: e, stackTrace: st);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Fehler beim Aktualisieren.')),

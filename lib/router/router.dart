@@ -21,7 +21,8 @@ GoRouter createRouter(AuthService auth) {
       final loggedIn = auth.isLoggedIn;
       final location = state.matchedLocation;
 
-      final isAuth = location.startsWith('/home') ||
+      final isAuth =
+          location.startsWith('/home') ||
           location.startsWith('/entdecken') ||
           location.startsWith('/aktuell') ||
           location.startsWith('/reisen');
@@ -31,14 +32,8 @@ GoRouter createRouter(AuthService auth) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const WelcomeScreen(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const WelcomeScreen()),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/login/verify',
         builder: (context, state) => const VerifyScreen(),

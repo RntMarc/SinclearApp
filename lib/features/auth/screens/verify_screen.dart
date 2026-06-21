@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
@@ -21,15 +22,13 @@ class _VerifyScreenState extends State<VerifyScreen> {
     super.dispose();
   }
 
-  String? get _method =>
-      GoRouterState.of(context).extra is Map
-          ? (GoRouterState.of(context).extra as Map)['method'] as String?
-          : null;
+  String? get _method => GoRouterState.of(context).extra is Map
+      ? (GoRouterState.of(context).extra as Map)['method'] as String?
+      : null;
 
-  String? get _email =>
-      GoRouterState.of(context).extra is Map
-          ? (GoRouterState.of(context).extra as Map)['email'] as String?
-          : null;
+  String? get _email => GoRouterState.of(context).extra is Map
+      ? (GoRouterState.of(context).extra as Map)['email'] as String?
+      : null;
 
   String get _descriptionText {
     if (_method == 'discord') {
@@ -58,9 +57,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
         code: code,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erfolgreich angemeldet!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erfolgreich angemeldet!')));
       context.go('/home');
     } on ApiException catch (e) {
       setState(() {
@@ -72,7 +71,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
           _ => 'Ein Fehler ist aufgetreten.',
         };
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to verify code', error: e, stackTrace: st);
       setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -108,10 +108,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(height: 24),
-                  Text(
-                    'Code bestätigen',
-                    style: theme.textTheme.titleLarge,
-                  ),
+                  Text('Code bestätigen', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
                   Text(
                     _descriptionText,

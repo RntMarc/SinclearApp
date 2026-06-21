@@ -80,10 +80,7 @@ class _NavContent extends StatelessWidget {
   final String currentLocation;
   final void Function(String route) onNavigate;
 
-  const _NavContent({
-    required this.currentLocation,
-    required this.onNavigate,
-  });
+  const _NavContent({required this.currentLocation, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -98,11 +95,7 @@ class _NavContent extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
             child: Row(
               children: [
-                Image.asset(
-                  'assets/logo.png',
-                  width: 32,
-                  height: 32,
-                ),
+                Image.asset('assets/logo.png', width: 32, height: 32),
                 const SizedBox(width: 12),
                 Text(
                   'Beyond',
