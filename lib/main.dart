@@ -9,6 +9,7 @@ import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
 
 import 'features/travel/services/travel_service.dart';
+import 'features/user/services/user_service.dart';
 import 'router/router.dart';
 
 void main() async {
@@ -24,6 +25,7 @@ void main() async {
   await auth.init();
   final explore = ExploreService(api: api, auth: auth);
   final travel = TravelService(api: api, auth: auth);
+  final user = UserService(api: api, auth: auth);
   final router = createRouter(auth);
 
   runApp(
@@ -32,6 +34,7 @@ void main() async {
       explore: explore,
       nominatim: nominatim,
       travel: travel,
+      user: user,
       router: router,
     ),
   );

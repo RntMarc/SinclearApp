@@ -56,6 +56,8 @@ class _MobileShell extends StatelessWidget {
         ? 'Entdecken'
         : location.startsWith('/reisen')
         ? 'Reisen & Events'
+        : location.startsWith('/kontakte')
+        ? 'Kontakte'
         : 'Home';
 
     return Scaffold(
@@ -134,6 +136,12 @@ class _NavContent extends StatelessWidget {
             selected: selectedIndex == 2,
             onTap: () => onNavigate('/reisen'),
           ),
+          ListTile(
+            leading: const Icon(Icons.people_rounded),
+            title: const Text('Kontakte'),
+            selected: selectedIndex == 3,
+            onTap: () => onNavigate('/kontakte'),
+          ),
           const Spacer(),
           const Divider(),
           ListenableBuilder(
@@ -161,6 +169,7 @@ class _NavContent extends StatelessWidget {
   int _selectedIndex(String location) {
     if (location.startsWith('/entdecken')) return 1;
     if (location.startsWith('/reisen')) return 2;
+    if (location.startsWith('/kontakte')) return 3;
     return 0;
   }
 }

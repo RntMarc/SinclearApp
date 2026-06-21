@@ -4,12 +4,14 @@ import '../../features/explore/services/explore_service.dart';
 import '../../features/explore/services/nominatim_service.dart';
 
 import '../../features/travel/services/travel_service.dart';
+import '../../features/user/services/user_service.dart';
 
 class AppScope extends InheritedWidget {
   final AuthService auth;
   final ExploreService explore;
   final NominatimService nominatim;
   final TravelService travel;
+  final UserService user;
 
   const AppScope({
     super.key,
@@ -17,6 +19,7 @@ class AppScope extends InheritedWidget {
     required this.explore,
     required this.nominatim,
     required this.travel,
+    required this.user,
     required super.child,
   });
 
