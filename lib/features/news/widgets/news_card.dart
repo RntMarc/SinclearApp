@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/cache/image_cache_manager.dart';
+import '../../../../core/di/app_scope.dart';
 import '../models/news_models.dart';
 import '../services/favicon_service.dart';
 
@@ -28,8 +29,16 @@ class NewsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dateStr = _formatDate(item.date);
+    final news = AppScope.of(context).news;
     final faviconService = FaviconService();
-    final faviconUrl = item.sourceIcon ?? faviconService.resolveFaviconUrl(item.url);
+    final rawFaviconUrl =
+        item.sourceIcon ?? faviconService.resolveFaviconUrl(item.url);
+    final faviconUrl = rawFaviconUrl.isNotEmpty
+        ? news.proxyImageUrl(rawFaviconUrl, type: 'favicon')
+        : '';
+    final imageUrl = item.imageUrl != null
+        ? news.proxyImageUrl(item.imageUrl!, type: 'preview')
+        : null;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -44,7 +53,7 @@ class NewsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildImageArea(theme, faviconUrl, faviconService),
+            _buildImageArea(theme, imageUrl, faviconUrl),
             _buildTextArea(theme, dateStr),
           ],
         ),
@@ -52,29 +61,29 @@ class NewsCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImageArea(ThemeData theme, String faviconUrl, FaviconService faviconService) {
+  Widget _buildImageArea(ThemeData theme, String? imageUrl, String faviconUrl) {
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _buildImage(theme),
+          _buildImage(theme, imageUrl),
           _buildSourceBadge(theme, faviconUrl),
-          if (showVoteButton && onToggleVote != null)
-            _buildVoteButton(theme),
+          if (showVoteButton && onToggleVote != null) _buildVoteButton(theme),
         ],
       ),
     );
   }
 
-  Widget _buildImage(ThemeData theme) {
-    if (item.imageUrl != null) {
+  Widget _buildImage(ThemeData theme, String? imageUrl) {
+    if (imageUrl != null) {
       return CachedNetworkImage(
-        imageUrl: item.imageUrl!,
+        imageUrl: imageUrl,
         cacheManager: ImageCacheManager.previewCache,
         fit: BoxFit.cover,
         placeholder: (_, _) => _buildImagePlaceholder(theme, null),
-        errorWidget: (_, _, _) => _buildImagePlaceholder(theme, Icons.broken_image_outlined),
+        errorWidget: (_, _, _) =>
+            _buildImagePlaceholder(theme, Icons.broken_image_outlined),
       );
     }
     return _buildImagePlaceholder(theme, Icons.article_outlined);
@@ -115,11 +124,16 @@ class NewsCard extends StatelessWidget {
                   height: 14,
                   fit: BoxFit.cover,
                   placeholder: (_, _) => const SizedBox(width: 14, height: 14),
-                  errorWidget: (_, _, _) => const SizedBox(width: 14, height: 14),
+                  errorWidget: (_, _, _) =>
+                      const SizedBox(width: 14, height: 14),
                 ),
               )
             else
-              Icon(Icons.rss_feed_rounded, size: 14, color: theme.colorScheme.primary),
+              Icon(
+                Icons.rss_feed_rounded,
+                size: 14,
+                color: theme.colorScheme.primary,
+              ),
             const SizedBox(width: 4),
             Flexible(
               child: Text(

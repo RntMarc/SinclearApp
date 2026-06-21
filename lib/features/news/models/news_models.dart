@@ -106,7 +106,8 @@ class NewsListResponse {
       data: (json['data'] as List)
           .map((e) => NewsArticle.fromJson(e as Map<String, dynamic>))
           .toList(),
-      rss: (json['rss'] as List?)
+      rss:
+          (json['rss'] as List?)
               ?.map((e) => RssArticle.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -165,7 +166,12 @@ class NewsItem {
     );
   }
 
-  NewsItem copyWith({String? id, bool? isFromDb, String? imageUrl, String? description}) {
+  NewsItem copyWith({
+    String? id,
+    bool? isFromDb,
+    String? imageUrl,
+    String? description,
+  }) {
     return NewsItem(
       id: id ?? this.id,
       title: title,
@@ -194,9 +200,9 @@ class NewsVoteRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'url': url,
-        'title': title,
-        'sourceName': sourceName,
-        'sourceIcon': sourceIcon,
-      };
+    'url': url,
+    'title': title,
+    'sourceName': sourceName,
+    'sourceIcon': sourceIcon,
+  };
 }
