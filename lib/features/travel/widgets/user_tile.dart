@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/image/image_provider_helper.dart';
+
 class UserTile extends StatelessWidget {
   final String displayName;
   final String? imageUrl;
@@ -19,8 +21,8 @@ class UserTile extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: avatarSize / 2,
-          backgroundImage: imageUrl != null ? NetworkImage(imageUrl!) : null,
-          child: imageUrl == null
+          backgroundImage: resolveImageProvider(imageUrl),
+          child: resolveImageProvider(imageUrl) == null
               ? Text(
                   displayName.isNotEmpty
                       ? displayName[0].toUpperCase()

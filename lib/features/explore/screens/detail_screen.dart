@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../models/explore_models.dart';
 
@@ -435,8 +437,9 @@ class _MapCard extends StatelessWidget {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.sinclearapp',
+              urlTemplate: OsmConfig.tileUrlTemplate,
+              userAgentPackageName: OsmConfig.tileUserAgent,
+              tileProvider: osmTileProvider(),
             ),
             MarkerLayer(
               markers: [
@@ -445,6 +448,12 @@ class _MapCard extends StatelessWidget {
                   child: const Icon(Icons.location_on, color: Colors.red, size: 36),
                 ),
               ],
+            ),
+            SimpleAttributionWidget(
+              source: const Text('OpenStreetMap contributors'),
+              onTap: () => launchUrl(
+                Uri.parse('https://openstreetmap.org/copyright'),
+              ),
             ),
           ],
         ),
