@@ -12,6 +12,8 @@ import '../features/explore/screens/create_place_screen.dart';
 import '../features/shell/main_shell.dart';
 import '../features/travel/screens/travel_screen.dart';
 import '../features/travel/screens/trip_detail_screen.dart';
+import '../features/user/screens/contacts_screen.dart';
+import '../features/user/screens/user_detail_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -24,7 +26,8 @@ GoRouter createRouter(AuthService auth) {
       final isAuth =
           location.startsWith('/home') ||
           location.startsWith('/entdecken') ||
-          location.startsWith('/reisen');
+          location.startsWith('/reisen') ||
+          location.startsWith('/kontakte');
 
       if (loggedIn && location == '/') return '/home';
       if (!loggedIn && isAuth) return '/';
@@ -77,6 +80,17 @@ GoRouter createRouter(AuthService auth) {
                 path: ':id',
                 builder: (context, state) =>
                     DetailScreen(id: state.pathParameters['id']!),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/kontakte',
+            builder: (context, state) => const ContactsScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    UserDetailScreen(id: state.pathParameters['id']!),
               ),
             ],
           ),
