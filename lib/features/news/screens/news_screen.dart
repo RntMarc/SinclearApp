@@ -29,6 +29,7 @@ class _NewsScreenState extends State<NewsScreen>
   PaginationMeta? _archiveMeta;
   bool _archiveLoading = true;
   bool _archiveLoadingMore = false;
+  String? _archiveError;
 
   Set<String> _votedIds = {};
   Set<String> _votedUrls = {};
@@ -132,7 +133,10 @@ class _NewsScreenState extends State<NewsScreen>
   }
 
   Future<void> _loadArchive() async {
-    setState(() => _archiveLoading = true);
+    setState(() {
+      _archiveLoading = true;
+      _archiveError = null;
+    });
     try {
       final news = AppScope.of(context).news;
       final response = await news.getArchive(page: 1, limit: 20);
@@ -142,9 +146,12 @@ class _NewsScreenState extends State<NewsScreen>
         _archiveMeta = response.meta;
         _archiveLoading = false;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _archiveLoading = false);
+      setState(() {
+        _archiveLoading = false;
+        _archiveError = 'Archiv konnte nicht geladen werden.';
+      });
     }
   }
 
@@ -371,20 +378,6 @@ class _NewsScreenState extends State<NewsScreen>
       );
     }
 
-    if (_dbItems.isNotEmpty || _rssItems.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        child: Center(
-          child: Text(
-            'Alle Artikel geladen.',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      );
-    }
-
     return const SizedBox.shrink();
   }
 
@@ -393,6 +386,25 @@ class _NewsScreenState extends State<NewsScreen>
 
     if (_archiveLoading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_archiveError != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline,
+                size: 48, color: theme.colorScheme.error),
+            const SizedBox(height: 8),
+            Text(_archiveError!, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            FilledButton.tonal(
+              onPressed: _loadArchive,
+              child: const Text('Erneut versuchen'),
+            ),
+          ],
+        ),
+      );
     }
 
     if (_archive.isEmpty) {
@@ -462,17 +474,7 @@ class _NewsScreenState extends State<NewsScreen>
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      child: Center(
-        child: Text(
-          'Alle Archiv-Artikel geladen.',
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   _GridLayout _computeGridLayout(double width) {
@@ -489,7 +491,7 @@ class _NewsScreenState extends State<NewsScreen>
     final columnWidth =
         (width - padding * 2 - gap * (crossAxisCount - 1)) / crossAxisCount;
     final imageHeight = columnWidth / 16 * 9;
-    const textAreaHeight = 110.0;
+    const textAreaHeight = 136.0;
     return _GridLayout(
       crossAxisCount: crossAxisCount,
       mainAxisExtent: imageHeight + textAreaHeight,
