@@ -4,6 +4,8 @@ class NewsArticle {
   final String url;
   final String sourceName;
   final String? sourceIcon;
+  final String? imageUrl;
+  final String? description;
   final String savedAt;
 
   const NewsArticle({
@@ -12,6 +14,8 @@ class NewsArticle {
     required this.url,
     required this.sourceName,
     this.sourceIcon,
+    this.imageUrl,
+    this.description,
     required this.savedAt,
   });
 
@@ -22,6 +26,8 @@ class NewsArticle {
       url: json['url'] as String,
       sourceName: json['sourceName'] as String,
       sourceIcon: json['sourceIcon'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      description: json['description'] as String?,
       savedAt: json['savedAt'] as String,
     );
   }
@@ -32,6 +38,8 @@ class RssArticle {
   final String url;
   final String sourceName;
   final String? sourceIcon;
+  final String? imageUrl;
+  final String? description;
   final String publishedAt;
 
   const RssArticle({
@@ -39,6 +47,8 @@ class RssArticle {
     required this.url,
     required this.sourceName,
     this.sourceIcon,
+    this.imageUrl,
+    this.description,
     required this.publishedAt,
   });
 
@@ -48,6 +58,8 @@ class RssArticle {
       url: json['url'] as String,
       sourceName: json['sourceName'] as String,
       sourceIcon: json['sourceIcon'] as String?,
+      imageUrl: json['imageUrl'] as String?,
+      description: json['description'] as String?,
       publishedAt: json['publishedAt'] as String,
     );
   }
@@ -109,6 +121,8 @@ class NewsItem {
   final String url;
   final String sourceName;
   final String? sourceIcon;
+  final String? imageUrl;
+  final String? description;
   final DateTime date;
   final bool isFromDb;
 
@@ -118,6 +132,8 @@ class NewsItem {
     required this.url,
     required this.sourceName,
     this.sourceIcon,
+    this.imageUrl,
+    this.description,
     required this.date,
     required this.isFromDb,
   });
@@ -129,6 +145,8 @@ class NewsItem {
       url: article.url,
       sourceName: article.sourceName,
       sourceIcon: article.sourceIcon,
+      imageUrl: article.imageUrl,
+      description: article.description,
       date: DateTime.parse(article.savedAt),
       isFromDb: true,
     );
@@ -140,18 +158,22 @@ class NewsItem {
       url: article.url,
       sourceName: article.sourceName,
       sourceIcon: article.sourceIcon,
+      imageUrl: article.imageUrl,
+      description: article.description,
       date: DateTime.parse(article.publishedAt),
       isFromDb: false,
     );
   }
 
-  NewsItem copyWith({String? id, bool? isFromDb}) {
+  NewsItem copyWith({String? id, bool? isFromDb, String? imageUrl, String? description}) {
     return NewsItem(
       id: id ?? this.id,
       title: title,
       url: url,
       sourceName: sourceName,
       sourceIcon: sourceIcon,
+      imageUrl: imageUrl ?? this.imageUrl,
+      description: description ?? this.description,
       date: date,
       isFromDb: isFromDb ?? this.isFromDb,
     );
