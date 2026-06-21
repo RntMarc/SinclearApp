@@ -29,9 +29,11 @@ class AuthService extends ChangeNotifier {
     if (_loggedIn) {
       try {
         await getAccessToken();
-      } catch (_) {
-        _loggedIn = false;
-      }
+      } on ApiException catch (e) {
+        if (e.statusCode == 401) {
+          _loggedIn = false;
+        }
+      } catch (_) {}
     }
     notifyListeners();
   }
@@ -110,6 +112,9 @@ class AuthService extends ChangeNotifier {
     final response = RefreshTokenResponse.fromJson(data);
     await _storage.saveRefreshToken(response.refreshToken, response.expiresAt);
     _loggedIn = true;
+    try {
+      await getAccessToken();
+    } catch (_) {}
     notifyListeners();
     developer.log('Code verified, refresh token saved', name: 'auth');
     return response;
