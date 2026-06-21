@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import '../../features/auth/services/auth_service.dart';
 import '../../features/explore/services/explore_service.dart';
 import '../../features/explore/services/nominatim_service.dart';
-import '../../features/news/services/news_service.dart';
+
 import '../../features/travel/services/travel_service.dart';
 
 class AppScope extends InheritedWidget {
   final AuthService auth;
   final ExploreService explore;
   final NominatimService nominatim;
-  final NewsService news;
   final TravelService travel;
 
   const AppScope({
@@ -17,7 +16,6 @@ class AppScope extends InheritedWidget {
     required this.auth,
     required this.explore,
     required this.nominatim,
-    required this.news,
     required this.travel,
     required super.child,
   });
