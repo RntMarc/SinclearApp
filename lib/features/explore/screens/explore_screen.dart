@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:developer' as developer;
 import '../../../core/di/app_scope.dart';
 import '../models/explore_models.dart';
 import '../widgets/place_card.dart';
@@ -47,7 +49,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _loading = false;
         _error = null;
       });
-    } catch (_) {
+    } catch (e, s) {
+      if (kDebugMode) developer.log('ExploreScreen._loadSuggestions error: $e\n$s', name: 'explore');
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -69,7 +72,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _bookmarks = response.data;
         _loadingBookmarks = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      if (kDebugMode) developer.log('ExploreScreen._loadBookmarks error: $e\n$s', name: 'explore');
       if (!mounted) return;
       setState(() {
         _loadingBookmarks = false;
@@ -205,6 +209,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 color: theme.colorScheme.error),
             const SizedBox(height: 8),
             Text(_error!, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            FilledButton.tonal(
+              onPressed: _loadSuggestions,
+              child: const Text('Erneut versuchen'),
+            ),
           ],
         ),
       );

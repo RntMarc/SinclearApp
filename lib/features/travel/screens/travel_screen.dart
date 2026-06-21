@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:developer' as developer;
 import '../../../core/di/app_scope.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
@@ -86,7 +88,8 @@ class _TravelScreenState extends State<TravelScreen> {
         _past = past;
         _loading = false;
       });
-    } catch (e) {
+    } catch (e, s) {
+      if (kDebugMode) developer.log('TravelScreen._load error: $e\n$s', name: 'travel');
       setState(() {
         _error = e.toString();
         _loading = false;
