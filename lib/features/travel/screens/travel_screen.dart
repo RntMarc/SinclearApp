@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:developer' as developer;
 import '../../../core/di/app_scope.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
@@ -21,11 +19,15 @@ class _TravelScreenState extends State<TravelScreen> {
   List<TimelineEntry> _current = [];
   List<TimelineEntry> _future = [];
   List<TimelineEntry> _past = [];
+  bool _hasLoaded = false;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _load();
+    }
   }
 
   Future<void> _load() async {
@@ -88,8 +90,7 @@ class _TravelScreenState extends State<TravelScreen> {
         _past = past;
         _loading = false;
       });
-    } catch (e, s) {
-      if (kDebugMode) developer.log('TravelScreen._load error: $e\n$s', name: 'travel');
+    } catch (e) {
       setState(() {
         _error = e.toString();
         _loading = false;

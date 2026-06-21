@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:developer' as developer;
 import '../../../core/di/app_scope.dart';
 import '../models/explore_models.dart';
 import '../widgets/place_card.dart';
@@ -24,12 +22,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _bookmarksError = false;
   bool _showMap = false;
   String? _error;
+  bool _hasLoaded = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadSuggestions();
-    _loadBookmarks();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _loadSuggestions();
+      _loadBookmarks();
+    }
   }
 
   @override
@@ -49,8 +51,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _loading = false;
         _error = null;
       });
-    } catch (e, s) {
-      if (kDebugMode) developer.log('ExploreScreen._loadSuggestions error: $e\n$s', name: 'explore');
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -72,8 +73,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _bookmarks = response.data;
         _loadingBookmarks = false;
       });
-    } catch (e, s) {
-      if (kDebugMode) developer.log('ExploreScreen._loadBookmarks error: $e\n$s', name: 'explore');
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _loadingBookmarks = false;

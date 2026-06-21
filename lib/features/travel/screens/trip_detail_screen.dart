@@ -26,11 +26,15 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   List<TravelEvent> _events = [];
   List<TravelAccommodation> _accommodations = [];
   List<TravelParticipant> _participants = [];
+  bool _hasLoaded = false;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _load();
+    }
   }
 
   Future<void> _load() async {
