@@ -52,9 +52,7 @@ class _MobileShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final title = location.startsWith('/aktuell')
-        ? 'Aktuell'
-        : location.startsWith('/entdecken')
+    final title = location.startsWith('/entdecken')
         ? 'Entdecken'
         : location.startsWith('/reisen')
         ? 'Reisen & Events'
@@ -125,21 +123,15 @@ class _NavContent extends StatelessWidget {
             onTap: () => onNavigate('/home'),
           ),
           ListTile(
-            leading: const Icon(Icons.article_rounded),
-            title: const Text('Aktuell'),
-            selected: selectedIndex == 1,
-            onTap: () => onNavigate('/aktuell'),
-          ),
-          ListTile(
             leading: const Icon(Icons.explore_rounded),
             title: const Text('Entdecken'),
-            selected: selectedIndex == 2,
+            selected: selectedIndex == 1,
             onTap: () => onNavigate('/entdecken'),
           ),
           ListTile(
             leading: const Icon(Icons.flight_rounded),
             title: const Text('Reisen & Events'),
-            selected: selectedIndex == 3,
+            selected: selectedIndex == 2,
             onTap: () => onNavigate('/reisen'),
           ),
           const Spacer(),
@@ -167,9 +159,8 @@ class _NavContent extends StatelessWidget {
   }
 
   int _selectedIndex(String location) {
-    if (location.startsWith('/aktuell')) return 1;
-    if (location.startsWith('/entdecken')) return 2;
-    if (location.startsWith('/reisen')) return 3;
+    if (location.startsWith('/entdecken')) return 1;
+    if (location.startsWith('/reisen')) return 2;
     return 0;
   }
 }
