@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import '../../../core/di/app_scope.dart';
 import '../models/news_models.dart';
 import '../widgets/news_card.dart';
@@ -93,7 +94,8 @@ class _NewsScreenState extends State<NewsScreen>
         _votedUrls = votesResp.data.map((a) => a.url).toSet();
         _articlesLoading = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      if (kDebugMode) developer.log('NewsScreen._loadArticles error: $e\n$s', name: 'news');
       if (!mounted) return;
       setState(() {
         _articlesLoading = false;
@@ -146,7 +148,8 @@ class _NewsScreenState extends State<NewsScreen>
         _archiveMeta = response.meta;
         _archiveLoading = false;
       });
-    } catch (e) {
+    } catch (e, s) {
+      if (kDebugMode) developer.log('NewsScreen._loadArchive error: $e\n$s', name: 'news');
       if (!mounted) return;
       setState(() {
         _archiveLoading = false;
@@ -172,7 +175,8 @@ class _NewsScreenState extends State<NewsScreen>
         _archiveMeta = response.meta;
         _archiveLoadingMore = false;
       });
-    } catch (_) {
+    } catch (e, s) {
+      if (kDebugMode) developer.log('NewsScreen._loadMoreArchive error: $e\n$s', name: 'news');
       if (!mounted) return;
       setState(() => _archiveLoadingMore = false);
     }

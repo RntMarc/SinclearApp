@@ -25,15 +25,23 @@ class AuthService extends ChangeNotifier {
         _storage = storage;
 
   Future<void> init() async {
-    _loggedIn = (await _storage.getRefreshToken()) != null;
+    final hasRefresh = (await _storage.getRefreshToken()) != null;
+    if (kDebugMode) developer.log('init: hasRefreshToken=$hasRefresh', name: 'auth');
+    _loggedIn = hasRefresh;
     if (_loggedIn) {
       try {
         await getAccessToken();
+        if (kDebugMode) developer.log('init: pre-fetch access token succeeded', name: 'auth');
       } on ApiException catch (e) {
         if (e.statusCode == 401) {
           _loggedIn = false;
+          if (kDebugMode) developer.log('init: pre-fetch 401 -> loggedOut', name: 'auth');
+        } else {
+          if (kDebugMode) developer.log('init: pre-fetch ApiException: ${e.errorCode} ${e.statusCode}', name: 'auth');
         }
-      } catch (_) {}
+      } catch (e, s) {
+        if (kDebugMode) developer.log('init: pre-fetch error: $e\n$s', name: 'auth');
+      }
     }
     notifyListeners();
   }
@@ -59,24 +67,35 @@ class AuthService extends ChangeNotifier {
   String? get userId => userFromToken?['sub'] as String?;
 
   Future<String> getAccessToken() async {
-    if (_accessToken != null &&
-        DateTime.now().millisecondsSinceEpoch ~/ 1000 < _accessTokenExpiry) {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (_accessToken != null && now < _accessTokenExpiry) {
+      if (kDebugMode) developer.log('getAccessToken: returning cached token (expires in ${_accessTokenExpiry - now}s)', name: 'auth');
       return _accessToken!;
     }
-    if (_refreshFuture != null) return _refreshFuture!;
+    if (_refreshFuture != null) {
+      if (kDebugMode) developer.log('getAccessToken: waiting for existing refreshFuture', name: 'auth');
+      return _refreshFuture!;
+    }
+    if (kDebugMode) developer.log('getAccessToken: starting new refresh', name: 'auth');
     _refreshFuture = _doRefresh();
     try {
-      return await _refreshFuture!;
+      final token = await _refreshFuture!;
+      if (kDebugMode) developer.log('getAccessToken: refresh completed', name: 'auth');
+      return token;
     } finally {
       _refreshFuture = null;
+      if (kDebugMode) developer.log('getAccessToken: refreshFuture cleared', name: 'auth');
     }
   }
 
   Future<String> _doRefresh() async {
+    if (kDebugMode) developer.log('_doRefresh: loading refresh token from storage', name: 'auth');
     final refresh = await _storage.getRefreshToken();
     if (refresh == null) {
+      if (kDebugMode) developer.log('_doRefresh: no refresh token in storage', name: 'auth');
       throw ApiException(errorCode: 'not_logged_in', statusCode: 401);
     }
+    if (kDebugMode) developer.log('_doRefresh: calling /auth/refresh', name: 'auth');
     final data = await _api.post('/auth/refresh', body: {
       'refresh_token': refresh,
     });
@@ -89,13 +108,14 @@ class AuthService extends ChangeNotifier {
       newRefresh,
       data['expires_at'] as int? ?? 0,
     );
+    if (kDebugMode) developer.log('_doRefresh: success, token expires in ${data['expires_in']}s', name: 'auth');
     return _accessToken!;
   }
 
   Future<void> requestOtp(String email) async {
     final body = OtpRequest(email: email).toJson();
     await _api.post('/auth/login/otp/request', body: body);
-    developer.log('OTP requested for $email', name: 'auth');
+    if (kDebugMode) developer.log('OTP requested for $email', name: 'auth');
   }
 
   Future<DiscordStartResponse> discordStart() async {
@@ -112,20 +132,25 @@ class AuthService extends ChangeNotifier {
     final response = RefreshTokenResponse.fromJson(data);
     await _storage.saveRefreshToken(response.refreshToken, response.expiresAt);
     _loggedIn = true;
+    if (kDebugMode) developer.log('verifyCode: refresh token saved, starting pre-fetch', name: 'auth');
     try {
       await getAccessToken();
-    } catch (_) {}
+      if (kDebugMode) developer.log('verifyCode: pre-fetch succeeded', name: 'auth');
+    } catch (e, s) {
+      if (kDebugMode) developer.log('verifyCode: pre-fetch failed: $e\n$s', name: 'auth');
+    }
     notifyListeners();
-    developer.log('Code verified, refresh token saved', name: 'auth');
+    if (kDebugMode) developer.log('Code verified, refresh token saved', name: 'auth');
     return response;
   }
 
   Future<void> logout() async {
+    if (kDebugMode) developer.log('logout: clearing tokens', name: 'auth');
     _accessToken = null;
     _accessTokenExpiry = 0;
     _loggedIn = false;
     await _storage.clearTokens();
     notifyListeners();
-    developer.log('User logged out', name: 'auth');
+    if (kDebugMode) developer.log('User logged out', name: 'auth');
   }
 }
