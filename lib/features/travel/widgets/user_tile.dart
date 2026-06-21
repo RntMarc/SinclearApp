@@ -24,9 +24,7 @@ class UserTile extends StatelessWidget {
           backgroundImage: resolveImageProvider(imageUrl),
           child: resolveImageProvider(imageUrl) == null
               ? Text(
-                  displayName.isNotEmpty
-                      ? displayName[0].toUpperCase()
-                      : '?',
+                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
                   style: TextStyle(
                     fontSize: avatarSize * 0.45,
                     fontWeight: FontWeight.w600,
@@ -35,12 +33,7 @@ class UserTile extends StatelessWidget {
               : null,
         ),
         const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            displayName,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
+        Flexible(child: Text(displayName, overflow: TextOverflow.ellipsis)),
       ],
     );
   }

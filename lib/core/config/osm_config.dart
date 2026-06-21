@@ -18,6 +18,6 @@ class OsmConfig {
 }
 
 NetworkTileProvider osmTileProvider() => NetworkTileProvider(
-      headers: {'User-Agent': OsmConfig.tileUserAgent},
-      cachingProvider: OsmConfig.tileCachingProvider,
-    );
+  headers: {'User-Agent': OsmConfig.tileUserAgent},
+  cachingProvider: OsmConfig.tileCachingProvider,
+);

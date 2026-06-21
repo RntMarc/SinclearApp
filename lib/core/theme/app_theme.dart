@@ -8,20 +8,20 @@ class AppTheme {
   static const _darkSurface = Color(0xFF011219);
 
   static ThemeData get light => ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _primaryColor,
-          secondary: _secondaryColor,
-          brightness: Brightness.light,
-        ),
-      );
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: _primaryColor,
+      secondary: _secondaryColor,
+      brightness: Brightness.light,
+    ),
+  );
 
   static ThemeData get dark => ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _primaryColor,
-          secondary: _secondaryColor,
-          brightness: Brightness.dark,
-        ).copyWith(surface: _darkSurface),
-      );
+    useMaterial3: true,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: _primaryColor,
+      secondary: _secondaryColor,
+      brightness: Brightness.dark,
+    ).copyWith(surface: _darkSurface),
+  );
 }

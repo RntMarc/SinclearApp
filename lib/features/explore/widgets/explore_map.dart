@@ -20,32 +20,30 @@ class ExploreMap extends StatelessWidget {
   List<Marker> _buildMarkers() {
     return places
         .where((p) => p.latitude != null && p.longitude != null)
-        .map((p) => Marker(
-              point: LatLng(p.latitude!, p.longitude!),
-              child: Icon(
-                p.category == 'gastronomy'
-                    ? Icons.restaurant
-                    : Icons.park,
-                color: Colors.red,
-                size: 30,
-              ),
-            ))
+        .map(
+          (p) => Marker(
+            point: LatLng(p.latitude!, p.longitude!),
+            child: Icon(
+              p.category == 'gastronomy' ? Icons.restaurant : Icons.park,
+              color: Colors.red,
+              size: 30,
+            ),
+          ),
+        )
         .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final markers = _buildMarkers();
-    final initialCenter = center ??
+    final initialCenter =
+        center ??
         (markers.isNotEmpty
             ? markers.first.point
             : const LatLng(51.1657, 10.4515));
 
     return FlutterMap(
-      options: MapOptions(
-        initialCenter: initialCenter,
-        initialZoom: zoom,
-      ),
+      options: MapOptions(initialCenter: initialCenter, initialZoom: zoom),
       children: [
         TileLayer(
           urlTemplate: OsmConfig.tileUrlTemplate,
@@ -55,9 +53,8 @@ class ExploreMap extends StatelessWidget {
         MarkerLayer(markers: markers),
         SimpleAttributionWidget(
           source: const Text('OpenStreetMap contributors'),
-          onTap: () => launchUrl(
-            Uri.parse('https://openstreetmap.org/copyright'),
-          ),
+          onTap: () =>
+              launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
         ),
       ],
     );

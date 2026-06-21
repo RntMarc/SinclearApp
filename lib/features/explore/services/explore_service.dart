@@ -9,8 +9,8 @@ class ExploreService {
   final AuthService _auth;
 
   ExploreService({required ApiClient api, required AuthService auth})
-      : _api = api,
-        _auth = auth;
+    : _api = api,
+      _auth = auth;
 
   Future<String> _token() => _auth.getAccessToken();
 
@@ -35,10 +35,7 @@ class ExploreService {
     return ExploreListResponse.fromJson(data);
   }
 
-  Future<ExploreListResponse> random({
-    String? category,
-    int limit = 20,
-  }) async {
+  Future<ExploreListResponse> random({String? category, int limit = 20}) async {
     final params = <String, String>{'limit': limit.toString()};
     if (category != null) params['category'] = category;
 
@@ -51,10 +48,7 @@ class ExploreService {
   }
 
   Future<bool> bookmarkStatus(String id) async {
-    final data = await _api.get(
-      '/explore/$id/bookmark',
-      token: await _token(),
-    );
+    final data = await _api.get('/explore/$id/bookmark', token: await _token());
     return data['data']['bookmarked'] as bool;
   }
 
@@ -114,14 +108,14 @@ class ExploreService {
   }
 
   Future<ExplorePlace> get(String id) async {
-    final data = await _api.get(
-      '/explore/$id',
-      token: await _token(),
-    );
+    final data = await _api.get('/explore/$id', token: await _token());
     return ExplorePlace.fromJson(data['data'] as Map<String, dynamic>);
   }
 
-  Future<ExplorePlace> create({required int osmId, required String osmType}) async {
+  Future<ExplorePlace> create({
+    required int osmId,
+    required String osmType,
+  }) async {
     final data = await _api.post(
       '/explore',
       body: CreatePlaceRequest(osmId: osmId, osmType: osmType).toJson(),
@@ -131,10 +125,7 @@ class ExploreService {
   }
 
   Future<ExplorePlace> update(String id) async {
-    final data = await _api.put(
-      '/explore/$id',
-      token: await _token(),
-    );
+    final data = await _api.put('/explore/$id', token: await _token());
     return ExplorePlace.fromJson(data['data'] as Map<String, dynamic>);
   }
 

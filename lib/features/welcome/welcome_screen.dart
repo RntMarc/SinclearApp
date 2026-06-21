@@ -15,11 +15,7 @@ class WelcomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/logo.png',
-                  width: 96,
-                  height: 96,
-                ),
+                Image.asset('assets/logo.png', width: 96, height: 96),
                 const SizedBox(height: 16),
                 Text(
                   'Sinclear Beyond',

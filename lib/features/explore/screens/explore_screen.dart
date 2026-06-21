@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -51,7 +52,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _loading = false;
         _error = null;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load suggestions', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -73,7 +75,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _bookmarks = response.data;
         _loadingBookmarks = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to load bookmarks', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _loadingBookmarks = false;
@@ -97,7 +100,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _suggestions = response.data;
         _error = null;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to search by location', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _error = 'Standort konnte nicht ermittelt werden.');
     }
@@ -181,16 +185,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
         ),
         if (_showMap)
-          Expanded(
-            child: ExploreMap(
-              places: _suggestions,
-              zoom: 6,
-            ),
-          )
+          Expanded(child: ExploreMap(places: _suggestions, zoom: 6))
         else
-          Expanded(
-            child: _buildSuggestionsList(theme, crossAxisCount),
-          ),
+          Expanded(child: _buildSuggestionsList(theme, crossAxisCount)),
       ],
     );
   }
@@ -205,8 +202,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48,
-                color: theme.colorScheme.error),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 8),
             Text(_error!, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
@@ -275,8 +271,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: Center(
                         child: Column(
                           children: [
-                            Icon(Icons.error_outline, size: 24,
-                                color: theme.colorScheme.error),
+                            Icon(
+                              Icons.error_outline,
+                              size: 24,
+                              color: theme.colorScheme.error,
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               'Lesezeichen konnten nicht geladen werden.',
@@ -316,11 +315,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       padding: EdgeInsets.zero,
                       itemCount: _bookmarks.length,
                       separatorBuilder: (_, _) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) =>
-                          SizedBox(
-                            width: 260,
-                            child: PlaceCard(place: _bookmarks[index]),
-                          ),
+                      itemBuilder: (context, index) => SizedBox(
+                        width: 260,
+                        child: PlaceCard(place: _bookmarks[index]),
+                      ),
                     ),
                   ),
               ],
@@ -349,9 +347,7 @@ class _CategoryButton extends StatelessWidget {
       onPressed: onTap,
       icon: Icon(icon),
       label: Text(label),
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(44),
-      ),
+      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
     );
   }
 }

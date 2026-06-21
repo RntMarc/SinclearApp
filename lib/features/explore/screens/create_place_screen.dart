@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
@@ -42,7 +43,8 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
         _results = results;
         _searching = false;
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to search OSM', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _searching = false;
@@ -77,7 +79,8 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
           _ => 'Fehler beim Hinzufügen.',
         };
       });
-    } catch (_) {
+    } catch (e, st) {
+      developer.log('Failed to create place', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _submitting = false;
@@ -115,7 +118,10 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.search_rounded),
               label: Text(_searching ? 'Suche läuft…' : 'Suchen'),
@@ -123,9 +129,12 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(_error!, style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.error,
-            )),
+            Text(
+              _error!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
           ],
           const SizedBox(height: 16),
           Expanded(
@@ -149,8 +158,8 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
                           result.osmType == 'N'
                               ? Icons.location_on_rounded
                               : result.osmType == 'W'
-                                  ? Icons.route_rounded
-                                  : Icons.layers_rounded,
+                              ? Icons.route_rounded
+                              : Icons.layers_rounded,
                           color: theme.colorScheme.primary,
                         ),
                         title: Text(
@@ -163,7 +172,9 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.add_circle_outline),
                         onTap: _submitting ? null : () => _submit(result),
