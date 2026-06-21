@@ -21,14 +21,22 @@ class NewsArticle {
 
   factory NewsArticle.fromJson(Map<String, dynamic> json) {
     return NewsArticle(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      url: json['url'] as String,
-      sourceName: json['sourceName'] as String,
-      sourceIcon: json['sourceIcon'] as String?,
-      imageUrl: json['imageUrl'] as String?,
-      description: json['description'] as String?,
-      savedAt: json['savedAt'] as String,
+      id: _readString(json, 'id', 'ID', 'articleId'),
+      title: _readString(json, 'title'),
+      url: _readString(json, 'url'),
+      sourceName: _readString(json, 'sourceName', 'source_name'),
+      sourceIcon: _readOptionalString(json, 'sourceIcon', 'source_icon'),
+      imageUrl: _readOptionalString(json, 'imageUrl', 'image_url'),
+      description: _readOptionalString(json, 'description'),
+      savedAt: _readString(
+        json,
+        'savedAt',
+        'saved_at',
+        'createdAt',
+        'created_at',
+        'publishedAt',
+        'published_at',
+      ),
     );
   }
 }
@@ -54,13 +62,21 @@ class RssArticle {
 
   factory RssArticle.fromJson(Map<String, dynamic> json) {
     return RssArticle(
-      title: json['title'] as String,
-      url: json['url'] as String,
-      sourceName: json['sourceName'] as String,
-      sourceIcon: json['sourceIcon'] as String?,
-      imageUrl: json['imageUrl'] as String?,
-      description: json['description'] as String?,
-      publishedAt: json['publishedAt'] as String,
+      title: _readString(json, 'title'),
+      url: _readString(json, 'url'),
+      sourceName: _readString(json, 'sourceName', 'source_name'),
+      sourceIcon: _readOptionalString(json, 'sourceIcon', 'source_icon'),
+      imageUrl: _readOptionalString(json, 'imageUrl', 'image_url'),
+      description: _readOptionalString(json, 'description'),
+      publishedAt: _readString(
+        json,
+        'publishedAt',
+        'published_at',
+        'savedAt',
+        'saved_at',
+        'createdAt',
+        'created_at',
+      ),
     );
   }
 }
@@ -80,10 +96,10 @@ class PaginationMeta {
 
   factory PaginationMeta.fromJson(Map<String, dynamic> json) {
     return PaginationMeta(
-      page: json['page'] as int,
-      limit: json['limit'] as int,
-      total: json['total'] as int,
-      totalPages: json['totalPages'] as int,
+      page: _readInt(json, 'page'),
+      limit: _readInt(json, 'limit'),
+      total: _readInt(json, 'total'),
+      totalPages: _readInt(json, 'totalPages', 'total_pages'),
     );
   }
 
@@ -102,16 +118,23 @@ class NewsListResponse {
   });
 
   factory NewsListResponse.fromJson(Map<String, dynamic> json) {
+    final data = (json['data'] as List? ?? [])
+        .map((e) => NewsArticle.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final rss = (json['rss'] as List? ?? [])
+        .map((e) => RssArticle.fromJson(e as Map<String, dynamic>))
+        .toList();
     return NewsListResponse(
-      data: (json['data'] as List)
-          .map((e) => NewsArticle.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      rss:
-          (json['rss'] as List?)
-              ?.map((e) => RssArticle.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      meta: PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>),
+      data: data,
+      rss: rss,
+      meta: json['meta'] != null
+          ? PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>)
+          : PaginationMeta(
+              page: 1,
+              limit: data.length,
+              total: data.length,
+              totalPages: 1,
+            ),
     );
   }
 }
@@ -205,4 +228,48 @@ class NewsVoteRequest {
     'sourceName': sourceName,
     'sourceIcon': sourceIcon,
   };
+}
+
+String _readString(Map<String, dynamic> json, String key, [
+  String? second,
+  String? third,
+  String? fourth,
+  String? fifth,
+  String? sixth,
+  String? seventh,
+]) {
+  final value = _readValue(json, [
+    key,
+    second,
+    third,
+    fourth,
+    fifth,
+    sixth,
+    seventh,
+  ]);
+  if (value is String) return value;
+  if (value != null) return value.toString();
+  throw FormatException('Missing required string field "$key".');
+}
+
+String? _readOptionalString(Map<String, dynamic> json, String key, [
+  String? second,
+]) {
+  final value = _readValue(json, [key, second]);
+  return value?.toString();
+}
+
+int _readInt(Map<String, dynamic> json, String key, [String? second]) {
+  final value = _readValue(json, [key, second]);
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.parse(value);
+  throw FormatException('Missing required int field "$key".');
+}
+
+Object? _readValue(Map<String, dynamic> json, List<String?> keys) {
+  for (final key in keys) {
+    if (key != null && json.containsKey(key)) return json[key];
+  }
+  return null;
 }

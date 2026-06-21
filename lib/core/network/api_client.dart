@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -13,19 +14,23 @@ class ApiException implements Exception {
   });
 
   @override
-  String toString() =>
-      'ApiException($statusCode): $errorCode${message != null ? " - $message" : ""}';
+  String toString() {
+    final details = message != null ? ' - $message' : '';
+    return 'ApiException($statusCode): $errorCode$details';
+  }
 }
 
 class ApiClient {
   final String baseUrl;
   final http.Client _client;
   final Duration timeout;
+  final int maxGetAttempts;
 
   ApiClient({
     required this.baseUrl,
     http.Client? client,
     this.timeout = const Duration(seconds: 30),
+    this.maxGetAttempts = 3,
   }) : _client = client ?? http.Client();
 
   Map<String, String> _headers({String? token}) {
@@ -61,10 +66,24 @@ class ApiClient {
     if (queryParams != null) {
       uri = uri.replace(queryParameters: queryParams);
     }
-    final response = await _client
-        .get(uri, headers: _headers(token: token))
-        .timeout(timeout);
-    return _handleResponse(response);
+    for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
+      try {
+        final response = await _client
+            .get(uri, headers: _headers(token: token))
+            .timeout(timeout);
+        if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
+          return _handleResponse(response);
+        }
+      } on TimeoutException {
+        if (attempt == maxGetAttempts) rethrow;
+      } on http.ClientException {
+        if (attempt == maxGetAttempts) rethrow;
+      }
+
+      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
+    }
+
+    throw StateError('GET retry loop exited unexpectedly.');
   }
 
   Future<Map<String, dynamic>> put(
@@ -98,6 +117,10 @@ class ApiClient {
     final response = await http.Response.fromStream(streamed);
     if (response.statusCode == 204) return;
     _handleResponse(response);
+  }
+
+  bool _shouldRetry(int statusCode) {
+    return statusCode == 408 || statusCode == 429 || statusCode >= 500;
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
