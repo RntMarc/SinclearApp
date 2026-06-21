@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../widgets/user_tile.dart';
@@ -269,8 +272,9 @@ class _AccommodationMap extends StatelessWidget {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.sinclearapp',
+              urlTemplate: OsmConfig.tileUrlTemplate,
+              userAgentPackageName: OsmConfig.tileUserAgent,
+              tileProvider: osmTileProvider(),
             ),
             MarkerLayer(
               markers: coords.map((a) {
@@ -285,6 +289,12 @@ class _AccommodationMap extends StatelessWidget {
                   ),
                 );
               }).toList(),
+            ),
+            SimpleAttributionWidget(
+              source: const Text('OpenStreetMap contributors'),
+              onTap: () => launchUrl(
+                Uri.parse('https://openstreetmap.org/copyright'),
+              ),
             ),
           ],
         ),
@@ -355,9 +365,8 @@ class _AccommodationCard extends StatelessWidget {
                 children: accommodation.users.map((u) {
                   return CircleAvatar(
                     radius: 14,
-                    backgroundImage:
-                        u.image != null ? NetworkImage(u.image!) : null,
-                    child: u.image == null
+                    backgroundImage: resolveImageProvider(u.image),
+                    child: resolveImageProvider(u.image) == null
                         ? Text(
                             u.displayName.isNotEmpty
                                 ? u.displayName[0].toUpperCase()
@@ -539,9 +548,8 @@ class _EventCard extends StatelessWidget {
                   children: event.participants.map((p) {
                     return CircleAvatar(
                       radius: 12,
-                      backgroundImage:
-                          p.image != null ? NetworkImage(p.image!) : null,
-                      child: p.image == null
+                      backgroundImage: resolveImageProvider(p.image),
+                      child: resolveImageProvider(p.image) == null
                           ? Text(
                               p.displayName.isNotEmpty
                                   ? p.displayName[0].toUpperCase()
@@ -627,10 +635,17 @@ class _MapTab extends StatelessWidget {
         ),
         children: [
           TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.sinclearapp',
+            urlTemplate: OsmConfig.tileUrlTemplate,
+            userAgentPackageName: OsmConfig.tileUserAgent,
+            tileProvider: osmTileProvider(),
           ),
           MarkerLayer(markers: markers),
+          SimpleAttributionWidget(
+            source: const Text('OpenStreetMap contributors'),
+            onTap: () => launchUrl(
+              Uri.parse('https://openstreetmap.org/copyright'),
+            ),
+          ),
         ],
       ),
     );
