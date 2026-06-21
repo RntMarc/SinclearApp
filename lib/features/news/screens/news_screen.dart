@@ -156,9 +156,7 @@ class _NewsScreenState extends State<NewsScreen>
   }
 
   Future<void> _loadMoreArchive() async {
-    if (_archiveLoadingMore ||
-        _archiveMeta == null ||
-        !_archiveMeta!.hasMore) {
+    if (_archiveLoadingMore || _archiveMeta == null || !_archiveMeta!.hasMore) {
       return;
     }
     setState(() => _archiveLoadingMore = true);
@@ -249,10 +247,7 @@ class _NewsScreenState extends State<NewsScreen>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [
-              _buildArticlesTab(),
-              _buildArchiveTab(),
-            ],
+            children: [_buildArticlesTab(), _buildArchiveTab()],
           ),
         ),
       ],
@@ -271,8 +266,7 @@ class _NewsScreenState extends State<NewsScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                size: 48, color: theme.colorScheme.error),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 8),
             Text(_articlesError!, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
@@ -346,9 +340,7 @@ class _NewsScreenState extends State<NewsScreen>
                   ),
                 ),
               ],
-              SliverToBoxAdapter(
-                child: _buildArticlesFooter(theme),
-              ),
+              SliverToBoxAdapter(child: _buildArticlesFooter(theme)),
             ],
           ),
         );
@@ -393,8 +385,7 @@ class _NewsScreenState extends State<NewsScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                size: 48, color: theme.colorScheme.error),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 8),
             Text(_archiveError!, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
@@ -442,9 +433,7 @@ class _NewsScreenState extends State<NewsScreen>
                   childCount: _archive.length,
                 ),
               ),
-              SliverToBoxAdapter(
-                child: _buildArchiveFooter(theme),
-              ),
+              SliverToBoxAdapter(child: _buildArchiveFooter(theme)),
             ],
           ),
         );

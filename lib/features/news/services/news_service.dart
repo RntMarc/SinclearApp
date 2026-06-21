@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/news_models.dart';
@@ -9,10 +11,17 @@ class NewsService {
   final AuthService _auth;
 
   NewsService({required ApiClient api, required AuthService auth})
-      : _api = api,
-        _auth = auth;
+    : _api = api,
+      _auth = auth;
 
   Future<String> _token() => _auth.getAccessToken();
+
+  /// Returns a CORS-safe image URL on web; the original URL on other platforms.
+  String proxyImageUrl(String url, {String type = 'preview'}) {
+    if (!kIsWeb) return url;
+    final encoded = Uri.encodeComponent(url);
+    return '${_api.baseUrl}/news/proxy/image?url=$encoded&type=$type';
+  }
 
   Future<NewsListResponse> list({
     String? sourceName,
@@ -33,10 +42,7 @@ class NewsService {
     return NewsListResponse.fromJson(data);
   }
 
-  Future<NewsListResponse> getVotes({
-    int page = 1,
-    int limit = 20,
-  }) async {
+  Future<NewsListResponse> getVotes({int page = 1, int limit = 20}) async {
     final params = <String, String>{
       'page': page.toString(),
       'limit': limit.toString(),
@@ -72,10 +78,7 @@ class NewsService {
     );
   }
 
-  Future<NewsListResponse> getArchive({
-    int page = 1,
-    int limit = 20,
-  }) async {
+  Future<NewsListResponse> getArchive({int page = 1, int limit = 20}) async {
     final params = <String, String>{
       'page': page.toString(),
       'limit': limit.toString(),
