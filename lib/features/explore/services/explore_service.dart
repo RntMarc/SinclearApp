@@ -80,6 +80,8 @@ class ExploreService {
     String? q,
     String? category,
     String? cuisine,
+    String? sort,
+    String? city,
     double? lat,
     double? lon,
     String? location,
@@ -95,6 +97,8 @@ class ExploreService {
     if (q != null) params['q'] = q;
     if (category != null) params['category'] = category;
     if (cuisine != null) params['cuisine'] = cuisine;
+    if (sort != null) params['sort'] = sort;
+    if (city != null) params['city'] = city;
     if (lat != null) params['lat'] = lat.toString();
     if (lon != null) params['lon'] = lon.toString();
     if (location != null) params['location'] = location;
