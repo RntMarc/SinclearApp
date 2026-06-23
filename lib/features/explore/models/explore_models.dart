@@ -125,6 +125,88 @@ class CreatePlaceRequest {
   Map<String, dynamic> toJson() => {'osmId': osmId, 'osmType': osmType};
 }
 
+class Review {
+  final String id;
+  final String placeId;
+  final String userId;
+  final int rating;
+  final String? comment;
+  final String createdAt;
+
+  const Review({
+    required this.id,
+    required this.placeId,
+    required this.userId,
+    required this.rating,
+    this.comment,
+    required this.createdAt,
+  });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: json['id'] as String,
+      placeId: json['placeId'] as String,
+      userId: json['userId'] as String,
+      rating: json['rating'] as int,
+      comment: json['comment'] as String?,
+      createdAt: json['createdAt'] as String,
+    );
+  }
+}
+
+class ReviewListResponse {
+  final List<Review> data;
+  final PaginationMeta meta;
+
+  const ReviewListResponse({required this.data, required this.meta});
+
+  factory ReviewListResponse.fromJson(Map<String, dynamic> json) {
+    final reviews = (json['data'] as List)
+        .map((e) => Review.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final meta = json['meta'] != null
+        ? PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>)
+        : PaginationMeta(
+            page: 1,
+            limit: reviews.length,
+            total: reviews.length,
+            totalPages: 1,
+          );
+    return ReviewListResponse(data: reviews, meta: meta);
+  }
+}
+
+class CreateReviewRequest {
+  final int rating;
+  final String? comment;
+
+  const CreateReviewRequest({required this.rating, this.comment});
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{'rating': rating};
+    if (comment != null) map['comment'] = comment;
+    return map;
+  }
+}
+
+class UpdateReviewRequest {
+  final int? rating;
+  final String? comment;
+
+  const UpdateReviewRequest({this.rating, this.comment});
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{};
+    if (rating != null) map['rating'] = rating;
+    if (comment != null) {
+      map['comment'] = comment;
+    } else {
+      map['comment'] = null;
+    }
+    return map;
+  }
+}
+
 class NominatimResult {
   final int osmId;
   final String osmType;
