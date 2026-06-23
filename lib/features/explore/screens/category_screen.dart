@@ -24,6 +24,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   bool _loadingMore = false;
   bool _showMap = false;
   String? _error;
+  bool _hasLoaded = false;
   String? _sort;
 
   List<ExplorePlace>? _searchResults;
@@ -41,9 +42,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
     _scrollController.addListener(_onScroll);
     _searchScrollController.addListener(_onSearchScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _load();
+    }
   }
 
   @override
@@ -275,6 +284,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
             children: [
               Row(
                 children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    tooltip: 'Zurück',
+                  ),
                   Expanded(
                     child: InkWell(
                       onTap: _openSearch,
@@ -312,6 +326,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     icon: const Icon(Icons.my_location_rounded),
                     tooltip: 'In meiner Nähe',
                   ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: () => setState(() => _showMap = !_showMap),
+                    icon: Icon(
+                      _showMap ? Icons.list_rounded : Icons.map_rounded,
+                    ),
+                    tooltip: _showMap ? 'Liste' : 'Karte',
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -333,26 +355,21 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   ],
                 )
               else
-                Row(
-                  children: [
-                    for (final opt in _sortOptions)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: SortChip(
-                          label: '${opt.$2}${_sortLabel(opt.$1)}',
-                          selected: _isSelected(opt.$1),
-                          onTap: () => _setSort(opt.$1),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final opt in _sortOptions)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: SortChip(
+                            label: '${opt.$2}${_sortLabel(opt.$1)}',
+                            selected: _isSelected(opt.$1),
+                            onTap: () => _setSort(opt.$1),
+                          ),
                         ),
-                      ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => setState(() => _showMap = !_showMap),
-                      icon: Icon(
-                        _showMap ? Icons.list_rounded : Icons.map_rounded,
-                      ),
-                      tooltip: _showMap ? 'Liste' : 'Karte',
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
             ],
           ),

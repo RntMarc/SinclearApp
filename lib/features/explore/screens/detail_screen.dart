@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../models/explore_models.dart';
+import '../utils/cuisine_translations.dart';
 
 class DetailScreen extends StatefulWidget {
   final String id;
@@ -28,6 +29,7 @@ class _DetailScreenState extends State<DetailScreen> {
   List<Review>? _reviews;
   bool _loadingReviews = false;
   String? _reviewsError;
+  final Map<String, String> _userNames = {};
 
   @override
   void initState() {
@@ -54,10 +56,13 @@ class _DetailScreenState extends State<DetailScreen> {
         scope.explore.getReviews(widget.id),
       ]);
       if (!mounted) return;
+      final reviews = (results[2] as ReviewListResponse).data;
+      _loadUserNames(reviews);
+      if (!mounted) return;
       setState(() {
         _place = results[0] as ExplorePlace;
         _bookmarked = results[1] as bool;
-        _reviews = (results[2] as ReviewListResponse).data;
+        _reviews = reviews;
         _loading = false;
         _loadingReviews = false;
         _error = null;
@@ -156,9 +161,21 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  Future<void> _loadUserNames(List<Review> reviews) async {
+    try {
+      final users = await AppScope.of(context).user.listAll();
+      if (!mounted) return;
+      for (final user in users) {
+        _userNames[user.id] = user.displayName;
+      }
+    } catch (_) {}
+  }
+
   Future<void> _loadReviewsIfNeeded() async {
     try {
       final result = await AppScope.of(context).explore.getReviews(widget.id);
+      if (!mounted) return;
+      _loadUserNames(result.data);
       if (!mounted) return;
       setState(() {
         _reviews = result.data;
@@ -309,6 +326,7 @@ class _DetailScreenState extends State<DetailScreen> {
         loadingReviews: _loadingReviews,
         reviewsError: _reviewsError,
         currentUserId: currentUserId,
+        userNames: _userNames,
         onLoadReviews: _loadReviewsIfNeeded,
         onCreateReview: _showCreateReviewDialog,
         onEditReview: _showEditReviewDialog,
@@ -328,6 +346,7 @@ class _DetailScreenState extends State<DetailScreen> {
       loadingReviews: _loadingReviews,
       reviewsError: _reviewsError,
       currentUserId: currentUserId,
+      userNames: _userNames,
       onLoadReviews: _loadReviewsIfNeeded,
       onCreateReview: _showCreateReviewDialog,
       onEditReview: _showEditReviewDialog,
@@ -349,6 +368,7 @@ class _WideDetail extends StatelessWidget {
   final bool loadingReviews;
   final String? reviewsError;
   final String currentUserId;
+  final Map<String, String> userNames;
   final VoidCallback onLoadReviews;
   final VoidCallback onCreateReview;
   final void Function(Review) onEditReview;
@@ -367,6 +387,7 @@ class _WideDetail extends StatelessWidget {
     required this.loadingReviews,
     this.reviewsError,
     required this.currentUserId,
+    required this.userNames,
     required this.onLoadReviews,
     required this.onCreateReview,
     required this.onEditReview,
@@ -377,10 +398,15 @@ class _WideDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 3, child: _InfoContent(place: place)),
+          const BackButton(),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: _InfoContent(place: place)),
           const SizedBox(width: 24),
           Expanded(
             flex: 2,
@@ -403,6 +429,7 @@ class _WideDetail extends StatelessWidget {
                   loading: loadingReviews,
                   error: reviewsError,
                   currentUserId: currentUserId,
+                  userNames: userNames,
                   onLoadReviews: onLoadReviews,
                   onCreateReview: onCreateReview,
                   onEditReview: onEditReview,
@@ -410,6 +437,8 @@ class _WideDetail extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+            ],
           ),
         ],
       ),
@@ -430,6 +459,7 @@ class _NarrowDetail extends StatelessWidget {
   final bool loadingReviews;
   final String? reviewsError;
   final String currentUserId;
+  final Map<String, String> userNames;
   final VoidCallback onLoadReviews;
   final VoidCallback onCreateReview;
   final void Function(Review) onEditReview;
@@ -448,6 +478,7 @@ class _NarrowDetail extends StatelessWidget {
     required this.loadingReviews,
     this.reviewsError,
     required this.currentUserId,
+    required this.userNames,
     required this.onLoadReviews,
     required this.onCreateReview,
     required this.onEditReview,
@@ -460,10 +491,17 @@ class _NarrowDetail extends StatelessWidget {
       length: 2,
       child: Column(
         children: [
-          TabBar(
-            tabs: const [
-              Tab(text: 'Info'),
-              Tab(text: 'Bewertungen'),
+          Row(
+            children: [
+              const BackButton(),
+              Expanded(
+                child: TabBar(
+                  tabs: const [
+                    Tab(text: 'Info'),
+                    Tab(text: 'Bewertungen'),
+                  ],
+                ),
+              ),
             ],
           ),
           Expanded(
@@ -496,6 +534,7 @@ class _NarrowDetail extends StatelessWidget {
                     loading: loadingReviews,
                     error: reviewsError,
                     currentUserId: currentUserId,
+                    userNames: userNames,
                     onLoadReviews: onLoadReviews,
                     onCreateReview: onCreateReview,
                     onEditReview: onEditReview,
@@ -530,9 +569,11 @@ class _InfoContent extends StatelessWidget {
           _InfoRow(Icons.language_rounded, place.website!),
         if (place.email != null) _InfoRow(Icons.email_rounded, place.email!),
         if (place.cuisine != null)
-          _InfoRow(Icons.restaurant_rounded, place.cuisine!),
+          _InfoRow(Icons.restaurant_rounded, translateCuisine(place.cuisine)),
         if (place.openingHours != null)
           _InfoRow(Icons.schedule_rounded, place.openingHours!),
+        if (place.avgRating != null)
+          _InfoRow(Icons.star_rounded, '${place.avgRating!.toStringAsFixed(1)} / 5'),
         const SizedBox(height: 16),
         _MetaRow(
           'Kategorie',
@@ -735,6 +776,7 @@ class _ReviewsSection extends StatelessWidget {
   final bool loading;
   final String? error;
   final String currentUserId;
+  final Map<String, String> userNames;
   final VoidCallback onLoadReviews;
   final VoidCallback onCreateReview;
   final void Function(Review) onEditReview;
@@ -745,6 +787,7 @@ class _ReviewsSection extends StatelessWidget {
     required this.loading,
     this.error,
     required this.currentUserId,
+    required this.userNames,
     required this.onLoadReviews,
     required this.onCreateReview,
     required this.onEditReview,
@@ -813,6 +856,7 @@ class _ReviewsSection extends StatelessWidget {
               child: _ReviewCard(
                 review: review,
                 isOwn: review.userId == currentUserId,
+                userName: userNames[review.userId],
                 onEdit: () => onEditReview(review),
                 onDelete: () => onDeleteReview(review),
               ),
@@ -826,12 +870,14 @@ class _ReviewsSection extends StatelessWidget {
 class _ReviewCard extends StatelessWidget {
   final Review review;
   final bool isOwn;
+  final String? userName;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _ReviewCard({
     required this.review,
     required this.isOwn,
+    this.userName,
     required this.onEdit,
     required this.onDelete,
   });
@@ -845,6 +891,15 @@ class _ReviewCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (userName != null) ...[
+              Text(
+                userName!,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
             Row(
               children: [
                 _StarRating(rating: review.rating, size: 16),
