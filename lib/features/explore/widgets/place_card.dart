@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/explore_models.dart';
+import '../utils/cuisine_translations.dart';
 
 class PlaceCard extends StatelessWidget {
   final ExplorePlace place;
@@ -28,7 +29,7 @@ class PlaceCard extends StatelessWidget {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
-                  Flexible(
+                  Expanded(
                     child: Text(
                       place.name,
                       style: theme.textTheme.titleSmall?.copyWith(
@@ -38,6 +39,22 @@ class PlaceCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (place.avgRating != null) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.star_rounded,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 2),
+                    Text(
+                      place.avgRating!.toStringAsFixed(1),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
               if (place.address != null) ...[
@@ -63,18 +80,10 @@ class PlaceCard extends StatelessWidget {
                   ],
                 ),
               ],
-              const SizedBox(height: 8),
-              Chip(
-                label: Text(
-                  place.category == 'gastronomy' ? 'Gastronomie' : 'Freizeit',
-                  style: theme.textTheme.labelSmall,
-                ),
-                visualDensity: VisualDensity.compact,
-              ),
               if (place.cuisine != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  place.cuisine!,
+                  translateCuisine(place.cuisine),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
