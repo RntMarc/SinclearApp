@@ -51,13 +51,17 @@ class _DetailScreenState extends State<DetailScreen> {
       final results = await Future.wait([
         scope.explore.get(widget.id),
         scope.explore.bookmarkStatus(widget.id),
+        scope.explore.getReviews(widget.id),
       ]);
       if (!mounted) return;
       setState(() {
         _place = results[0] as ExplorePlace;
         _bookmarked = results[1] as bool;
+        _reviews = (results[2] as ReviewListResponse).data;
         _loading = false;
+        _loadingReviews = false;
         _error = null;
+        _reviewsError = null;
       });
     } catch (e, st) {
       developer.log('Failed to load place', error: e, stackTrace: st);
@@ -153,8 +157,6 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _loadReviewsIfNeeded() async {
-    if (_reviews != null || _loadingReviews) return;
-    setState(() => _loadingReviews = true);
     try {
       final result = await AppScope.of(context).explore.getReviews(widget.id);
       if (!mounted) return;
@@ -728,7 +730,7 @@ class _ActionsCard extends StatelessWidget {
   }
 }
 
-class _ReviewsSection extends StatefulWidget {
+class _ReviewsSection extends StatelessWidget {
   final List<Review>? reviews;
   final bool loading;
   final String? error;
@@ -750,51 +752,24 @@ class _ReviewsSection extends StatefulWidget {
   });
 
   @override
-  State<_ReviewsSection> createState() => _ReviewsSectionState();
-}
-
-class _ReviewsSectionState extends State<_ReviewsSection> {
-  @override
-  void initState() {
-    super.initState();
-    if (widget.reviews == null && !widget.loading) {
-      widget.onLoadReviews();
-    }
-  }
-
-  @override
-  void didUpdateWidget(_ReviewsSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.reviews != null &&
-        widget.reviews == null &&
-        !widget.loading) {
-      widget.onLoadReviews();
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (widget.loading && widget.reviews == null) {
+    if (loading && reviews == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (widget.error != null && widget.reviews == null) {
+    if (error != null && reviews == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 8),
-            Text(widget.error!),
+            Text(error!),
             const SizedBox(height: 16),
             FilledButton.tonal(
-              onPressed: widget.onLoadReviews,
+              onPressed: onLoadReviews,
               child: const Text('Erneut versuchen'),
             ),
           ],
@@ -802,7 +777,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
       );
     }
 
-    final reviews = widget.reviews ?? <Review>[];
+    final items = reviews ?? <Review>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -812,14 +787,14 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             Text('Bewertungen', style: theme.textTheme.titleMedium),
             const Spacer(),
             FilledButton.tonalIcon(
-              onPressed: widget.onCreateReview,
+              onPressed: onCreateReview,
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text('Schreiben'),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        if (reviews.isEmpty)
+        if (items.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
@@ -832,14 +807,14 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             ),
           )
         else
-          ...reviews.map(
+          ...items.map(
             (review) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _ReviewCard(
                 review: review,
-                isOwn: review.userId == widget.currentUserId,
-                onEdit: () => widget.onEditReview(review),
-                onDelete: () => widget.onDeleteReview(review),
+                isOwn: review.userId == currentUserId,
+                onEdit: () => onEditReview(review),
+                onDelete: () => onDeleteReview(review),
               ),
             ),
           ),
@@ -962,8 +937,9 @@ class _ReviewDialogState extends State<_ReviewDialog> {
   void initState() {
     super.initState();
     _rating = widget.initialRating ?? 0;
-    _commentController =
-        TextEditingController(text: widget.initialComment ?? '');
+    _commentController = TextEditingController(
+      text: widget.initialComment ?? '',
+    );
   }
 
   @override
@@ -983,23 +959,18 @@ class _ReviewDialogState extends State<_ReviewDialog> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              5,
-              (i) {
-                final filled = i < _rating;
-                return IconButton(
-                  icon: Icon(
-                    filled
-                        ? Icons.star_rounded
-                        : Icons.star_border_rounded,
-                    color: filled
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
-                  ),
-                  onPressed: () => setState(() => _rating = i + 1),
-                );
-              },
-            ),
+            children: List.generate(5, (i) {
+              final filled = i < _rating;
+              return IconButton(
+                icon: Icon(
+                  filled ? Icons.star_rounded : Icons.star_border_rounded,
+                  color: filled
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+                onPressed: () => setState(() => _rating = i + 1),
+              );
+            }),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -1020,15 +991,12 @@ class _ReviewDialogState extends State<_ReviewDialog> {
         FilledButton(
           onPressed: _rating == 0
               ? null
-              : () => Navigator.pop(
-                    context,
-                    (
-                      rating: _rating,
-                      comment: _commentController.text.trim().isEmpty
-                          ? null
-                          : _commentController.text.trim(),
-                    ),
-                  ),
+              : () => Navigator.pop(context, (
+                  rating: _rating,
+                  comment: _commentController.text.trim().isEmpty
+                      ? null
+                      : _commentController.text.trim(),
+                )),
           child: const Text('Speichern'),
         ),
       ],
