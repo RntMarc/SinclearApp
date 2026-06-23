@@ -87,8 +87,12 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          const BackButton(),
+          const SizedBox(height: 8),
+          Center(
+            child: CircleAvatar(
             radius: 48,
             backgroundImage: resolveImageProvider(user.base.image),
             child: resolveImageProvider(user.base.image) == null
@@ -104,11 +108,14 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   )
                 : null,
           ),
+          ),
           const SizedBox(height: 16),
-          Text(
-            user.base.displayName,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+          Center(
+            child: Text(
+              user.base.displayName,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           if (_isSelf)
