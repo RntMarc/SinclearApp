@@ -136,4 +136,57 @@ class ExploreService {
   Future<void> delete(String id) async {
     await _api.delete('/explore/$id', token: await _token());
   }
+
+  Future<ReviewListResponse> getReviews(
+    String placeId, {
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    final data = await _api.get(
+      '/explore/$placeId/reviews',
+      queryParams: params,
+      token: await _token(),
+    );
+    return ReviewListResponse.fromJson(data);
+  }
+
+  Future<Review> createReview(
+    String placeId, {
+    required int rating,
+    String? comment,
+  }) async {
+    final body = CreateReviewRequest(rating: rating, comment: comment).toJson();
+    final data = await _api.post(
+      '/explore/$placeId/reviews',
+      body: body,
+      token: await _token(),
+    );
+    return Review.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<Review> updateReview(
+    String placeId,
+    String reviewId, {
+    int? rating,
+    String? comment,
+  }) async {
+    final body = UpdateReviewRequest(rating: rating, comment: comment).toJson();
+    final data = await _api.put(
+      '/explore/$placeId/reviews/$reviewId',
+      body: body,
+      token: await _token(),
+    );
+    return Review.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteReview(String placeId, String reviewId) async {
+    await _api.delete(
+      '/explore/$placeId/reviews/$reviewId',
+      token: await _token(),
+    );
+  }
 }

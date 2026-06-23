@@ -25,6 +25,9 @@ class _DetailScreenState extends State<DetailScreen> {
   bool? _bookmarked;
   bool _bookmarkToggling = false;
   bool _hasLoaded = false;
+  List<Review>? _reviews;
+  bool _loadingReviews = false;
+  String? _reviewsError;
 
   @override
   void initState() {
@@ -149,6 +152,112 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  Future<void> _loadReviewsIfNeeded() async {
+    if (_reviews != null || _loadingReviews) return;
+    setState(() => _loadingReviews = true);
+    try {
+      final result = await AppScope.of(context).explore.getReviews(widget.id);
+      if (!mounted) return;
+      setState(() {
+        _reviews = result.data;
+        _loadingReviews = false;
+        _reviewsError = null;
+      });
+    } catch (e, st) {
+      developer.log('Failed to load reviews', error: e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _loadingReviews = false;
+        _reviewsError = 'Bewertungen konnten nicht geladen werden.';
+      });
+    }
+  }
+
+  Future<void> _showCreateReviewDialog() async {
+    final result = await showDialog<({int rating, String? comment})>(
+      context: context,
+      builder: (_) => const _ReviewDialog(),
+    );
+    if (result == null || !mounted) return;
+    try {
+      await AppScope.of(context).explore.createReview(
+        widget.id,
+        rating: result.rating,
+        comment: result.comment,
+      );
+      if (!mounted) return;
+      setState(() => _reviews = null);
+      _loadReviewsIfNeeded();
+    } catch (e, st) {
+      developer.log('Failed to create review', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern.')));
+    }
+  }
+
+  Future<void> _showEditReviewDialog(Review review) async {
+    final result = await showDialog<({int rating, String? comment})>(
+      context: context,
+      builder: (_) => _ReviewDialog(
+        initialRating: review.rating,
+        initialComment: review.comment,
+      ),
+    );
+    if (result == null || !mounted) return;
+    try {
+      await AppScope.of(context).explore.updateReview(
+        widget.id,
+        review.id,
+        rating: result.rating,
+        comment: result.comment,
+      );
+      if (!mounted) return;
+      setState(() => _reviews = null);
+      _loadReviewsIfNeeded();
+    } catch (e, st) {
+      developer.log('Failed to update review', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern.')));
+    }
+  }
+
+  Future<void> _confirmDeleteReview(Review review) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Bewertung löschen'),
+        content: const Text('Wirklich löschen?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      await AppScope.of(context).explore.deleteReview(widget.id, review.id);
+      if (!mounted) return;
+      setState(() => _reviews = null);
+      _loadReviewsIfNeeded();
+    } catch (e, st) {
+      developer.log('Failed to delete review', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Löschen fehlgeschlagen.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -180,7 +289,8 @@ class _DetailScreenState extends State<DetailScreen> {
     final isWide = MediaQuery.of(context).size.width >= 600;
     final place = _place!;
     final auth = AppScope.of(context).auth;
-    final isOwner = auth.userId == place.creatorId;
+    final currentUserId = auth.userId ?? '';
+    final isOwner = currentUserId == place.creatorId;
     final canDelete = isOwner || auth.isAdmin;
 
     if (isWide) {
@@ -193,6 +303,14 @@ class _DetailScreenState extends State<DetailScreen> {
         onRefresh: _refresh,
         onDelete: _delete,
         onToggleBookmark: _toggleBookmark,
+        reviews: _reviews,
+        loadingReviews: _loadingReviews,
+        reviewsError: _reviewsError,
+        currentUserId: currentUserId,
+        onLoadReviews: _loadReviewsIfNeeded,
+        onCreateReview: _showCreateReviewDialog,
+        onEditReview: _showEditReviewDialog,
+        onDeleteReview: _confirmDeleteReview,
       );
     }
     return _NarrowDetail(
@@ -204,6 +322,14 @@ class _DetailScreenState extends State<DetailScreen> {
       onRefresh: _refresh,
       onDelete: _delete,
       onToggleBookmark: _toggleBookmark,
+      reviews: _reviews,
+      loadingReviews: _loadingReviews,
+      reviewsError: _reviewsError,
+      currentUserId: currentUserId,
+      onLoadReviews: _loadReviewsIfNeeded,
+      onCreateReview: _showCreateReviewDialog,
+      onEditReview: _showEditReviewDialog,
+      onDeleteReview: _confirmDeleteReview,
     );
   }
 }
@@ -217,6 +343,14 @@ class _WideDetail extends StatelessWidget {
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
   final VoidCallback onToggleBookmark;
+  final List<Review>? reviews;
+  final bool loadingReviews;
+  final String? reviewsError;
+  final String currentUserId;
+  final VoidCallback onLoadReviews;
+  final VoidCallback onCreateReview;
+  final void Function(Review) onEditReview;
+  final void Function(Review) onDeleteReview;
 
   const _WideDetail({
     required this.place,
@@ -227,11 +361,18 @@ class _WideDetail extends StatelessWidget {
     required this.onRefresh,
     required this.onDelete,
     required this.onToggleBookmark,
+    required this.reviews,
+    required this.loadingReviews,
+    this.reviewsError,
+    required this.currentUserId,
+    required this.onLoadReviews,
+    required this.onCreateReview,
+    required this.onEditReview,
+    required this.onDeleteReview,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Row(
@@ -255,19 +396,15 @@ class _WideDetail extends StatelessWidget {
                   onToggleBookmark: onToggleBookmark,
                 ),
                 const SizedBox(height: 16),
-                // TODO: Bewertungen integrieren, sobald API-Endpunkt verfügbar
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        'Bewertungen erscheinen hier.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ),
+                _ReviewsSection(
+                  reviews: reviews,
+                  loading: loadingReviews,
+                  error: reviewsError,
+                  currentUserId: currentUserId,
+                  onLoadReviews: onLoadReviews,
+                  onCreateReview: onCreateReview,
+                  onEditReview: onEditReview,
+                  onDeleteReview: onDeleteReview,
                 ),
               ],
             ),
@@ -287,6 +424,14 @@ class _NarrowDetail extends StatelessWidget {
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
   final VoidCallback onToggleBookmark;
+  final List<Review>? reviews;
+  final bool loadingReviews;
+  final String? reviewsError;
+  final String currentUserId;
+  final VoidCallback onLoadReviews;
+  final VoidCallback onCreateReview;
+  final void Function(Review) onEditReview;
+  final void Function(Review) onDeleteReview;
 
   const _NarrowDetail({
     required this.place,
@@ -297,6 +442,14 @@ class _NarrowDetail extends StatelessWidget {
     required this.onRefresh,
     required this.onDelete,
     required this.onToggleBookmark,
+    required this.reviews,
+    required this.loadingReviews,
+    this.reviewsError,
+    required this.currentUserId,
+    required this.onLoadReviews,
+    required this.onCreateReview,
+    required this.onEditReview,
+    required this.onDeleteReview,
   });
 
   @override
@@ -334,13 +487,17 @@ class _NarrowDetail extends StatelessWidget {
                     ],
                   ),
                 ),
-                // TODO: Bewertungen integrieren, sobald API-Endpunkt verfügbar
-                Center(
-                  child: Text(
-                    'Bewertungen erscheinen hier.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: _ReviewsSection(
+                    reviews: reviews,
+                    loading: loadingReviews,
+                    error: reviewsError,
+                    currentUserId: currentUserId,
+                    onLoadReviews: onLoadReviews,
+                    onCreateReview: onCreateReview,
+                    onEditReview: onEditReview,
+                    onDeleteReview: onDeleteReview,
                   ),
                 ),
               ],
@@ -567,6 +724,314 @@ class _ActionsCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ReviewsSection extends StatefulWidget {
+  final List<Review>? reviews;
+  final bool loading;
+  final String? error;
+  final String currentUserId;
+  final VoidCallback onLoadReviews;
+  final VoidCallback onCreateReview;
+  final void Function(Review) onEditReview;
+  final void Function(Review) onDeleteReview;
+
+  const _ReviewsSection({
+    required this.reviews,
+    required this.loading,
+    this.error,
+    required this.currentUserId,
+    required this.onLoadReviews,
+    required this.onCreateReview,
+    required this.onEditReview,
+    required this.onDeleteReview,
+  });
+
+  @override
+  State<_ReviewsSection> createState() => _ReviewsSectionState();
+}
+
+class _ReviewsSectionState extends State<_ReviewsSection> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.reviews == null && !widget.loading) {
+      widget.onLoadReviews();
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ReviewsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reviews != null &&
+        widget.reviews == null &&
+        !widget.loading) {
+      widget.onLoadReviews();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (widget.loading && widget.reviews == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (widget.error != null && widget.reviews == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: 8),
+            Text(widget.error!),
+            const SizedBox(height: 16),
+            FilledButton.tonal(
+              onPressed: widget.onLoadReviews,
+              child: const Text('Erneut versuchen'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final reviews = widget.reviews ?? <Review>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Bewertungen', style: theme.textTheme.titleMedium),
+            const Spacer(),
+            FilledButton.tonalIcon(
+              onPressed: widget.onCreateReview,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Schreiben'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (reviews.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'Noch keine Bewertungen.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          )
+        else
+          ...reviews.map(
+            (review) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _ReviewCard(
+                review: review,
+                isOwn: review.userId == widget.currentUserId,
+                onEdit: () => widget.onEditReview(review),
+                onDelete: () => widget.onDeleteReview(review),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ReviewCard extends StatelessWidget {
+  final Review review;
+  final bool isOwn;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ReviewCard({
+    required this.review,
+    required this.isOwn,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _StarRating(rating: review.rating, size: 16),
+                const Spacer(),
+                if (isOwn) ...[
+                  IconButton(
+                    icon: const Icon(Icons.edit_rounded, size: 18),
+                    onPressed: onEdit,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Bearbeiten',
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.delete_rounded,
+                      size: 18,
+                      color: theme.colorScheme.error,
+                    ),
+                    onPressed: onDelete,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Löschen',
+                  ),
+                ],
+              ],
+            ),
+            if (review.comment != null && review.comment!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(review.comment!, style: theme.textTheme.bodyMedium),
+            ],
+            const SizedBox(height: 4),
+            Text(
+              _formatDate(review.createdAt),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(String iso) {
+    try {
+      final dt = DateTime.parse(iso);
+      return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+    } catch (_) {
+      return iso.substring(0, 10);
+    }
+  }
+}
+
+class _StarRating extends StatelessWidget {
+  final int rating;
+  final double size;
+
+  const _StarRating({required this.rating, this.size = 20});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(
+        5,
+        (i) => Icon(
+          i < rating ? Icons.star_rounded : Icons.star_border_rounded,
+          size: size,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewDialog extends StatefulWidget {
+  final int? initialRating;
+  final String? initialComment;
+
+  const _ReviewDialog({this.initialRating, this.initialComment});
+
+  @override
+  State<_ReviewDialog> createState() => _ReviewDialogState();
+}
+
+class _ReviewDialogState extends State<_ReviewDialog> {
+  int _rating = 0;
+  late final TextEditingController _commentController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rating = widget.initialRating ?? 0;
+    _commentController =
+        TextEditingController(text: widget.initialComment ?? '');
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isEditing = widget.initialRating != null;
+    return AlertDialog(
+      title: Text(isEditing ? 'Bewertung bearbeiten' : 'Bewertung schreiben'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              5,
+              (i) {
+                final filled = i < _rating;
+                return IconButton(
+                  icon: Icon(
+                    filled
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
+                    color: filled
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  onPressed: () => setState(() => _rating = i + 1),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _commentController,
+            decoration: const InputDecoration(
+              labelText: 'Kommentar (optional)',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 3,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: _rating == 0
+              ? null
+              : () => Navigator.pop(
+                    context,
+                    (
+                      rating: _rating,
+                      comment: _commentController.text.trim().isEmpty
+                          ? null
+                          : _commentController.text.trim(),
+                    ),
+                  ),
+          child: const Text('Speichern'),
+        ),
+      ],
     );
   }
 }
