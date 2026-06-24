@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/di/app_scope.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -58,6 +57,8 @@ class _MobileShell extends StatelessWidget {
         ? 'Reisen & Events'
         : location.startsWith('/kontakte')
         ? 'Kontakte'
+        : location.startsWith('/einstellungen')
+        ? 'Einstellungen'
         : 'Home';
 
     return Scaffold(
@@ -85,7 +86,6 @@ class _NavContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final auth = AppScope.of(context).auth;
     final selectedIndex = _selectedIndex(currentLocation);
 
     return SafeArea(
@@ -136,29 +136,17 @@ class _NavContent extends StatelessWidget {
             selected: selectedIndex == 2,
             onTap: () => onNavigate('/reisen'),
           ),
-          ListTile(
+           ListTile(
             leading: const Icon(Icons.people_rounded),
             title: const Text('Kontakte'),
             selected: selectedIndex == 3,
             onTap: () => onNavigate('/kontakte'),
           ),
-          const Spacer(),
-          const Divider(),
-          ListenableBuilder(
-            listenable: auth,
-            builder: (context, _) => ListTile(
-              leading: const Icon(Icons.logout_rounded),
-              title: Text(auth.isLoggedIn ? 'Abmelden' : 'Anmelden'),
-              onTap: () async {
-                if (auth.isLoggedIn) {
-                  await auth.logout();
-                  if (!context.mounted) return;
-                  onNavigate('/');
-                } else {
-                  onNavigate('/login');
-                }
-              },
-            ),
+           ListTile(
+            leading: const Icon(Icons.settings_rounded),
+            title: const Text('Einstellungen'),
+            selected: selectedIndex == 4,
+            onTap: () => onNavigate('/einstellungen'),
           ),
           const SizedBox(height: 8),
         ],
@@ -170,6 +158,7 @@ class _NavContent extends StatelessWidget {
     if (location.startsWith('/entdecken')) return 1;
     if (location.startsWith('/reisen')) return 2;
     if (location.startsWith('/kontakte')) return 3;
+    if (location.startsWith('/einstellungen')) return 4;
     return 0;
   }
 }

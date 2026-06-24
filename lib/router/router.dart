@@ -14,6 +14,12 @@ import '../features/travel/screens/travel_screen.dart';
 import '../features/travel/screens/trip_detail_screen.dart';
 import '../features/user/screens/contacts_screen.dart';
 import '../features/user/screens/user_detail_screen.dart';
+import '../features/settings/screens/settings_screen.dart';
+import '../features/settings/screens/edit_profile_screen.dart';
+import '../features/settings/screens/edit_social_screen.dart';
+import '../features/settings/screens/edit_contact_screen.dart';
+import '../features/settings/screens/email_change_screen.dart';
+import '../features/settings/screens/discord_relink_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -27,7 +33,8 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/home') ||
           location.startsWith('/entdecken') ||
           location.startsWith('/reisen') ||
-          location.startsWith('/kontakte');
+          location.startsWith('/kontakte') ||
+          location.startsWith('/einstellungen');
 
       if (loggedIn && location == '/') return '/home';
       if (!loggedIn && isAuth) return '/';
@@ -91,6 +98,32 @@ GoRouter createRouter(AuthService auth) {
                 path: ':id',
                 builder: (context, state) =>
                     UserDetailScreen(id: state.pathParameters['id']!),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/einstellungen',
+            builder: (context, state) => const SettingsScreen(),
+            routes: [
+              GoRoute(
+                path: 'profil',
+                builder: (context, state) => const EditProfileScreen(),
+              ),
+              GoRoute(
+                path: 'social',
+                builder: (context, state) => const EditSocialScreen(),
+              ),
+              GoRoute(
+                path: 'kontakt',
+                builder: (context, state) => const EditContactScreen(),
+              ),
+              GoRoute(
+                path: 'email',
+                builder: (context, state) => const EmailChangeScreen(),
+              ),
+              GoRoute(
+                path: 'discord',
+                builder: (context, state) => const DiscordRelinkScreen(),
               ),
             ],
           ),
