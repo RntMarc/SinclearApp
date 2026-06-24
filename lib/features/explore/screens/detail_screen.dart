@@ -4,7 +4,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
