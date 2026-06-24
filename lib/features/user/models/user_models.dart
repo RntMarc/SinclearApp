@@ -347,6 +347,7 @@ class UserMe {
 // ─── Request models ─────────────────────────────────────────────────────
 
 class ProfileUpdateRequest {
+  final String? image;
   final String? displayName;
   final String? birthday;
   final String? discordHandle;
@@ -366,6 +367,8 @@ class ProfileUpdateRequest {
   final String? twitchHandle;
 
   const ProfileUpdateRequest({
+    this.image,
+    this.removeImage = false,
     this.displayName,
     this.birthday,
     this.discordHandle,
@@ -385,8 +388,12 @@ class ProfileUpdateRequest {
     this.twitchHandle,
   });
 
+  final bool removeImage;
+
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
+    if (image != null) map['image'] = image;
+    if (removeImage) map['image'] = null;
     if (displayName != null) map['displayName'] = displayName;
     if (birthday != null) map['birthday'] = birthday;
     if (discordHandle != null) map['discordHandle'] = discordHandle;

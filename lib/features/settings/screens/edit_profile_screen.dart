@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../../../core/network/api_client.dart';
 import '../../user/models/user_models.dart';
 
@@ -18,6 +22,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _error;
   bool _hasLoaded = false;
   String? _birthday;
+
+  String? _existingImage;
+  Uint8List? _imageBytes;
+  bool _removeImage = false;
 
   @override
   void dispose() {
@@ -42,6 +50,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       setState(() {
         _displayNameController.text = user.displayName;
         _birthday = user.birthday;
+        _existingImage = user.image;
+        _imageBytes = null;
+        _removeImage = false;
         _loading = false;
       });
     } catch (e, st) {
@@ -68,6 +79,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       await AppScope.of(context).user.updateProfile(ProfileUpdateRequest(
+        image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
+        removeImage: _removeImage,
         displayName: displayName,
         birthday: _birthday,
       ));
@@ -81,9 +94,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e, st) {
       developer.log('Failed to save profile', error: e, stackTrace: st);
       if (!mounted) return;
-      setState(() {
-        _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.';
-      });
+      setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -106,6 +117,83 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<void> _showImagePicker() async {
+    final theme = Theme.of(context);
+    final hasImage = _imageBytes != null || (_existingImage != null && !_removeImage);
+
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Text(
+                'Profilbild ändern',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded),
+              title: const Text('Foto aufnehmen'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Aus Gallery wählen'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            if (hasImage)
+              ListTile(
+                leading: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
+                title: Text('Profilbild entfernen', style: TextStyle(color: theme.colorScheme.error)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() {
+                    _imageBytes = null;
+                    _removeImage = true;
+                  });
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null || !mounted) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1000,
+      maxHeight: 1000,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    final bytes = await picked.readAsBytes();
+    if (bytes.length > 200 * 1024) {
+      setState(() => _error = 'Bild darf maximal 200 KB groß sein.');
+      return;
+    }
+
+    setState(() {
+      _imageBytes = bytes;
+      _removeImage = false;
+      _error = null;
+    });
+  }
+
+  ImageProvider? _resolvePreview() {
+    if (_imageBytes != null) return MemoryImage(_imageBytes!);
+    if (!_removeImage && _existingImage != null) {
+      return resolveImageProvider(_existingImage);
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -113,6 +201,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final preview = _resolvePreview();
+    final hasImage = _imageBytes != null || (_existingImage != null && !_removeImage);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil bearbeiten')),
@@ -122,6 +213,53 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 56,
+                      backgroundImage: preview,
+                      child: preview == null
+                          ? Text(
+                              _displayNameController.text.isNotEmpty
+                                  ? _displayNameController.text[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            )
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.camera_alt_rounded,
+                          size: 20,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton.icon(
+                  onPressed: _showImagePicker,
+                  icon: const Icon(Icons.edit_rounded, size: 16),
+                  label: Text(hasImage ? 'Profilbild ändern' : 'Profilbild hinzufügen'),
+                ),
+              ),
+              const SizedBox(height: 24),
               TextField(
                 controller: _displayNameController,
                 decoration: const InputDecoration(
