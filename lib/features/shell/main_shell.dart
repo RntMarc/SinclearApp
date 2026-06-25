@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../notifications/widgets/notification_sheet.dart';
+import '../../core/di/app_scope.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -27,6 +29,11 @@ class _DesktopShell extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(_titleForLocation(location)),
+        actions: [_NotificationBell()],
+      ),
       body: Row(
         children: [
           SizedBox(
@@ -51,18 +58,13 @@ class _MobileShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final title = location.startsWith('/entdecken')
-        ? 'Entdecken'
-        : location.startsWith('/reisen')
-        ? 'Reisen & Events'
-        : location.startsWith('/kontakte')
-        ? 'Kontakte'
-        : location.startsWith('/einstellungen')
-        ? 'Einstellungen'
-        : 'Home';
+    final title = _titleForLocation(location);
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: [_NotificationBell()],
+      ),
       drawer: Drawer(
         child: _NavContent(
           currentLocation: location,
@@ -73,6 +75,62 @@ class _MobileShell extends StatelessWidget {
         ),
       ),
       body: child,
+    );
+  }
+}
+
+String _titleForLocation(String location) {
+  if (location.startsWith('/entdecken')) return 'Entdecken';
+  if (location.startsWith('/reisen')) return 'Reisen & Events';
+  if (location.startsWith('/kontakte')) return 'Kontakte';
+  if (location.startsWith('/einstellungen')) return 'Einstellungen';
+  return 'Home';
+}
+
+class _NotificationBell extends StatefulWidget {
+  @override
+  State<_NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<_NotificationBell> {
+  @override
+  void initState() {
+    super.initState();
+    AppScope.of(context).notification.addListener(_onChange);
+  }
+
+  @override
+  void dispose() {
+    AppScope.of(context).notification.removeListener(_onChange);
+    super.dispose();
+  }
+
+  void _onChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notif = AppScope.of(context).notification;
+    return IconButton(
+      icon: notif.unreadCount > 0
+          ? Badge(
+              label: Text(
+                notif.unreadCount > 99 ? '99+' : notif.unreadCount.toString(),
+              ),
+              child: const Icon(Icons.notifications_rounded),
+            )
+          : const Icon(Icons.notifications_outlined),
+      onPressed: () => _showSheet(context),
+    );
+  }
+
+  void _showSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (_) => const NotificationSheet(),
     );
   }
 }
