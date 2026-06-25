@@ -157,12 +157,9 @@ class _NotificationSheetState extends State<NotificationSheet> {
 
     Navigator.pop(context);
 
-    switch (notification.type) {
-      case 'recipe_review':
-      case 'new_friend_request':
-        break;
-      default:
-        break;
+    final deepLink = notification.payload['deepLink'] as String?;
+    if (deepLink != null) {
+      // Navigate to deepLink via router
     }
   }
 }
@@ -199,18 +196,18 @@ class _NotificationItem extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: theme.colorScheme.primaryContainer,
           child: Icon(
-            NotificationTypeLabel.icon(notification.type),
+            NotificationTypeLabel.icon(notification.code, notification.payload),
             color: theme.colorScheme.onPrimaryContainer,
           ),
         ),
         title: Text(
-          NotificationTypeLabel.title(notification.type),
+          NotificationTypeLabel.title(notification.code, notification.payload),
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
         subtitle: Text(
-          NotificationTypeLabel.body(notification.type),
+          NotificationTypeLabel.body(notification.code, notification.payload),
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
