@@ -35,6 +35,8 @@ dart_tool/**/*.env*
 # Firebase configuration files
 google-services.json
 *.google-services.json
+firebase.json
+*.firebase.json
 
 # iOS/Swift configuration files
 derived_data/
