@@ -1,4 +1,4 @@
-package com.example.sinclearapp
+package de.sinclear.beyond
 
 import io.flutter.embedding.android.FlutterActivity
 
