@@ -12,6 +12,8 @@ import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/notification_models.dart';
 import '../../../core/config/notification_config.dart';
+import 'notification_helper_stub.dart'
+    if (dart.library.html) 'notification_helper_web.dart';
 
 const _channelId = 'sinclear_notifications';
 const _channelName = 'Sinclear Benachrichtigungen';
@@ -21,6 +23,10 @@ final FlutterLocalNotificationsPlugin _localNotifications =
     FlutterLocalNotificationsPlugin();
 
 Future<void> _showFallbackNotification(String notificationId) async {
+  if (kIsWeb) {
+    showWebNotification('Sinclear', 'Du hast eine neue Benachrichtigung.');
+    return;
+  }
   final androidDetails = AndroidNotificationDetails(
     _channelId,
     _channelName,
@@ -50,6 +56,11 @@ Future<void> _showLocalNotification(AppNotification notification) async {
     notification.code,
     notification.payload,
   );
+
+  if (kIsWeb) {
+    showWebNotification(title, body);
+    return;
+  }
 
   final androidDetails = AndroidNotificationDetails(
     _channelId,
@@ -186,54 +197,72 @@ class NotificationService extends ChangeNotifier {
     if (_initialized) return;
     _initialized = true;
 
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(
-          const AndroidNotificationChannel(
-            _channelId,
-            _channelName,
-            description: _channelDescription,
-            importance: Importance.high,
-          ),
-        );
+    if (!kIsWeb) {
+      await _localNotifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(
+            const AndroidNotificationChannel(
+              _channelId,
+              _channelName,
+              description: _channelDescription,
+              importance: Importance.high,
+            ),
+          );
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+      const initSettings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
 
-    await _localNotifications.initialize(
-      settings: initSettings,
-      onDidReceiveNotificationResponse: _onLocalNotificationTap,
-    );
+      await _localNotifications.initialize(
+        settings: initSettings,
+        onDidReceiveNotificationResponse: _onLocalNotificationTap,
+      );
+    }
 
     final isDesktop = !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.linux ||
             defaultTargetPlatform == TargetPlatform.windows);
 
     if (!isDesktop) {
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      if (!kIsWeb) {
+        FirebaseMessaging.onBackgroundMessage(
+            firebaseMessagingBackgroundHandler);
+      }
 
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
 
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        final androidPlugin = _localNotifications
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>();
-        await androidPlugin?.requestNotificationsPermission();
+      if (kIsWeb) {
+        final settings = await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        developer.log(
+          'Web notification permission: ${settings.authorizationStatus}',
+          name: 'notifications',
+        );
+      } else {
+        await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          final androidPlugin = _localNotifications
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>();
+          await androidPlugin?.requestNotificationsPermission();
+        }
       }
 
       _fcmToken = await messaging.getToken();
