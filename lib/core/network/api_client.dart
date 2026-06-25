@@ -102,10 +102,11 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  Future<void> delete(
+  Future<Map<String, dynamic>> delete(
     String path, {
     Map<String, dynamic>? body,
     String? token,
+    bool parseResponse = false,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     final request = http.Request('DELETE', uri);
@@ -115,8 +116,8 @@ class ApiClient {
     }
     final streamed = await _client.send(request).timeout(timeout);
     final response = await http.Response.fromStream(streamed);
-    if (response.statusCode == 204) return;
-    _handleResponse(response);
+    if (response.statusCode == 204) return <String, dynamic>{};
+    return _handleResponse(response);
   }
 
   bool _shouldRetry(int statusCode) {

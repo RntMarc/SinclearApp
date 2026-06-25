@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../features/auth/services/auth_service.dart';
 import '../../features/explore/services/explore_service.dart';
 import '../../features/explore/services/nominatim_service.dart';
-
+import '../../features/notifications/services/notification_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/user/services/user_service.dart';
 
@@ -12,6 +12,7 @@ class AppScope extends InheritedWidget {
   final NominatimService nominatim;
   final TravelService travel;
   final UserService user;
+  final NotificationService notification;
 
   const AppScope({
     super.key,
@@ -20,6 +21,7 @@ class AppScope extends InheritedWidget {
     required this.nominatim,
     required this.travel,
     required this.user,
+    required this.notification,
     required super.child,
   });
 

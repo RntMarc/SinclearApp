@@ -5,7 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
-
+import 'features/notifications/services/notification_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/user/services/user_service.dart';
 
@@ -15,6 +15,7 @@ class SinclearApp extends StatelessWidget {
   final NominatimService nominatim;
   final TravelService travel;
   final UserService user;
+  final NotificationService notification;
   final GoRouter router;
 
   const SinclearApp({
@@ -24,6 +25,7 @@ class SinclearApp extends StatelessWidget {
     required this.nominatim,
     required this.travel,
     required this.user,
+    required this.notification,
     required this.router,
   });
 
@@ -35,6 +37,7 @@ class SinclearApp extends StatelessWidget {
       nominatim: nominatim,
       travel: travel,
       user: user,
+      notification: notification,
       child: MaterialApp.router(
         title: 'Sinclear Beyond',
         debugShowCheckedModeBanner: false,
