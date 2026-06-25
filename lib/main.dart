@@ -66,6 +66,17 @@ void main() async {
   });
   final router = createRouter(auth);
 
+  notification.onNotificationTapped = (notificationId) {
+    if (auth.isLoggedIn) {
+      router.go('/home');
+    }
+  };
+
+  final initialNotifId = notification.consumePendingNotificationId();
+  if (initialNotifId != null && auth.isLoggedIn) {
+    router.go('/home');
+  }
+
   runApp(
     SinclearApp(
       auth: auth,
