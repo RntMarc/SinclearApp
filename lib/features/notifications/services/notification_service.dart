@@ -169,28 +169,34 @@ class NotificationService extends ChangeNotifier {
       onDidReceiveNotificationResponse: _onLocalNotificationTap,
     );
 
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    final isDesktop = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.linux ||
+            defaultTargetPlatform == TargetPlatform.windows);
 
-    final messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    if (!isDesktop) {
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    _fcmToken = await messaging.getToken();
-    developer.log('FCM token: $_fcmToken', name: 'notifications');
-    if (_fcmToken != null && _auth.isLoggedIn) {
-      await _registerDevice();
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      _fcmToken = await messaging.getToken();
+      developer.log('FCM token: $_fcmToken', name: 'notifications');
+      if (_fcmToken != null && _auth.isLoggedIn) {
+        await _registerDevice();
+      }
+
+      messaging.onTokenRefresh.listen((token) {
+        _fcmToken = token;
+        developer.log('FCM token refreshed: $token', name: 'notifications');
+        if (_auth.isLoggedIn) _registerDevice();
+      });
+
+      FirebaseMessaging.onMessage.listen(_onForegroundMessage);
     }
-
-    messaging.onTokenRefresh.listen((token) {
-      _fcmToken = token;
-      developer.log('FCM token refreshed: $token', name: 'notifications');
-      if (_auth.isLoggedIn) _registerDevice();
-    });
-
-    FirebaseMessaging.onMessage.listen(_onForegroundMessage);
 
     _setupPolling();
   }
