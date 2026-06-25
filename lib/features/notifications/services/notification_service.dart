@@ -392,8 +392,9 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> markAsRead(String id) async {
     await deleteNotification(id);
-    final removed = _notifications.removeWhere((n) => n.id == id);
-    if (removed > 0 && _unreadCount > 0) _unreadCount--;
+    final before = _notifications.length;
+    _notifications.removeWhere((n) => n.id == id);
+    if (_notifications.length < before && _unreadCount > 0) _unreadCount--;
     notifyListeners();
   }
 
