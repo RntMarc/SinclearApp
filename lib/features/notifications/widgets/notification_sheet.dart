@@ -12,22 +12,19 @@ class NotificationSheet extends StatefulWidget {
 }
 
 class _NotificationSheetState extends State<NotificationSheet> {
-  bool _listenerAdded = false;
+  NotificationService? _notification;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_listenerAdded) {
-      _listenerAdded = true;
-      final notif = AppScope.of(context).notification;
-      notif.addListener(_onNotificationsChanged);
-      notif.refresh();
-    }
+    _notification ??= AppScope.of(context).notification;
+    _notification!.addListener(_onNotificationsChanged);
+    _notification!.refresh();
   }
 
   @override
   void dispose() {
-    AppScope.of(context).notification.removeListener(_onNotificationsChanged);
+    _notification?.removeListener(_onNotificationsChanged);
     super.dispose();
   }
 

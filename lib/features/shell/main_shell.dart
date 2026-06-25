@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../notifications/services/notification_service.dart';
 import '../notifications/widgets/notification_sheet.dart';
 import '../../core/di/app_scope.dart';
 
@@ -93,20 +94,18 @@ class _NotificationBell extends StatefulWidget {
 }
 
 class _NotificationBellState extends State<_NotificationBell> {
-  bool _listenerAdded = false;
+  NotificationService? _notification;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_listenerAdded) {
-      _listenerAdded = true;
-      AppScope.of(context).notification.addListener(_onChange);
-    }
+    _notification ??= AppScope.of(context).notification;
+    _notification!.addListener(_onChange);
   }
 
   @override
   void dispose() {
-    AppScope.of(context).notification.removeListener(_onChange);
+    _notification?.removeListener(_onChange);
     super.dispose();
   }
 
