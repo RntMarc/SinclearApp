@@ -13,9 +13,67 @@ import '../../auth/services/auth_service.dart';
 import '../models/notification_models.dart';
 import '../../../core/config/notification_config.dart';
 
+const _channelId = 'sinclear_notifications';
+const _channelName = 'Sinclear Benachrichtigungen';
+const _channelDescription = 'Benachrichtigungen über Aktivitäten in Sinclear';
+
 final FlutterLocalNotificationsPlugin _localNotifications =
     FlutterLocalNotificationsPlugin();
 
+Future<void> _showFallbackNotification(String notificationId) async {
+  final androidDetails = AndroidNotificationDetails(
+    _channelId,
+    _channelName,
+    channelDescription: _channelDescription,
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+  final details = NotificationDetails(
+    android: androidDetails,
+    iOS: const DarwinNotificationDetails(),
+  );
+  await _localNotifications.show(
+    id: notificationId.hashCode,
+    title: 'Sinclear',
+    body: 'Du hast eine neue Benachrichtigung.',
+    notificationDetails: details,
+    payload: 'fallback|$notificationId',
+  );
+}
+
+Future<void> _showLocalNotification(AppNotification notification) async {
+  final title = NotificationTypeLabel.title(
+    notification.code,
+    notification.payload,
+  );
+  final body = NotificationTypeLabel.body(
+    notification.code,
+    notification.payload,
+  );
+
+  final androidDetails = AndroidNotificationDetails(
+    _channelId,
+    _channelName,
+    channelDescription: _channelDescription,
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+
+  final details = NotificationDetails(
+    android: androidDetails,
+    iOS: const DarwinNotificationDetails(),
+  );
+
+  await _localNotifications.show(
+    id: notification.id.hashCode,
+    title: title,
+    body: body,
+    notificationDetails: details,
+    payload: '${notification.code}|${jsonEncode(notification.payload)}',
+  );
+}
+
+@pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   developer.log(
     'BG handler received: ${message.messageId}',
@@ -24,6 +82,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   final notificationId = message.data['notificationId'] as String?;
   if (notificationId == null) return;
+
+  await _showFallbackNotification(notificationId);
 
   final prefs = await SharedPreferences.getInstance();
   final refreshToken = prefs.getString('refresh_token');
@@ -43,7 +103,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(refreshBody),
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 10));
     if (refreshResp.statusCode != 200) {
       developer.log(
         'BG handler: refresh failed ${refreshResp.statusCode}',
@@ -55,12 +115,17 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         jsonDecode(refreshResp.body) as Map<String, dynamic>;
     final accessToken = refreshData['access_token'] as String;
 
+    final newRefreshToken = refreshData['refresh_token'] as String?;
+    if (newRefreshToken != null) {
+      await prefs.setString('refresh_token', newRefreshToken);
+    }
+
     final notifResp = await http
         .get(
           Uri.parse('$baseUrl/notifications/$notificationId'),
           headers: {'Authorization': 'Bearer $accessToken'},
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 10));
 
     if (notifResp.statusCode != 200) {
       developer.log(
@@ -86,32 +151,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-Future<void> _showLocalNotification(AppNotification notification) async {
-  final title = NotificationTypeLabel.title(notification.code, notification.payload);
-  final body = NotificationTypeLabel.body(notification.code, notification.payload);
-
-  final androidDetails = AndroidNotificationDetails(
-    'sinclear_notifications',
-    'Sinclear Benachrichtigungen',
-    channelDescription: 'Benachrichtigungen über Aktivitäten in Sinclear',
-    importance: Importance.high,
-    priority: Priority.high,
-  );
-
-  final details = NotificationDetails(
-    android: androidDetails,
-    iOS: const DarwinNotificationDetails(),
-  );
-
-  await _localNotifications.show(
-    id: notification.id.hashCode,
-    title: title,
-    body: body,
-    notificationDetails: details,
-    payload: '${notification.code}|${jsonEncode(notification.payload)}',
-  );
-}
-
 class NotificationService extends ChangeNotifier {
   final ApiClient _api;
   final AuthService _auth;
@@ -122,11 +161,18 @@ class NotificationService extends ChangeNotifier {
   String? _deviceId;
   Timer? _pollTimer;
   bool _initialized = false;
+  String? _pendingNotificationId;
+  void Function(String notificationId)? onNotificationTapped;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   int get unreadCount => _unreadCount;
   String? get fcmToken => _fcmToken;
   bool get isInitialized => _initialized;
+  String? consumePendingNotificationId() {
+    final id = _pendingNotificationId;
+    _pendingNotificationId = null;
+    return id;
+  }
 
   NotificationService({
     required ApiClient api,
@@ -145,9 +191,9 @@ class NotificationService extends ChangeNotifier {
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(
           const AndroidNotificationChannel(
-            'sinclear_notifications',
-            'Sinclear Benachrichtigungen',
-            description: 'Benachrichtigungen über Aktivitäten in Sinclear',
+            _channelId,
+            _channelName,
+            description: _channelDescription,
             importance: Importance.high,
           ),
         );
@@ -183,6 +229,13 @@ class NotificationService extends ChangeNotifier {
         sound: true,
       );
 
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final androidPlugin = _localNotifications
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>();
+        await androidPlugin?.requestNotificationsPermission();
+      }
+
       _fcmToken = await messaging.getToken();
       developer.log('FCM token: $_fcmToken', name: 'notifications');
       if (_fcmToken != null && _auth.isLoggedIn) {
@@ -196,6 +249,30 @@ class NotificationService extends ChangeNotifier {
       });
 
       FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        developer.log(
+          'Notification opened app: ${message.messageId}',
+          name: 'notifications',
+        );
+        final notificationId = message.data['notificationId'] as String?;
+        if (notificationId != null) {
+          onNotificationTapped?.call(notificationId);
+        }
+      });
+
+      final initialMessage = await messaging.getInitialMessage();
+      if (initialMessage != null) {
+        developer.log(
+          'Initial message: ${initialMessage.messageId}',
+          name: 'notifications',
+        );
+        final notificationId =
+            initialMessage.data['notificationId'] as String?;
+        if (notificationId != null) {
+          _pendingNotificationId = notificationId;
+        }
+      }
     }
 
     _setupPolling();
@@ -208,6 +285,11 @@ class NotificationService extends ChangeNotifier {
       'Local notification tapped: $payload',
       name: 'notifications',
     );
+
+    if (payload.startsWith('fallback|')) {
+      final notificationId = payload.substring('fallback|'.length);
+      onNotificationTapped?.call(notificationId);
+    }
   }
 
   void onLoggedIn() {
