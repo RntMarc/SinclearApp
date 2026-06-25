@@ -277,6 +277,9 @@ class NotificationService extends ChangeNotifier {
     final notificationId = message.data['notificationId'] as String?;
     if (notificationId == null) return;
 
+    final existingIds = _notifications.map((n) => n.id).toSet();
+    if (existingIds.contains(notificationId)) return;
+
     try {
       final data = await _api.get(
         '/notifications/$notificationId',
@@ -358,9 +361,20 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> _fetchNotifications() async {
     try {
-      final response = await getNotifications(limit: 50);
-      _notifications = response.data;
+      final prefs = await SharedPreferences.getInstance();
+      final since = prefs.getString('last_polled_at');
+      final response = await getNotifications(since: since, limit: 50);
+      final existingIds = _notifications.map((n) => n.id).toSet();
+      for (final n in response.data) {
+        if (!existingIds.contains(n.id)) {
+          _notifications.insert(0, n);
+        }
+      }
       _unreadCount = response.meta.unreadCount;
+      await prefs.setString(
+        'last_polled_at',
+        DateTime.now().toUtc().toIso8601String(),
+      );
       notifyListeners();
     } catch (e, s) {
       developer.log(
@@ -378,8 +392,8 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> markAsRead(String id) async {
     await deleteNotification(id);
-    _notifications.removeWhere((n) => n.id == id);
-    _unreadCount = _notifications.length;
+    final removed = _notifications.removeWhere((n) => n.id == id);
+    if (removed > 0 && _unreadCount > 0) _unreadCount--;
     notifyListeners();
   }
 
@@ -410,18 +424,28 @@ class NotificationService extends ChangeNotifier {
         final since = prefs.getString('last_polled_at');
         final response = await getNotifications(since: since, limit: 50);
         if (response.data.isNotEmpty) {
+          final existingIds = _notifications.map((n) => n.id).toSet();
           for (final notification in response.data) {
-            _notifications.insert(0, notification);
-            await _showLocalNotification(notification);
+            if (!existingIds.contains(notification.id)) {
+              _notifications.insert(0, notification);
+              await _showLocalNotification(notification);
+            }
           }
-          _unreadCount += response.data.length;
+          _unreadCount = response.meta.unreadCount;
           notifyListeners();
         }
         await prefs.setString(
           'last_polled_at',
           DateTime.now().toUtc().toIso8601String(),
         );
-      } catch (_) {}
+      } catch (e, s) {
+        developer.log(
+          'Polling failed: $e',
+          name: 'notifications.polling',
+          error: e,
+          stackTrace: s,
+        );
+      }
     });
   }
 

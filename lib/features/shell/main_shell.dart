@@ -93,10 +93,15 @@ class _NotificationBell extends StatefulWidget {
 }
 
 class _NotificationBellState extends State<_NotificationBell> {
+  bool _listenerAdded = false;
+
   @override
-  void initState() {
-    super.initState();
-    AppScope.of(context).notification.addListener(_onChange);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_listenerAdded) {
+      _listenerAdded = true;
+      AppScope.of(context).notification.addListener(_onChange);
+    }
   }
 
   @override
