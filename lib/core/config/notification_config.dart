@@ -1,35 +1,39 @@
 import 'package:flutter/material.dart';
 
 class NotificationTypeLabel {
-  static String title(String type) {
-    return switch (type) {
-      'recipe_review' => 'Neue Bewertung',
-      'new_trip_participant' => 'Neuer Teilnehmer',
-      'trip_updated' => 'Reise aktualisiert',
-      'event_reminder' => 'Event-Erinnerung',
-      'new_friend_request' => 'Freundschaftsanfrage',
+  static String title(String code, Map<String, dynamic> payload) {
+    final custom = payload['title'] as String?;
+    if (custom != null && custom.isNotEmpty) return custom;
+    return switch (code) {
+      'admin.system_update' => 'System-Update',
+      'admin.new_feature' => 'Neue Funktion',
+      'admin.maintenance' => 'Wartung',
+      'admin.welcome' => 'Willkommen',
+      'admin.test' => 'Test',
       _ => 'Benachrichtigung',
     };
   }
 
-  static String body(String type) {
-    return switch (type) {
-      'recipe_review' => 'Jemand hat eine Bewertung hinterlassen.',
-      'new_trip_participant' => 'Jemand ist deiner Reise beigetreten.',
-      'trip_updated' => 'Eine deiner Reisen wurde aktualisiert.',
-      'event_reminder' => 'Ein Event beginnt bald.',
-      'new_friend_request' => 'Jemand möchte dich als Kontakt hinzufügen.',
+  static String body(String code, Map<String, dynamic> payload) {
+    final custom = payload['body'] as String?;
+    if (custom != null && custom.isNotEmpty) return custom;
+    return switch (code) {
+      'admin.system_update' => 'Es gibt ein System-Update.',
+      'admin.new_feature' => 'Eine neue Funktion ist verfügbar.',
+      'admin.maintenance' => 'Wartungsarbeiten wurden durchgeführt.',
+      'admin.welcome' => 'Willkommen bei Sinclear!',
+      'admin.test' => 'Dies ist eine Test-Benachrichtigung.',
       _ => 'Du hast eine neue Benachrichtigung.',
     };
   }
 
-  static IconData icon(String type) {
-    return switch (type) {
-      'recipe_review' => Icons.star_rounded,
-      'new_trip_participant' => Icons.person_add_rounded,
-      'trip_updated' => Icons.flight_rounded,
-      'event_reminder' => Icons.event_rounded,
-      'new_friend_request' => Icons.people_rounded,
+  static IconData icon(String code, Map<String, dynamic> payload) {
+    return switch (code) {
+      'admin.system_update' => Icons.system_update_rounded,
+      'admin.new_feature' => Icons.auto_awesome_rounded,
+      'admin.maintenance' => Icons.build_rounded,
+      'admin.welcome' => Icons.waving_hand_rounded,
+      'admin.test' => Icons.science_rounded,
       _ => Icons.notifications_rounded,
     };
   }

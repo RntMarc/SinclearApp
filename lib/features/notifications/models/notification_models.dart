@@ -1,21 +1,21 @@
 class AppNotification {
   final String id;
-  final String type;
-  final String entityId;
+  final String code;
+  final Map<String, dynamic> payload;
   final String createdAt;
 
   const AppNotification({
     required this.id,
-    required this.type,
-    required this.entityId,
+    required this.code,
+    required this.payload,
     required this.createdAt,
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
       id: json['id'] as String,
-      type: json['type'] as String,
-      entityId: json['entityId'] as String,
+      code: json['code'] as String,
+      payload: json['payload'] as Map<String, dynamic>,
       createdAt: json['createdAt'] as String,
     );
   }

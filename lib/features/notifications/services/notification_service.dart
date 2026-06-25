@@ -87,8 +87,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 Future<void> _showLocalNotification(AppNotification notification) async {
-  final title = NotificationTypeLabel.title(notification.type);
-  final body = NotificationTypeLabel.body(notification.type);
+  final title = NotificationTypeLabel.title(notification.code, notification.payload);
+  final body = NotificationTypeLabel.body(notification.code, notification.payload);
 
   final androidDetails = AndroidNotificationDetails(
     'sinclear_notifications',
@@ -108,7 +108,7 @@ Future<void> _showLocalNotification(AppNotification notification) async {
     title: title,
     body: body,
     notificationDetails: details,
-    payload: '${notification.type}|${notification.entityId}',
+    payload: '${notification.code}|${jsonEncode(notification.payload)}',
   );
 }
 
