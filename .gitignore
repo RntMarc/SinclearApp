@@ -26,6 +26,32 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
+# Firebase and Flutter build artifacts
+dart_tool/**/*.json
+dart_tool/**/*.hash
+dart_tool/**/*.config
+dart_tool/**/*.env*
+
+# Firebase configuration files
+google-services.json
+*.google-services.json
+
+# iOS/Swift configuration files
+derived_data/
+*.xcworkspace
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcshareddata/
+
+# macOS configuration files
+*.xcworkspace/
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcshareddata/
+
+# Android configuration files
+gradle.properties
+gradlew
+gradlew.bat
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
