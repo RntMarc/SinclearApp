@@ -12,12 +12,17 @@ class NotificationSheet extends StatefulWidget {
 }
 
 class _NotificationSheetState extends State<NotificationSheet> {
+  bool _listenerAdded = false;
+
   @override
-  void initState() {
-    super.initState();
-    final notif = AppScope.of(context).notification;
-    notif.addListener(_onNotificationsChanged);
-    notif.refresh();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_listenerAdded) {
+      _listenerAdded = true;
+      final notif = AppScope.of(context).notification;
+      notif.addListener(_onNotificationsChanged);
+      notif.refresh();
+    }
   }
 
   @override
