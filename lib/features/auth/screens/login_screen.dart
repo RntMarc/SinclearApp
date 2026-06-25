@@ -41,10 +41,16 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       context.go('/login/verify', extra: {'method': 'email', 'email': email});
     } on ApiException catch (e) {
+      developer.log(
+        'Login request failed: ${e.errorCode}',
+        name: 'auth.login',
+        error: e,
+      );
       setState(() {
         _error = switch (e.errorCode) {
           'user_not_found' => 'Kein Nutzer mit dieser E-Mail gefunden.',
-          'too_many_requests' => 'Zu viele Anfragen. Bitte warte einen Moment.',
+          'too_many_requests' || 'too_many_attempts' =>
+            'Zu viele Anfragen. Bitte warte einen Moment.',
           'invalid_email' => 'Ungültige E-Mail-Adresse.',
           _ => 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.',
         };
@@ -79,8 +85,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       context.go('/login/verify', extra: {'method': 'discord'});
     } on ApiException catch (e) {
+      developer.log(
+        'Discord login failed: ${e.errorCode}',
+        name: 'auth.discord',
+        error: e,
+      );
       setState(() {
         _error = switch (e.errorCode) {
+          'too_many_attempts' =>
+            'Zu viele Anfragen. Bitte warte einen Moment.',
           _ => 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.',
         };
       });

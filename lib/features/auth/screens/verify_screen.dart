@@ -62,12 +62,18 @@ class _VerifyScreenState extends State<VerifyScreen> {
       ).showSnackBar(const SnackBar(content: Text('Erfolgreich angemeldet!')));
       context.go('/home');
     } on ApiException catch (e) {
+      developer.log(
+        'Code verification failed: ${e.errorCode}',
+        name: 'auth.verify',
+        error: e,
+      );
       setState(() {
         _error = switch (e.errorCode) {
           'invalid_or_expired_code' => 'Der Code ist ungültig oder abgelaufen.',
           'invalid_code' => 'Ungültiger Code.',
           'user_not_found' => 'Nutzer nicht gefunden.',
-          'too_many_requests' => 'Zu viele Versuche. Bitte warte einen Moment.',
+          'too_many_requests' || 'too_many_attempts' =>
+            'Zu viele Versuche. Bitte warte einen Moment.',
           _ => 'Ein Fehler ist aufgetreten.',
         };
       });

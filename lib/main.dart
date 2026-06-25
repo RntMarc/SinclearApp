@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -17,9 +18,18 @@ import 'router/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e, s) {
+    developer.log(
+      'Firebase initialization failed',
+      name: 'main',
+      error: e,
+      stackTrace: s,
+    );
+  }
   await dotenv.load();
 
   final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v2';
@@ -36,8 +46,17 @@ void main() async {
   final travel = TravelService(api: api, auth: auth);
   final user = UserService(api: api, auth: auth);
   final notification = NotificationService(api: api, auth: auth);
-  await notification.init();
-  if (auth.isLoggedIn) notification.onLoggedIn();
+  try {
+    await notification.init();
+    if (auth.isLoggedIn) notification.onLoggedIn();
+  } catch (e, s) {
+    developer.log(
+      'Notification service initialization failed',
+      name: 'main',
+      error: e,
+      stackTrace: s,
+    );
+  }
   auth.addListener(() {
     if (auth.isLoggedIn) {
       notification.onLoggedIn();
