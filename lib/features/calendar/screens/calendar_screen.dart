@@ -26,6 +26,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   final Map<DateTime, List<CalendarEvent>> _eventsByDay = {};
 
+  bool _hasLoaded = false;
+
   bool _loadingPast = true;
   bool _loadingFuture = true;
   String? _error;
@@ -41,7 +43,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     _selectedDay = DateTime.now();
     _agendaScrollController.addListener(_onAgendaScroll);
-    _loadInitial();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _loadInitial();
+    }
   }
 
   @override
@@ -52,6 +62,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _loadInitial() async {
+    setState(() {
+      _eventsByDay.clear();
+      _loadingPast = true;
+      _loadingFuture = true;
+      _error = null;
+    });
+
     _rangeStart = DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
     _rangeEnd = DateTime(_focusedDay.year, _focusedDay.month + 2, 1);
 
@@ -72,6 +89,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _hasMoreFuture = results[1].meta.hasMore;
     } catch (e, st) {
       developer.log('Failed to load calendar events', error: e, stackTrace: st);
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     }
 
     if (mounted) {
@@ -80,6 +100,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _loadingFuture = false;
       });
     }
+  }
+
+  Future<void> _refresh() async {
+    _hasMorePast = true;
+    _hasMoreFuture = true;
+    await _loadInitial();
   }
 
   void _addEvents(CalendarEventListResponse response) {
@@ -222,6 +248,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       });
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -250,22 +277,48 @@ class _CalendarScreenState extends State<CalendarScreen> {
               },
             ),
           ),
-          if (_error != null)
+          if (_error != null && _getAllSortedEvents().isEmpty)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(32),
                 child: Center(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_error!),
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Fehler beim Laden der Termine',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 8),
-                      ElevatedButton(
-                        onPressed: _loadInitial,
-                        child: const Text('Erneut versuchen'),
+                      Text(
+                        _error!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _refresh,
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('Erneut versuchen'),
                       ),
                     ],
                   ),
                 ),
+              ),
+            )
+          else if (_loadingPast &&
+              _loadingFuture &&
+              _getAllSortedEvents().isEmpty)
+            const SliverToBoxAdapter(
+              child: SizedBox(
+                height: 300,
+                child: Center(child: CircularProgressIndicator()),
               ),
             )
           else
@@ -274,16 +327,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final events = _getAllSortedEvents();
-                  if (index == 0) {
-                    return SizedBox(
-                      height: 400,
-                      child: AgendaList(
-                        events: events,
-                        onEventTap: _onEventTap,
-                      ),
-                    );
-                  }
-                  return null;
+                  return SizedBox(
+                    height: 400,
+                    child: AgendaList(
+                      events: events,
+                      onEventTap: _onEventTap,
+                      scrollController: null,
+                    ),
+                  );
                 }, childCount: 1),
               ),
             ),
@@ -296,9 +347,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _createEvent(initialDate: _selectedDay),
-        child: const Icon(Icons.add_rounded),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'today',
+            onPressed: () => setState(() {
+              _focusedDay = DateTime.now();
+              _selectedDay = DateTime.now();
+            }),
+            child: const Icon(Icons.today_rounded),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton.small(
+            heroTag: 'refresh',
+            onPressed: _refresh,
+            child: const Icon(Icons.refresh_rounded),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'add',
+            onPressed: () => _createEvent(initialDate: _selectedDay),
+            child: const Icon(Icons.add_rounded),
+          ),
+        ],
       ),
     );
   }
@@ -318,10 +390,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 children: [
                   _buildDesktopCalendar(),
                   const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => _createEvent(),
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Neuer Termin'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => setState(() {
+                            _focusedDay = DateTime.now();
+                            _selectedDay = DateTime.now();
+                          }),
+                          icon: const Icon(Icons.today_rounded, size: 18),
+                          label: const Text('Heute'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: _refresh,
+                        icon: const Icon(Icons.refresh_rounded),
+                        tooltip: 'Aktualisieren',
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => _createEvent(),
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('Neuer Termin'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -389,7 +484,7 @@ class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get maxExtent => 340;
+  double get maxExtent => 400;
 
   @override
   double get minExtent => 68;

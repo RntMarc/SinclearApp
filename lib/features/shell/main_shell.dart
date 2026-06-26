@@ -152,72 +152,61 @@ class _NavContent extends StatelessWidget {
       child: SingleChildScrollView(
         child: Column(
           children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-            child: Row(
-              children: [
-                Image.asset('assets/logo.png', width: 32, height: 32),
-                const SizedBox(width: 12),
-                Text(
-                  'Beyond',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Row(
+                children: [
+                  Image.asset('assets/logo.png', width: 32, height: 32),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Beyond',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Navigation',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                ],
               ),
             ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home_rounded),
-            title: const Text('Home'),
-            selected: selectedIndex == 0,
-            onTap: () => onNavigate('/home'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.calendar_month_rounded),
-            title: const Text('Kalender'),
-            selected: selectedIndex == 1,
-            onTap: () => onNavigate('/kalender'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.explore_rounded),
-            title: const Text('Entdecken'),
-            selected: selectedIndex == 2,
-            onTap: () => onNavigate('/entdecken'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.flight_rounded),
-            title: const Text('Reisen & Events'),
-            selected: selectedIndex == 2,
-            onTap: () => onNavigate('/reisen'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.people_rounded),
-            title: const Text('Kontakte'),
-            selected: selectedIndex == 3,
-            onTap: () => onNavigate('/kontakte'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings_rounded),
-            title: const Text('Einstellungen'),
-            selected: selectedIndex == 4,
-            onTap: () => onNavigate('/einstellungen'),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
+            Padding(padding: const EdgeInsets.fromLTRB(0, 8, 0, 8)),
+            ListTile(
+              leading: const Icon(Icons.home_rounded),
+              title: const Text('Home'),
+              selected: selectedIndex == 0,
+              onTap: () => onNavigate('/home'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_rounded),
+              title: const Text('Kalender'),
+              selected: selectedIndex == 1,
+              onTap: () => onNavigate('/kalender'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.explore_rounded),
+              title: const Text('Entdecken'),
+              selected: selectedIndex == 2,
+              onTap: () => onNavigate('/entdecken'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.flight_rounded),
+              title: const Text('Reisen & Events'),
+              selected: selectedIndex == 2,
+              onTap: () => onNavigate('/reisen'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_rounded),
+              title: const Text('Kontakte'),
+              selected: selectedIndex == 3,
+              onTap: () => onNavigate('/kontakte'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_rounded),
+              title: const Text('Einstellungen'),
+              selected: selectedIndex == 4,
+              onTap: () => onNavigate('/einstellungen'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
