@@ -167,13 +167,20 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(Icons.open_in_browser_rounded),
                     label: Text(
-                      _saving ? 'Wird gestartet…' : 'Discord-Verknüpfung ändern',
+                      _saving
+                          ? 'Wird gestartet…'
+                          : 'Discord-Verknüpfung ändern',
                     ),
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
                   ),
                 ] else ...[
                   Text(
@@ -201,7 +208,9 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
                         _error!,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
                       ),
                     ),
                   FilledButton.icon(
@@ -210,11 +219,16 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(Icons.check_rounded),
                     label: Text(_saving ? 'Wird geprüft…' : 'Bestätigen'),
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
@@ -233,7 +247,9 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
                     padding: const EdgeInsets.only(top: 16),
                     child: Text(
                       _error!,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
                     ),
                   ),
               ],

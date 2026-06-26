@@ -153,7 +153,8 @@ class _OverviewTab extends StatelessWidget {
   });
 
   String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}';
+    final local = date.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
   }
 
   @override
@@ -463,10 +464,11 @@ class _EventCard extends StatelessWidget {
       event.participants.any((p) => p.id == currentUserId);
 
   String _formatDateTime(DateTime dt) {
+    final local = dt.toLocal();
     final day =
-        '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+        '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
     final time =
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
     return '$day $time';
   }
 

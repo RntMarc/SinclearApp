@@ -93,10 +93,14 @@ class _EditContactScreenState extends State<EditContactScreen> {
     }
     final matrixUser = _matrixUserController.text.trim();
     final matrixServer = _matrixServerController.text.trim();
-    if (matrixUser.isNotEmpty && (matrixUser.contains('@') || matrixUser.contains(':'))) {
+    if (matrixUser.isNotEmpty &&
+        (matrixUser.contains('@') || matrixUser.contains(':'))) {
       return 'Matrix: Benutzername darf kein @ oder : enthalten.';
     }
-    if (matrixServer.isNotEmpty && !RegExp(r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$').hasMatch(matrixServer)) {
+    if (matrixServer.isNotEmpty &&
+        !RegExp(
+          r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$',
+        ).hasMatch(matrixServer)) {
       return 'Matrix: Server muss eine gültige Domain sein (z.B. matrix.org).';
     }
     return null;
@@ -116,26 +120,30 @@ class _EditContactScreenState extends State<EditContactScreen> {
 
     try {
       final scope = AppScope.of(context);
-      await scope.user.updateProfile(ProfileUpdateRequest(
-        discordHandle: _emptyToNull(_discordController),
-        fluxerHandle: _emptyToNull(_fluxerController),
-        signalNumber: _emptyToNull(_signalController),
-        whatsappNumber: _emptyToNull(_whatsappController),
-        matrixUser: _emptyToNull(_matrixUserController),
-        matrixHomeserver: _emptyToNull(_matrixServerController),
-      ));
-      await scope.user.updateVisibility(VisibilityUpdateRequest(
-        discordVisibility: _discordVisibility,
-        fluxerVisibility: _fluxerVisibility,
-        signalVisibility: _signalVisibility,
-        whatsappVisibility: _whatsappVisibility,
-        matrixVisibility: _matrixVisibility,
-      ));
+      await scope.user.updateProfile(
+        ProfileUpdateRequest(
+          discordHandle: _emptyToNull(_discordController),
+          fluxerHandle: _emptyToNull(_fluxerController),
+          signalNumber: _emptyToNull(_signalController),
+          whatsappNumber: _emptyToNull(_whatsappController),
+          matrixUser: _emptyToNull(_matrixUserController),
+          matrixHomeserver: _emptyToNull(_matrixServerController),
+        ),
+      );
+      await scope.user.updateVisibility(
+        VisibilityUpdateRequest(
+          discordVisibility: _discordVisibility,
+          fluxerVisibility: _fluxerVisibility,
+          signalVisibility: _signalVisibility,
+          whatsappVisibility: _whatsappVisibility,
+          matrixVisibility: _matrixVisibility,
+        ),
+      );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kontaktdaten gespeichert')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Kontaktdaten gespeichert')));
     } on ApiException catch (e) {
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
@@ -174,7 +182,8 @@ class _EditContactScreenState extends State<EditContactScreen> {
                 controller: _discordController,
                 hint: 'Benutzername',
                 visibility: _discordVisibility,
-                onVisibilityChanged: (v) => setState(() => _discordVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _discordVisibility = v),
               ),
               const SizedBox(height: 16),
               _buildSimpleField(
@@ -183,7 +192,8 @@ class _EditContactScreenState extends State<EditContactScreen> {
                 controller: _fluxerController,
                 hint: 'Benutzername',
                 visibility: _fluxerVisibility,
-                onVisibilityChanged: (v) => setState(() => _fluxerVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _fluxerVisibility = v),
               ),
               const SizedBox(height: 16),
               _buildSimpleField(
@@ -192,7 +202,8 @@ class _EditContactScreenState extends State<EditContactScreen> {
                 controller: _signalController,
                 hint: 'username.00',
                 visibility: _signalVisibility,
-                onVisibilityChanged: (v) => setState(() => _signalVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _signalVisibility = v),
               ),
               const SizedBox(height: 16),
               _buildSimpleField(
@@ -201,7 +212,8 @@ class _EditContactScreenState extends State<EditContactScreen> {
                 controller: _whatsappController,
                 hint: '+49123456789',
                 visibility: _whatsappVisibility,
-                onVisibilityChanged: (v) => setState(() => _whatsappVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _whatsappVisibility = v),
               ),
               const SizedBox(height: 16),
               _buildMatrixField(),
@@ -211,7 +223,9 @@ class _EditContactScreenState extends State<EditContactScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(
                     _error!,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
                   ),
                 ),
               FilledButton.icon(
@@ -220,11 +234,16 @@ class _EditContactScreenState extends State<EditContactScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.save_rounded),
                 label: Text(_saving ? 'Wird gespeichert…' : 'Speichern'),
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
               ),
             ],
           ),
@@ -244,7 +263,12 @@ class _EditContactScreenState extends State<EditContactScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 4),
         Row(
           children: [
@@ -257,7 +281,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
                   hintText: hint,
                   border: const OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
@@ -276,9 +303,18 @@ class _EditContactScreenState extends State<EditContactScreen> {
       children: [
         Row(
           children: [
-            Icon(Icons.forum_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+            Icon(
+              Icons.forum_rounded,
+              size: 18,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 8),
-            Text('Matrix', style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              'Matrix',
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -293,7 +329,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
                   hintText: 'Benutzername',
                   border: OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
@@ -307,13 +346,19 @@ class _EditContactScreenState extends State<EditContactScreen> {
                   hintText: 'matrix.org',
                   border: OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
             ),
             const SizedBox(width: 8),
-            VisibilityBadge(value: _matrixVisibility, onChanged: (v) => setState(() => _matrixVisibility = v)),
+            VisibilityBadge(
+              value: _matrixVisibility,
+              onChanged: (v) => setState(() => _matrixVisibility = v),
+            ),
           ],
         ),
       ],

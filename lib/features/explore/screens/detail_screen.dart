@@ -409,37 +409,37 @@ class _WideDetail extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(flex: 3, child: _InfoContent(place: place)),
-          const SizedBox(width: 24),
-          Expanded(
-            flex: 2,
-            child: Column(
-              children: [
-                _MapCard(place: place),
-                const SizedBox(height: 16),
-                _ActionsCard(
-                  canDelete: canDelete,
-                  refreshing: refreshing,
-                  bookmarked: bookmarked,
-                  bookmarkToggling: bookmarkToggling,
-                  onRefresh: onRefresh,
-                  onDelete: onDelete,
-                  onToggleBookmark: onToggleBookmark,
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    _MapCard(place: place),
+                    const SizedBox(height: 16),
+                    _ActionsCard(
+                      canDelete: canDelete,
+                      refreshing: refreshing,
+                      bookmarked: bookmarked,
+                      bookmarkToggling: bookmarkToggling,
+                      onRefresh: onRefresh,
+                      onDelete: onDelete,
+                      onToggleBookmark: onToggleBookmark,
+                    ),
+                    const SizedBox(height: 16),
+                    _ReviewsSection(
+                      reviews: reviews,
+                      loading: loadingReviews,
+                      error: reviewsError,
+                      currentUserId: currentUserId,
+                      reviewUsers: reviewUsers,
+                      onLoadReviews: onLoadReviews,
+                      onCreateReview: onCreateReview,
+                      onEditReview: onEditReview,
+                      onDeleteReview: onDeleteReview,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                _ReviewsSection(
-                  reviews: reviews,
-                  loading: loadingReviews,
-                  error: reviewsError,
-                  currentUserId: currentUserId,
-                  reviewUsers: reviewUsers,
-                  onLoadReviews: onLoadReviews,
-                  onCreateReview: onCreateReview,
-                  onEditReview: onEditReview,
-                  onDeleteReview: onDeleteReview,
-                ),
-              ],
-            ),
-          ),
+              ),
             ],
           ),
         ],
@@ -575,7 +575,10 @@ class _InfoContent extends StatelessWidget {
         if (place.openingHours != null)
           _InfoRow(Icons.schedule_rounded, place.openingHours!),
         if (place.avgRating != null)
-          _InfoRow(Icons.star_rounded, '${place.avgRating!.toStringAsFixed(1)} / 5'),
+          _InfoRow(
+            Icons.star_rounded,
+            '${place.avgRating!.toStringAsFixed(1)} / 5',
+          ),
         const SizedBox(height: 16),
         _MetaRow(
           'Kategorie',
@@ -903,7 +906,9 @@ class _ReviewCard extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 14,
-                        backgroundImage: resolveImageProvider(reviewUser!.image),
+                        backgroundImage: resolveImageProvider(
+                          reviewUser!.image,
+                        ),
                         child: resolveImageProvider(reviewUser!.image) == null
                             ? Text(
                                 reviewUser!.displayName.isNotEmpty
@@ -972,7 +977,7 @@ class _ReviewCard extends StatelessWidget {
 
   String _formatDate(String iso) {
     try {
-      final dt = DateTime.parse(iso);
+      final dt = DateTime.parse(iso).toLocal();
       return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
     } catch (_) {
       return iso.substring(0, 10);

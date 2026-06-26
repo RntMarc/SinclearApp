@@ -89,10 +89,7 @@ class DeviceRegisterRequest {
   });
 
   Map<String, dynamic> toJson() {
-    final map = <String, dynamic>{
-      'token': token,
-      'platform': platform,
-    };
+    final map = <String, dynamic>{'token': token, 'platform': platform};
     if (deviceName != null) map['deviceName'] = deviceName;
     return map;
   }

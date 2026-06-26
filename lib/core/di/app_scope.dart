@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../features/auth/services/auth_service.dart';
+import '../../features/calendar/services/calendar_service.dart';
 import '../../features/explore/services/explore_service.dart';
 import '../../features/explore/services/nominatim_service.dart';
 import '../../features/notifications/services/notification_service.dart';
@@ -13,6 +14,7 @@ class AppScope extends InheritedWidget {
   final TravelService travel;
   final UserService user;
   final NotificationService notification;
+  final CalendarService calendar;
 
   const AppScope({
     super.key,
@@ -22,6 +24,7 @@ class AppScope extends InheritedWidget {
     required this.travel,
     required this.user,
     required this.notification,
+    required this.calendar,
     required super.child,
   });
 

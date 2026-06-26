@@ -60,19 +60,16 @@ class _NotificationSheetState extends State<NotificationSheet> {
   }
 
   Widget _handle(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Container(
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Theme.of(context)
-                .colorScheme
-                .onSurfaceVariant
-                .withAlpha(80),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Container(
+      width: 40,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(80),
+        borderRadius: BorderRadius.circular(2),
+      ),
+    ),
+  );
 
   Widget _header(BuildContext context, NotificationService notif) {
     final theme = Theme.of(context);
@@ -80,10 +77,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       child: Row(
         children: [
-          Text(
-            'Benachrichtigungen',
-            style: theme.textTheme.titleLarge,
-          ),
+          Text('Benachrichtigungen', style: theme.textTheme.titleLarge),
           const Spacer(),
           if (notif.unreadCount > 0)
             TextButton.icon(
@@ -137,9 +131,9 @@ class _NotificationSheetState extends State<NotificationSheet> {
             notification: notification,
             onTap: () => _onNotificationTap(context, notification),
             onDismiss: () async {
-              await AppScope.of(context)
-                  .notification
-                  .markAsRead(notification.id);
+              await AppScope.of(
+                context,
+              ).notification.markAsRead(notification.id);
             },
           );
         },

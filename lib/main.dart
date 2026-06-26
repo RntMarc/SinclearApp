@@ -2,12 +2,14 @@ import 'dart:developer' as developer;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'core/network/api_client.dart';
 import 'core/storage/token_storage.dart';
 import 'features/auth/services/auth_service.dart';
+import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
 import 'features/notifications/services/notification_service.dart';
@@ -18,6 +20,7 @@ import 'router/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('de');
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -45,6 +48,7 @@ void main() async {
   final explore = ExploreService(api: api, auth: auth);
   final travel = TravelService(api: api, auth: auth);
   final user = UserService(api: api, auth: auth);
+  final calendar = CalendarService(api: api, auth: auth);
   final notification = NotificationService(api: api, auth: auth);
   try {
     await notification.init();
@@ -84,6 +88,7 @@ void main() async {
       nominatim: nominatim,
       travel: travel,
       user: user,
+      calendar: calendar,
       notification: notification,
       router: router,
     ),

@@ -75,13 +75,44 @@ class UserSocialInfoPublic {
 
   List<SocialEntry> toList() {
     return [
-      if (unsplashHandle != null) SocialEntry('Unsplash', unsplashHandle!, 'https://unsplash.com/@$unsplashHandle'),
-      if (instagramHandle != null) SocialEntry('Instagram', instagramHandle!, 'https://instagram.com/$instagramHandle'),
-      if (mastodonUser != null && mastodonServer != null) SocialEntry('Mastodon', '@$mastodonUser@$mastodonServer', 'https://$mastodonServer/@$mastodonUser'),
-      if (pixelfedUser != null && pixelfedServer != null) SocialEntry('Pixelfed', '@$pixelfedUser@$pixelfedServer', 'https://$pixelfedServer/$pixelfedUser'),
-      if (blueskyHandle != null) SocialEntry('Bluesky', blueskyHandle!, 'https://bsky.app/profile/$blueskyHandle'),
-      if (youtubeHandle != null) SocialEntry('YouTube', youtubeHandle!, 'https://youtube.com/@$youtubeHandle'),
-      if (twitchHandle != null) SocialEntry('Twitch', twitchHandle!, 'https://twitch.tv/$twitchHandle'),
+      if (unsplashHandle != null)
+        SocialEntry(
+          'Unsplash',
+          unsplashHandle!,
+          'https://unsplash.com/@$unsplashHandle',
+        ),
+      if (instagramHandle != null)
+        SocialEntry(
+          'Instagram',
+          instagramHandle!,
+          'https://instagram.com/$instagramHandle',
+        ),
+      if (mastodonUser != null && mastodonServer != null)
+        SocialEntry(
+          'Mastodon',
+          '@$mastodonUser@$mastodonServer',
+          'https://$mastodonServer/@$mastodonUser',
+        ),
+      if (pixelfedUser != null && pixelfedServer != null)
+        SocialEntry(
+          'Pixelfed',
+          '@$pixelfedUser@$pixelfedServer',
+          'https://$pixelfedServer/$pixelfedUser',
+        ),
+      if (blueskyHandle != null)
+        SocialEntry(
+          'Bluesky',
+          blueskyHandle!,
+          'https://bsky.app/profile/$blueskyHandle',
+        ),
+      if (youtubeHandle != null)
+        SocialEntry(
+          'YouTube',
+          youtubeHandle!,
+          'https://youtube.com/@$youtubeHandle',
+        ),
+      if (twitchHandle != null)
+        SocialEntry('Twitch', twitchHandle!, 'https://twitch.tv/$twitchHandle'),
     ];
   }
 }
@@ -137,10 +168,14 @@ class UserDetailPublic {
     return UserDetailPublic(
       base: UserBasePublic.fromJson(json),
       social: json['social'] != null
-          ? UserSocialInfoPublic.fromJson(json['social'] as Map<String, dynamic>)
+          ? UserSocialInfoPublic.fromJson(
+              json['social'] as Map<String, dynamic>,
+            )
           : const UserSocialInfoPublic(),
       contact: json['contact'] != null
-          ? UserContactInfoPublic.fromJson(json['contact'] as Map<String, dynamic>)
+          ? UserContactInfoPublic.fromJson(
+              json['contact'] as Map<String, dynamic>,
+            )
           : const UserContactInfoPublic(),
     );
   }
@@ -451,16 +486,22 @@ class VisibilityUpdateRequest {
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     if (emailVisibility != null) map['emailVisibility'] = emailVisibility;
-    if (birthdayVisibility != null) map['birthdayVisibility'] = birthdayVisibility;
+    if (birthdayVisibility != null)
+      map['birthdayVisibility'] = birthdayVisibility;
     if (discordVisibility != null) map['discordVisibility'] = discordVisibility;
     if (fluxerVisibility != null) map['fluxerVisibility'] = fluxerVisibility;
     if (matrixVisibility != null) map['matrixVisibility'] = matrixVisibility;
     if (signalVisibility != null) map['signalVisibility'] = signalVisibility;
-    if (whatsappVisibility != null) map['whatsappVisibility'] = whatsappVisibility;
-    if (unsplashVisibility != null) map['unsplashVisibility'] = unsplashVisibility;
-    if (instagramVisibility != null) map['instagramVisibility'] = instagramVisibility;
-    if (mastodonVisibility != null) map['mastodonVisibility'] = mastodonVisibility;
-    if (pixelfedVisibility != null) map['pixelfedVisibility'] = pixelfedVisibility;
+    if (whatsappVisibility != null)
+      map['whatsappVisibility'] = whatsappVisibility;
+    if (unsplashVisibility != null)
+      map['unsplashVisibility'] = unsplashVisibility;
+    if (instagramVisibility != null)
+      map['instagramVisibility'] = instagramVisibility;
+    if (mastodonVisibility != null)
+      map['mastodonVisibility'] = mastodonVisibility;
+    if (pixelfedVisibility != null)
+      map['pixelfedVisibility'] = pixelfedVisibility;
     if (blueskyVisibility != null) map['blueskyVisibility'] = blueskyVisibility;
     if (youtubeVisibility != null) map['youtubeVisibility'] = youtubeVisibility;
     if (twitchVisibility != null) map['twitchVisibility'] = twitchVisibility;

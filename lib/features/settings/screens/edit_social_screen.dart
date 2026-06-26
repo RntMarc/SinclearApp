@@ -113,22 +113,32 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
     return false;
   }
 
-  bool _isDomain(String v) => RegExp(r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$').hasMatch(v);
+  bool _isDomain(String v) => RegExp(
+    r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$',
+  ).hasMatch(v);
 
   String? _validate() {
     final unsplash = _unsplashController.text.trim();
-    if (unsplash.isNotEmpty && unsplash.contains('@')) return 'Unsplash: Kein @ erlaubt.';
+    if (unsplash.isNotEmpty && unsplash.contains('@'))
+      return 'Unsplash: Kein @ erlaubt.';
     final instagram = _instagramController.text.trim();
-    if (instagram.isNotEmpty && instagram.contains('@')) return 'Instagram: Kein @ erlaubt.';
-    if (_hasInvalidMastodon()) return 'Mastodon: Ungültiges Format (User ohne @, Server als Domain).';
-    if (_hasInvalidPixelfed()) return 'Pixelfed: Ungültiges Format (User ohne @, Server als Domain).';
+    if (instagram.isNotEmpty && instagram.contains('@'))
+      return 'Instagram: Kein @ erlaubt.';
+    if (_hasInvalidMastodon())
+      return 'Mastodon: Ungültiges Format (User ohne @, Server als Domain).';
+    if (_hasInvalidPixelfed())
+      return 'Pixelfed: Ungültiges Format (User ohne @, Server als Domain).';
     final bluesky = _blueskyController.text.trim();
-    if (bluesky.isNotEmpty && bluesky.contains('@')) return 'Bluesky: Kein @ erlaubt (Domain-Format).';
-    if (bluesky.isNotEmpty && !_isDomain(bluesky)) return 'Bluesky: Muss eine Domain sein (z.B. user.bsky.social).';
+    if (bluesky.isNotEmpty && bluesky.contains('@'))
+      return 'Bluesky: Kein @ erlaubt (Domain-Format).';
+    if (bluesky.isNotEmpty && !_isDomain(bluesky))
+      return 'Bluesky: Muss eine Domain sein (z.B. user.bsky.social).';
     final youtube = _youtubeController.text.trim();
-    if (youtube.isNotEmpty && youtube.contains('@')) return 'YouTube: Kein @ erlaubt.';
+    if (youtube.isNotEmpty && youtube.contains('@'))
+      return 'YouTube: Kein @ erlaubt.';
     final twitch = _twitchController.text.trim();
-    if (twitch.isNotEmpty && twitch.contains('@')) return 'Twitch: Kein @ erlaubt.';
+    if (twitch.isNotEmpty && twitch.contains('@'))
+      return 'Twitch: Kein @ erlaubt.';
     return null;
   }
 
@@ -146,31 +156,35 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
 
     try {
       final scope = AppScope.of(context);
-      await scope.user.updateProfile(ProfileUpdateRequest(
-        unsplashHandle: _emptyToNull(_unsplashController.text.trim()),
-        instagramHandle: _emptyToNull(_instagramController.text.trim()),
-        mastodonUser: _emptyToNull(_mastodonUserController.text.trim()),
-        mastodonServer: _emptyToNull(_mastodonServerController.text.trim()),
-        pixelfedUser: _emptyToNull(_pixelfedUserController.text.trim()),
-        pixelfedServer: _emptyToNull(_pixelfedServerController.text.trim()),
-        blueskyHandle: _emptyToNull(_blueskyController.text.trim()),
-        youtubeHandle: _emptyToNull(_youtubeController.text.trim()),
-        twitchHandle: _emptyToNull(_twitchController.text.trim()),
-      ));
-      await scope.user.updateVisibility(VisibilityUpdateRequest(
-        unsplashVisibility: _unsplashVisibility,
-        instagramVisibility: _instagramVisibility,
-        mastodonVisibility: _mastodonVisibility,
-        pixelfedVisibility: _pixelfedVisibility,
-        blueskyVisibility: _blueskyVisibility,
-        youtubeVisibility: _youtubeVisibility,
-        twitchVisibility: _twitchVisibility,
-      ));
+      await scope.user.updateProfile(
+        ProfileUpdateRequest(
+          unsplashHandle: _emptyToNull(_unsplashController.text.trim()),
+          instagramHandle: _emptyToNull(_instagramController.text.trim()),
+          mastodonUser: _emptyToNull(_mastodonUserController.text.trim()),
+          mastodonServer: _emptyToNull(_mastodonServerController.text.trim()),
+          pixelfedUser: _emptyToNull(_pixelfedUserController.text.trim()),
+          pixelfedServer: _emptyToNull(_pixelfedServerController.text.trim()),
+          blueskyHandle: _emptyToNull(_blueskyController.text.trim()),
+          youtubeHandle: _emptyToNull(_youtubeController.text.trim()),
+          twitchHandle: _emptyToNull(_twitchController.text.trim()),
+        ),
+      );
+      await scope.user.updateVisibility(
+        VisibilityUpdateRequest(
+          unsplashVisibility: _unsplashVisibility,
+          instagramVisibility: _instagramVisibility,
+          mastodonVisibility: _mastodonVisibility,
+          pixelfedVisibility: _pixelfedVisibility,
+          blueskyVisibility: _blueskyVisibility,
+          youtubeVisibility: _youtubeVisibility,
+          twitchVisibility: _twitchVisibility,
+        ),
+      );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Social Media gespeichert')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Social Media gespeichert')));
     } on ApiException catch (e) {
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
@@ -208,7 +222,8 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                 controller: _unsplashController,
                 hint: 'Benutzername',
                 visibility: _unsplashVisibility,
-                onVisibilityChanged: (v) => setState(() => _unsplashVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _unsplashVisibility = v),
               ),
               const SizedBox(height: 16),
               _SocialField(
@@ -217,7 +232,8 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                 controller: _instagramController,
                 hint: 'Benutzername',
                 visibility: _instagramVisibility,
-                onVisibilityChanged: (v) => setState(() => _instagramVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _instagramVisibility = v),
               ),
               const SizedBox(height: 16),
               _CompoundSocialField(
@@ -228,7 +244,8 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                 serverController: _mastodonServerController,
                 serverHint: 'Server (z.B. mastodon.social)',
                 visibility: _mastodonVisibility,
-                onVisibilityChanged: (v) => setState(() => _mastodonVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _mastodonVisibility = v),
               ),
               const SizedBox(height: 16),
               _CompoundSocialField(
@@ -239,7 +256,8 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                 serverController: _pixelfedServerController,
                 serverHint: 'Server (z.B. pixelfed.de)',
                 visibility: _pixelfedVisibility,
-                onVisibilityChanged: (v) => setState(() => _pixelfedVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _pixelfedVisibility = v),
               ),
               const SizedBox(height: 16),
               _SocialField(
@@ -248,7 +266,8 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                 controller: _blueskyController,
                 hint: 'user.bsky.social',
                 visibility: _blueskyVisibility,
-                onVisibilityChanged: (v) => setState(() => _blueskyVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _blueskyVisibility = v),
               ),
               const SizedBox(height: 16),
               _SocialField(
@@ -257,7 +276,8 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                 controller: _youtubeController,
                 hint: 'Kanalname',
                 visibility: _youtubeVisibility,
-                onVisibilityChanged: (v) => setState(() => _youtubeVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _youtubeVisibility = v),
               ),
               const SizedBox(height: 16),
               _SocialField(
@@ -266,7 +286,8 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                 controller: _twitchController,
                 hint: 'Kanalname',
                 visibility: _twitchVisibility,
-                onVisibilityChanged: (v) => setState(() => _twitchVisibility = v),
+                onVisibilityChanged: (v) =>
+                    setState(() => _twitchVisibility = v),
               ),
               const SizedBox(height: 24),
               if (_error != null)
@@ -274,7 +295,9 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(
                     _error!,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
                   ),
                 ),
               FilledButton.icon(
@@ -283,11 +306,16 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.save_rounded),
                 label: Text(_saving ? 'Wird gespeichert…' : 'Speichern'),
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
               ),
             ],
           ),
@@ -319,7 +347,12 @@ class _SocialField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 4),
         Row(
           children: [
@@ -332,7 +365,10 @@ class _SocialField extends StatelessWidget {
                   hintText: hint,
                   border: const OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
@@ -376,7 +412,12 @@ class _CompoundSocialField extends StatelessWidget {
           children: [
             Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
             const SizedBox(width: 8),
-            Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -391,7 +432,10 @@ class _CompoundSocialField extends StatelessWidget {
                   hintText: userHint,
                   border: const OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
@@ -405,7 +449,10 @@ class _CompoundSocialField extends StatelessWidget {
                   hintText: serverHint,
                   border: const OutlineInputBorder(),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 textCapitalization: TextCapitalization.none,
               ),

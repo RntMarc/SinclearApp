@@ -93,21 +93,21 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           const SizedBox(height: 8),
           Center(
             child: CircleAvatar(
-            radius: 48,
-            backgroundImage: resolveImageProvider(user.base.image),
-            child: resolveImageProvider(user.base.image) == null
-                ? Text(
-                    user.base.displayName.isNotEmpty
-                        ? user.base.displayName[0].toUpperCase()
-                        : '?',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onPrimaryContainer,
-                    ),
-                  )
-                : null,
-          ),
+              radius: 48,
+              backgroundImage: resolveImageProvider(user.base.image),
+              child: resolveImageProvider(user.base.image) == null
+                  ? Text(
+                      user.base.displayName.isNotEmpty
+                          ? user.base.displayName[0].toUpperCase()
+                          : '?',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    )
+                  : null,
+            ),
           ),
           const SizedBox(height: 16),
           Center(
@@ -270,11 +270,7 @@ class _SocialTile extends StatelessWidget {
   final String handle;
   final String? url;
 
-  const _SocialTile({
-    required this.platform,
-    required this.handle,
-    this.url,
-  });
+  const _SocialTile({required this.platform, required this.handle, this.url});
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +281,11 @@ class _SocialTile extends StatelessWidget {
           ? InkWell(
               onTap: () => launchUrl(Uri.parse(url!)),
               borderRadius: BorderRadius.circular(8),
-              child: _SocialRow(platform: platform, handle: handle, theme: theme),
+              child: _SocialRow(
+                platform: platform,
+                handle: handle,
+                theme: theme,
+              ),
             )
           : _SocialRow(platform: platform, handle: handle, theme: theme),
     );

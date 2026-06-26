@@ -3,6 +3,8 @@ import '../features/auth/services/auth_service.dart';
 import '../features/welcome/welcome_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/verify_screen.dart';
+import '../features/calendar/screens/calendar_screen.dart';
+import '../features/calendar/screens/event_detail_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/explore/screens/explore_screen.dart';
 import '../features/explore/screens/category_screen.dart';
@@ -31,6 +33,7 @@ GoRouter createRouter(AuthService auth) {
 
       final isAuth =
           location.startsWith('/home') ||
+          location.startsWith('/kalender') ||
           location.startsWith('/entdecken') ||
           location.startsWith('/reisen') ||
           location.startsWith('/kontakte') ||
@@ -53,6 +56,17 @@ GoRouter createRouter(AuthService auth) {
           GoRoute(
             path: '/home',
             builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/kalender',
+            builder: (context, state) => const CalendarScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    EventDetailScreen(id: state.pathParameters['id']!),
+              ),
+            ],
           ),
           GoRoute(
             path: '/reisen',

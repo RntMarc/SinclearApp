@@ -72,8 +72,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
           'invalid_or_expired_code' => 'Der Code ist ungültig oder abgelaufen.',
           'invalid_code' => 'Ungültiger Code.',
           'user_not_found' => 'Nutzer nicht gefunden.',
-          'too_many_requests' || 'too_many_attempts' =>
-            'Zu viele Versuche. Bitte warte einen Moment.',
+          'too_many_requests' ||
+          'too_many_attempts' => 'Zu viele Versuche. Bitte warte einen Moment.',
           _ => 'Ein Fehler ist aufgetreten.',
         };
       });
