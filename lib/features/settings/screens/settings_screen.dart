@@ -60,11 +60,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(height: 8),
             Text(_error ?? 'Unbekannter Fehler'),
             const SizedBox(height: 16),
-            FilledButton.tonal(onPressed: _load, child: const Text('Erneut versuchen')),
+            FilledButton.tonal(
+              onPressed: _load,
+              child: const Text('Erneut versuchen'),
+            ),
           ],
         ),
       );
@@ -104,7 +111,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(
                       user.base.displayName,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       user.base.email,
@@ -180,7 +189,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             label: const Text('Abmelden'),
             style: OutlinedButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
-              side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.5)),
+              side: BorderSide(
+                color: theme.colorScheme.error.withValues(alpha: 0.5),
+              ),
               minimumSize: const Size.fromHeight(44),
             ),
           ),
@@ -223,8 +234,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Abmelden'),
         content: const Text('Möchtest du dich wirklich abmelden?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Abmelden')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Abmelden'),
+          ),
         ],
       ),
     );

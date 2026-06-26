@@ -122,8 +122,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       );
       return;
     }
-    final refreshData =
-        jsonDecode(refreshResp.body) as Map<String, dynamic>;
+    final refreshData = jsonDecode(refreshResp.body) as Map<String, dynamic>;
     final accessToken = refreshData['access_token'] as String;
 
     final newRefreshToken = refreshData['refresh_token'] as String?;
@@ -146,10 +145,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       return;
     }
 
-    final notifData =
-        jsonDecode(notifResp.body) as Map<String, dynamic>;
-    final notification =
-        AppNotification.fromJson(notifData['data'] as Map<String, dynamic>);
+    final notifData = jsonDecode(notifResp.body) as Map<String, dynamic>;
+    final notification = AppNotification.fromJson(
+      notifData['data'] as Map<String, dynamic>,
+    );
 
     await _showLocalNotification(notification);
   } catch (e, s) {
@@ -185,11 +184,9 @@ class NotificationService extends ChangeNotifier {
     return id;
   }
 
-  NotificationService({
-    required ApiClient api,
-    required AuthService auth,
-  })  : _api = api,
-        _auth = auth;
+  NotificationService({required ApiClient api, required AuthService auth})
+    : _api = api,
+      _auth = auth;
 
   Future<String> _token() => _auth.getAccessToken();
 
@@ -200,7 +197,8 @@ class NotificationService extends ChangeNotifier {
     if (!kIsWeb) {
       await _localNotifications
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.createNotificationChannel(
             const AndroidNotificationChannel(
               _channelId,
@@ -210,8 +208,9 @@ class NotificationService extends ChangeNotifier {
             ),
           );
 
-      const androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings = AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      );
       const iosSettings = DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,
@@ -228,14 +227,16 @@ class NotificationService extends ChangeNotifier {
       );
     }
 
-    final isDesktop = !kIsWeb &&
+    final isDesktop =
+        !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.linux ||
             defaultTargetPlatform == TargetPlatform.windows);
 
     if (!isDesktop) {
       if (!kIsWeb) {
         FirebaseMessaging.onBackgroundMessage(
-            firebaseMessagingBackgroundHandler);
+          firebaseMessagingBackgroundHandler,
+        );
       }
 
       final messaging = FirebaseMessaging.instance;
@@ -260,7 +261,8 @@ class NotificationService extends ChangeNotifier {
         if (defaultTargetPlatform == TargetPlatform.android) {
           final androidPlugin = _localNotifications
               .resolvePlatformSpecificImplementation<
-                  AndroidFlutterLocalNotificationsPlugin>();
+                AndroidFlutterLocalNotificationsPlugin
+              >();
           await androidPlugin?.requestNotificationsPermission();
         }
       }
@@ -296,8 +298,7 @@ class NotificationService extends ChangeNotifier {
           'Initial message: ${initialMessage.messageId}',
           name: 'notifications',
         );
-        final notificationId =
-            initialMessage.data['notificationId'] as String?;
+        final notificationId = initialMessage.data['notificationId'] as String?;
         if (notificationId != null) {
           _pendingNotificationId = notificationId;
         }
@@ -310,10 +311,7 @@ class NotificationService extends ChangeNotifier {
   void _onLocalNotificationTap(NotificationResponse response) {
     final payload = response.payload;
     if (payload == null) return;
-    developer.log(
-      'Local notification tapped: $payload',
-      name: 'notifications',
-    );
+    developer.log('Local notification tapped: $payload', name: 'notifications');
 
     if (payload.startsWith('fallback|')) {
       final notificationId = payload.substring('fallback|'.length);
@@ -402,8 +400,9 @@ class NotificationService extends ChangeNotifier {
         '/notifications/$notificationId',
         token: await _token(),
       );
-      final notification =
-          AppNotification.fromJson(data['data'] as Map<String, dynamic>);
+      final notification = AppNotification.fromJson(
+        data['data'] as Map<String, dynamic>,
+      );
       _notifications.insert(0, notification);
       _unreadCount++;
       notifyListeners();
@@ -437,10 +436,7 @@ class NotificationService extends ChangeNotifier {
   }
 
   Future<AppNotification> getNotification(String id) async {
-    final data = await _api.get(
-      '/notifications/$id',
-      token: await _token(),
-    );
+    final data = await _api.get('/notifications/$id', token: await _token());
     return AppNotification.fromJson(data['data'] as Map<String, dynamic>);
   }
 
@@ -449,10 +445,7 @@ class NotificationService extends ChangeNotifier {
   }
 
   Future<int> deleteAllNotifications() async {
-    final data = await _api.delete(
-      '/notifications',
-      token: await _token(),
-    );
+    final data = await _api.delete('/notifications', token: await _token());
     return data['data']['deleted'] as int;
   }
 
@@ -462,9 +455,7 @@ class NotificationService extends ChangeNotifier {
       token: await _token(),
     );
     final list = data['data'] as List;
-    return list
-        .map((e) => Device.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return list.map((e) => Device.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<void> deleteDevice(String deviceId) async {
@@ -530,7 +521,8 @@ class NotificationService extends ChangeNotifier {
   }
 
   void _startPolling() {
-    final isDesktop = !kIsWeb &&
+    final isDesktop =
+        !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.linux ||
             defaultTargetPlatform == TargetPlatform.windows);
     if (!isDesktop) return;

@@ -83,7 +83,9 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
       await scope.auth.logout();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('E-Mail geändert. Bitte melde dich neu an.')),
+        const SnackBar(
+          content: Text('E-Mail geändert. Bitte melde dich neu an.'),
+        ),
       );
       context.go('/');
     } on ApiException catch (e) {
@@ -166,7 +168,9 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       _error!,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
                     ),
                   ),
                 if (_stepRequest) ...[
@@ -176,11 +180,16 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(Icons.send_rounded),
                     label: Text(_loading ? 'Wird gesendet…' : 'Code senden'),
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
@@ -194,11 +203,16 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(Icons.check_rounded),
                     label: Text(_loading ? 'Wird geprüft…' : 'Bestätigen'),
-                    style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextButton(

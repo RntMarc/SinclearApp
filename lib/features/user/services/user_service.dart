@@ -69,21 +69,35 @@ class UserService {
 
   Future<void> requestEmailChange(String newEmail) async {
     final body = EmailChangeRequest(newEmail: newEmail).toJson();
-    await _api.post('/user/me/email/request', body: body, token: await _token());
+    await _api.post(
+      '/user/me/email/request',
+      body: body,
+      token: await _token(),
+    );
   }
 
   Future<void> verifyEmailChange(String code, String newEmail) async {
-    final body = EmailChangeVerifyRequest(code: code, newEmail: newEmail).toJson();
+    final body = EmailChangeVerifyRequest(
+      code: code,
+      newEmail: newEmail,
+    ).toJson();
     await _api.post('/user/me/email/verify', body: body, token: await _token());
   }
 
   Future<String> discordRelinkStart() async {
-    final data = await _api.post('/user/me/discord/start', token: await _token());
+    final data = await _api.post(
+      '/user/me/discord/start',
+      token: await _token(),
+    );
     return (data['url'] as String);
   }
 
   Future<void> discordRelinkVerify(String code) async {
     final body = DiscordVerifyRequest(code: code).toJson();
-    await _api.post('/user/me/discord/verify', body: body, token: await _token());
+    await _api.post(
+      '/user/me/discord/verify',
+      body: body,
+      token: await _token(),
+    );
   }
 }

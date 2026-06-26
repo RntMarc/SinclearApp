@@ -78,17 +78,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
 
     try {
-      await AppScope.of(context).user.updateProfile(ProfileUpdateRequest(
-        image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
-        removeImage: _removeImage,
-        displayName: displayName,
-        birthday: _birthday,
-      ));
+      await AppScope.of(context).user.updateProfile(
+        ProfileUpdateRequest(
+          image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
+          removeImage: _removeImage,
+          displayName: displayName,
+          birthday: _birthday,
+        ),
+      );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil gespeichert')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profil gespeichert')));
     } on ApiException catch (e) {
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
@@ -119,7 +121,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _showImagePicker() async {
     final theme = Theme.of(context);
-    final hasImage = _imageBytes != null || (_existingImage != null && !_removeImage);
+    final hasImage =
+        _imageBytes != null || (_existingImage != null && !_removeImage);
 
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -131,7 +134,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
               child: Text(
                 'Profilbild ändern',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             ListTile(
@@ -146,8 +151,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             if (hasImage)
               ListTile(
-                leading: Icon(Icons.delete_rounded, color: theme.colorScheme.error),
-                title: Text('Profilbild entfernen', style: TextStyle(color: theme.colorScheme.error)),
+                leading: Icon(
+                  Icons.delete_rounded,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  'Profilbild entfernen',
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   setState(() {
@@ -203,7 +214,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     final preview = _resolvePreview();
-    final hasImage = _imageBytes != null || (_existingImage != null && !_removeImage);
+    final hasImage =
+        _imageBytes != null || (_existingImage != null && !_removeImage);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil bearbeiten')),
@@ -256,7 +268,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: TextButton.icon(
                   onPressed: _showImagePicker,
                   icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: Text(hasImage ? 'Profilbild ändern' : 'Profilbild hinzufügen'),
+                  label: Text(
+                    hasImage ? 'Profilbild ändern' : 'Profilbild hinzufügen',
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -281,11 +295,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     suffixIcon: Icon(Icons.calendar_today_rounded),
                   ),
                   child: Text(
-                    _birthday != null
-                        ? _birthday!
-                        : 'Nicht angegeben',
+                    _birthday != null ? _birthday! : 'Nicht angegeben',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: _birthday != null ? null : theme.colorScheme.onSurfaceVariant,
+                      color: _birthday != null
+                          ? null
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -307,7 +321,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(
                     _error!,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
                   ),
                 ),
               FilledButton.icon(
@@ -316,11 +332,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.save_rounded),
                 label: Text(_saving ? 'Wird gespeichert…' : 'Speichern'),
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
               ),
             ],
           ),

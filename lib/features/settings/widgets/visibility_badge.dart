@@ -11,7 +11,11 @@ class VisibilityBadge extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
 
-  const VisibilityBadge({super.key, required this.value, required this.onChanged});
+  const VisibilityBadge({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,15 +54,27 @@ class VisibilityBadge extends StatelessWidget {
       itemBuilder: (context) => [
         PopupMenuItem(
           value: 0,
-          child: _Item(label: 'Nur ich', subtitle: 'Niemand außer dir', icon: _icons[0]!),
+          child: _Item(
+            label: 'Nur ich',
+            subtitle: 'Niemand außer dir',
+            icon: _icons[0]!,
+          ),
         ),
         PopupMenuItem(
           value: 1,
-          child: _Item(label: 'Alle', subtitle: 'Jeder eingeloggte Nutzer', icon: _icons[1]!),
+          child: _Item(
+            label: 'Alle',
+            subtitle: 'Jeder eingeloggte Nutzer',
+            icon: _icons[1]!,
+          ),
         ),
         PopupMenuItem(
           value: 2,
-          child: _Item(label: 'Enge Freunde', subtitle: 'Nur von dir hinzugefügte', icon: _icons[2]!),
+          child: _Item(
+            label: 'Enge Freunde',
+            subtitle: 'Nur von dir hinzugefügte',
+            icon: _icons[2]!,
+          ),
         ),
       ],
     );
@@ -70,7 +86,11 @@ class _Item extends StatelessWidget {
   final String subtitle;
   final IconData icon;
 
-  const _Item({required this.label, required this.subtitle, required this.icon});
+  const _Item({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {

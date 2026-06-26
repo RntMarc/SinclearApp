@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'core/di/app_scope.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/services/auth_service.dart';
+import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
 import 'features/notifications/services/notification_service.dart';
@@ -16,6 +17,7 @@ class SinclearApp extends StatelessWidget {
   final TravelService travel;
   final UserService user;
   final NotificationService notification;
+  final CalendarService calendar;
   final GoRouter router;
 
   const SinclearApp({
@@ -26,6 +28,7 @@ class SinclearApp extends StatelessWidget {
     required this.travel,
     required this.user,
     required this.notification,
+    required this.calendar,
     required this.router,
   });
 
@@ -38,6 +41,7 @@ class SinclearApp extends StatelessWidget {
       travel: travel,
       user: user,
       notification: notification,
+      calendar: calendar,
       child: MaterialApp.router(
         title: 'Sinclear Beyond',
         debugShowCheckedModeBanner: false,

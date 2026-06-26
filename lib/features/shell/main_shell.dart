@@ -62,10 +62,7 @@ class _MobileShell extends StatelessWidget {
     final title = _titleForLocation(location);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-        actions: [_NotificationBell()],
-      ),
+      appBar: AppBar(title: Text(title), actions: [_NotificationBell()]),
       drawer: Drawer(
         child: _NavContent(
           currentLocation: location,
@@ -81,6 +78,7 @@ class _MobileShell extends StatelessWidget {
 }
 
 String _titleForLocation(String location) {
+  if (location.startsWith('/kalender')) return 'Kalender';
   if (location.startsWith('/entdecken')) return 'Entdecken';
   if (location.startsWith('/reisen')) return 'Reisen & Events';
   if (location.startsWith('/kontakte')) return 'Kontakte';
@@ -187,9 +185,15 @@ class _NavContent extends StatelessWidget {
             onTap: () => onNavigate('/home'),
           ),
           ListTile(
+            leading: const Icon(Icons.calendar_month_rounded),
+            title: const Text('Kalender'),
+            selected: selectedIndex == 1,
+            onTap: () => onNavigate('/kalender'),
+          ),
+          ListTile(
             leading: const Icon(Icons.explore_rounded),
             title: const Text('Entdecken'),
-            selected: selectedIndex == 1,
+            selected: selectedIndex == 2,
             onTap: () => onNavigate('/entdecken'),
           ),
           ListTile(
@@ -198,13 +202,13 @@ class _NavContent extends StatelessWidget {
             selected: selectedIndex == 2,
             onTap: () => onNavigate('/reisen'),
           ),
-           ListTile(
+          ListTile(
             leading: const Icon(Icons.people_rounded),
             title: const Text('Kontakte'),
             selected: selectedIndex == 3,
             onTap: () => onNavigate('/kontakte'),
           ),
-           ListTile(
+          ListTile(
             leading: const Icon(Icons.settings_rounded),
             title: const Text('Einstellungen'),
             selected: selectedIndex == 4,
@@ -217,10 +221,11 @@ class _NavContent extends StatelessWidget {
   }
 
   int _selectedIndex(String location) {
-    if (location.startsWith('/entdecken')) return 1;
-    if (location.startsWith('/reisen')) return 2;
-    if (location.startsWith('/kontakte')) return 3;
-    if (location.startsWith('/einstellungen')) return 4;
+    if (location.startsWith('/kalender')) return 1;
+    if (location.startsWith('/entdecken')) return 2;
+    if (location.startsWith('/reisen')) return 3;
+    if (location.startsWith('/kontakte')) return 4;
+    if (location.startsWith('/einstellungen')) return 5;
     return 0;
   }
 }
