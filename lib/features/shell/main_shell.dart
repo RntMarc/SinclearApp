@@ -149,8 +149,9 @@ class _NavContent extends StatelessWidget {
     final selectedIndex = _selectedIndex(currentLocation);
 
     return SafeArea(
-      child: Column(
-        children: [
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
             child: Row(
@@ -216,6 +217,7 @@ class _NavContent extends StatelessWidget {
           ),
           const SizedBox(height: 8),
         ],
+      ),
       ),
     );
   }
