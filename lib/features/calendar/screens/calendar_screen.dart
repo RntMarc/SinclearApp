@@ -494,7 +494,7 @@ class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   double get maxExtent {
     final weeks = _weeksInMonth(focusedDay);
-    return 92 + (weeks * 48);
+    return 80 + (weeks * 52);
   }
 
   @override
