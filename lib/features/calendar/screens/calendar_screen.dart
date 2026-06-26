@@ -254,8 +254,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isDesktop = width >= 840;
+    final isDesktop = MediaQuery.of(context).size.shortestSide >= 600;
 
     if (isDesktop) {
       return _buildDesktopLayout();
@@ -493,10 +492,19 @@ class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get maxExtent => 400;
+  double get maxExtent {
+    final weeks = _weeksInMonth(focusedDay);
+    return 92 + (weeks * 48);
+  }
 
   @override
   double get minExtent => 68;
+
+  static int _weeksInMonth(DateTime date) {
+    final first = DateTime(date.year, date.month, 1);
+    final last = DateTime(date.year, date.month + 1, 0);
+    return ((first.weekday - 1) + last.day + 6) ~/ 7;
+  }
 
   List<CalendarEvent> _getEventsForDay(DateTime day) {
     return eventsByDay[DateTime(day.year, day.month, day.day)] ?? [];
