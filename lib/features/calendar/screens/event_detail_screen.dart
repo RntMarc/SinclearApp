@@ -19,13 +19,22 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   CalendarService get _service => AppScope.of(context).calendar;
 
   CalendarEvent? _event;
+  bool _hasLoaded = false;
   bool _loading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _load();
+    }
   }
 
   Future<void> _load() async {
