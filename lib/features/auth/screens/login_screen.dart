@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/widgets/glass/glass_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -108,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
+      appBar: GlassAppBar(
         title: const Text('Anmelden'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),

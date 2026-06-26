@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/widgets/glass/glass_widgets.dart';
 import '../models/calendar_models.dart';
 import '../services/calendar_service.dart';
 import '../widgets/agenda_list.dart';
@@ -264,7 +265,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildMobileLayout() {
     return Scaffold(
-      appBar: AppBar(
+      appBar: GlassAppBar(
         title: const Text('Kalender'),
         actions: [
           TextButton.icon(
@@ -367,7 +368,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: GlassFAB(
         heroTag: 'add',
         onPressed: () => _createEvent(initialDate: _selectedDay),
         child: const Icon(Icons.add_rounded),

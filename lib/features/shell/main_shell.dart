@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../notifications/services/notification_service.dart';
 import '../notifications/widgets/notification_sheet.dart';
 import '../../core/di/app_scope.dart';
+import '../../core/widgets/glass/glass_widgets.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -30,7 +31,7 @@ class _DesktopShell extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GlassAppBar(
         automaticallyImplyLeading: false,
         title: Text(_titleForLocation(location)),
         actions: [_NotificationBell()],
@@ -62,7 +63,7 @@ class _MobileShell extends StatelessWidget {
     final title = _titleForLocation(location);
 
     return Scaffold(
-      appBar: AppBar(title: Text(title), actions: [_NotificationBell()]),
+      appBar: GlassAppBar(title: Text(title), actions: [_NotificationBell()]),
       body: child,
       bottomNavigationBar: _MobileBottomNav(currentLocation: location),
     );
@@ -103,12 +104,9 @@ class _MobileBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = _categoryForLocation(currentLocation);
 
-    return BottomNavigationBar(
+    return GlassBottomNavigationBar(
       currentIndex: active.index,
       onTap: (index) => _onTap(context, _NavCategory.values[index]),
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Theme.of(context).colorScheme.primary,
-      unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.settings_rounded),
@@ -177,9 +175,9 @@ class _MobileBottomNav extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: Colors.transparent,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.4,
       ),
       builder: (_) => _CategorySheet(
         category: category,
@@ -217,70 +215,75 @@ class _CategorySheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            category,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...items.map((item) {
-            final isActive =
-                item.route != null && currentLocation.startsWith(item.route!);
-            final isPlaceholder = item.route == null;
-
-            return ListTile(
-              leading: Icon(
-                item.icon,
-                color: isPlaceholder
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-                    : null,
+    return GlassContainer(
+      type: GlassType.bottomSheet,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
               ),
-              title: Text(
-                item.label,
-                style: isPlaceholder
-                    ? TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              category,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...items.map((item) {
+              final isActive =
+                  item.route != null && currentLocation.startsWith(item.route!);
+              final isPlaceholder = item.route == null;
+
+              return ListTile(
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                leading: Icon(
+                  item.icon,
+                  size: 22,
+                  color: isPlaceholder
+                      ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+                      : null,
+                ),
+                title: Text(
+                  item.label,
+                  style: isPlaceholder
+                      ? TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.4),
+                        )
+                      : null,
+                ),
+                trailing: isPlaceholder
+                    ? Chip(
+                        label: const Text('Bald'),
+                        visualDensity: VisualDensity.compact,
+                        side: BorderSide.none,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        labelStyle: theme.textTheme.labelSmall,
                       )
                     : null,
-              ),
-              trailing: isPlaceholder
-                  ? Chip(
-                      label: const Text('Bald'),
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide.none,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      labelStyle: theme.textTheme.labelSmall,
-                    )
-                  : null,
-              selected: isActive,
-              selectedTileColor: theme.colorScheme.primaryContainer,
-              onTap: isPlaceholder
-                  ? null
-                  : () {
-                      Navigator.pop(context);
-                      context.go(item.route!);
-                    },
-            );
-          }),
-          const SizedBox(height: 8),
-        ],
+                selected: isActive,
+                selectedTileColor: theme.colorScheme.primaryContainer,
+                onTap: isPlaceholder
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        context.go(item.route!);
+                      },
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -301,64 +304,68 @@ class _NavContent extends StatelessWidget {
     final theme = Theme.of(context);
     final selectedIndex = _selectedIndex(currentLocation);
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Row(
-                children: [
-                  Image.asset('assets/logo.png', width: 32, height: 32),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Beyond',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+    return GlassContainer(
+      type: GlassType.drawer,
+      padding: EdgeInsets.zero,
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Row(
+                  children: [
+                    Image.asset('assets/logo.png', width: 32, height: 32),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Beyond',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Padding(padding: const EdgeInsets.fromLTRB(0, 8, 0, 8)),
-            ListTile(
-              leading: const Icon(Icons.home_rounded),
-              title: const Text('Home'),
-              selected: selectedIndex == 0,
-              onTap: () => onNavigate('/home'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_rounded),
-              title: const Text('Kalender'),
-              selected: selectedIndex == 1,
-              onTap: () => onNavigate('/kalender'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.explore_rounded),
-              title: const Text('Entdecken'),
-              selected: selectedIndex == 2,
-              onTap: () => onNavigate('/entdecken'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.flight_rounded),
-              title: const Text('Reisen & Events'),
-              selected: selectedIndex == 3,
-              onTap: () => onNavigate('/reisen'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.people_rounded),
-              title: const Text('Kontakte'),
-              selected: selectedIndex == 4,
-              onTap: () => onNavigate('/kontakte'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings_rounded),
-              title: const Text('Einstellungen'),
-              selected: selectedIndex == 5,
-              onTap: () => onNavigate('/einstellungen'),
-            ),
-            const SizedBox(height: 8),
-          ],
+              Padding(padding: const EdgeInsets.fromLTRB(0, 8, 0, 8)),
+              ListTile(
+                leading: const Icon(Icons.home_rounded),
+                title: const Text('Home'),
+                selected: selectedIndex == 0,
+                onTap: () => onNavigate('/home'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.calendar_month_rounded),
+                title: const Text('Kalender'),
+                selected: selectedIndex == 1,
+                onTap: () => onNavigate('/kalender'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.explore_rounded),
+                title: const Text('Entdecken'),
+                selected: selectedIndex == 2,
+                onTap: () => onNavigate('/entdecken'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.flight_rounded),
+                title: const Text('Reisen & Events'),
+                selected: selectedIndex == 3,
+                onTap: () => onNavigate('/reisen'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.people_rounded),
+                title: const Text('Kontakte'),
+                selected: selectedIndex == 4,
+                onTap: () => onNavigate('/kontakte'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings_rounded),
+                title: const Text('Einstellungen'),
+                selected: selectedIndex == 5,
+                onTap: () => onNavigate('/einstellungen'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -423,7 +430,7 @@ class _NotificationBellState extends State<_NotificationBell> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       builder: (_) => const NotificationSheet(),
     );
   }

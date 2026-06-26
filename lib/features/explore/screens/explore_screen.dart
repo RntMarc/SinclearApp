@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/widgets/glass/glass_widgets.dart';
 import '../models/explore_models.dart';
 import '../widgets/explore_map.dart';
 import '../widgets/explore_search_overlay.dart';
@@ -467,45 +468,35 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     child: Center(child: CircularProgressIndicator()),
                   )
                 else if (_bookmarksError)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 24,
-                              color: theme.colorScheme.error,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Lesezeichen konnten nicht geladen werden.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _loadBookmarks,
-                              child: const Text('Erneut versuchen'),
-                            ),
-                          ],
+                  GlassCard(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 24,
+                          color: theme.colorScheme.error,
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Lesezeichen konnten nicht geladen werden.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _loadBookmarks,
+                          child: const Text('Erneut versuchen'),
+                        ),
+                      ],
                     ),
                   )
                 else if (_bookmarks.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Text(
-                          'Keine Lesezeichen vorhanden.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                  GlassCard(
+                    child: Text(
+                      'Keine Lesezeichen vorhanden.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   )

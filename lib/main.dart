@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/network/api_client.dart';
 import 'core/storage/token_storage.dart';
+import 'core/theme/dynamic_theme_service.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
@@ -64,6 +65,9 @@ void main() async {
   final user = UserService(api: api, auth: auth);
   final calendar = CalendarService(api: api, auth: auth);
   final notification = NotificationService(api: api, auth: auth);
+
+  final dynamicTheme = DynamicThemeService(prefs: prefs);
+
   try {
     await notification.init();
     if (auth.isLoggedIn) notification.onLoggedIn();
@@ -105,6 +109,7 @@ void main() async {
       calendar: calendar,
       notification: notification,
       router: router,
+      dynamicTheme: dynamicTheme,
     ),
   );
 }

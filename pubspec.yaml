@@ -27,6 +27,8 @@ dependencies:
   web: ^1.1.1
   intl: ^0.20.3
   table_calendar: ^3.2.0
+  palette_generator: ^0.3.3+7
+  glass_kit: ^4.0.2
 
 dev_dependencies:
   flutter_test:
@@ -39,3 +41,4 @@ flutter:
   assets:
     - .env
     - assets/logo.png
+    - assets/backgrounds/
