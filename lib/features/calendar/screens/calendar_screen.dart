@@ -115,7 +115,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         event.startTime.month,
         event.startTime.day,
       );
-      _eventsByDay.putIfAbsent(day, () => []).add(event);
+      final events = _eventsByDay.putIfAbsent(day, () => []);
+      if (!events.any((e) => e.id == event.id)) {
+        events.add(event);
+      }
     }
   }
 
@@ -252,7 +255,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final isDesktop = width >= 600;
+    final isDesktop = width >= 840;
 
     if (isDesktop) {
       return _buildDesktopLayout();
@@ -262,6 +265,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildMobileLayout() {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Kalender'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => setState(() {
+              _focusedDay = DateTime.now();
+              _selectedDay = DateTime.now();
+            }),
+            icon: const Icon(Icons.today_rounded, size: 18),
+            label: const Text('Heute'),
+          ),
+          IconButton(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Aktualisieren',
+          ),
+        ],
+      ),
       body: CustomScrollView(
         controller: _agendaScrollController,
         slivers: [
@@ -347,30 +368,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.small(
-            heroTag: 'today',
-            onPressed: () => setState(() {
-              _focusedDay = DateTime.now();
-              _selectedDay = DateTime.now();
-            }),
-            child: const Icon(Icons.today_rounded),
-          ),
-          const SizedBox(height: 8),
-          FloatingActionButton.small(
-            heroTag: 'refresh',
-            onPressed: _refresh,
-            child: const Icon(Icons.refresh_rounded),
-          ),
-          const SizedBox(height: 8),
-          FloatingActionButton(
-            heroTag: 'add',
-            onPressed: () => _createEvent(initialDate: _selectedDay),
-            child: const Icon(Icons.add_rounded),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'add',
+        onPressed: () => _createEvent(initialDate: _selectedDay),
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
@@ -385,15 +386,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
           SizedBox(
             width: 360,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(8),
               child: Column(
                 children: [
-                  _buildDesktopCalendar(),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Kalender',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const Spacer(),
+                        TextButton.icon(
                           onPressed: () => setState(() {
                             _focusedDay = DateTime.now();
                             _selectedDay = DateTime.now();
@@ -401,23 +405,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           icon: const Icon(Icons.today_rounded, size: 18),
                           label: const Text('Heute'),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: _refresh,
-                        icon: const Icon(Icons.refresh_rounded),
-                        tooltip: 'Aktualisieren',
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () => _createEvent(),
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          label: const Text('Neuer Termin'),
+                        IconButton(
+                          onPressed: _refresh,
+                          icon: const Icon(Icons.refresh_rounded),
+                          tooltip: 'Aktualisieren',
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  _buildDesktopCalendar(),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _createEvent(),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Neuer Termin'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
