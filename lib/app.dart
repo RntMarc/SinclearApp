@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import 'core/di/app_scope.dart';
 import 'core/theme/app_theme.dart';
@@ -42,12 +42,10 @@ class SinclearApp extends StatelessWidget {
       user: user,
       notification: notification,
       calendar: calendar,
-      child: MaterialApp.router(
+      child: CupertinoApp.router(
         title: 'Sinclear Beyond',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
+        theme: AppTheme.cupertinoLight,
         routerConfig: router,
       ),
     );

@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/di/app_scope.dart';
 import '../models/explore_models.dart';
@@ -191,20 +191,22 @@ class _CategoryScreenState extends State<CategoryScreen> {
             const ExploreSearchOverlay(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
-            position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-                .animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeInOutCubic,
-                  ),
-                ),
+            position: Tween<Offset>(
+              begin: const Offset(0, 1),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOutCubic,
+              ),
+            ),
             child: child,
           );
         },
         transitionDuration: const Duration(milliseconds: 350),
         reverseTransitionDuration: const Duration(milliseconds: 250),
         opaque: false,
-        barrierColor: Colors.black.withValues(alpha: 0.3),
+        barrierColor: CupertinoColors.black.withValues(alpha: 0.3),
       ),
     );
 
@@ -270,8 +272,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final theme = CupertinoTheme.of(context);
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 600;
     final crossAxisCount = isWide ? (width >= 900 ? 3 : 2) : 1;
@@ -284,19 +285,18 @@ class _CategoryScreenState extends State<CategoryScreen> {
             children: [
               Row(
                 children: [
-                  IconButton(
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    tooltip: 'Zurück',
+                    child: const Icon(CupertinoIcons.back),
                   ),
                   Expanded(
-                    child: InkWell(
+                    child: GestureDetector(
                       onTap: _openSearch,
-                      borderRadius: BorderRadius.circular(12),
                       child: Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: colorScheme.outline),
-                          borderRadius: BorderRadius.circular(12),
+                          color: CupertinoColors.systemGrey6,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -304,15 +304,16 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.search_rounded,
-                              color: colorScheme.onSurfaceVariant,
+                            const Icon(
+                              CupertinoIcons.search,
+                              color: CupertinoColors.systemGrey,
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Orte, Städte, Kategorien…',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
+                              'Orte, Stadte, Kategorien...',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: CupertinoColors.systemGrey,
                               ),
                             ),
                           ],
@@ -321,18 +322,21 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  IconButton(
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
                     onPressed: _searchByLocation,
-                    icon: const Icon(Icons.my_location_rounded),
-                    tooltip: 'In meiner Nähe',
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    onPressed: () => setState(() => _showMap = !_showMap),
-                    icon: Icon(
-                      _showMap ? Icons.list_rounded : Icons.map_rounded,
+                    child: const Icon(
+                      CupertinoIcons.location,
+                      color: CupertinoColors.systemBlue,
                     ),
-                    tooltip: _showMap ? 'Liste' : 'Karte',
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => setState(() => _showMap = !_showMap),
+                    child: Icon(
+                      _showMap ? CupertinoIcons.list_bullet : CupertinoIcons.map,
+                      color: CupertinoColors.systemBlue,
+                    ),
                   ),
                 ],
               ),
@@ -340,17 +344,18 @@ class _CategoryScreenState extends State<CategoryScreen> {
               if (_searchResults != null)
                 Row(
                   children: [
-                    Text(
+                    const Text(
                       'Suchergebnisse',
-                      style: theme.textTheme.titleSmall?.copyWith(
+                      style: TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const Spacer(),
-                    TextButton.icon(
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
                       onPressed: _clearSearch,
-                      icon: const Icon(Icons.close_rounded, size: 18),
-                      label: const Text('Schließen'),
+                      child: const Text('Schliessen'),
                     ),
                   ],
                 )
@@ -362,10 +367,29 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       for (final opt in _sortOptions)
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
-                          child: SortChip(
-                            label: '${opt.$2}${_sortLabel(opt.$1)}',
-                            selected: _isSelected(opt.$1),
+                          child: GestureDetector(
                             onTap: () => _setSort(opt.$1),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _isSelected(opt.$1)
+                                    ? theme.primaryColor
+                                    : CupertinoColors.systemGrey6,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                '${opt.$2}${_sortLabel(opt.$1)}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: _isSelected(opt.$1)
+                                      ? CupertinoColors.white
+                                      : theme.textTheme.textStyle.color,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -386,7 +410,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  Widget _buildSearchResults(ThemeData theme, int crossAxisCount) {
+  Widget _buildSearchResults(CupertinoThemeData theme, int crossAxisCount) {
     return CustomScrollView(
       controller: _searchScrollController,
       slivers: [
@@ -402,11 +426,12 @@ class _CategoryScreenState extends State<CategoryScreen> {
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 if (index >= _searchResults!.length) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CupertinoActivityIndicator());
                 }
                 return PlaceCard(place: _searchResults![index]);
               },
-              childCount: _searchResults!.length + (_loadingMoreSearch ? 1 : 0),
+              childCount:
+                  _searchResults!.length + (_loadingMoreSearch ? 1 : 0),
             ),
           ),
         ),
@@ -414,36 +439,34 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  Widget _buildSearchEmpty(ThemeData theme) {
+  Widget _buildSearchEmpty(CupertinoThemeData theme) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.search_off_rounded,
+          const Icon(
+            CupertinoIcons.search,
             size: 48,
-            color: theme.colorScheme.onSurfaceVariant,
+            color: CupertinoColors.systemGrey,
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Keine Ergebnisse gefunden.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(fontSize: 16, color: CupertinoColors.systemGrey),
           ),
           const SizedBox(height: 16),
-          FilledButton.tonal(
+          CupertinoButton(
             onPressed: _clearSearch,
-            child: const Text('Zurück'),
+            child: const Text('Zuruck'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildList(ThemeData theme, int crossAxisCount) {
+  Widget _buildList(CupertinoThemeData theme, int crossAxisCount) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (_error != null) {
@@ -451,11 +474,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+            const Icon(
+              CupertinoIcons.exclamationmark_triangle,
+              size: 48,
+              color: CupertinoColors.destructiveRed,
+            ),
             const SizedBox(height: 8),
-            Text(_error!, style: theme.textTheme.bodyMedium),
+            Text(_error!),
             const SizedBox(height: 16),
-            FilledButton.tonal(
+            CupertinoButton(
               onPressed: _load,
               child: const Text('Erneut versuchen'),
             ),
@@ -465,57 +492,30 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
 
     if (_places.isEmpty) {
-      return Center(
+      return const Center(
         child: Text(
-          'Keine Einträge in dieser Kategorie.',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+          'Keine Eintrage in dieser Kategorie.',
+          style: TextStyle(
+            fontSize: 16,
+            color: CupertinoColors.systemGrey,
           ),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: GridView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: crossAxisCount > 1 ? 1.5 : 2.5,
-        ),
-        itemCount: _places.length + (_loadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= _places.length) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return PlaceCard(place: _places[index]);
-        },
-      ),
-    );
-  }
-}
-
-class SortChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const SortChip({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(16),
+      itemCount: _places.length + (_loadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= _places.length) {
+          return const Center(child: CupertinoActivityIndicator());
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: PlaceCard(place: _places[index]),
+        );
+      },
     );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import '../../../core/utils/date_utils.dart';
 import '../models/calendar_models.dart';
@@ -25,17 +25,16 @@ class AgendaList extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.event_rounded,
+              CupertinoIcons.calendar,
               size: 64,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+              color: CupertinoColors.systemGrey.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Keine Termine',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              style: TextStyle(
+                fontSize: 17,
+                color: CupertinoColors.systemGrey,
               ),
             ),
           ],
@@ -94,7 +93,7 @@ class _DaySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final isToday = date == today;
@@ -111,8 +110,8 @@ class _DaySection extends StatelessWidget {
                 height: 20,
                 decoration: BoxDecoration(
                   color: isToday
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.outlineVariant,
+                      ? theme.primaryColor
+                      : CupertinoColors.systemGrey3,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -121,11 +120,12 @@ class _DaySection extends StatelessWidget {
                 isToday
                     ? 'Heute'
                     : DateFormat('EEEE, d. MMMM yyyy', 'de').format(date),
-                style: theme.textTheme.titleSmall?.copyWith(
+                style: TextStyle(
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: isToday
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface,
+                      ? theme.primaryColor
+                      : theme.textTheme.textStyle.color,
                 ),
               ),
             ],
@@ -150,121 +150,137 @@ class _EventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 56,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      formatTime(event.startTime),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                      ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemBackground,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 56,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    formatTime(event.startTime),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: theme.primaryColor,
                     ),
-                    Text(
-                      formatTime(event.endTime),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                  ),
+                  Text(
+                    formatTime(event.endTime),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: CupertinoColors.systemGrey,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Container(
-                width: 2,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _eventColor(event, theme),
-                  borderRadius: BorderRadius.circular(1),
-                ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              width: 2,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _eventColor(event, theme),
+                borderRadius: BorderRadius.circular(1),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.textStyle.color,
                     ),
-                    if (event.description != null &&
-                        event.description!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          event.description!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  ),
+                  if (event.description != null &&
+                      event.description!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        event.description!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: CupertinoColors.systemGrey,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    if (event.participants.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.people_rounded,
-                              size: 14,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
+                    ),
+                  if (event.participants.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            CupertinoIcons.person_2,
+                            size: 14,
+                            color: CupertinoColors.systemGrey,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
                               event.participants
                                   .map((p) => p.displayName)
                                   .join(', '),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: CupertinoColors.systemGrey,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
+            ),
+            const Icon(
+              CupertinoIcons.chevron_right,
+              size: 20,
+              color: CupertinoColors.systemGrey3,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Color _eventColor(CalendarEvent event, ThemeData theme) {
+  Color _eventColor(CalendarEvent event, CupertinoThemeData theme) {
     switch (event.visibility) {
       case 0:
-        return theme.colorScheme.primary;
+        return theme.primaryColor;
       case 1:
-        return theme.colorScheme.tertiary;
+        return CupertinoColors.systemGreen;
       case 2:
-        return theme.colorScheme.secondary;
+        return CupertinoColors.systemPurple;
       default:
-        return theme.colorScheme.primary;
+        return theme.primaryColor;
     }
   }
 }

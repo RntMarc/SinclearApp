@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
@@ -79,7 +79,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Vorschläge konnten nicht geladen werden.';
+        _error = 'Vorschlage konnten nicht geladen werden.';
       });
     }
   }
@@ -143,20 +143,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
             const ExploreSearchOverlay(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
-            position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-                .animate(
-                  CurvedAnimation(
-                    parent: animation,
-                    curve: Curves.easeInOutCubic,
-                  ),
-                ),
+            position: Tween<Offset>(
+              begin: const Offset(0, 1),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOutCubic,
+              ),
+            ),
             child: child,
           );
         },
         transitionDuration: const Duration(milliseconds: 350),
         reverseTransitionDuration: const Duration(milliseconds: 250),
         opaque: false,
-        barrierColor: Colors.black.withValues(alpha: 0.3),
+        barrierColor: CupertinoColors.black.withValues(alpha: 0.3),
       ),
     );
 
@@ -222,8 +224,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final theme = CupertinoTheme.of(context);
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 600;
     final crossAxisCount = isWide ? (width >= 900 ? 3 : 2) : 1;
@@ -237,13 +238,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: InkWell(
+                    child: GestureDetector(
                       onTap: _openSearch,
-                      borderRadius: BorderRadius.circular(12),
                       child: Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: colorScheme.outline),
-                          borderRadius: BorderRadius.circular(12),
+                          color: CupertinoColors.systemGrey6,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -251,15 +251,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.search_rounded,
-                              color: colorScheme.onSurfaceVariant,
+                            const Icon(
+                              CupertinoIcons.search,
+                              color: CupertinoColors.systemGrey,
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Orte, Städte, Kategorien…',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
+                              'Orte, Stadte, Kategorien...',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: CupertinoColors.systemGrey,
                               ),
                             ),
                           ],
@@ -268,10 +269,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  IconButton.filled(
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
                     onPressed: _searchByLocation,
-                    icon: const Icon(Icons.my_location_rounded),
-                    tooltip: 'In meiner Nähe suchen',
+                    child: const Icon(
+                      CupertinoIcons.location,
+                      color: CupertinoColors.systemBlue,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => setState(() => _showMap = !_showMap),
+                    child: Icon(
+                      _showMap ? CupertinoIcons.list_bullet : CupertinoIcons.map,
+                      color: CupertinoColors.systemBlue,
+                    ),
                   ),
                 ],
               ),
@@ -280,7 +293,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 children: [
                   Expanded(
                     child: _CategoryButton(
-                      icon: Icons.restaurant_rounded,
+                      icon: CupertinoIcons.square_grid_2x2,
                       label: 'Gastronomie',
                       onTap: () => context.go('/entdecken/gastronomie'),
                     ),
@@ -288,18 +301,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _CategoryButton(
-                      icon: Icons.park_rounded,
+                      icon: CupertinoIcons.leaf_arrow_circlepath,
                       label: 'Freizeit',
                       onTap: () => context.go('/entdecken/freizeit'),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => setState(() => _showMap = !_showMap),
-                    icon: Icon(
-                      _showMap ? Icons.list_rounded : Icons.map_rounded,
-                    ),
-                    tooltip: _showMap ? 'Listenansicht' : 'Kartenansicht',
                   ),
                 ],
               ),
@@ -318,7 +323,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildSearchResults(ThemeData theme, int crossAxisCount) {
+  Widget _buildSearchResults(CupertinoThemeData theme, int crossAxisCount) {
     return CustomScrollView(
       controller: _searchScrollController,
       slivers: [
@@ -329,15 +334,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
               children: [
                 Text(
                   'Suchergebnisse',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: TextStyle(
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
+                    color: theme.textTheme.textStyle.color,
                   ),
                 ),
                 const Spacer(),
-                TextButton.icon(
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
                   onPressed: _clearSearch,
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  label: const Text('Schließen'),
+                  child: const Text('Schliessen'),
                 ),
               ],
             ),
@@ -355,11 +362,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 if (index >= _searchResults!.length) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CupertinoActivityIndicator());
                 }
                 return PlaceCard(place: _searchResults![index]);
               },
-              childCount: _searchResults!.length + (_loadingMoreSearch ? 1 : 0),
+              childCount:
+                  _searchResults!.length + (_loadingMoreSearch ? 1 : 0),
             ),
           ),
         ),
@@ -367,36 +375,37 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildSearchEmpty(ThemeData theme) {
+  Widget _buildSearchEmpty(CupertinoThemeData theme) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.search_off_rounded,
+            CupertinoIcons.search,
             size: 48,
-            color: theme.colorScheme.onSurfaceVariant,
+            color: CupertinoColors.systemGrey,
           ),
           const SizedBox(height: 8),
           Text(
             'Keine Ergebnisse gefunden.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: TextStyle(
+              fontSize: 16,
+              color: CupertinoColors.systemGrey,
             ),
           ),
           const SizedBox(height: 16),
-          FilledButton.tonal(
+          CupertinoButton(
             onPressed: _clearSearch,
-            child: const Text('Zurück'),
+            child: const Text('Zuruck'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSuggestionsList(ThemeData theme, int crossAxisCount) {
+  Widget _buildSuggestionsList(CupertinoThemeData theme, int crossAxisCount) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (_error != null) {
@@ -404,11 +413,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+            const Icon(
+              CupertinoIcons.exclamationmark_triangle,
+              size: 48,
+              color: CupertinoColors.destructiveRed,
+            ),
             const SizedBox(height: 8),
-            Text(_error!, style: theme.textTheme.bodyMedium),
+            Text(_error!),
             const SizedBox(height: 16),
-            FilledButton.tonal(
+            CupertinoButton(
               onPressed: _loadSuggestions,
               child: const Text('Erneut versuchen'),
             ),
@@ -425,9 +438,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Vorschläge',
-                style: theme.textTheme.titleMedium?.copyWith(
+                'Vorschlage',
+                style: TextStyle(
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
+                  color: theme.textTheme.textStyle.color,
                 ),
               ),
             ),
@@ -456,56 +471,61 @@ class _ExploreScreenState extends State<ExploreScreen> {
               children: [
                 Text(
                   'Lesezeichen',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: TextStyle(
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
+                    color: theme.textTheme.textStyle.color,
                   ),
                 ),
                 const SizedBox(height: 8),
                 if (_loadingBookmarks)
                   const Padding(
                     padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(child: CupertinoActivityIndicator()),
                   )
                 else if (_bookmarksError)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 24,
-                              color: theme.colorScheme.error,
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          const Icon(
+                            CupertinoIcons.exclamationmark_triangle,
+                            size: 24,
+                            color: CupertinoColors.destructiveRed,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Lesezeichen konnten nicht geladen werden.',
+                            style: TextStyle(
+                              color: CupertinoColors.destructiveRed,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Lesezeichen konnten nicht geladen werden.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _loadBookmarks,
-                              child: const Text('Erneut versuchen'),
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 8),
+                          CupertinoButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: _loadBookmarks,
+                            child: const Text('Erneut versuchen'),
+                          ),
+                        ],
                       ),
                     ),
                   )
                 else if (_bookmarks.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Text(
-                          'Keine Lesezeichen vorhanden.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Keine Lesezeichen vorhanden.',
+                        style: TextStyle(color: CupertinoColors.systemGrey),
                       ),
                     ),
                   )
@@ -545,11 +565,23 @@ class _CategoryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      color: CupertinoColors.systemGrey6,
       onPressed: onTap,
-      icon: Icon(icon),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: CupertinoTheme.of(context).primaryColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: CupertinoTheme.of(context).textTheme.textStyle.color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

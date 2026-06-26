@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
 import '../../user/models/user_models.dart';
@@ -63,13 +63,11 @@ class _EditContactScreenState extends State<EditContactScreen> {
         _whatsappController.text = contact.whatsappNumber ?? '';
         _matrixUserController.text = contact.matrixUser ?? '';
         _matrixServerController.text = contact.matrixHomeserver ?? '';
-
         _discordVisibility = contact.discordVisibility;
         _fluxerVisibility = contact.fluxerVisibility;
         _signalVisibility = contact.signalVisibility;
         _whatsappVisibility = contact.whatsappVisibility;
         _matrixVisibility = contact.matrixVisibility;
-
         _loading = false;
       });
     } catch (e, st) {
@@ -101,7 +99,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
         !RegExp(
           r'^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$',
         ).hasMatch(matrixServer)) {
-      return 'Matrix: Server muss eine gültige Domain sein (z.B. matrix.org).';
+      return 'Matrix: Server muss eine gultige Domain sein.';
     }
     return null;
   }
@@ -141,15 +139,18 @@ class _EditContactScreenState extends State<EditContactScreen> {
       );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Kontaktdaten gespeichert')));
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Kontaktdaten gespeichert'),
+        ),
+      );
     } on ApiException catch (e) {
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
       developer.log('Failed to save contact info', error: e, stackTrace: st);
       if (!mounted) return;
-      setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
+      setState(() => _error = 'Netzwerkfehler. Bitte prufe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -162,22 +163,24 @@ class _EditContactScreenState extends State<EditContactScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Kontaktmöglichkeiten')),
-      body: SafeArea(
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Kontaktmoglichkeiten'),
+      ),
+      child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildSimpleField(
-                icon: Icons.chat_rounded,
+                icon: CupertinoIcons.chat_bubble_2_fill,
                 label: 'Discord',
                 controller: _discordController,
                 hint: 'Benutzername',
@@ -187,7 +190,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
               ),
               const SizedBox(height: 16),
               _buildSimpleField(
-                icon: Icons.alternate_email_rounded,
+                icon: CupertinoIcons.at_circle_fill,
                 label: 'Fluxer',
                 controller: _fluxerController,
                 hint: 'Benutzername',
@@ -197,7 +200,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
               ),
               const SizedBox(height: 16),
               _buildSimpleField(
-                icon: Icons.phone_rounded,
+                icon: CupertinoIcons.phone_fill,
                 label: 'Signal',
                 controller: _signalController,
                 hint: 'username.00',
@@ -207,7 +210,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
               ),
               const SizedBox(height: 16),
               _buildSimpleField(
-                icon: Icons.phone_android_rounded,
+                icon: CupertinoIcons.phone_fill,
                 label: 'WhatsApp',
                 controller: _whatsappController,
                 hint: '+49123456789',
@@ -223,27 +226,20 @@ class _EditContactScreenState extends State<EditContactScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(
                     _error!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: CupertinoColors.destructiveRed,
                     ),
                   ),
                 ),
-              FilledButton.icon(
+              CupertinoButton.filled(
                 onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: _saving
+                    ? const CupertinoActivityIndicator(
+                        color: CupertinoColors.white,
                       )
-                    : const Icon(Icons.save_rounded),
-                label: Text(_saving ? 'Wird gespeichert…' : 'Speichern'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
+                    : const Text('Speichern'),
               ),
             ],
           ),
@@ -260,31 +256,34 @@ class _EditContactScreenState extends State<EditContactScreen> {
     required int visibility,
     required ValueChanged<int> onVisibilityChanged,
   }) {
+    final theme = CupertinoTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: theme.textTheme.textStyle.color,
+          ),
         ),
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+            Icon(icon, size: 18, color: theme.primaryColor),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
+              child: CupertinoTextField(
                 controller: controller,
-                decoration: InputDecoration(
-                  hintText: hint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
+                placeholder: hint,
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
@@ -298,22 +297,21 @@ class _EditContactScreenState extends State<EditContactScreen> {
   }
 
   Widget _buildMatrixField() {
+    final theme = CupertinoTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              Icons.forum_rounded,
-              size: 18,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            Icon(CupertinoIcons.chat_bubble_fill, size: 18, color: theme.primaryColor),
             const SizedBox(width: 8),
             Text(
               'Matrix',
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.textTheme.textStyle.color,
+              ),
             ),
           ],
         ),
@@ -322,34 +320,32 @@ class _EditContactScreenState extends State<EditContactScreen> {
           children: [
             const SizedBox(width: 26),
             Expanded(
-              child: TextField(
+              child: CupertinoTextField(
                 controller: _matrixUserController,
-                decoration: const InputDecoration(
-                  labelText: 'Benutzername',
-                  hintText: 'Benutzername',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
+                placeholder: 'Benutzername',
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
+              child: CupertinoTextField(
                 controller: _matrixServerController,
-                decoration: const InputDecoration(
-                  labelText: 'Homeserver',
-                  hintText: 'matrix.org',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
+                placeholder: 'matrix.org',
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
                 textCapitalization: TextCapitalization.none,
               ),

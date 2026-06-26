@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -13,23 +13,26 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.home_rounded,
+              CupertinoIcons.house_fill,
               size: 64,
-              color: theme.colorScheme.primary,
+              color: theme.primaryColor,
             ),
             const SizedBox(height: 16),
             Text(
               'Willkommen bei Beyond',
-              style: theme.textTheme.headlineSmall?.copyWith(
+              style: TextStyle(
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
+                color: theme.textTheme.textStyle.color,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Hier entsteht in Kürze dein persönliches Dashboard.',
+              'Hier entsteht in Kurze dein personliches Dashboard.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: TextStyle(
+                fontSize: 16,
+                color: CupertinoColors.systemGrey,
               ),
             ),
           ],

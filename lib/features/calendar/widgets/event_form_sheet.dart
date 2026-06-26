@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import '../models/calendar_models.dart';
 
@@ -15,9 +15,11 @@ class _EventFormSheetState extends State<EventFormSheet> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late DateTime _startDate;
-  late TimeOfDay _startTime;
+  late int _startHour;
+  late int _startMinute;
   late DateTime _endDate;
-  late TimeOfDay _endTime;
+  late int _endHour;
+  late int _endMinute;
   late int _visibility;
 
   bool get _isEditing => widget.event != null;
@@ -33,11 +35,11 @@ class _EventFormSheetState extends State<EventFormSheet> {
       text: event?.description ?? '',
     );
     _startDate = event?.startTime ?? now;
-    _startTime = TimeOfDay.fromDateTime(event?.startTime ?? now);
+    _startHour = event?.startTime.hour ?? now.hour;
+    _startMinute = event?.startTime.minute ?? now.minute;
     _endDate = event?.endTime ?? now.add(const Duration(hours: 1));
-    _endTime = TimeOfDay.fromDateTime(
-      event?.endTime ?? now.add(const Duration(hours: 1)),
-    );
+    _endHour = event?.endTime.hour ?? now.add(const Duration(hours: 1)).hour;
+    _endMinute = event?.endTime.minute ?? now.add(const Duration(hours: 1)).minute;
     _visibility = event?.visibility ?? 0;
   }
 
@@ -50,7 +52,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -65,9 +67,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
                 width: 32,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.4,
-                  ),
+                  color: CupertinoColors.systemGrey3,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -75,26 +75,38 @@ class _EventFormSheetState extends State<EventFormSheet> {
             const SizedBox(height: 16),
             Text(
               _isEditing ? 'Termin bearbeiten' : 'Neuer Termin',
-              style: theme.textTheme.titleLarge?.copyWith(
+              style: TextStyle(
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
+                color: theme.textTheme.textStyle.color,
               ),
             ),
             const SizedBox(height: 20),
-            TextField(
+            CupertinoTextField(
               controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Titel *',
-                border: OutlineInputBorder(),
+              placeholder: 'Titel *',
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey6,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
               ),
               textCapitalization: TextCapitalization.sentences,
               autofocus: !_isEditing,
             ),
             const SizedBox(height: 12),
-            TextField(
+            CupertinoTextField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Beschreibung',
-                border: OutlineInputBorder(),
+              placeholder: 'Beschreibung',
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey6,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
               ),
               textCapitalization: TextCapitalization.sentences,
               maxLines: 3,
@@ -103,20 +115,31 @@ class _EventFormSheetState extends State<EventFormSheet> {
             _DateTimePicker(
               label: 'Beginn',
               date: _startDate,
-              time: _startTime,
+              hour: _startHour,
+              minute: _startMinute,
               onDateChanged: (d) => setState(() => _startDate = d),
-              onTimeChanged: (t) => setState(() => _startTime = t),
+              onTimeChanged: (h, m) => setState(() {
+                _startHour = h;
+                _startMinute = m;
+              }),
             ),
             const SizedBox(height: 12),
             _DateTimePicker(
               label: 'Ende',
               date: _endDate,
-              time: _endTime,
+              hour: _endHour,
+              minute: _endMinute,
               onDateChanged: (d) => setState(() => _endDate = d),
-              onTimeChanged: (t) => setState(() => _endTime = t),
+              onTimeChanged: (h, m) => setState(() {
+                _endHour = h;
+                _endMinute = m;
+              }),
             ),
             const SizedBox(height: 16),
-            const Text('Sichtbarkeit'),
+            const Text(
+              'Sichtbarkeit',
+              style: TextStyle(fontSize: 13),
+            ),
             const SizedBox(height: 4),
             _VisibilitySelector(
               value: _visibility,
@@ -125,8 +148,9 @@ class _EventFormSheetState extends State<EventFormSheet> {
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: CupertinoButton.filled(
                 onPressed: _submit,
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Text(_isEditing ? 'Speichern' : 'Erstellen'),
               ),
             ),
@@ -143,21 +167,24 @@ class _EventFormSheetState extends State<EventFormSheet> {
       _startDate.year,
       _startDate.month,
       _startDate.day,
-      _startTime.hour,
-      _startTime.minute,
+      _startHour,
+      _startMinute,
     );
     final end = DateTime(
       _endDate.year,
       _endDate.month,
       _endDate.day,
-      _endTime.hour,
-      _endTime.minute,
+      _endHour,
+      _endMinute,
     );
 
     if (end.isBefore(start) || end.isAtSameMomentAs(start)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Das Ende muss nach dem Beginn liegen.')),
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Das Ende muss nach dem Beginn liegen.'),
+        ),
       );
       return;
     }
@@ -177,14 +204,16 @@ class _EventFormSheetState extends State<EventFormSheet> {
 class _DateTimePicker extends StatelessWidget {
   final String label;
   final DateTime date;
-  final TimeOfDay time;
+  final int hour;
+  final int minute;
   final ValueChanged<DateTime> onDateChanged;
-  final ValueChanged<TimeOfDay> onTimeChanged;
+  final void Function(int hour, int minute) onTimeChanged;
 
   const _DateTimePicker({
     required this.label,
     required this.date,
-    required this.time,
+    required this.hour,
+    required this.minute,
     required this.onDateChanged,
     required this.onTimeChanged,
   });
@@ -195,19 +224,45 @@ class _DateTimePicker extends StatelessWidget {
       children: [
         Expanded(
           flex: 3,
-          child: OutlinedButton.icon(
+          child: CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            color: CupertinoColors.systemGrey6,
             onPressed: () => _pickDate(context),
-            icon: const Icon(Icons.calendar_today_rounded, size: 18),
-            label: Text(DateFormat('dd.MM.yyyy').format(date)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(CupertinoIcons.calendar, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  DateFormat('dd.MM.yyyy').format(date),
+                  style: TextStyle(
+                    color: CupertinoTheme.of(context).textTheme.textStyle.color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           flex: 2,
-          child: OutlinedButton.icon(
+          child: CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            color: CupertinoColors.systemGrey6,
             onPressed: () => _pickTime(context),
-            icon: const Icon(Icons.access_time_rounded, size: 18),
-            label: Text(time.format(context)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(CupertinoIcons.clock, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}',
+                  style: TextStyle(
+                    color: CupertinoTheme.of(context).textTheme.textStyle.color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -215,18 +270,74 @@ class _DateTimePicker extends StatelessWidget {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final picked = await showDatePicker(
+    await showCupertinoModalPopup<void>(
       context: context,
-      initialDate: date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2035),
+      builder: (_) => Container(
+        height: 300,
+        color: CupertinoColors.systemBackground,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CupertinoButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Abbrechen'),
+                ),
+                CupertinoButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fertig'),
+                ),
+              ],
+            ),
+            Expanded(
+              child: CupertinoDatePicker(
+                mode: CupertinoDatePickerMode.date,
+                initialDateTime: date,
+                minimumYear: 2020,
+                maximumYear: 2035,
+                onDateTimeChanged: onDateChanged,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-    if (picked != null) onDateChanged(picked);
   }
 
   Future<void> _pickTime(BuildContext context) async {
-    final picked = await showTimePicker(context: context, initialTime: time);
-    if (picked != null) onTimeChanged(picked);
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => Container(
+        height: 300,
+        color: CupertinoColors.systemBackground,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CupertinoButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Abbrechen'),
+                ),
+                CupertinoButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fertig'),
+                ),
+              ],
+            ),
+            Expanded(
+              child: CupertinoTimerPicker(
+                initialTimerDuration: Duration(hours: hour, minutes: minute),
+                onTimerDurationChanged: (duration) {
+                  onTimeChanged(duration.inHours, duration.inMinutes % 60);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -238,26 +349,44 @@ class _VisibilitySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SegmentedButton<int>(
-      segments: const [
-        ButtonSegment(
-          value: 0,
-          label: Text('Privat'),
-          icon: Icon(Icons.lock_rounded),
+    return CupertinoSegmentedControl<int>(
+      children: const {
+        0: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(CupertinoIcons.lock_fill, size: 16),
+              SizedBox(width: 6),
+              Text('Privat'),
+            ],
+          ),
         ),
-        ButtonSegment(
-          value: 1,
-          label: Text('Öffentlich'),
-          icon: Icon(Icons.public_rounded),
+        1: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(CupertinoIcons.globe, size: 16),
+              SizedBox(width: 6),
+              Text('Offentlich'),
+            ],
+          ),
         ),
-        ButtonSegment(
-          value: 2,
-          label: Text('Freunde'),
-          icon: Icon(Icons.people_rounded),
+        2: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(CupertinoIcons.person_2_fill, size: 16),
+              SizedBox(width: 6),
+              Text('Freunde'),
+            ],
+          ),
         ),
-      ],
-      selected: {value},
-      onSelectionChanged: (v) => onChanged(v.first),
+      },
+      groupValue: value,
+      onValueChanged: (v) => onChanged(v),
     );
   }
 }

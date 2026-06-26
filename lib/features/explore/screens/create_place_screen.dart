@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
@@ -66,8 +66,11 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
         osmType: result.osmType,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${place.name} wurde hinzugefügt!')),
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          content: Text('${place.name} wurde hinzugefugt!'),
+        ),
       );
       context.go('/entdecken/${place.id}');
     } on ApiException catch (e) {
@@ -76,7 +79,7 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
         _submitting = false;
         _error = switch (e.errorCode) {
           'place_already_exists' => 'Dieser Ort existiert bereits.',
-          _ => 'Fehler beim Hinzufügen.',
+          _ => 'Fehler beim Hinzufugen.',
         };
       });
     } catch (e, st) {
@@ -91,20 +94,26 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          TextField(
+          CupertinoTextField(
             controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Name oder Ort suchen…',
-              prefixIcon: const Icon(Icons.search_rounded),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+            placeholder: 'Name oder Ort suchen...',
+            prefix: const Padding(
+              padding: EdgeInsets.only(left: 12),
+              child: Icon(CupertinoIcons.search, size: 20),
+            ),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemGrey6,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
             ),
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => _search(),
@@ -112,28 +121,21 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
+            child: CupertinoButton.filled(
               onPressed: _searching ? null : _search,
-              icon: _searching
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: _searching
+                  ? const CupertinoActivityIndicator(
+                      color: CupertinoColors.white,
                     )
-                  : const Icon(Icons.search_rounded),
-              label: Text(_searching ? 'Suche läuft…' : 'Suchen'),
+                  : const Text('Suchen'),
             ),
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(
               _error!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.error,
-              ),
+              style: const TextStyle(color: CupertinoColors.destructiveRed),
             ),
           ],
           const SizedBox(height: 16),
@@ -143,41 +145,65 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
                     child: Text(
                       'Gib einen Namen oder Ort ein, um nach Einträgen zu suchen.',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: CupertinoColors.systemGrey,
                       ),
                     ),
                   )
                 : ListView.separated(
                     itemCount: _results.length,
-                    separatorBuilder: (_, _) => const Divider(),
+                    separatorBuilder: (_, _) => Container(height: 1, color: CupertinoColors.systemGrey4),
                     itemBuilder: (context, index) {
                       final result = _results[index];
-                      return ListTile(
-                        leading: Icon(
-                          result.osmType == 'N'
-                              ? Icons.location_on_rounded
-                              : result.osmType == 'W'
-                              ? Icons.route_rounded
-                              : Icons.layers_rounded,
-                          color: theme.colorScheme.primary,
-                        ),
-                        title: Text(
-                          result.displayName,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text('OSM-ID: ${result.osmId}'),
-                        trailing: _submitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.add_circle_outline),
+                      return GestureDetector(
                         onTap: _submitting ? null : () => _submit(result),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                result.osmType == 'N'
+                                    ? CupertinoIcons.location
+                                    : result.osmType == 'W'
+                                        ? CupertinoIcons.arrow_right_arrow_left
+                                        : CupertinoIcons.layers_fill,
+                                color: theme.primaryColor,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      result.displayName,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 15),
+                                    ),
+                                    Text(
+                                      'OSM-ID: ${result.osmId}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: CupertinoColors.systemGrey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_submitting)
+                                const CupertinoActivityIndicator()
+                              else
+                                Icon(
+                                  CupertinoIcons.plus_circle,
+                                  color: theme.primaryColor,
+                                ),
+                            ],
+                          ),
+                        ),
                       );
                     },
                   ),

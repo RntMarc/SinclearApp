@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -201,9 +201,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _createEvent({DateTime? initialDate}) async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
+    final result = await showCupertinoModalPopup<Map<String, dynamic>>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => EventFormSheet(),
     );
 
@@ -228,9 +227,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     } catch (e, st) {
       developer.log('Failed to create event', error: e, stackTrace: st);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Fehler beim Erstellen')));
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            content: const Text('Fehler beim Erstellen'),
+            actions: [
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
       }
     }
   }
@@ -263,26 +272,40 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildMobileLayout() {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kalender'),
-        actions: [
-          TextButton.icon(
-            onPressed: () => setState(() {
-              _focusedDay = DateTime.now();
-              _selectedDay = DateTime.now();
-            }),
-            icon: const Icon(Icons.today_rounded, size: 18),
-            label: const Text('Heute'),
-          ),
-          IconButton(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Aktualisieren',
-          ),
-        ],
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Kalender'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoButton(
+              onPressed: () => setState(() {
+                _focusedDay = DateTime.now();
+                _selectedDay = DateTime.now();
+              }),
+              padding: EdgeInsets.zero,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(CupertinoIcons.today, size: 18),
+                  Text('Heute'),
+                ],
+              ),
+            ),
+            CupertinoButton(
+              onPressed: _refresh,
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.refresh),
+            ),
+            CupertinoButton(
+              onPressed: () => _createEvent(initialDate: _selectedDay),
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.add_circled),
+            ),
+          ],
+        ),
       ),
-      body: CustomScrollView(
+      child: CustomScrollView(
         controller: _agendaScrollController,
         slivers: [
           SliverPersistentHeader(
@@ -305,27 +328,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.error_outline_rounded,
+                      const Icon(
+                        CupertinoIcons.exclamationmark_triangle,
                         size: 48,
-                        color: Theme.of(context).colorScheme.error,
+                        color: CupertinoColors.destructiveRed,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Fehler beim Laden der Termine',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: CupertinoTheme.of(context)
+                            .textTheme
+                            .navTitleTextStyle,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         _error!,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: CupertinoTheme.of(context)
+                            .textTheme
+                            .textStyle
+                            .copyWith(fontSize: 12),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton.icon(
+                      CupertinoButton.filled(
                         onPressed: _refresh,
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: const Text('Erneut versuchen'),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(CupertinoIcons.refresh, size: 18),
+                            SizedBox(width: 8),
+                            Text('Erneut versuchen'),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -338,7 +372,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             const SliverToBoxAdapter(
               child: SizedBox(
                 height: 300,
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(child: CupertinoActivityIndicator()),
               ),
             )
           else
@@ -362,15 +396,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                child: Center(child: CupertinoActivityIndicator()),
               ),
             ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'add',
-        onPressed: () => _createEvent(initialDate: _selectedDay),
-        child: const Icon(Icons.add_rounded),
       ),
     );
   }
@@ -378,8 +407,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildDesktopLayout() {
     final events = _getAllSortedEvents();
 
-    return Scaffold(
-      body: Row(
+    return CupertinoPageScaffold(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
@@ -393,21 +422,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       children: [
                         Text(
                           'Kalender',
-                          style: Theme.of(context).textTheme.titleLarge,
+                          style: CupertinoTheme.of(context)
+                              .textTheme
+                              .navLargeTitleTextStyle,
                         ),
                         const Spacer(),
-                        TextButton.icon(
+                        CupertinoButton(
                           onPressed: () => setState(() {
                             _focusedDay = DateTime.now();
                             _selectedDay = DateTime.now();
                           }),
-                          icon: const Icon(Icons.today_rounded, size: 18),
-                          label: const Text('Heute'),
+                          padding: EdgeInsets.zero,
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(CupertinoIcons.today, size: 18),
+                              Text('Heute'),
+                            ],
+                          ),
                         ),
-                        IconButton(
+                        CupertinoButton(
                           onPressed: _refresh,
-                          icon: const Icon(Icons.refresh_rounded),
-                          tooltip: 'Aktualisieren',
+                          padding: EdgeInsets.zero,
+                          child: const Icon(CupertinoIcons.refresh),
                         ),
                       ],
                     ),
@@ -418,10 +455,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: SizedBox(
                       width: double.infinity,
-                      child: FilledButton.icon(
+                      child: CupertinoButton.filled(
                         onPressed: () => _createEvent(),
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Neuer Termin'),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(CupertinoIcons.plus, size: 18),
+                            SizedBox(width: 8),
+                            Text('Neuer Termin'),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -430,7 +474,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ),
           ),
-          const VerticalDivider(width: 1),
+          Container(
+            width: 0.5,
+            color: CupertinoColors.separator.resolveFrom(context),
+          ),
           Expanded(
             child: AgendaList(
               events: events,
@@ -444,6 +491,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildDesktopCalendar() {
+    final primaryColor = CupertinoTheme.of(context).primaryColor;
+
     return TableCalendar(
       firstDay: DateTime(2020),
       lastDay: DateTime(2035),
@@ -456,15 +505,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
       eventLoader: _getEventsForDay,
       calendarStyle: CalendarStyle(
         todayDecoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
+          color: primaryColor.withOpacity(0.1),
           shape: BoxShape.circle,
         ),
         selectedDecoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
+          color: primaryColor,
           shape: BoxShape.circle,
         ),
         markerDecoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
+          color: primaryColor,
           shape: BoxShape.circle,
         ),
       ),
@@ -520,10 +569,11 @@ class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
       0.0,
       1.0,
     );
-    final theme = Theme.of(context);
+    final primaryColor = CupertinoTheme.of(context).primaryColor;
+    final bgColor = CupertinoColors.systemBackground.resolveFrom(context);
 
     return Container(
-      color: theme.colorScheme.surface,
+      color: bgColor,
       child: Stack(
         children: [
           Opacity(
@@ -547,15 +597,15 @@ class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
                   eventLoader: _getEventsForDay,
                   calendarStyle: CalendarStyle(
                     todayDecoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
+                      color: primaryColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
                     selectedDecoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
+                      color: primaryColor,
                       shape: BoxShape.circle,
                     ),
                     markerDecoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
+                      color: primaryColor,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -609,16 +659,22 @@ class _WeekStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
+    final primaryColor = theme.primaryColor;
+    final bgColor = CupertinoColors.systemBackground.resolveFrom(context);
+    final separatorColor = CupertinoColors.separator.resolveFrom(context);
+    final secondaryLabelColor =
+        CupertinoColors.secondaryLabel.resolveFrom(context);
+    final labelColor = CupertinoColors.label.resolveFrom(context);
     final weekStart = _weekStart(focusedDay);
 
     return Container(
       height: 68,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: bgColor,
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant,
+            color: separatorColor,
             width: 0.5,
           ),
         ),
@@ -629,9 +685,9 @@ class _WeekStrip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Text(
               DateFormat('MMMM yyyy', 'de').format(focusedDay),
-              style: theme.textTheme.labelSmall?.copyWith(
+              style: theme.textTheme.tabLabelTextStyle?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurfaceVariant,
+                color: secondaryLabelColor,
               ),
             ),
           ),
@@ -650,7 +706,7 @@ class _WeekStrip extends StatelessWidget {
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 2),
                       decoration: BoxDecoration(
-                        color: isSelected ? theme.colorScheme.primary : null,
+                        color: isSelected ? primaryColor : null,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -661,8 +717,8 @@ class _WeekStrip extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               color: isSelected
-                                  ? theme.colorScheme.onPrimary
-                                  : theme.colorScheme.onSurfaceVariant,
+                                  ? CupertinoColors.white
+                                  : secondaryLabelColor,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -674,10 +730,10 @@ class _WeekStrip extends StatelessWidget {
                                   ? FontWeight.bold
                                   : FontWeight.normal,
                               color: isSelected
-                                  ? theme.colorScheme.onPrimary
+                                  ? CupertinoColors.white
                                   : isToday
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurface,
+                                      ? primaryColor
+                                      : labelColor,
                             ),
                           ),
                           if (hasEvents)
@@ -687,8 +743,8 @@ class _WeekStrip extends StatelessWidget {
                               margin: const EdgeInsets.only(top: 2),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? theme.colorScheme.onPrimary
-                                    : theme.colorScheme.primary,
+                                    ? CupertinoColors.white
+                                    : primaryColor,
                                 shape: BoxShape.circle,
                               ),
                             ),

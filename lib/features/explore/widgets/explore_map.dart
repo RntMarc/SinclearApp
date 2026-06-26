@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,8 +24,10 @@ class ExploreMap extends StatelessWidget {
           (p) => Marker(
             point: LatLng(p.latitude!, p.longitude!),
             child: Icon(
-              p.category == 'gastronomy' ? Icons.restaurant : Icons.park,
-              color: Colors.red,
+              p.category == 'gastronomy'
+                  ? CupertinoIcons.square_grid_2x2
+                  : CupertinoIcons.leaf_arrow_circlepath,
+              color: CupertinoColors.destructiveRed,
               size: 30,
             ),
           ),

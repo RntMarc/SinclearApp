@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
 
 /// Returns an [ImageProvider] for the given [imageUrl].
 ///

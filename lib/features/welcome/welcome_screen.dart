@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -6,9 +6,9 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      body: SafeArea(
+    final theme = CupertinoTheme.of(context);
+    return CupertinoPageScaffold(
+      child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
@@ -19,16 +19,18 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   'Sinclear Beyond',
-                  style: theme.textTheme.displayMedium?.copyWith(
+                  style: TextStyle(
+                    fontSize: 34,
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
+                    color: theme.primaryColor,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Deine intelligente Plattform',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    fontSize: 22,
+                    color: theme.textTheme.textStyle.color?.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -38,20 +40,17 @@ class WelcomeScreen extends StatelessWidget {
                   'Wir sind noch im Aufbau, aber bald kannst du hier '
                   'auf all deine Daten zugreifen und sie verwalten.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: theme.textTheme.textStyle.color?.withValues(alpha: 0.6),
                     height: 1.5,
                   ),
                 ),
                 const SizedBox(height: 48),
-                FilledButton.icon(
+                CupertinoButton.filled(
                   onPressed: () => context.go('/login'),
-                  icon: const Icon(Icons.login_rounded),
-                  label: const Text('Zum Login'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(240, 52),
-                    textStyle: theme.textTheme.titleMedium,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                  child: const Text('Zum Login', style: TextStyle(fontSize: 18)),
                 ),
               ],
             ),

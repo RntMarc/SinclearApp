@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
@@ -29,7 +29,7 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
   Future<void> _requestCode() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      setState(() => _error = 'Bitte gib eine gültige E-Mail-Adresse ein.');
+      setState(() => _error = 'Bitte gib eine gultige E-Mail-Adresse ein.');
       return;
     }
 
@@ -49,7 +49,7 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
       setState(() {
         _error = switch (e.errorCode) {
           'email_already_taken' => 'Diese E-Mail wird bereits verwendet.',
-          'invalid_email' => 'Ungültiges E-Mail-Format.',
+          'invalid_email' => 'Ungultiges E-Mail-Format.',
           'too_many_requests' => 'Zu viele Anfragen. Bitte warte einen Moment.',
           _ => e.message ?? 'Ein Fehler ist aufgetreten.',
         };
@@ -57,7 +57,7 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
     } catch (e, st) {
       developer.log('Failed to request email change', error: e, stackTrace: st);
       if (!mounted) return;
-      setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
+      setState(() => _error = 'Netzwerkfehler. Bitte prufe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -66,7 +66,7 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
   Future<void> _verifyCode() async {
     final code = _codeController.text.trim();
     if (code.length != 6 || !RegExp(r'^\d{6}$').hasMatch(code)) {
-      setState(() => _error = 'Bitte gib einen gültigen 6-stelligen Code ein.');
+      setState(() => _error = 'Bitte gib einen gultigen 6-stelligen Code ein.');
       return;
     }
 
@@ -82,24 +82,25 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
       await scope.user.verifyEmailChange(code, email);
       await scope.auth.logout();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('E-Mail geändert. Bitte melde dich neu an.'),
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('E-Mail geandert. Bitte melde dich neu an.'),
         ),
       );
       context.go('/');
     } on ApiException catch (e) {
       setState(() {
         _error = switch (e.errorCode) {
-          'invalid_or_expired_code' => 'Der Code ist ungültig oder abgelaufen.',
-          'invalid_code' => 'Ungültiger Code.',
+          'invalid_or_expired_code' => 'Der Code ist ungultig oder abgelaufen.',
+          'invalid_code' => 'Ungultiger Code.',
           _ => e.message ?? 'Ein Fehler ist aufgetreten.',
         };
       });
     } catch (e, st) {
       developer.log('Failed to verify email change', error: e, stackTrace: st);
       if (!mounted) return;
-      setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
+      setState(() => _error = 'Netzwerkfehler. Bitte prufe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -107,11 +108,13 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('E-Mail ändern')),
-      body: SafeArea(
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('E-Mail andern'),
+      ),
+      child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
@@ -120,46 +123,69 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Icon(
-                  _stepRequest ? Icons.email_rounded : Icons.vpn_key_rounded,
+                  _stepRequest
+                      ? CupertinoIcons.mail
+                      : CupertinoIcons.lock,
                   size: 56,
-                  color: theme.colorScheme.primary,
+                  color: theme.primaryColor,
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  _stepRequest ? 'Neue E-Mail-Adresse' : 'Code bestätigen',
-                  style: theme.textTheme.titleLarge,
+                  _stepRequest ? 'Neue E-Mail-Adresse' : 'Code bestatigen',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textTheme.textStyle.color,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   _stepRequest
-                      ? 'Wir senden einen Bestätigungscode an die neue Adresse.'
+                      ? 'Wir senden einen Bestatigungscode an die neue Adresse.'
                       : 'Gib den 6-stelligen Code ein, den wir an ${_emailController.text.trim()} gesendet haben.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textTheme.textStyle.color
+                        ?.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 24),
                 if (_stepRequest)
-                  TextField(
+                  CupertinoTextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Neue E-Mail',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.email_rounded),
+                    placeholder: 'Neue E-Mail',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 12),
+                      child: Icon(CupertinoIcons.mail, size: 20),
+                    ),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
                     ),
                   )
                 else
-                  TextField(
+                  CupertinoTextField(
                     controller: _codeController,
                     keyboardType: TextInputType.number,
                     textAlign: TextAlign.center,
                     maxLength: 6,
-                    decoration: const InputDecoration(
-                      labelText: '6-stelliger Code',
-                      counterText: '',
-                      prefixIcon: Icon(Icons.vpn_key_rounded),
-                      border: OutlineInputBorder(),
+                    placeholder: '6-stelliger Code',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 12),
+                      child: Icon(CupertinoIcons.lock, size: 20),
+                    ),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
                     ),
                   ),
                 const SizedBox(height: 24),
@@ -168,54 +194,39 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Text(
                       _error!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: CupertinoColors.destructiveRed,
                       ),
                     ),
                   ),
                 if (_stepRequest) ...[
-                  FilledButton.icon(
+                  CupertinoButton.filled(
                     onPressed: _loading ? null : _requestCode,
-                    icon: _loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: _loading
+                        ? const CupertinoActivityIndicator(
+                            color: CupertinoColors.white,
                           )
-                        : const Icon(Icons.send_rounded),
-                    label: Text(_loading ? 'Wird gesendet…' : 'Code senden'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
+                        : const Text('Code senden'),
                   ),
                   const SizedBox(height: 12),
-                  TextButton(
+                  CupertinoButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Abbrechen'),
                   ),
                 ] else ...[
-                  FilledButton.icon(
+                  CupertinoButton.filled(
                     onPressed: _loading ? null : _verifyCode,
-                    icon: _loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: _loading
+                        ? const CupertinoActivityIndicator(
+                            color: CupertinoColors.white,
                           )
-                        : const Icon(Icons.check_rounded),
-                    label: Text(_loading ? 'Wird geprüft…' : 'Bestätigen'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
+                        : const Text('Bestatigen'),
                   ),
                   const SizedBox(height: 12),
-                  TextButton(
+                  CupertinoButton(
                     onPressed: () {
                       setState(() {
                         _stepRequest = true;

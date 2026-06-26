@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../notifications/services/notification_service.dart';
 import '../notifications/widgets/notification_sheet.dart';
@@ -29,13 +29,12 @@ class _DesktopShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
 
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(_titleForLocation(location)),
-        actions: [_NotificationBell()],
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(_titleForLocation(location)),
+        trailing: const _NotificationBell(),
       ),
-      body: Row(
+      child: Row(
         children: [
           SizedBox(
             width: 288,
@@ -44,7 +43,7 @@ class _DesktopShell extends StatelessWidget {
               onNavigate: (route) => context.go(route),
             ),
           ),
-          const VerticalDivider(width: 1),
+          Container(width: 1, color: CupertinoColors.systemGrey4),
           Expanded(child: child),
         ],
       ),
@@ -60,11 +59,21 @@ class _MobileShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     final title = _titleForLocation(location);
+    final active = _categoryForLocation(location);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(title), actions: [_NotificationBell()]),
-      body: child,
-      bottomNavigationBar: _MobileBottomNav(currentLocation: location),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(title),
+        trailing: const _NotificationBell(),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Expanded(child: child),
+            _MobileBottomNav(currentLocation: location, currentIndex: active.index),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -96,38 +105,34 @@ _NavCategory _categoryForLocation(String location) {
 
 class _MobileBottomNav extends StatelessWidget {
   final String currentLocation;
+  final int currentIndex;
 
-  const _MobileBottomNav({required this.currentLocation});
+  const _MobileBottomNav({required this.currentLocation, required this.currentIndex});
 
   @override
   Widget build(BuildContext context) {
-    final active = _categoryForLocation(currentLocation);
-
-    return BottomNavigationBar(
-      currentIndex: active.index,
+    return CupertinoTabBar(
+      currentIndex: currentIndex,
       onTap: (index) => _onTap(context, _NavCategory.values[index]),
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Theme.of(context).colorScheme.primary,
-      unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.settings_rounded),
+          icon: Icon(CupertinoIcons.gear_alt_fill),
           label: 'System',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.people_rounded),
+          icon: Icon(CupertinoIcons.person_2_fill),
           label: 'Gemeinschaft',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.home_rounded),
+          icon: Icon(CupertinoIcons.house_fill),
           label: 'Start',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.explore_rounded),
+          icon: Icon(CupertinoIcons.compass),
           label: 'Unterwegs',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month_rounded),
+          icon: Icon(CupertinoIcons.calendar),
           label: 'Organisation',
         ),
       ],
@@ -140,30 +145,29 @@ class _MobileBottomNav extends StatelessWidget {
         context.go('/home');
       case _NavCategory.system:
         _showCategorySheet(context, category: 'System', items: [
-          _SheetItem('Einstellungen', Icons.settings_rounded, '/einstellungen'),
-          _SheetItem('Admin', Icons.admin_panel_settings_rounded, null),
-          _SheetItem('Feedback', Icons.feedback_rounded, null),
-          _SheetItem('Changelog', Icons.history_rounded, null),
+          _SheetItem('Einstellungen', CupertinoIcons.gear_alt_fill, '/einstellungen'),
+          _SheetItem('Admin', CupertinoIcons.shield_lefthalf_fill, null),
+          _SheetItem('Feedback', CupertinoIcons.chat_bubble_text_fill, null),
+          _SheetItem('Changelog', CupertinoIcons.clock_fill, null),
         ]);
       case _NavCategory.gemeinschaft:
         _showCategorySheet(context, category: 'Gemeinschaft', items: [
-          _SheetItem('Forum', Icons.forum_rounded, null),
-          _SheetItem('Kritik', Icons.rate_review_rounded, null),
-          _SheetItem('Rezepte', Icons.restaurant_rounded, null),
-          _SheetItem('Fotos', Icons.photo_library_rounded, null),
-          _SheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
+          _SheetItem('Forum', CupertinoIcons.bubble_left_bubble_right_fill, null),
+          _SheetItem('Kritik', CupertinoIcons.pencil_circle_fill, null),
+          _SheetItem('Rezepte', CupertinoIcons.book_fill, null),
+          _SheetItem('Fotos', CupertinoIcons.photo_fill, null),
+          _SheetItem('Kontakte', CupertinoIcons.person_2_fill, '/kontakte'),
         ]);
       case _NavCategory.unterwegs:
         _showCategorySheet(context, category: 'Unterwegs', items: [
-          _SheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
-          _SheetItem('Reisen', Icons.flight_rounded, '/reisen'),
+          _SheetItem('Entdecken', CupertinoIcons.compass, '/entdecken'),
+          _SheetItem('Reisen', CupertinoIcons.airplane, '/reisen'),
         ]);
       case _NavCategory.organisation:
         _showCategorySheet(context, category: 'Organisation', items: [
-          _SheetItem(
-              'Kalender', Icons.calendar_month_rounded, '/kalender'),
-          _SheetItem('Umfrage', Icons.poll_rounded, null),
-          _SheetItem('Abos', Icons.subscriptions_rounded, null),
+          _SheetItem('Kalender', CupertinoIcons.calendar, '/kalender'),
+          _SheetItem('Umfrage', CupertinoIcons.chart_bar_fill, null),
+          _SheetItem('Abos', CupertinoIcons.music_note_list, null),
         ]);
     }
   }
@@ -175,12 +179,8 @@ class _MobileBottomNav extends StatelessWidget {
   }) {
     final location = GoRouterState.of(context).matchedLocation;
 
-    showModalBottomSheet(
+    showCupertinoModalPopup<void>(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (_) => _CategorySheet(
         category: category,
         items: items,
@@ -215,72 +215,69 @@ class _CategorySheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            category,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...items.map((item) {
-            final isActive =
-                item.route != null && currentLocation.startsWith(item.route!);
-            final isPlaceholder = item.route == null;
+    return CupertinoActionSheet(
+      title: Text(
+        category,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      actions: items.map((item) {
+        final isActive =
+            item.route != null && currentLocation.startsWith(item.route!);
+        final isPlaceholder = item.route == null;
 
-            return ListTile(
-              leading: Icon(
+        return CupertinoActionSheetAction(
+          onPressed: isPlaceholder
+              ? () => Navigator.pop(context)
+              : () {
+                  Navigator.pop(context);
+                  context.go(item.route!);
+                },
+          child: Row(
+            children: [
+              Icon(
                 item.icon,
                 color: isPlaceholder
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-                    : null,
+                    ? theme.textTheme.textStyle.color?.withValues(alpha: 0.3)
+                    : theme.primaryColor,
               ),
-              title: Text(
-                item.label,
-                style: isPlaceholder
-                    ? TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.4),
-                      )
-                    : null,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: TextStyle(
+                    color: isPlaceholder
+                        ? theme.textTheme.textStyle.color?.withValues(alpha: 0.3)
+                        : null,
+                  ),
+                ),
               ),
-              trailing: isPlaceholder
-                  ? Chip(
-                      label: const Text('Bald'),
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide.none,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      labelStyle: theme.textTheme.labelSmall,
-                    )
-                  : null,
-              selected: isActive,
-              selectedTileColor: theme.colorScheme.primaryContainer,
-              onTap: isPlaceholder
-                  ? null
-                  : () {
-                      Navigator.pop(context);
-                      context.go(item.route!);
-                    },
-            );
-          }),
-          const SizedBox(height: 8),
-        ],
+              if (isActive)
+                Icon(CupertinoIcons.check_mark, color: theme.primaryColor),
+              if (isPlaceholder)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemGrey5,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Bald',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: CupertinoColors.systemGrey,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
+      cancelButton: CupertinoActionSheetAction(
+        isDefaultAction: true,
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Abbrechen'),
       ),
     );
   }
@@ -298,7 +295,7 @@ class _NavContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     final selectedIndex = _selectedIndex(currentLocation);
 
     return SafeArea(
@@ -313,47 +310,49 @@ class _NavContent extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     'Beyond',
-                    style: theme.textTheme.titleMedium?.copyWith(
+                    style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: theme.textTheme.textStyle.color,
                     ),
                   ),
                 ],
               ),
             ),
-            Padding(padding: const EdgeInsets.fromLTRB(0, 8, 0, 8)),
-            ListTile(
-              leading: const Icon(Icons.home_rounded),
-              title: const Text('Home'),
+            const SizedBox(height: 8),
+            _SidebarTile(
+              icon: CupertinoIcons.house_fill,
+              label: 'Home',
               selected: selectedIndex == 0,
               onTap: () => onNavigate('/home'),
             ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_rounded),
-              title: const Text('Kalender'),
+            _SidebarTile(
+              icon: CupertinoIcons.calendar,
+              label: 'Kalender',
               selected: selectedIndex == 1,
               onTap: () => onNavigate('/kalender'),
             ),
-            ListTile(
-              leading: const Icon(Icons.explore_rounded),
-              title: const Text('Entdecken'),
+            _SidebarTile(
+              icon: CupertinoIcons.compass,
+              label: 'Entdecken',
               selected: selectedIndex == 2,
               onTap: () => onNavigate('/entdecken'),
             ),
-            ListTile(
-              leading: const Icon(Icons.flight_rounded),
-              title: const Text('Reisen & Events'),
+            _SidebarTile(
+              icon: CupertinoIcons.airplane,
+              label: 'Reisen & Events',
               selected: selectedIndex == 3,
               onTap: () => onNavigate('/reisen'),
             ),
-            ListTile(
-              leading: const Icon(Icons.people_rounded),
-              title: const Text('Kontakte'),
+            _SidebarTile(
+              icon: CupertinoIcons.person_2_fill,
+              label: 'Kontakte',
               selected: selectedIndex == 4,
               onTap: () => onNavigate('/kontakte'),
             ),
-            ListTile(
-              leading: const Icon(Icons.settings_rounded),
-              title: const Text('Einstellungen'),
+            _SidebarTile(
+              icon: CupertinoIcons.gear_alt_fill,
+              label: 'Einstellungen',
               selected: selectedIndex == 5,
               onTap: () => onNavigate('/einstellungen'),
             ),
@@ -374,11 +373,66 @@ class _NavContent extends StatelessWidget {
   }
 }
 
+class _SidebarTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SidebarTile({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = CupertinoTheme.of(context);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.primaryColor.withValues(alpha: 0.12)
+              : null,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: selected
+                  ? theme.primaryColor
+                  : theme.textTheme.textStyle.color,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected
+                    ? theme.primaryColor
+                    : theme.textTheme.textStyle.color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Notification Bell (shared between desktop & mobile)
 // ---------------------------------------------------------------------------
 
 class _NotificationBell extends StatefulWidget {
+  const _NotificationBell();
+
   @override
   State<_NotificationBell> createState() => _NotificationBellState();
 }
@@ -406,24 +460,48 @@ class _NotificationBellState extends State<_NotificationBell> {
   @override
   Widget build(BuildContext context) {
     final notif = AppScope.of(context).notification;
-    return IconButton(
-      icon: notif.unreadCount > 0
-          ? Badge(
-              label: Text(
-                notif.unreadCount > 99 ? '99+' : notif.unreadCount.toString(),
+    return GestureDetector(
+      onTap: () => _showSheet(context),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(
+            notif.unreadCount > 0
+                ? CupertinoIcons.bell_fill
+                : CupertinoIcons.bell,
+            size: 22,
+            color: CupertinoTheme.of(context).primaryColor,
+          ),
+          if (notif.unreadCount > 0)
+            Positioned(
+              right: -4,
+              top: -4,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: CupertinoColors.destructiveRed,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  notif.unreadCount > 99
+                      ? '99+'
+                      : notif.unreadCount.toString(),
+                  style: const TextStyle(
+                    color: CupertinoColors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-              child: const Icon(Icons.notifications_rounded),
-            )
-          : const Icon(Icons.notifications_outlined),
-      onPressed: () => _showSheet(context),
+            ),
+        ],
+      ),
     );
   }
 
   void _showSheet(BuildContext context) {
-    showModalBottomSheet(
+    showCupertinoModalPopup<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (_) => const NotificationSheet(),
     );
   }

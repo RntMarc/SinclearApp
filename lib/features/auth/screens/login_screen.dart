@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
@@ -106,16 +106,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Anmelden'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+    final theme = CupertinoTheme.of(context);
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Anmelden'),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
           onPressed: () => context.go('/'),
+          child: const Icon(CupertinoIcons.back, size: 22),
         ),
       ),
-      body: SafeArea(
+      child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -125,23 +126,38 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('E-Mail-Login', style: theme.textTheme.titleLarge),
+                  Text(
+                    'E-Mail-Login',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.textStyle.color,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     'Wir senden dir einen Code per E-Mail.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.textTheme.textStyle.color?.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
+                  CupertinoTextField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    textCapitalization: TextCapitalization.none,
-                    decoration: const InputDecoration(
-                      labelText: 'E-Mail-Adresse',
-                      prefixIcon: Icon(Icons.email_rounded),
-                      border: OutlineInputBorder(),
+                    placeholder: 'E-Mail-Adresse',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 12),
+                      child: Icon(CupertinoIcons.mail, size: 20),
+                    ),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -150,51 +166,63 @@ class _LoginScreenState extends State<LoginScreen> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
                         _error!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.error,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: CupertinoColors.destructiveRed,
                         ),
                       ),
                     ),
-                  FilledButton.icon(
+                  CupertinoButton.filled(
                     onPressed: _loading ? null : _sendOtp,
-                    icon: _loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: _loading
+                        ? const CupertinoActivityIndicator(
+                            color: CupertinoColors.white,
                           )
-                        : const Icon(Icons.send_rounded),
-                    label: Text(_loading ? 'Wird gesendet…' : 'Code senden'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
+                        : const Text('Code senden'),
                   ),
                   const SizedBox(height: 32),
                   Row(
                     children: [
-                      const Expanded(child: Divider()),
+                      const Expanded(child: SizedBox(height: 1, child: DecoratedBox(decoration: BoxDecoration(color: CupertinoColors.systemGrey4)))),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
                           'oder',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: theme.textTheme.textStyle.color
+                                ?.withValues(alpha: 0.5),
                           ),
                         ),
                       ),
-                      const Expanded(child: Divider()),
+                      const Expanded(child: SizedBox(height: 1, child: DecoratedBox(decoration: BoxDecoration(color: CupertinoColors.systemGrey4)))),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
+                  CupertinoButton(
                     onPressed: _loading ? null : _discordLogin,
-                    icon: const Icon(Icons.headset_mic_rounded),
-                    label: const Text('Mit Discord anmelden'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    color: CupertinoColors.systemGrey5,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          CupertinoIcons.headphones,
+                          size: 20,
+                          color: CupertinoColors.black,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Mit Discord anmelden',
+                          style: TextStyle(
+                            color: CupertinoTheme.of(context)
+                                .textTheme
+                                .textStyle
+                                .color,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

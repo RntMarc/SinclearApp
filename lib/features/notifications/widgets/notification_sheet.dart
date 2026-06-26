@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../models/notification_models.dart';
 import '../services/notification_service.dart';
 import '../../../core/config/notification_config.dart';
@@ -47,7 +47,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
           children: [
             _handle(context),
             _header(context, notif),
-            const Divider(height: 1),
+            Container(height: 1, color: CupertinoColors.systemGrey4),
             Expanded(
               child: notifications.isEmpty
                   ? _emptyState(context)
@@ -65,27 +65,39 @@ class _NotificationSheetState extends State<NotificationSheet> {
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(80),
+        color: CupertinoColors.systemGrey3,
         borderRadius: BorderRadius.circular(2),
       ),
     ),
   );
 
   Widget _header(BuildContext context, NotificationService notif) {
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       child: Row(
         children: [
-          Text('Benachrichtigungen', style: theme.textTheme.titleLarge),
+          const Text(
+            'Benachrichtigungen',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const Spacer(),
           if (notif.unreadCount > 0)
-            TextButton.icon(
+            CupertinoButton(
+              padding: EdgeInsets.zero,
               onPressed: () async {
                 await notif.markAllAsRead();
               },
-              icon: const Icon(Icons.done_all_rounded, size: 18),
-              label: const Text('Alle gelesen'),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(CupertinoIcons.checkmark_seal_fill, size: 16),
+                  SizedBox(width: 4),
+                  Text('Alle gelesen'),
+                ],
+              ),
             ),
         ],
       ),
@@ -93,21 +105,21 @@ class _NotificationSheetState extends State<NotificationSheet> {
   }
 
   Widget _emptyState(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
+    return const Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.notifications_off_rounded,
+            CupertinoIcons.bell_slash,
             size: 64,
-            color: theme.colorScheme.onSurfaceVariant.withAlpha(100),
+            color: CupertinoColors.systemGrey2,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             'Keine Benachrichtigungen',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: TextStyle(
+              fontSize: 16,
+              color: CupertinoColors.systemGrey,
             ),
           ),
         ],
@@ -120,24 +132,21 @@ class _NotificationSheetState extends State<NotificationSheet> {
     List<AppNotification> notifications,
     ScrollController scrollController,
   ) {
-    return RefreshIndicator(
-      onRefresh: () => AppScope.of(context).notification.refresh(),
-      child: ListView.builder(
-        controller: scrollController,
-        itemCount: notifications.length,
-        itemBuilder: (context, index) {
-          final notification = notifications[index];
-          return _NotificationItem(
-            notification: notification,
-            onTap: () => _onNotificationTap(context, notification),
-            onDismiss: () async {
-              await AppScope.of(
-                context,
-              ).notification.markAsRead(notification.id);
-            },
-          );
-        },
-      ),
+    return ListView.builder(
+      controller: scrollController,
+      itemCount: notifications.length,
+      itemBuilder: (context, index) {
+        final notification = notifications[index];
+        return _NotificationItem(
+          notification: notification,
+          onTap: () => _onNotificationTap(context, notification),
+          onDismiss: () async {
+            await AppScope.of(
+              context,
+            ).notification.markAsRead(notification.id);
+          },
+        );
+      },
     );
   }
 
@@ -171,7 +180,7 @@ class _NotificationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
     return Dismissible(
       key: ValueKey(notification.id),
@@ -180,39 +189,83 @@ class _NotificationItem extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        color: theme.colorScheme.primaryContainer,
+        color: theme.primaryColor.withValues(alpha: 0.15),
         child: Icon(
-          Icons.done_rounded,
-          color: theme.colorScheme.onPrimaryContainer,
+          CupertinoIcons.checkmark_alt,
+          color: theme.primaryColor,
         ),
       ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
-          child: Icon(
-            NotificationTypeLabel.icon(notification.code, notification.payload),
-            color: theme.colorScheme.onPrimaryContainer,
-          ),
-        ),
-        title: Text(
-          NotificationTypeLabel.title(notification.code, notification.payload),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Text(
-          NotificationTypeLabel.body(notification.code, notification.payload),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: Text(
-          _timeAgo(notification.createdAt),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
+      child: GestureDetector(
         onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: CupertinoColors.systemGrey5,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              ClipOval(
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    NotificationTypeLabel.icon(
+                      notification.code,
+                      notification.payload,
+                    ),
+                    color: theme.primaryColor,
+                    size: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      NotificationTypeLabel.title(
+                        notification.code,
+                        notification.payload,
+                      ),
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textTheme.textStyle.color,
+                      ),
+                    ),
+                    Text(
+                      NotificationTypeLabel.body(
+                        notification.code,
+                        notification.payload,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: CupertinoColors.systemGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                _timeAgo(notification.createdAt),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: CupertinoColors.systemGrey,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../models/user_models.dart';
@@ -58,7 +58,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (_error != null || _users == null) {
@@ -66,15 +66,15 @@ class _ContactsScreenState extends State<ContactsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
+            const Icon(
+              CupertinoIcons.exclamationmark_triangle,
               size: 48,
-              color: Theme.of(context).colorScheme.error,
+              color: CupertinoColors.destructiveRed,
             ),
             const SizedBox(height: 8),
             Text(_error ?? 'Unbekannter Fehler'),
             const SizedBox(height: 16),
-            FilledButton.tonal(
+            CupertinoButton(
               onPressed: _load,
               child: const Text('Erneut versuchen'),
             ),

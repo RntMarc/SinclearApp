@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
@@ -112,31 +112,49 @@ class _DetailScreenState extends State<DetailScreen> {
         _place = place;
         _refreshing = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('OSM-Daten aktualisiert.')));
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('OSM-Daten aktualisiert.'),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
     } catch (e, st) {
       developer.log('Failed to refresh place', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _refreshing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aktualisierung fehlgeschlagen.')),
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Aktualisierung fehlgeschlagen.'),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('OK'),
+            ),
+          ],
+        ),
       );
     }
   }
 
   Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showCupertinoDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Ort löschen'),
         content: Text('${_place?.name} wirklich löschen?'),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Abbrechen'),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Löschen'),
           ),
@@ -149,17 +167,33 @@ class _DetailScreenState extends State<DetailScreen> {
       final explore = AppScope.of(context).explore;
       await explore.delete(widget.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Ort gelöscht.')));
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Ort gelöscht.'),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
       if (!mounted) return;
       context.pop();
     } catch (e, st) {
       developer.log('Failed to delete place', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Löschen fehlgeschlagen.')));
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Löschen fehlgeschlagen.'),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -195,7 +229,7 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _showCreateReviewDialog() async {
-    final result = await showDialog<({int rating, String? comment})>(
+    final result = await showCupertinoDialog<({int rating, String? comment})>(
       context: context,
       builder: (_) => const _ReviewDialog(),
     );
@@ -212,14 +246,22 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e, st) {
       developer.log('Failed to create review', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern.')));
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Fehler beim Speichern.'),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
   Future<void> _showEditReviewDialog(Review review) async {
-    final result = await showDialog<({int rating, String? comment})>(
+    final result = await showCupertinoDialog<({int rating, String? comment})>(
       context: context,
       builder: (_) => _ReviewDialog(
         initialRating: review.rating,
@@ -240,24 +282,34 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e, st) {
       developer.log('Failed to update review', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern.')));
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Fehler beim Speichern.'),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
   Future<void> _confirmDeleteReview(Review review) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showCupertinoDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Bewertung löschen'),
         content: const Text('Wirklich löschen?'),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Abbrechen'),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Löschen'),
           ),
@@ -273,16 +325,24 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e, st) {
       developer.log('Failed to delete review', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Löschen fehlgeschlagen.')));
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Löschen fehlgeschlagen.'),
+          actions: [
+            CupertinoDialogAction(
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (_error != null || _place == null) {
@@ -290,15 +350,15 @@ class _DetailScreenState extends State<DetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
+            const Icon(
+              CupertinoIcons.exclamationmark_triangle,
               size: 48,
-              color: Theme.of(context).colorScheme.error,
+              color: CupertinoColors.systemRed,
             ),
             const SizedBox(height: 8),
             Text(_error ?? 'Unbekannter Fehler'),
             const SizedBox(height: 16),
-            FilledButton.tonal(
+            CupertinoButton.filled(
               onPressed: _load,
               child: const Text('Erneut versuchen'),
             ),
@@ -403,7 +463,17 @@ class _WideDetail extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const BackButton(),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () => Navigator.pop(context),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.back, size: 18),
+                Text('Zurück'),
+              ],
+            ),
+          ),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,7 +518,7 @@ class _WideDetail extends StatelessWidget {
   }
 }
 
-class _NarrowDetail extends StatelessWidget {
+class _NarrowDetail extends StatefulWidget {
   final ExplorePlace place;
   final bool canDelete;
   final bool refreshing;
@@ -488,66 +558,87 @@ class _NarrowDetail extends StatelessWidget {
   });
 
   @override
+  State<_NarrowDetail> createState() => _NarrowDetailState();
+}
+
+class _NarrowDetailState extends State<_NarrowDetail> {
+  int _selectedTab = 0;
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const BackButton(),
-              Expanded(
-                child: TabBar(
-                  tabs: const [
-                    Tab(text: 'Info'),
-                    Tab(text: 'Bewertungen'),
-                  ],
+    return Column(
+      children: [
+        Row(
+          children: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.pop(context),
+              child: const Icon(CupertinoIcons.back),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: CupertinoSegmentedControl<int>(
+                  children: const {
+                    0: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('Info'),
+                    ),
+                    1: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('Bewertungen'),
+                    ),
+                  },
+                  onValueChanged: (value) =>
+                      setState(() => _selectedTab = value),
+                  groupValue: _selectedTab,
                 ),
               ),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                SingleChildScrollView(
+            ),
+            const SizedBox(width: 48),
+          ],
+        ),
+        Expanded(
+          child: _selectedTab == 0
+              ? SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _InfoContent(place: place),
+                      _InfoContent(place: widget.place),
                       const SizedBox(height: 16),
-                      SizedBox(height: 200, child: _MapCard(place: place)),
+                      SizedBox(
+                        height: 200,
+                        child: _MapCard(place: widget.place),
+                      ),
                       const SizedBox(height: 16),
                       _ActionsCard(
-                        canDelete: canDelete,
-                        refreshing: refreshing,
-                        bookmarked: bookmarked,
-                        bookmarkToggling: bookmarkToggling,
-                        onRefresh: onRefresh,
-                        onDelete: onDelete,
-                        onToggleBookmark: onToggleBookmark,
+                        canDelete: widget.canDelete,
+                        refreshing: widget.refreshing,
+                        bookmarked: widget.bookmarked,
+                        bookmarkToggling: widget.bookmarkToggling,
+                        onRefresh: widget.onRefresh,
+                        onDelete: widget.onDelete,
+                        onToggleBookmark: widget.onToggleBookmark,
                       ),
                     ],
                   ),
-                ),
-                SingleChildScrollView(
+                )
+              : SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: _ReviewsSection(
-                    reviews: reviews,
-                    loading: loadingReviews,
-                    error: reviewsError,
-                    currentUserId: currentUserId,
-                    reviewUsers: reviewUsers,
-                    onLoadReviews: onLoadReviews,
-                    onCreateReview: onCreateReview,
-                    onEditReview: onEditReview,
-                    onDeleteReview: onDeleteReview,
+                    reviews: widget.reviews,
+                    loading: widget.loadingReviews,
+                    error: widget.reviewsError,
+                    currentUserId: widget.currentUserId,
+                    reviewUsers: widget.reviewUsers,
+                    onLoadReviews: widget.onLoadReviews,
+                    onCreateReview: widget.onCreateReview,
+                    onEditReview: widget.onEditReview,
+                    onDeleteReview: widget.onDeleteReview,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -558,25 +649,36 @@ class _InfoContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(place.name, style: theme.textTheme.headlineSmall),
+        Text(
+          place.name,
+          style: theme.textTheme.textStyle.copyWith(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 16),
         if (place.address != null)
-          _InfoRow(Icons.location_on_rounded, place.address!),
-        if (place.phone != null) _InfoRow(Icons.phone_rounded, place.phone!),
+          _InfoRow(CupertinoIcons.location_solid, place.address!),
+        if (place.phone != null)
+          _InfoRow(CupertinoIcons.phone, place.phone!),
         if (place.website != null)
-          _InfoRow(Icons.language_rounded, place.website!),
-        if (place.email != null) _InfoRow(Icons.email_rounded, place.email!),
+          _InfoRow(CupertinoIcons.globe, place.website!),
+        if (place.email != null)
+          _InfoRow(CupertinoIcons.envelope, place.email!),
         if (place.cuisine != null)
-          _InfoRow(Icons.restaurant_rounded, translateCuisine(place.cuisine)),
+          _InfoRow(
+            CupertinoIcons.book,
+            translateCuisine(place.cuisine),
+          ),
         if (place.openingHours != null)
-          _InfoRow(Icons.schedule_rounded, place.openingHours!),
+          _InfoRow(CupertinoIcons.clock, place.openingHours!),
         if (place.avgRating != null)
           _InfoRow(
-            Icons.star_rounded,
+            CupertinoIcons.star_fill,
             '${place.avgRating!.toStringAsFixed(1)} / 5',
           ),
         const SizedBox(height: 16),
@@ -599,15 +701,15 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          Icon(icon, size: 20, color: theme.primaryColor),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+          Expanded(child: Text(text, style: theme.textTheme.textStyle)),
         ],
       ),
     );
@@ -621,7 +723,7 @@ class _MetaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
@@ -630,12 +732,16 @@ class _MetaRow extends StatelessWidget {
             width: 140,
             child: Text(
               label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.textTheme.textStyle.copyWith(
+                fontSize: 12,
+                color: CupertinoColors.secondaryLabel.resolveFrom(context),
               ),
             ),
           ),
-          Text(value, style: theme.textTheme.bodySmall),
+          Text(
+            value,
+            style: theme.textTheme.textStyle.copyWith(fontSize: 12),
+          ),
         ],
       ),
     );
@@ -649,15 +755,17 @@ class _MapCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (place.latitude == null || place.longitude == null) {
-      return const Card(
-        child: SizedBox(
+      return Container(
+        decoration: _cardDecoration(context),
+        child: const SizedBox(
           height: 200,
           child: Center(child: Text('Keine Koordinaten verfügbar')),
         ),
       );
     }
-    return Card(
+    return Container(
       clipBehavior: Clip.antiAlias,
+      decoration: _cardDecoration(context),
       child: SizedBox(
         height: 200,
         child: FlutterMap(
@@ -676,8 +784,8 @@ class _MapCard extends StatelessWidget {
                 Marker(
                   point: LatLng(place.latitude!, place.longitude!),
                   child: const Icon(
-                    Icons.location_on,
-                    color: Colors.red,
+                    CupertinoIcons.location_solid,
+                    color: CupertinoColors.systemRed,
                     size: 36,
                   ),
                 ),
@@ -716,61 +824,76 @@ class _ActionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            FilledButton.tonalIcon(
-              onPressed: bookmarkToggling ? null : onToggleBookmark,
-              icon: bookmarkToggling
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(
-                      bookmarked
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                    ),
-              label: Text(
-                bookmarkToggling
-                    ? '…'
-                    : bookmarked
-                    ? 'Lesezeichen entfernen'
-                    : 'Lesezeichen setzen',
-              ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.tonalIcon(
-              onPressed: refreshing ? null : onRefresh,
-              icon: refreshing
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.refresh_rounded),
-              label: Text(
-                refreshing ? 'Aktualisiere…' : 'OSM-Daten aktualisieren',
-              ),
-            ),
-            if (canDelete) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_rounded),
-                label: const Text('Ort löschen'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
+    return Container(
+      decoration: _cardDecoration(context),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CupertinoButton(
+            color: CupertinoTheme.of(context)
+                .primaryColor
+                .withValues(alpha: 0.12),
+            onPressed: bookmarkToggling ? null : onToggleBookmark,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (bookmarkToggling)
+                  const CupertinoActivityIndicator(radius: 8)
+                else
+                  Icon(
+                    bookmarked
+                        ? CupertinoIcons.bookmark_fill
+                        : CupertinoIcons.bookmark,
+                    size: 18,
+                  ),
+                const SizedBox(width: 8),
+                Text(
+                  bookmarkToggling
+                      ? '…'
+                      : bookmarked
+                          ? 'Lesezeichen entfernen'
+                          : 'Lesezeichen setzen',
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          CupertinoButton(
+            color: CupertinoTheme.of(context)
+                .primaryColor
+                .withValues(alpha: 0.12),
+            onPressed: refreshing ? null : onRefresh,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (refreshing)
+                  const CupertinoActivityIndicator(radius: 8)
+                else
+                  const Icon(CupertinoIcons.refresh, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  refreshing ? 'Aktualisiere…' : 'OSM-Daten aktualisieren',
+                ),
+              ],
+            ),
+          ),
+          if (canDelete) ...[
+            const SizedBox(height: 8),
+            CupertinoButton(
+              color: CupertinoColors.systemRed.resolveFrom(context),
+              onPressed: onDelete,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.trash, size: 18),
+                  SizedBox(width: 8),
+                  Text('Ort löschen'),
+                ],
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -801,10 +924,8 @@ class _ReviewsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     if (loading && reviews == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (error != null && reviews == null) {
@@ -812,11 +933,15 @@ class _ReviewsSection extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+            const Icon(
+              CupertinoIcons.exclamationmark_triangle,
+              size: 48,
+              color: CupertinoColors.systemRed,
+            ),
             const SizedBox(height: 8),
             Text(error!),
             const SizedBox(height: 16),
-            FilledButton.tonal(
+            CupertinoButton.filled(
               onPressed: onLoadReviews,
               child: const Text('Erneut versuchen'),
             ),
@@ -832,12 +957,29 @@ class _ReviewsSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Bewertungen', style: theme.textTheme.titleMedium),
+            Text(
+              'Bewertungen',
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
             const Spacer(),
-            FilledButton.tonalIcon(
+            CupertinoButton(
+              color: CupertinoTheme.of(context)
+                  .primaryColor
+                  .withValues(alpha: 0.12),
               onPressed: onCreateReview,
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Schreiben'),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(CupertinoIcons.plus, size: 18),
+                  SizedBox(width: 4),
+                  Text('Schreiben'),
+                ],
+              ),
             ),
           ],
         ),
@@ -848,9 +990,10 @@ class _ReviewsSection extends StatelessWidget {
             child: Center(
               child: Text(
                 'Noch keine Bewertungen.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
+                    ),
               ),
             ),
           )
@@ -889,88 +1032,102 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (reviewUser != null) ...[
-              InkWell(
-                onTap: () => context.go('/kontakte/${review.userId}'),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundImage: resolveImageProvider(
-                          reviewUser!.image,
+    final theme = CupertinoTheme.of(context);
+    return Container(
+      decoration: _cardDecoration(context),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (reviewUser != null) ...[
+            GestureDetector(
+              onTap: () => context.go('/kontakte/${review.userId}'),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    ClipOval(
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor,
+                          image: resolveImageProvider(reviewUser!.image) !=
+                                  null
+                              ? DecorationImage(
+                                  image: resolveImageProvider(
+                                      reviewUser!.image)!,
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
                         child: resolveImageProvider(reviewUser!.image) == null
-                            ? Text(
-                                reviewUser!.displayName.isNotEmpty
-                                    ? reviewUser!.displayName[0].toUpperCase()
-                                    : '?',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onPrimaryContainer,
+                            ? Center(
+                                child: Text(
+                                  reviewUser!.displayName.isNotEmpty
+                                      ? reviewUser!.displayName[0]
+                                          .toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: CupertinoColors.white,
+                                  ),
                                 ),
                               )
                             : null,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        reviewUser!.displayName,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            Row(
-              children: [
-                _StarRating(rating: review.rating, size: 16),
-                const Spacer(),
-                if (isOwn) ...[
-                  IconButton(
-                    icon: const Icon(Icons.edit_rounded, size: 18),
-                    onPressed: onEdit,
-                    visualDensity: VisualDensity.compact,
-                    tooltip: 'Bearbeiten',
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete_rounded,
-                      size: 18,
-                      color: theme.colorScheme.error,
                     ),
-                    onPressed: onDelete,
-                    visualDensity: VisualDensity.compact,
-                    tooltip: 'Löschen',
-                  ),
-                ],
-              ],
-            ),
-            if (review.comment != null && review.comment!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(review.comment!, style: theme.textTheme.bodyMedium),
-            ],
-            const SizedBox(height: 4),
-            Text(
-              _formatDate(review.createdAt),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(width: 8),
+                    Text(
+                      reviewUser!.displayName,
+                      style: theme.textTheme.textStyle.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
-        ),
+          Row(
+            children: [
+              _StarRating(rating: review.rating, size: 16),
+              const Spacer(),
+              if (isOwn) ...[
+                CupertinoButton(
+                  padding: const EdgeInsets.all(4),
+                  minimumSize: const Size(28, 28),
+                  onPressed: onEdit,
+                  child: const Icon(CupertinoIcons.pencil, size: 18),
+                ),
+                CupertinoButton(
+                  padding: const EdgeInsets.all(4),
+                  minimumSize: const Size(28, 28),
+                  onPressed: onDelete,
+                  child: Icon(
+                    CupertinoIcons.trash,
+                    size: 18,
+                    color: CupertinoColors.systemRed.resolveFrom(context),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (review.comment != null && review.comment!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(review.comment!, style: theme.textTheme.textStyle),
+          ],
+          const SizedBox(height: 4),
+          Text(
+            _formatDate(review.createdAt),
+            style: theme.textTheme.textStyle.copyWith(
+              fontSize: 12,
+              color: CupertinoColors.secondaryLabel.resolveFrom(context),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -993,13 +1150,13 @@ class _StarRating extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
+    final color = CupertinoTheme.of(context).primaryColor;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(
         5,
         (i) => Icon(
-          i < rating ? Icons.star_rounded : Icons.star_border_rounded,
+          i < rating ? CupertinoIcons.star_fill : CupertinoIcons.star,
           size: size,
           color: color,
         ),
@@ -1039,56 +1196,77 @@ class _ReviewDialogState extends State<_ReviewDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isEditing = widget.initialRating != null;
-    return AlertDialog(
+    return CupertinoAlertDialog(
       title: Text(isEditing ? 'Bewertung bearbeiten' : 'Bewertung schreiben'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(5, (i) {
               final filled = i < _rating;
-              return IconButton(
-                icon: Icon(
-                  filled ? Icons.star_rounded : Icons.star_border_rounded,
-                  color: filled
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
+              return CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 onPressed: () => setState(() => _rating = i + 1),
+                child: Icon(
+                  filled ? CupertinoIcons.star_fill : CupertinoIcons.star,
+                  color: filled
+                      ? CupertinoTheme.of(context).primaryColor
+                      : CupertinoColors.secondaryLabel.resolveFrom(context),
+                  size: 32,
+                ),
               );
             }),
           ),
           const SizedBox(height: 8),
-          TextField(
+          CupertinoTextField(
             controller: _commentController,
-            decoration: const InputDecoration(
-              labelText: 'Kommentar (optional)',
-              border: OutlineInputBorder(),
-            ),
+            placeholder: 'Kommentar (optional)',
             maxLines: 3,
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: CupertinoColors.systemGrey4.resolveFrom(context),
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         ],
       ),
       actions: [
-        TextButton(
+        CupertinoDialogAction(
+          isDestructiveAction: true,
           onPressed: () => Navigator.pop(context),
           child: const Text('Abbrechen'),
         ),
-        FilledButton(
+        CupertinoDialogAction(
+          isDefaultAction: true,
           onPressed: _rating == 0
               ? null
               : () => Navigator.pop(context, (
-                  rating: _rating,
-                  comment: _commentController.text.trim().isEmpty
-                      ? null
-                      : _commentController.text.trim(),
-                )),
+                    rating: _rating,
+                    comment: _commentController.text.trim().isEmpty
+                        ? null
+                        : _commentController.text.trim(),
+                  )),
           child: const Text('Speichern'),
         ),
       ],
     );
   }
+}
+
+BoxDecoration _cardDecoration(BuildContext context) {
+  return BoxDecoration(
+    color: CupertinoColors.systemBackground.resolveFrom(context),
+    borderRadius: BorderRadius.circular(12),
+    boxShadow: [
+      BoxShadow(
+        color: CupertinoColors.systemGrey4.resolveFrom(context).withValues(alpha: 0.5),
+        blurRadius: 8,
+        offset: const Offset(0, 2),
+      ),
+    ],
+  );
 }

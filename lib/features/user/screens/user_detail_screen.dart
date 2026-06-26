@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
@@ -56,7 +56,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (_error != null || _user == null) {
@@ -64,15 +64,15 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
+            const Icon(
+              CupertinoIcons.exclamationmark_triangle,
               size: 48,
-              color: Theme.of(context).colorScheme.error,
+              color: CupertinoColors.destructiveRed,
             ),
             const SizedBox(height: 8),
             Text(_error ?? 'Unbekannter Fehler'),
             const SizedBox(height: 16),
-            FilledButton.tonal(
+            CupertinoButton(
               onPressed: _load,
               child: const Text('Erneut versuchen'),
             ),
@@ -81,147 +81,173 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       );
     }
 
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     final user = _user!;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const BackButton(),
-          const SizedBox(height: 8),
-          Center(
-            child: CircleAvatar(
-              radius: 48,
-              backgroundImage: resolveImageProvider(user.base.image),
-              child: resolveImageProvider(user.base.image) == null
-                  ? Text(
-                      user.base.displayName.isNotEmpty
-                          ? user.base.displayName[0].toUpperCase()
-                          : '?',
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => Navigator.pop(context),
+          child: const Icon(CupertinoIcons.back, size: 22),
+        ),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: ClipOval(
+                  child: Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: resolveImageProvider(user.base.image) != null
+                        ? Image(
+                            image: resolveImageProvider(user.base.image)!,
+                            fit: BoxFit.cover,
+                          )
+                        : Center(
+                            child: Text(
+                              user.base.displayName.isNotEmpty
+                                  ? user.base.displayName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w600,
+                                color: theme.primaryColor,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  user.base.displayName,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textTheme.textStyle.color,
+                  ),
+                ),
+              ),
+              if (_isSelf)
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Das bist du',
                       style: TextStyle(
-                        fontSize: 36,
+                        fontSize: 12,
+                        color: theme.primaryColor,
                         fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onPrimaryContainer,
                       ),
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              user.base.displayName,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          if (_isSelf)
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Das bist du',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
+              const SizedBox(height: 24),
+              if (user.base.email != null)
+                _InfoTile(
+                  icon: CupertinoIcons.mail,
+                  label: 'E-Mail',
+                  value: user.base.email!,
+                ),
+              if (user.base.birthday != null)
+                _InfoTile(
+                  icon: CupertinoIcons.gift,
+                  label: 'Geburtstag',
+                  value: user.base.birthday!,
+                ),
+              _InfoTile(
+                icon: CupertinoIcons.calendar,
+                label: 'Dabei seit',
+                value: user.base.createdAt.substring(0, 10),
               ),
-            ),
-          const SizedBox(height: 24),
-          if (user.base.email != null)
-            _InfoTile(
-              icon: Icons.email_rounded,
-              label: 'E-Mail',
-              value: user.base.email!,
-            ),
-          if (user.base.birthday != null)
-            _InfoTile(
-              icon: Icons.cake_rounded,
-              label: 'Geburtstag',
-              value: user.base.birthday!,
-            ),
-          _InfoTile(
-            icon: Icons.calendar_today_rounded,
-            label: 'Dabei seit',
-            value: user.base.createdAt.substring(0, 10),
+              if (user.social.toList().isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Social Media',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textTheme.textStyle.color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...user.social.toList().map(
+                  (entry) => _SocialTile(
+                    platform: entry.platform,
+                    handle: entry.handle,
+                    url: entry.url,
+                  ),
+                ),
+              ],
+              if (user.contact.discordHandle != null ||
+                  user.contact.fluxerHandle != null ||
+                  user.contact.signalNumber != null ||
+                  user.contact.whatsappNumber != null ||
+                  user.contact.matrixUser != null) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Kontakt',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textTheme.textStyle.color,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (user.contact.discordHandle != null)
+                  _InfoTile(
+                    icon: CupertinoIcons.chat_bubble_2_fill,
+                    label: 'Discord',
+                    value: user.contact.discordHandle!,
+                  ),
+                if (user.contact.fluxerHandle != null)
+                  _InfoTile(
+                    icon: CupertinoIcons.at_circle_fill,
+                    label: 'Fluxer',
+                    value: user.contact.fluxerHandle!,
+                  ),
+                if (user.contact.signalNumber != null)
+                  _InfoTile(
+                    icon: CupertinoIcons.phone_fill,
+                    label: 'Signal',
+                    value: user.contact.signalNumber!,
+                  ),
+                if (user.contact.whatsappNumber != null)
+                  _InfoTile(
+                    icon: CupertinoIcons.phone_fill,
+                    label: 'WhatsApp',
+                    value: user.contact.whatsappNumber!,
+                  ),
+                if (user.contact.matrixUser != null)
+                  _InfoTile(
+                    icon: CupertinoIcons.chat_bubble_fill,
+                    label: 'Matrix',
+                    value: user.contact.matrixHomeserver != null
+                        ? '@${user.contact.matrixUser}:${user.contact.matrixHomeserver}'
+                        : user.contact.matrixUser!,
+                  ),
+              ],
+            ],
           ),
-          if (user.social.toList().isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Social Media',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...user.social.toList().map(
-              (entry) => _SocialTile(
-                platform: entry.platform,
-                handle: entry.handle,
-                url: entry.url,
-              ),
-            ),
-          ],
-          if (user.contact.discordHandle != null ||
-              user.contact.fluxerHandle != null ||
-              user.contact.signalNumber != null ||
-              user.contact.whatsappNumber != null ||
-              user.contact.matrixUser != null) ...[
-            const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Kontakt',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (user.contact.discordHandle != null)
-              _InfoTile(
-                icon: Icons.chat_rounded,
-                label: 'Discord',
-                value: user.contact.discordHandle!,
-              ),
-            if (user.contact.fluxerHandle != null)
-              _InfoTile(
-                icon: Icons.alternate_email_rounded,
-                label: 'Fluxer',
-                value: user.contact.fluxerHandle!,
-              ),
-            if (user.contact.signalNumber != null)
-              _InfoTile(
-                icon: Icons.phone_rounded,
-                label: 'Signal',
-                value: user.contact.signalNumber!,
-              ),
-            if (user.contact.whatsappNumber != null)
-              _InfoTile(
-                icon: Icons.phone_android_rounded,
-                label: 'WhatsApp',
-                value: user.contact.whatsappNumber!,
-              ),
-            if (user.contact.matrixUser != null)
-              _InfoTile(
-                icon: Icons.forum_rounded,
-                label: 'Matrix',
-                value: user.contact.matrixHomeserver != null
-                    ? '@${user.contact.matrixUser}:${user.contact.matrixHomeserver}'
-                    : user.contact.matrixUser!,
-              ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -240,23 +266,30 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          Icon(icon, size: 20, color: theme.primaryColor),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: CupertinoColors.systemGrey,
                 ),
               ),
-              Text(value, style: theme.textTheme.bodyMedium),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: theme.textTheme.textStyle.color,
+                ),
+              ),
             ],
           ),
         ],
@@ -274,20 +307,23 @@ class _SocialTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: url != null
-          ? InkWell(
+          ? GestureDetector(
               onTap: () => launchUrl(Uri.parse(url!)),
-              borderRadius: BorderRadius.circular(8),
               child: _SocialRow(
                 platform: platform,
                 handle: handle,
-                theme: theme,
+                primaryColor: theme.primaryColor,
               ),
             )
-          : _SocialRow(platform: platform, handle: handle, theme: theme),
+          : _SocialRow(
+              platform: platform,
+              handle: handle,
+              primaryColor: theme.primaryColor,
+            ),
     );
   }
 }
@@ -295,12 +331,12 @@ class _SocialTile extends StatelessWidget {
 class _SocialRow extends StatelessWidget {
   final String platform;
   final String handle;
-  final ThemeData theme;
+  final Color primaryColor;
 
   const _SocialRow({
     required this.platform,
     required this.handle,
-    required this.theme,
+    required this.primaryColor,
   });
 
   @override
@@ -313,16 +349,18 @@ class _SocialRow extends StatelessWidget {
             width: 100,
             child: Text(
               platform,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: const TextStyle(
+                fontSize: 13,
+                color: CupertinoColors.systemGrey,
               ),
             ),
           ),
           Expanded(
             child: Text(
               handle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.primary,
+              style: TextStyle(
+                fontSize: 15,
+                color: primaryColor,
               ),
             ),
           ),

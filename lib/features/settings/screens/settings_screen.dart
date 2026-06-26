@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
@@ -52,7 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (_error != null || _user == null) {
@@ -61,14 +61,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.error_outline,
+              CupertinoIcons.exclamationmark_triangle,
               size: 48,
-              color: Theme.of(context).colorScheme.error,
+              color: CupertinoColors.destructiveRed,
             ),
             const SizedBox(height: 8),
             Text(_error ?? 'Unbekannter Fehler'),
             const SizedBox(height: 16),
-            FilledButton.tonal(
+            CupertinoButton(
               onPressed: _load,
               child: const Text('Erneut versuchen'),
             ),
@@ -78,7 +78,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     final user = _user!;
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -88,21 +88,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundImage: resolveImageProvider(user.base.image),
-                child: resolveImageProvider(user.base.image) == null
-                    ? Text(
-                        user.base.displayName.isNotEmpty
-                            ? user.base.displayName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onPrimaryContainer,
+              ClipOval(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: resolveImageProvider(user.base.image) != null
+                      ? Image(
+                          image: resolveImageProvider(user.base.image)!,
+                          fit: BoxFit.cover,
+                        )
+                      : Center(
+                          child: Text(
+                            user.base.displayName.isNotEmpty
+                                ? user.base.displayName[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: theme.primaryColor,
+                            ),
+                          ),
                         ),
-                      )
-                    : null,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -111,14 +122,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(
                       user.base.displayName,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: theme.textTheme.textStyle.color,
                       ),
                     ),
                     Text(
                       user.base.email,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textTheme.textStyle.color
+                            ?.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -128,18 +143,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
 
-        const Divider(),
+        Container(height: 1, color: CupertinoColors.systemGrey4),
 
         // Profile section
         _SectionHeader(title: 'Profil'),
         _SettingsTile(
-          icon: Icons.person_rounded,
+          icon: CupertinoIcons.person_fill,
           title: 'Profil bearbeiten',
           subtitle: 'Anzeigename, Geburtstag',
           onTap: () => context.push('/einstellungen/profil'),
         ),
         _SettingsTile(
-          icon: Icons.cake_rounded,
+          icon: CupertinoIcons.gift,
           title: 'Geburtstag',
           subtitle: user.base.birthday ?? 'Nicht angegeben',
           onTap: () => context.push('/einstellungen/profil'),
@@ -148,13 +163,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         _SectionHeader(title: 'Vernetzungen'),
         _SettingsTile(
-          icon: Icons.alternate_email_rounded,
+          icon: CupertinoIcons.at_circle_fill,
           title: 'Social Media',
           subtitle: _socialSummary(user.social),
           onTap: () => context.push('/einstellungen/social'),
         ),
         _SettingsTile(
-          icon: Icons.chat_rounded,
+          icon: CupertinoIcons.chat_bubble_2_fill,
           title: 'Kontaktmöglichkeiten',
           subtitle: _contactSummary(user.contact),
           onTap: () => context.push('/einstellungen/kontakt'),
@@ -163,13 +178,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         _SectionHeader(title: 'Konto'),
         _SettingsTile(
-          icon: Icons.email_rounded,
+          icon: CupertinoIcons.mail,
           title: 'E-Mail ändern',
           subtitle: user.base.email,
           onTap: () => context.push('/einstellungen/email'),
         ),
         _SettingsTile(
-          icon: Icons.headset_mic_rounded,
+          icon: CupertinoIcons.headphones,
           title: 'Discord-Verknüpfung',
           subtitle: user.base.discordId != null
               ? 'Verbunden (${user.base.discordId})'
@@ -178,21 +193,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
 
         const SizedBox(height: 16),
-        const Divider(),
+        Container(height: 1, color: CupertinoColors.systemGrey4),
 
         // Logout
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: OutlinedButton.icon(
+          child: CupertinoButton(
             onPressed: _confirmLogout,
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Abmelden'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
-              side: BorderSide(
-                color: theme.colorScheme.error.withValues(alpha: 0.5),
-              ),
-              minimumSize: const Size.fromHeight(44),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            color: CupertinoColors.destructiveRed.withValues(alpha: 0.12),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.square_arrow_right,
+                  size: 20,
+                  color: CupertinoColors.destructiveRed,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Abmelden',
+                  style: TextStyle(
+                    color: CupertinoColors.destructiveRed,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -228,17 +254,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _confirmLogout() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Abmelden'),
         content: const Text('Möchtest du dich wirklich abmelden?'),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Abbrechen'),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Abmelden'),
           ),
@@ -264,9 +292,10 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+        style: TextStyle(
+          fontSize: 13,
           fontWeight: FontWeight.w600,
+          color: CupertinoTheme.of(context).primaryColor,
           letterSpacing: 0.5,
         ),
       ),
@@ -289,12 +318,47 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      title: Text(title),
-      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: const Icon(Icons.chevron_right_rounded),
+    final theme = CupertinoTheme.of(context);
+    return GestureDetector(
       onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 22, color: theme.primaryColor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: theme.textTheme.textStyle.color,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.textTheme.textStyle.color
+                          ?.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              CupertinoIcons.chevron_right,
+              size: 16,
+              color: CupertinoColors.systemGrey,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

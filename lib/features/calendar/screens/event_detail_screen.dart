@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart';
 import '../models/calendar_models.dart';
@@ -65,9 +65,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Future<void> _edit() async {
     if (_event == null) return;
 
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
+    final result = await showCupertinoModalPopup<Map<String, dynamic>>(
       context: context,
-      isScrollControlled: true,
       builder: (_) => EventFormSheet(event: _event),
     );
 
@@ -86,9 +85,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     } catch (e, st) {
       developer.log('Failed to update event', error: e, stackTrace: st);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern')));
+        showCupertinoDialog<void>(
+          context: context,
+          builder: (_) => const CupertinoAlertDialog(
+            content: Text('Fehler beim Speichern'),
+          ),
+        );
       }
     }
   }
@@ -96,22 +98,21 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Future<void> _delete() async {
     if (_event == null) return;
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Termin löschen'),
-        content: Text('"${_event!.title}" wirklich löschen?'),
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Termin loschen'),
+        content: Text('"${_event!.title}" wirklich loschen?'),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Abbrechen'),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            child: const Text('Löschen'),
+            child: const Text('Loschen'),
           ),
         ],
       ),
@@ -125,9 +126,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     } catch (e, st) {
       developer.log('Failed to delete event', error: e, stackTrace: st);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Fehler beim Löschen')));
+        showCupertinoDialog<void>(
+          context: context,
+          builder: (_) => const CupertinoAlertDialog(
+            content: Text('Fehler beim Loschen'),
+          ),
+        );
       }
     }
   }
@@ -137,7 +141,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       case 0:
         return 'Privat';
       case 1:
-        return 'Öffentlich';
+        return 'Offentlich';
       case 2:
         return 'Enge Freunde';
       default:
@@ -147,25 +151,29 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
     if (_loading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Termin')),
-        body: const Center(child: CircularProgressIndicator()),
+      return CupertinoPageScaffold(
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Termin'),
+        ),
+        child: const Center(child: CupertinoActivityIndicator()),
       );
     }
 
     if (_error != null || _event == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Termin')),
-        body: Center(
+      return CupertinoPageScaffold(
+        navigationBar: const CupertinoNavigationBar(
+          middle: Text('Termin'),
+        ),
+        child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text('Fehler beim Laden des Termins'),
               const SizedBox(height: 8),
-              ElevatedButton(
+              CupertinoButton(
                 onPressed: _load,
                 child: const Text('Erneut versuchen'),
               ),
@@ -177,50 +185,65 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     final event = _event!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(event.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_rounded),
-            onPressed: _edit,
-            tooltip: 'Bearbeiten',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_rounded),
-            onPressed: _delete,
-            tooltip: 'Löschen',
-          ),
-        ],
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(event.title),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _edit,
+              child: const Icon(CupertinoIcons.pencil, size: 20),
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _delete,
+              child: const Icon(
+                CupertinoIcons.trash,
+                size: 20,
+                color: CupertinoColors.destructiveRed,
+              ),
+            ),
+          ],
+        ),
       ),
-      body: ListView(
+      child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
             event.title,
-            style: theme.textTheme.headlineSmall?.copyWith(
+            style: TextStyle(
+              fontSize: 28,
               fontWeight: FontWeight.bold,
+              color: theme.textTheme.textStyle.color,
             ),
           ),
           if (event.description != null && event.description!.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text(event.description!, style: theme.textTheme.bodyLarge),
+            Text(
+              event.description!,
+              style: TextStyle(
+                fontSize: 16,
+                color: theme.textTheme.textStyle.color,
+              ),
+            ),
           ],
           const SizedBox(height: 24),
           _InfoRow(
-            icon: Icons.access_time_rounded,
+            icon: CupertinoIcons.clock,
             label: 'Zeitraum',
             value: formatDateRange(event.startTime, event.endTime),
           ),
           const SizedBox(height: 8),
           _InfoRow(
-            icon: Icons.visibility_rounded,
+            icon: CupertinoIcons.eye,
             label: 'Sichtbarkeit',
             value: _visibilityLabel(event.visibility),
           ),
           const SizedBox(height: 8),
           _InfoRow(
-            icon: Icons.person_rounded,
+            icon: CupertinoIcons.person,
             label: 'Erstellt von',
             value: event.creatorId,
           ),
@@ -228,18 +251,47 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             const SizedBox(height: 16),
             Text(
               'Teilnehmer (${event.participants.length})',
-              style: theme.textTheme.titleSmall?.copyWith(
+              style: TextStyle(
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
+                color: theme.textTheme.textStyle.color,
               ),
             ),
             const SizedBox(height: 8),
             ...event.participants.map(
-              (p) => ListTile(
-                leading: CircleAvatar(
-                  child: Text(p.displayName[0].toUpperCase()),
+              (p) => Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    ClipOval(
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            p.displayName[0].toUpperCase(),
+                            style: TextStyle(
+                              color: theme.primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      p.displayName,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: theme.textTheme.textStyle.color,
+                      ),
+                    ),
+                  ],
                 ),
-                title: Text(p.displayName),
-                contentPadding: EdgeInsets.zero,
               ),
             ),
           ],
@@ -262,23 +314,30 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+        Icon(icon, size: 20, color: CupertinoColors.systemGrey),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: const TextStyle(
+                fontSize: 12,
+                color: CupertinoColors.systemGrey,
               ),
             ),
-            Text(value, style: theme.textTheme.bodyMedium),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 15,
+                color: theme.textTheme.textStyle.color,
+              ),
+            ),
           ],
         ),
       ],

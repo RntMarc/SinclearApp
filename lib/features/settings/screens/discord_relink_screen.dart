@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
@@ -68,7 +68,7 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
       if (uri != null && await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        setState(() => _error = 'Discord konnte nicht geöffnet werden.');
+        setState(() => _error = 'Discord konnte nicht geoffnet werden.');
       }
       if (!mounted) return;
       setState(() {
@@ -80,7 +80,7 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Fehler beim Starten der Discord-Verknüpfung.';
+        _error = 'Fehler beim Starten der Discord-Verknupfung.';
       });
     }
   }
@@ -88,7 +88,7 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
   Future<void> _verifyCode() async {
     final code = _codeController.text.trim();
     if (code.length != 6 || !RegExp(r'^\d{6}$').hasMatch(code)) {
-      setState(() => _error = 'Bitte gib einen gültigen 6-stelligen Code ein.');
+      setState(() => _error = 'Bitte gib einen gultigen 6-stelligen Code ein.');
       return;
     }
 
@@ -101,20 +101,23 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
       await AppScope.of(context).user.discordRelinkVerify(code);
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Discord-Verknüpfung aktualisiert')),
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Discord-Verknupfung aktualisiert'),
+        ),
       );
     } on ApiException catch (e) {
       setState(() {
         _error = switch (e.errorCode) {
-          'invalid_or_expired_code' => 'Der Code ist ungültig oder abgelaufen.',
+          'invalid_or_expired_code' => 'Der Code ist ungultig oder abgelaufen.',
           _ => e.message ?? 'Ein Fehler ist aufgetreten.',
         };
       });
     } catch (e, st) {
       developer.log('Failed to verify discord code', error: e, stackTrace: st);
       if (!mounted) return;
-      setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
+      setState(() => _error = 'Netzwerkfehler. Bitte prufe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -122,17 +125,19 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     final hasDiscord = _user?.base.discordId != null;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Discord-Verknüpfung')),
-      body: SafeArea(
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Discord-Verknupfung'),
+      ),
+      child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
@@ -141,65 +146,68 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Icon(
-                  Icons.headset_mic_rounded,
+                  CupertinoIcons.headphones,
                   size: 56,
-                  color: theme.colorScheme.primary,
+                  color: theme.primaryColor,
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  hasDiscord ? 'Discord verbunden' : 'Kein Discord verknüpft',
-                  style: theme.textTheme.titleLarge,
+                  hasDiscord ? 'Discord verbunden' : 'Kein Discord verknupft',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: theme.textTheme.textStyle.color,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   hasDiscord
-                      ? 'Dein Account ist mit Discord-ID ${_user!.base.discordId} verknüpft.'
-                      : 'Verknüpfe deinen Discord-Account, um dich schneller anmelden zu können.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                      ? 'Dein Account ist mit Discord-ID ${_user!.base.discordId} verknupft.'
+                      : 'Verknupfe deinen Discord-Account, um dich schneller anmelden zu konnen.',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: theme.textTheme.textStyle.color
+                        ?.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 32),
                 if (!_showCodeInput) ...[
-                  FilledButton.icon(
+                  CupertinoButton.filled(
                     onPressed: _saving ? null : _startRelink,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: _saving
+                        ? const CupertinoActivityIndicator(
+                            color: CupertinoColors.white,
                           )
-                        : const Icon(Icons.open_in_browser_rounded),
-                    label: Text(
-                      _saving
-                          ? 'Wird gestartet…'
-                          : 'Discord-Verknüpfung ändern',
-                    ),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
+                        : const Text('Discord-Verknupfung andern'),
                   ),
                 ] else ...[
                   Text(
                     'Gib den 6-stelligen Code aus dem Discord-Browser-Tab ein.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: theme.textTheme.textStyle.color
+                          ?.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
+                  CupertinoTextField(
                     controller: _codeController,
                     keyboardType: TextInputType.number,
                     textAlign: TextAlign.center,
                     maxLength: 6,
-                    decoration: const InputDecoration(
-                      labelText: 'Pairing-Code',
-                      counterText: '',
-                      prefixIcon: Icon(Icons.vpn_key_rounded),
-                      border: OutlineInputBorder(),
+                    placeholder: 'Pairing-Code',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 12),
+                      child: Icon(CupertinoIcons.lock, size: 20),
+                    ),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.systemGrey6,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -208,30 +216,23 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: Text(
                         _error!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.error,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: CupertinoColors.destructiveRed,
                         ),
                       ),
                     ),
-                  FilledButton.icon(
+                  CupertinoButton.filled(
                     onPressed: _saving ? null : _verifyCode,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: _saving
+                        ? const CupertinoActivityIndicator(
+                            color: CupertinoColors.white,
                           )
-                        : const Icon(Icons.check_rounded),
-                    label: Text(_saving ? 'Wird geprüft…' : 'Bestätigen'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
+                        : const Text('Bestatigen'),
                   ),
                   const SizedBox(height: 12),
-                  TextButton(
+                  CupertinoButton(
                     onPressed: () {
                       setState(() {
                         _showCodeInput = false;
@@ -247,8 +248,9 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
                     padding: const EdgeInsets.only(top: 16),
                     child: Text(
                       _error!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: CupertinoColors.destructiveRed,
                       ),
                     ),
                   ),

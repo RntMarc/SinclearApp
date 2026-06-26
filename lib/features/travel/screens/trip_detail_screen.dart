@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -19,8 +19,7 @@ class TripDetailScreen extends StatefulWidget {
   State<TripDetailScreen> createState() => _TripDetailScreenState();
 }
 
-class _TripDetailScreenState extends State<TripDetailScreen>
-    with SingleTickerProviderStateMixin {
+class _TripDetailScreenState extends State<TripDetailScreen> {
   TravelService get _service => AppScope.of(context).travel;
 
   bool _loading = true;
@@ -31,6 +30,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   List<TravelAccommodation> _accommodations = [];
   List<TravelParticipant> _participants = [];
   bool _hasLoaded = false;
+  int _selectedTab = 0;
 
   @override
   void didChangeDependencies() {
@@ -77,7 +77,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (_error != null) {
@@ -87,7 +87,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
           children: [
             const Text('Fehler beim Laden der Reisedetails'),
             const SizedBox(height: 8),
-            ElevatedButton(
+            CupertinoButton.filled(
               onPressed: _load,
               child: const Text('Erneut versuchen'),
             ),
@@ -104,37 +104,44 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId;
 
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Übersicht'),
-              Tab(text: 'Events'),
-              Tab(text: 'Karte'),
-            ],
+    final tabLabels = {0: 'Übersicht', 1: 'Events', 2: 'Karte'};
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: CupertinoSegmentedControl<int>(
+            children: tabLabels.map((i, label) => MapEntry(
+                  i,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Text(label, style: const TextStyle(fontSize: 13)),
+                  ),
+                )),
+            onValueChanged: (value) => setState(() => _selectedTab = value),
+            groupValue: _selectedTab,
           ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _OverviewTab(
+        ),
+        Expanded(
+          child: _selectedTab == 0
+              ? _OverviewTab(
                   trip: trip,
                   accommodations: _accommodations,
                   participants: _participants,
                   currentUserId: currentUserId,
-                ),
-                _EventsTab(events: _events, currentUserId: currentUserId),
-                _MapTab(
-                  accommodations: _accommodations,
-                  events: _events,
-                  currentUserId: currentUserId,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+                )
+              : _selectedTab == 1
+                  ? _EventsTab(events: _events, currentUserId: currentUserId)
+                  : _MapTab(
+                      accommodations: _accommodations,
+                      events: _events,
+                      currentUserId: currentUserId,
+                    ),
+        ),
+      ],
     );
   }
 }
@@ -164,19 +171,24 @@ class _OverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(trip.name, style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            trip.name,
+            style: CupertinoTheme.of(context).textTheme.navLargeTitleTextStyle,
+          ),
           if (trip.description != null) ...[
             const SizedBox(height: 8),
             Text(
               trip.description!,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: CupertinoTheme.of(context).textTheme.textStyle,
             ),
           ],
           const SizedBox(height: 8),
           Text(
             '${_formatDate(trip.start)} – ${_formatDate(trip.end)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            style: CupertinoTheme.of(
+              context,
+            ).textTheme.textStyle.copyWith(
+              color: CupertinoColors.secondaryLabel,
             ),
           ),
           const SizedBox(height: 16),
@@ -191,9 +203,12 @@ class _OverviewTab extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Unterkünfte',
-              style: Theme.of(
+              style: CupertinoTheme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ).textTheme.textStyle.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
             const SizedBox(height: 8),
             ...accommodations.map(
@@ -209,9 +224,12 @@ class _OverviewTab extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Teilnehmer',
-              style: Theme.of(
+              style: CupertinoTheme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ).textTheme.textStyle.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
             const SizedBox(height: 8),
             ...participants.map(
@@ -240,13 +258,19 @@ class _AccommodationMap extends StatelessWidget {
         .toList();
 
     if (coords.isEmpty) {
-      return Card(
+      return Container(
+        decoration: BoxDecoration(
+          color: CupertinoTheme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: SizedBox(
           height: 200,
           child: Center(
             child: Text(
               'Keine Koordinaten verfügbar',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                color: CupertinoColors.secondaryLabel,
+              ),
             ),
           ),
         ),
@@ -256,8 +280,8 @@ class _AccommodationMap extends StatelessWidget {
     final first = coords.first;
     final center = LatLng(first.latitude!, first.longitude!);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
       child: SizedBox(
         height: 200,
         child: FlutterMap(
@@ -276,8 +300,10 @@ class _AccommodationMap extends StatelessWidget {
                 return Marker(
                   point: LatLng(a.latitude!, a.longitude!),
                   child: Icon(
-                    Icons.location_on,
-                    color: isMine ? Colors.blue : Colors.red,
+                    CupertinoIcons.location_solid,
+                    color: isMine
+                        ? CupertinoColors.activeBlue
+                        : CupertinoColors.systemRed,
                     size: 36,
                   ),
                 );
@@ -303,10 +329,21 @@ class _AccommodationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: CupertinoColors.systemGrey.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -316,9 +353,11 @@ class _AccommodationCard extends StatelessWidget {
               children: [
                 Icon(
                   accommodation.ishotel == 1
-                      ? Icons.hotel_rounded
-                      : Icons.home_rounded,
-                  color: isMine ? Colors.blue : theme.colorScheme.primary,
+                      ? CupertinoIcons.book_fill
+                      : CupertinoIcons.house_fill,
+                  color: isMine
+                      ? CupertinoColors.activeBlue
+                      : theme.primaryColor,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -326,24 +365,41 @@ class _AccommodationCard extends StatelessWidget {
                     accommodation.name,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: isMine ? Colors.blue : null,
+                      color: isMine
+                          ? CupertinoColors.activeBlue
+                          : null,
                     ),
                   ),
                 ),
                 if (isMine)
-                  Chip(
-                    label: const Text(
-                      'Meine Unterkunft',
-                      style: TextStyle(fontSize: 11),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.activeBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Meine Unterkunft',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: CupertinoColors.activeBlue,
+                      ),
+                    ),
                   ),
               ],
             ),
             if (accommodation.address != null) ...[
               const SizedBox(height: 4),
-              Text(accommodation.address!, style: theme.textTheme.bodySmall),
+              Text(
+                accommodation.address!,
+                style: DefaultTextStyle.of(context).style.copyWith(
+                  fontSize: 13,
+                  color: CupertinoColors.secondaryLabel,
+                ),
+              ),
             ],
             if (accommodation.users.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -351,19 +407,36 @@ class _AccommodationCard extends StatelessWidget {
                 spacing: 4,
                 runSpacing: 4,
                 children: accommodation.users.map((u) {
-                  return CircleAvatar(
-                    radius: 14,
-                    backgroundImage: resolveImageProvider(u.image),
-                    child: resolveImageProvider(u.image) == null
-                        ? Text(
-                            u.displayName.isNotEmpty
-                                ? u.displayName[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(fontSize: 11),
-                          )
-                        : null,
+                  final provider = resolveImageProvider(u.image);
+                  return ClipOval(
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemGrey3,
+                        image: provider != null
+                            ? DecorationImage(
+                                image: provider,
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: provider == null
+                          ? Center(
+                              child: Text(
+                                u.displayName.isNotEmpty
+                                    ? u.displayName[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: CupertinoColors.white,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
                   );
-                }).toList(),
+            }).toList(),
               ),
             ],
           ],
@@ -385,7 +458,7 @@ class _EventsTab extends StatelessWidget {
       return Center(
         child: Text(
           'Keine Events für diese Reise',
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: CupertinoTheme.of(context).textTheme.textStyle,
         ),
       );
     }
@@ -445,9 +518,10 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
       child: Text(
         title,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: 18,
+        ),
       ),
     );
   }
@@ -474,13 +548,24 @@ class _EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     final participating = _isParticipating;
 
     return Opacity(
       opacity: participating ? 1.0 : 0.5,
-      child: Card(
+      child: Container(
         margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: CupertinoColors.systemGrey.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -489,8 +574,8 @@ class _EventCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    Icons.event_rounded,
-                    color: theme.colorScheme.primary,
+                    CupertinoIcons.calendar,
+                    color: theme.primaryColor,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -501,36 +586,49 @@ class _EventCard extends StatelessWidget {
                     ),
                   ),
                   if (!participating)
-                    Chip(
-                      label: const Text(
-                        'Nicht dabei',
-                        style: TextStyle(fontSize: 11),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemRed.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Nicht dabei',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: CupertinoColors.systemRed,
+                        ),
+                      ),
                     ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 '${_formatDateTime(event.start)} – ${_formatDateTime(event.end)}',
-                style: theme.textTheme.bodySmall,
+                style: DefaultTextStyle.of(context).style.copyWith(
+                  fontSize: 13,
+                  color: CupertinoColors.secondaryLabel,
+                ),
               ),
               if (event.address != null) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     Icon(
-                      Icons.location_on_rounded,
+                      CupertinoIcons.location_solid,
                       size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: CupertinoColors.secondaryLabel,
                     ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         event.address!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                        style: DefaultTextStyle.of(context).style.copyWith(
+                          fontSize: 13,
+                          color: CupertinoColors.secondaryLabel,
                         ),
                       ),
                     ),
@@ -543,19 +641,36 @@ class _EventCard extends StatelessWidget {
                   spacing: 4,
                   runSpacing: 4,
                   children: event.participants.map((p) {
-                    return CircleAvatar(
-                      radius: 12,
-                      backgroundImage: resolveImageProvider(p.image),
-                      child: resolveImageProvider(p.image) == null
-                          ? Text(
-                              p.displayName.isNotEmpty
-                                  ? p.displayName[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(fontSize: 10),
-                            )
-                          : null,
+                    final provider = resolveImageProvider(p.image);
+                    return ClipOval(
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.systemGrey3,
+                          image: provider != null
+                              ? DecorationImage(
+                                  image: provider,
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: provider == null
+                            ? Center(
+                                child: Text(
+                                  p.displayName.isNotEmpty
+                                      ? p.displayName[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: CupertinoColors.white,
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
                     );
-                  }).toList(),
+            }).toList(),
                 ),
               ],
             ],
@@ -589,8 +704,10 @@ class _MapTab extends StatelessWidget {
         Marker(
           point: LatLng(a.latitude!, a.longitude!),
           child: Icon(
-            Icons.hotel_rounded,
-            color: isMine ? Colors.blue : Colors.green,
+            CupertinoIcons.book_fill,
+            color: isMine
+                ? CupertinoColors.activeBlue
+                : CupertinoColors.activeGreen,
             size: 30,
           ),
         ),
@@ -603,8 +720,8 @@ class _MapTab extends StatelessWidget {
         Marker(
           point: LatLng(e.latitude!, e.longitude!),
           child: const Icon(
-            Icons.event_rounded,
-            color: Colors.orange,
+            CupertinoIcons.calendar,
+            color: CupertinoColors.systemOrange,
             size: 30,
           ),
         ),
@@ -615,31 +732,33 @@ class _MapTab extends StatelessWidget {
       return Center(
         child: Text(
           'Keine Orte mit Koordinaten verfügbar',
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: CupertinoTheme.of(context).textTheme.textStyle,
         ),
       );
     }
 
     final first = markers.first.point;
 
-    return Card(
-      margin: const EdgeInsets.all(16),
-      clipBehavior: Clip.antiAlias,
-      child: FlutterMap(
-        options: MapOptions(initialCenter: first, initialZoom: 12),
-        children: [
-          TileLayer(
-            urlTemplate: OsmConfig.tileUrlTemplate,
-            userAgentPackageName: OsmConfig.tileUserAgent,
-            tileProvider: osmTileProvider(),
-          ),
-          MarkerLayer(markers: markers),
-          SimpleAttributionWidget(
-            source: const Text('OpenStreetMap contributors'),
-            onTap: () =>
-                launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
-          ),
-        ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        child: FlutterMap(
+          options: MapOptions(initialCenter: first, initialZoom: 12),
+          children: [
+            TileLayer(
+              urlTemplate: OsmConfig.tileUrlTemplate,
+              userAgentPackageName: OsmConfig.tileUserAgent,
+              tileProvider: osmTileProvider(),
+            ),
+            MarkerLayer(markers: markers),
+            SimpleAttributionWidget(
+              source: const Text('OpenStreetMap contributors'),
+              onTap: () =>
+                  launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+            ),
+          ],
+        ),
       ),
     );
   }

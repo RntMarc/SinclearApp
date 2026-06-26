@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 const _labels = <int, String>{0: 'Nur ich', 1: 'Alle', 2: 'Freunde'};
 const _icons = <int, IconData>{
-  0: Icons.lock_rounded,
-  1: Icons.public_rounded,
-  2: Icons.people_rounded,
+  0: CupertinoIcons.lock_fill,
+  1: CupertinoIcons.globe,
+  2: CupertinoIcons.person_2_fill,
 };
 
 class VisibilityBadge extends StatelessWidget {
@@ -19,98 +19,96 @@ class VisibilityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
     final label = _labels[value] ?? 'Unbekannt';
-    final icon = _icons[value] ?? Icons.help_outline;
+    final icon = _icons[value] ?? CupertinoIcons.question;
 
-    return PopupMenuButton<int>(
-      onSelected: onChanged,
-      offset: const Offset(0, 32),
+    return GestureDetector(
+      onTap: () => _showPicker(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
+          color: theme.primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: theme.colorScheme.primary),
+            Icon(icon, size: 14, color: theme.primaryColor),
             const SizedBox(width: 4),
             Text(
               label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.primary,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.primaryColor,
               ),
             ),
             Icon(
-              Icons.arrow_drop_down_rounded,
-              size: 16,
-              color: theme.colorScheme.primary,
+              CupertinoIcons.chevron_down,
+              size: 12,
+              color: theme.primaryColor,
             ),
           ],
         ),
       ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 0,
-          child: _Item(
-            label: 'Nur ich',
-            subtitle: 'Niemand außer dir',
-            icon: _icons[0]!,
-          ),
-        ),
-        PopupMenuItem(
-          value: 1,
-          child: _Item(
-            label: 'Alle',
-            subtitle: 'Jeder eingeloggte Nutzer',
-            icon: _icons[1]!,
-          ),
-        ),
-        PopupMenuItem(
-          value: 2,
-          child: _Item(
-            label: 'Enge Freunde',
-            subtitle: 'Nur von dir hinzugefügte',
-            icon: _icons[2]!,
-          ),
-        ),
-      ],
     );
   }
-}
 
-class _Item extends StatelessWidget {
-  final String label;
-  final String subtitle;
-  final IconData icon;
-
-  const _Item({
-    required this.label,
-    required this.subtitle,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+  void _showPicker(BuildContext context) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => CupertinoActionSheet(
+        title: const Text('Sichtbarkeit'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              onChanged(0);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.lock_fill, size: 20),
+                SizedBox(width: 8),
+                Text('Nur ich'),
+              ],
             ),
-          ],
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              onChanged(1);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.globe, size: 20),
+                SizedBox(width: 8),
+                Text('Alle'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              onChanged(2);
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.person_2_fill, size: 20),
+                SizedBox(width: 8),
+                Text('Enge Freunde'),
+              ],
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Abbrechen'),
         ),
-      ],
+      ),
     );
   }
 }

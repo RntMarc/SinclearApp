@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
 import '../../user/models/user_models.dart';
@@ -182,9 +182,12 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
       );
       if (!mounted) return;
       Navigator.pop(context);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Social Media gespeichert')));
+      showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          content: Text('Social Media gespeichert'),
+        ),
+      );
     } on ApiException catch (e) {
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
@@ -202,22 +205,24 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Social Media')),
-      body: SafeArea(
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Social Media'),
+      ),
+      child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _SocialField(
-                icon: Icons.camera_alt_rounded,
+                icon: CupertinoIcons.camera_fill,
                 label: 'Unsplash',
                 controller: _unsplashController,
                 hint: 'Benutzername',
@@ -227,7 +232,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
               ),
               const SizedBox(height: 16),
               _SocialField(
-                icon: Icons.photo_camera_rounded,
+                icon: CupertinoIcons.camera_fill,
                 label: 'Instagram',
                 controller: _instagramController,
                 hint: 'Benutzername',
@@ -237,7 +242,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
               ),
               const SizedBox(height: 16),
               _CompoundSocialField(
-                icon: Icons.group_rounded,
+                icon: CupertinoIcons.person_3_fill,
                 label: 'Mastodon',
                 userController: _mastodonUserController,
                 userHint: 'Benutzername',
@@ -249,7 +254,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
               ),
               const SizedBox(height: 16),
               _CompoundSocialField(
-                icon: Icons.photo_library_rounded,
+                icon: CupertinoIcons.photo_fill,
                 label: 'Pixelfed',
                 userController: _pixelfedUserController,
                 userHint: 'Benutzername',
@@ -261,7 +266,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
               ),
               const SizedBox(height: 16),
               _SocialField(
-                icon: Icons.tag_rounded,
+                icon: CupertinoIcons.tag_circle_fill,
                 label: 'Bluesky',
                 controller: _blueskyController,
                 hint: 'user.bsky.social',
@@ -271,7 +276,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
               ),
               const SizedBox(height: 16),
               _SocialField(
-                icon: Icons.play_circle_rounded,
+                icon: CupertinoIcons.play_rectangle_fill,
                 label: 'YouTube',
                 controller: _youtubeController,
                 hint: 'Kanalname',
@@ -281,7 +286,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
               ),
               const SizedBox(height: 16),
               _SocialField(
-                icon: Icons.videocam_rounded,
+                icon: CupertinoIcons.video_camera,
                 label: 'Twitch',
                 controller: _twitchController,
                 hint: 'Kanalname',
@@ -295,27 +300,20 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Text(
                     _error!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: CupertinoColors.destructiveRed,
                     ),
                   ),
                 ),
-              FilledButton.icon(
+              CupertinoButton.filled(
                 onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                child: _saving
+                    ? const CupertinoActivityIndicator(
+                        color: CupertinoColors.white,
                       )
-                    : const Icon(Icons.save_rounded),
-                label: Text(_saving ? 'Wird gespeichert…' : 'Speichern'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
+                    : const Text('Speichern'),
               ),
             ],
           ),
@@ -344,31 +342,34 @@ class _SocialField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CupertinoTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: theme.textTheme.textStyle.color,
+          ),
         ),
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+            Icon(icon, size: 18, color: theme.primaryColor),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
+              child: CupertinoTextField(
                 controller: controller,
-                decoration: InputDecoration(
-                  hintText: hint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
+                placeholder: hint,
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
@@ -405,18 +406,21 @@ class _CompoundSocialField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = CupertinoTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+            Icon(icon, size: 18, color: theme.primaryColor),
             const SizedBox(width: 8),
             Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.textTheme.textStyle.color,
+              ),
             ),
           ],
         ),
@@ -425,34 +429,32 @@ class _CompoundSocialField extends StatelessWidget {
           children: [
             const SizedBox(width: 26),
             Expanded(
-              child: TextField(
+              child: CupertinoTextField(
                 controller: userController,
-                decoration: InputDecoration(
-                  labelText: 'Benutzername',
-                  hintText: userHint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
+                placeholder: userHint,
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
                 textCapitalization: TextCapitalization.none,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
+              child: CupertinoTextField(
                 controller: serverController,
-                decoration: InputDecoration(
-                  labelText: 'Server',
-                  hintText: serverHint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
+                placeholder: serverHint,
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey6,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
                 ),
                 textCapitalization: TextCapitalization.none,
               ),

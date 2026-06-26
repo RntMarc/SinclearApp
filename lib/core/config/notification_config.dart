@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 class NotificationTypeLabel {
   static String title(String code, Map<String, dynamic> payload) {
@@ -19,8 +19,8 @@ class NotificationTypeLabel {
     if (custom != null && custom.isNotEmpty) return custom;
     return switch (code) {
       'admin.system_update' => 'Es gibt ein System-Update.',
-      'admin.new_feature' => 'Eine neue Funktion ist verfügbar.',
-      'admin.maintenance' => 'Wartungsarbeiten wurden durchgeführt.',
+      'admin.new_feature' => 'Eine neue Funktion ist verfugbar.',
+      'admin.maintenance' => 'Wartungsarbeiten wurden durchgefuhrt.',
       'admin.welcome' => 'Willkommen bei Sinclear!',
       'admin.test' => 'Dies ist eine Test-Benachrichtigung.',
       _ => 'Du hast eine neue Benachrichtigung.',
@@ -29,12 +29,12 @@ class NotificationTypeLabel {
 
   static IconData icon(String code, Map<String, dynamic> payload) {
     return switch (code) {
-      'admin.system_update' => Icons.system_update_rounded,
-      'admin.new_feature' => Icons.auto_awesome_rounded,
-      'admin.maintenance' => Icons.build_rounded,
-      'admin.welcome' => Icons.waving_hand_rounded,
-      'admin.test' => Icons.science_rounded,
-      _ => Icons.notifications_rounded,
+      'admin.system_update' => CupertinoIcons.gear,
+      'admin.new_feature' => CupertinoIcons.sparkles,
+      'admin.maintenance' => CupertinoIcons.wrench,
+      'admin.welcome' => CupertinoIcons.hand_raised,
+      'admin.test' => CupertinoIcons.lab_flask,
+      _ => CupertinoIcons.bell,
     };
   }
 }

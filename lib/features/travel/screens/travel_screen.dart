@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../models/travel_models.dart';
@@ -103,7 +103,7 @@ class _TravelScreenState extends State<TravelScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (_error != null) {
@@ -113,7 +113,7 @@ class _TravelScreenState extends State<TravelScreen> {
           children: [
             const Text('Fehler beim Laden der Reisen'),
             const SizedBox(height: 8),
-            ElevatedButton(
+            CupertinoButton(
               onPressed: _load,
               child: const Text('Erneut versuchen'),
             ),
@@ -130,11 +130,18 @@ class _TravelScreenState extends State<TravelScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.event_rounded, size: 64, color: Colors.grey),
+            Icon(
+              CupertinoIcons.calendar,
+              size: 64,
+              color: CupertinoColors.systemGrey,
+            ),
             SizedBox(height: 16),
             Text(
               'Keine Reisen oder Events gefunden',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 18,
+                color: CupertinoColors.systemGrey,
+              ),
             ),
           ],
         ),
@@ -151,15 +158,18 @@ class _TravelScreenState extends State<TravelScreen> {
   }
 
   List<Widget> _buildSection(String title, List<TimelineEntry> entries) {
+    final theme = CupertinoTheme.of(context);
     return [
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
           child: Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: theme.textTheme.textStyle.color,
+            ),
           ),
         ),
       ),
@@ -191,32 +201,78 @@ class _TimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = CupertinoTheme.of(context);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: entry.isTrip
-              ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.secondaryContainer,
-          child: Icon(
-            entry.isTrip ? Icons.flight_rounded : Icons.event_rounded,
-            color: entry.isTrip
-                ? theme.colorScheme.onPrimaryContainer
-                : theme.colorScheme.onSecondaryContainer,
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: CupertinoColors.systemBackground,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: CupertinoColors.systemGrey.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
-        title: Text(
-          entry.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+        child: Row(
+          children: [
+            ClipOval(
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: entry.isTrip
+                      ? theme.primaryColor.withValues(alpha: 0.15)
+                      : CupertinoColors.systemGreen.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  entry.isTrip
+                      ? CupertinoIcons.airplane
+                      : CupertinoIcons.calendar,
+                  color: entry.isTrip
+                      ? theme.primaryColor
+                      : CupertinoColors.systemGreen,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.textStyle.color,
+                    ),
+                  ),
+                  Text(
+                    '${_formatDate(entry.start)} - ${_formatDate(entry.end)}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: CupertinoColors.systemGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (entry.isTrip)
+              const Icon(
+                CupertinoIcons.chevron_right,
+                size: 16,
+                color: CupertinoColors.systemGrey3,
+              ),
+          ],
         ),
-        subtitle: Text(
-          '${_formatDate(entry.start)} – ${_formatDate(entry.end)}',
-          style: theme.textTheme.bodySmall,
-        ),
-        trailing: entry.isTrip ? const Icon(Icons.chevron_right_rounded) : null,
-        onTap: onTap,
       ),
     );
   }
