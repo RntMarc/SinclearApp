@@ -1,3 +1,3 @@
-# sinclearapp
+# Sinclear Beyond
 
 A new Flutter project.
