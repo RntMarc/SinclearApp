@@ -1,11 +1,15 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
 
 class OsmConfig {
   OsmConfig._();
 
-  static String get _appId => dotenv.env['APP_ID'] ?? 'de.example.beyond';
-  static String get _appVersion => dotenv.env['APP_VERSION'] ?? 'v0.1';
+  static String _appId = 'de.example.beyond';
+  static String _appVersion = 'v0.1';
+
+  static void init({required String appId, required String version}) {
+    _appId = appId;
+    _appVersion = version;
+  }
 
   static String get tileUserAgent => '$_appId/$_appVersion';
   static const String tileUrlTemplate =

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'core/di/app_scope.dart';
+import 'core/services/android_update_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
@@ -18,6 +19,7 @@ class SinclearApp extends StatelessWidget {
   final UserService user;
   final NotificationService notification;
   final CalendarService calendar;
+  final AndroidUpdateService androidUpdate;
   final GoRouter router;
 
   const SinclearApp({
@@ -29,6 +31,7 @@ class SinclearApp extends StatelessWidget {
     required this.user,
     required this.notification,
     required this.calendar,
+    required this.androidUpdate,
     required this.router,
   });
 
@@ -42,6 +45,7 @@ class SinclearApp extends StatelessWidget {
       user: user,
       notification: notification,
       calendar: calendar,
+      androidUpdate: androidUpdate,
       child: MaterialApp.router(
         title: 'Sinclear Beyond',
         debugShowCheckedModeBanner: false,
