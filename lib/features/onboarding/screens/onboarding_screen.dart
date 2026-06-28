@@ -184,20 +184,57 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               : null,
         ),
       );
-      await scope.auth.completeOnboarding();
-      if (!mounted) return;
-      context.go('/home');
     } on ApiException catch (e) {
-      setState(() => _error = e.message ?? 'Fehler beim Speichern.');
-    } catch (e, st) {
-      developer.log('Failed to finish onboarding', error: e, stackTrace: st);
-      if (!mounted) return;
-      setState(
-        () => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.',
+      developer.log(
+        'updateProfile failed',
+        name: 'onboarding',
+        level: 1000,
+        error: e,
       );
-    } finally {
-      if (mounted) setState(() => _saving = false);
+      if (!mounted) return;
+      setState(() => _error = 'Profil speichern fehlgeschlagen: $e');
+      return;
+    } catch (e, st) {
+      developer.log(
+        'updateProfile unexpected',
+        name: 'onboarding',
+        level: 1000,
+        error: e,
+        stackTrace: st,
+      );
+      if (!mounted) return;
+      setState(() => _error = 'Profil speichern fehlgeschlagen: $e');
+      return;
     }
+
+    try {
+      final scope = AppScope.of(context);
+      await scope.auth.completeOnboarding();
+    } on ApiException catch (e) {
+      developer.log(
+        'completeOnboarding failed',
+        name: 'onboarding',
+        level: 1000,
+        error: e,
+      );
+      if (!mounted) return;
+      setState(() => _error = 'Onboarding abschließen fehlgeschlagen: $e');
+      return;
+    } catch (e, st) {
+      developer.log(
+        'completeOnboarding unexpected',
+        name: 'onboarding',
+        level: 1000,
+        error: e,
+        stackTrace: st,
+      );
+      if (!mounted) return;
+      setState(() => _error = 'Onboarding abschließen fehlgeschlagen: $e');
+      return;
+    }
+
+    if (!mounted) return;
+    context.go('/home');
   }
 
   @override

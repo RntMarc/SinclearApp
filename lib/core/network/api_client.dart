@@ -6,17 +6,24 @@ class ApiException implements Exception {
   final String errorCode;
   final String? message;
   final int statusCode;
+  final int? responseSize;
+  final String? responsePreview;
 
   const ApiException({
     required this.errorCode,
     this.message,
     required this.statusCode,
+    this.responseSize,
+    this.responsePreview,
   });
 
   @override
   String toString() {
-    final details = message != null ? ' - $message' : '';
-    return 'ApiException($statusCode): $errorCode$details';
+    final parts = ['ApiException($statusCode): $errorCode'];
+    if (message != null) parts.add('message=$message');
+    if (responseSize != null) parts.add('size=${responseSize}B');
+    if (responsePreview != null) parts.add('preview=$responsePreview');
+    return parts.join(' | ');
   }
 }
 
@@ -137,6 +144,10 @@ class ApiClient {
       errorCode: body['error'] as String? ?? 'unknown_error',
       message: body['message'] as String?,
       statusCode: response.statusCode,
+      responseSize: response.bodyBytes.length,
+      responsePreview: response.body.length > 500
+          ? '${response.body.substring(0, 500)}...'
+          : response.body,
     );
   }
 
