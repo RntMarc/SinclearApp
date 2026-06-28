@@ -104,6 +104,54 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _discordRegister() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final auth = AppScope.of(context).auth;
+      final response = await auth.registerDiscordStart();
+      final uri = Uri.parse(response.url);
+      if (!mounted) return;
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        setState(() => _error = 'Konnte den Browser nicht öffnen.');
+        return;
+      }
+      if (!mounted) return;
+      context.go(
+        '/login/verify',
+        extra: {'method': 'discord_register'},
+      );
+    } on ApiException catch (e) {
+      developer.log(
+        'Discord register failed: ${e.errorCode}',
+        name: 'auth.discord.register',
+        error: e,
+      );
+      setState(() {
+        _error = switch (e.errorCode) {
+          'too_many_attempts' => 'Zu viele Anfragen. Bitte warte einen Moment.',
+          _ => 'Ein Fehler ist aufgetreten. Bitte versuche es später erneut.',
+        };
+      });
+    } catch (e, st) {
+      developer.log(
+        'Failed to start Discord register',
+        error: e,
+        stackTrace: st,
+      );
+      setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -195,6 +243,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: const Text('Mit Discord anmelden'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: TextButton(
+                      onPressed: _loading ? null : _discordRegister,
+                      child: const Text('Noch kein Konto? Registrieren'),
                     ),
                   ),
                 ],

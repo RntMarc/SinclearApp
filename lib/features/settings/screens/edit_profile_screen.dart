@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/image/image_compressor.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/network/api_client.dart';
 import '../../user/models/user_models.dart';
@@ -184,14 +185,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
     if (picked == null || !mounted) return;
 
-    final bytes = await picked.readAsBytes();
-    if (bytes.length > 200 * 1024) {
-      setState(() => _error = 'Bild darf maximal 200 KB groß sein.');
+    final rawBytes = await picked.readAsBytes();
+    final compressed = compressImage(rawBytes);
+    if (compressed == null) {
+      setState(() => _error = 'Bild konnte nicht verarbeitet werden.');
       return;
     }
 
     setState(() {
-      _imageBytes = bytes;
+      _imageBytes = compressed;
       _removeImage = false;
       _error = null;
     });

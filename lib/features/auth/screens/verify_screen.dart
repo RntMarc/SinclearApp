@@ -31,7 +31,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
       : null;
 
   String get _descriptionText {
-    if (_method == 'discord') {
+    if (_method == 'discord' || _method == 'discord_register') {
       return 'Gib den Pairing-Code aus deinem Discord-Browser-Tab ein.';
     }
     final email = _email ?? '';
@@ -59,8 +59,18 @@ class _VerifyScreenState extends State<VerifyScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Erfolgreich angemeldet!')));
-      context.go('/home');
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            _method == 'discord_register'
+                ? 'Konto erstellt!'
+                : 'Erfolgreich angemeldet!',
+          ),
+        ),
+      );
+      final target =
+          auth.onboardingCompleted ? '/home' : '/onboarding';
+      context.go(target);
     } on ApiException catch (e) {
       developer.log(
         'Code verification failed: ${e.errorCode}',
@@ -107,7 +117,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Icon(
-                    _method == 'discord'
+                    _method == 'discord' || _method == 'discord_register'
                         ? Icons.headset_mic_rounded
                         : Icons.email_rounded,
                     size: 56,
