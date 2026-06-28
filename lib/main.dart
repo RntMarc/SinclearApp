@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'core/network/api_client.dart';
+import 'core/services/web_update_service.dart';
 import 'core/storage/token_storage.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
@@ -82,6 +83,10 @@ void main() async {
       notification.onLoggedOut();
     }
   });
+  if (kIsWeb) {
+    WebUpdateService().init();
+  }
+
   final router = createRouter(auth);
 
   notification.onNotificationTapped = (notificationId) {
