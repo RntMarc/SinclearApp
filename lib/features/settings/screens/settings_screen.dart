@@ -1,8 +1,13 @@
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
+import '../../../core/models/app_update_info.dart';
+import '../../../core/services/android_update_service.dart';
+import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -17,6 +22,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _loading = true;
   String? _error;
   bool _hasLoaded = false;
+  PackageInfo? _packageInfo;
+  bool _checkingUpdate = false;
+  String? _updateError;
 
   @override
   void didChangeDependencies() {
@@ -33,9 +41,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final scope = AppScope.of(context);
       await scope.auth.getAccessToken();
       final user = await scope.user.getMe();
+      final packageInfo = await PackageInfo.fromPlatform();
       if (!mounted) return;
       setState(() {
         _user = user;
+        _packageInfo = packageInfo;
         _loading = false;
         _error = null;
       });
@@ -180,6 +190,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
         const Divider(),
 
+        // App section
+        _SectionHeader(title: 'App'),
+        _SettingsTile(
+          icon: Icons.info_outline_rounded,
+          title: 'Version',
+          subtitle: _packageInfo != null
+              ? '${_packageInfo!.version} (${_packageInfo!.buildNumber})'
+              : 'Wird geladen...',
+          onTap: () {},
+        ),
+        if (!kIsWeb)
+          ListTile(
+            leading: Icon(
+              Icons.system_update_rounded,
+              color: _checkingUpdate
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                  : Theme.of(context).colorScheme.primary,
+            ),
+            title: const Text('Update prüfen'),
+            subtitle: _updateError != null
+                ? Text(
+                    _updateError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  )
+                : _checkingUpdate
+                    ? const Text('Wird geprüft...')
+                    : const Text('Auf neuere Version prüfen'),
+            trailing: _checkingUpdate
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.chevron_right_rounded),
+            onTap: _checkingUpdate ? null : _checkForUpdateManually,
+          ),
+
+        const SizedBox(height: 16),
+        const Divider(),
+
         // Logout
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -250,6 +302,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await AppScope.of(context).auth.logout();
       if (!mounted) return;
       context.go('/');
+    }
+  }
+
+  Future<void> _checkForUpdateManually() async {
+    final androidUpdate = AppScope.of(context).androidUpdate;
+    if (!androidUpdate.isSupported) return;
+
+    setState(() {
+      _checkingUpdate = true;
+      _updateError = null;
+    });
+
+    try {
+      final updateInfo = await androidUpdate.checkForUpdate();
+      if (!mounted) return;
+
+      if (updateInfo == null) {
+        setState(() {
+          _checkingUpdate = false;
+          _updateError = 'Kein Update verfügbar.';
+        });
+        return;
+      }
+
+      setState(() => _checkingUpdate = false);
+      await UpdateDialog.show(
+        // ignore: use_build_context_synchronously
+        context,
+        updateInfo: updateInfo,
+        onDownload: (dialog) =>
+            _downloadAndInstall(dialog, androidUpdate, updateInfo),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _checkingUpdate = false;
+        _updateError = 'Update-Prüfung fehlgeschlagen.';
+      });
+    }
+  }
+
+  Future<void> _downloadAndInstall(
+    UpdateDialogState dialog,
+    AndroidUpdateService service,
+    AppUpdateInfo info,
+  ) async {
+    try {
+      final filePath = await service.downloadApk(
+        info.downloadUrl,
+        onProgress: (p) => dialog.setProgress(p),
+      );
+      if (!mounted) return;
+      // ignore: use_build_context_synchronously
+      Navigator.pop(context, true);
+      await service.installApk(filePath);
+    } catch (e) {
+      dialog.setError('Download fehlgeschlagen: $e');
     }
   }
 }
