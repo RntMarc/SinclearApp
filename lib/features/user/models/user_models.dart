@@ -369,10 +369,10 @@ class UserMe {
   factory UserMe.fromJson(Map<String, dynamic> json) {
     return UserMe(
       base: UserBase.fromJson(json),
-      social: json['social'] != null
+      social: json['social'] is Map<String, dynamic>
           ? UserSocialInfo.fromJson(json['social'] as Map<String, dynamic>)
           : const UserSocialInfo(),
-      contact: json['contact'] != null
+      contact: json['contact'] is Map<String, dynamic>
           ? UserContactInfo.fromJson(json['contact'] as Map<String, dynamic>)
           : const UserContactInfo(),
     );
