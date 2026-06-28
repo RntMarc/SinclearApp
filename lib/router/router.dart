@@ -3,6 +3,7 @@ import '../features/auth/services/auth_service.dart';
 import '../features/welcome/welcome_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/verify_screen.dart';
+import '../features/onboarding/screens/onboarding_screen.dart';
 import '../features/calendar/screens/calendar_screen.dart';
 import '../features/calendar/screens/event_detail_screen.dart';
 import '../features/home/home_screen.dart';
@@ -39,6 +40,14 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/kontakte') ||
           location.startsWith('/einstellungen');
 
+      if (loggedIn && !auth.onboardingCompleted &&
+          location != '/onboarding') {
+        return '/onboarding';
+      }
+      if (loggedIn && auth.onboardingCompleted &&
+          location == '/onboarding') {
+        return '/home';
+      }
       if (loggedIn && location == '/') return '/home';
       if (!loggedIn && isAuth) return '/';
       return null;
@@ -49,6 +58,10 @@ GoRouter createRouter(AuthService auth) {
       GoRoute(
         path: '/login/verify',
         builder: (context, state) => const VerifyScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),

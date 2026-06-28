@@ -14,9 +14,11 @@ class AuthService extends ChangeNotifier {
   String? _accessToken;
   int _accessTokenExpiry = 0;
   bool _loggedIn = false;
+  bool _onboardingCompleted = true;
   Future<String>? _refreshFuture;
 
   bool get isLoggedIn => _loggedIn;
+  bool get onboardingCompleted => _onboardingCompleted;
 
   AuthService({required ApiClient api, required TokenStorage storage})
     : _api = api,
@@ -34,6 +36,7 @@ class AuthService extends ChangeNotifier {
         if (kDebugMode) {
           developer.log('init: pre-fetch access token succeeded', name: 'auth');
         }
+        await _fetchOnboardingStatus();
       } on ApiException catch (e) {
         if (e.statusCode == 401) {
           _loggedIn = false;
@@ -166,6 +169,33 @@ class AuthService extends ChangeNotifier {
     return DiscordStartResponse.fromJson(data);
   }
 
+  Future<DiscordStartResponse> registerDiscordStart() async {
+    final data = await _api.post('/auth/register/discord/start');
+    return DiscordStartResponse.fromJson(data);
+  }
+
+  Future<void> _fetchOnboardingStatus() async {
+    try {
+      final data = await _api.get(
+        '/user/me',
+        token: await getAccessToken(),
+      );
+      _onboardingCompleted =
+          (data['data']['onboardingCompleted'] as bool?) ?? true;
+    } catch (e) {
+      _onboardingCompleted = true;
+    }
+  }
+
+  Future<void> completeOnboarding() async {
+    await _api.put(
+      '/user/me/onboarding/complete',
+      token: await getAccessToken(),
+    );
+    _onboardingCompleted = true;
+    notifyListeners();
+  }
+
   Future<RefreshTokenResponse> verifyCode({
     String? email,
     required String code,
@@ -192,6 +222,7 @@ class AuthService extends ChangeNotifier {
       }
     }
     notifyListeners();
+    await _fetchOnboardingStatus();
     if (kDebugMode) {
       developer.log('Code verified, refresh token saved', name: 'auth');
     }
