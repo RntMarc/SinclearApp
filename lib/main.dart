@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/config/osm_config.dart';
 import 'core/network/api_client.dart';
+import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
 import 'core/storage/token_storage.dart';
 import 'features/auth/services/auth_service.dart';
@@ -51,6 +54,13 @@ void main() async {
   await dotenv.load();
 
   final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v2';
+  final appId = dotenv.env['APP_ID'] ?? 'de.example.beyond';
+
+  final packageInfo = await PackageInfo.fromPlatform();
+  OsmConfig.init(
+    appId: appId,
+    version: 'v${packageInfo.version}',
+  );
 
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('api_base_url', baseUrl);
@@ -65,6 +75,7 @@ void main() async {
   final user = UserService(api: api, auth: auth);
   final calendar = CalendarService(api: api, auth: auth);
   final notification = NotificationService(api: api, auth: auth);
+  final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
   try {
     await notification.init();
     if (auth.isLoggedIn) notification.onLoggedIn();
@@ -109,6 +120,7 @@ void main() async {
       user: user,
       calendar: calendar,
       notification: notification,
+      androidUpdate: androidUpdate,
       router: router,
     ),
   );

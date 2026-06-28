@@ -3,11 +3,63 @@ import 'package:go_router/go_router.dart';
 import '../notifications/services/notification_service.dart';
 import '../notifications/widgets/notification_sheet.dart';
 import '../../core/di/app_scope.dart';
+import '../../core/models/app_update_info.dart';
+import '../../core/services/android_update_service.dart';
+import '../update/update_dialog.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends StatefulWidget {
   final Widget child;
 
   const MainShell({super.key, required this.child});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  bool _updateChecked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_updateChecked) {
+      _updateChecked = true;
+      _checkForUpdate();
+    }
+  }
+
+  Future<void> _checkForUpdate() async {
+    final androidUpdate = AppScope.of(context).androidUpdate;
+    if (!androidUpdate.isSupported) return;
+
+    final updateInfo = await androidUpdate.checkForUpdate();
+    if (!mounted || updateInfo == null) return;
+
+    if (!mounted) return;
+    await UpdateDialog.show(
+      context,
+      updateInfo: updateInfo,
+      onDownload: (dialog) => _downloadAndInstall(dialog, androidUpdate, updateInfo),
+    );
+  }
+
+  Future<void> _downloadAndInstall(
+    UpdateDialogState dialog,
+    AndroidUpdateService service,
+    AppUpdateInfo info,
+  ) async {
+    try {
+      final filePath = await service.downloadApk(
+        info.downloadUrl,
+        onProgress: (p) => dialog.setProgress(p),
+      );
+      if (!mounted) return;
+      Navigator.pop(context, true);
+      await service.installApk(filePath);
+    } catch (e) {
+      dialog.setError('Download fehlgeschlagen: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,9 +67,9 @@ class MainShell extends StatelessWidget {
     final isDesktop = width >= 600;
 
     if (isDesktop) {
-      return _DesktopShell(child: child);
+      return _DesktopShell(child: widget.child);
     }
-    return _MobileShell(child: child);
+    return _MobileShell(child: widget.child);
   }
 }
 

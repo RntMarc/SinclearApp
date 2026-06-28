@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/android_update_service.dart';
 import '../../features/auth/services/auth_service.dart';
 import '../../features/calendar/services/calendar_service.dart';
 import '../../features/explore/services/explore_service.dart';
@@ -15,6 +16,7 @@ class AppScope extends InheritedWidget {
   final UserService user;
   final NotificationService notification;
   final CalendarService calendar;
+  final AndroidUpdateService androidUpdate;
 
   const AppScope({
     super.key,
@@ -25,6 +27,7 @@ class AppScope extends InheritedWidget {
     required this.user,
     required this.notification,
     required this.calendar,
+    required this.androidUpdate,
     required super.child,
   });
 
