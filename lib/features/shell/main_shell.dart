@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -30,18 +31,27 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _checkForUpdate() async {
+    developer.log('MainShell._checkForUpdate — kReleaseMode=$kReleaseMode');
     if (!kReleaseMode) return;
     final androidUpdate = AppScope.of(context).androidUpdate;
+    developer.log('isSupported=${androidUpdate.isSupported}');
     if (!androidUpdate.isSupported) return;
 
-    final updateInfo = await androidUpdate.checkForUpdate();
+    AppUpdateInfo? updateInfo;
+    try {
+      updateInfo = await androidUpdate.checkForUpdate();
+    } catch (e) {
+      developer.log('Update check threw: $e');
+    }
+
+    developer.log('updateInfo=$updateInfo, mounted=$mounted');
     if (!mounted || updateInfo == null) return;
 
-    if (!mounted) return;
     await UpdateDialog.show(
       context,
       updateInfo: updateInfo,
-      onDownload: (dialog) => _downloadAndInstall(dialog, androidUpdate, updateInfo),
+      onDownload: (dialog) =>
+          _downloadAndInstall(dialog, androidUpdate, updateInfo!),
     );
   }
 
@@ -50,16 +60,29 @@ class _MainShellState extends State<MainShell> {
     AndroidUpdateService service,
     AppUpdateInfo info,
   ) async {
+    developer.log('=== Download & Install flow started ===');
     try {
+      developer.log('Starting download from ${info.downloadUrl}');
       final filePath = await service.downloadApk(
         info.downloadUrl,
         onProgress: (p) => dialog.setProgress(p),
       );
-      if (!mounted) return;
+      developer.log('Download done, filePath=$filePath');
+
+      if (!mounted) {
+        developer.log('Widget unmounted before pop, aborting');
+        return;
+      }
+
+      developer.log('Popping dialog');
       Navigator.pop(context, true);
       await Future<void>.delayed(Duration.zero);
+
+      developer.log('Calling installApk…');
       await service.installApk(filePath);
+      developer.log('installApk returned successfully');
     } catch (e) {
+      developer.log('ERROR in _downloadAndInstall: $e');
       dialog.setError('Download fehlgeschlagen: $e');
     }
   }
@@ -173,10 +196,7 @@ class _MobileBottomNav extends StatelessWidget {
           icon: Icon(Icons.people_rounded),
           label: 'Gemeinschaft',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_rounded),
-          label: 'Start',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Start'),
         BottomNavigationBarItem(
           icon: Icon(Icons.explore_rounded),
           label: 'Unterwegs',
@@ -194,32 +214,51 @@ class _MobileBottomNav extends StatelessWidget {
       case _NavCategory.home:
         context.go('/home');
       case _NavCategory.system:
-        _showCategorySheet(context, category: 'System', items: [
-          _SheetItem('Einstellungen', Icons.settings_rounded, '/einstellungen'),
-          _SheetItem('Admin', Icons.admin_panel_settings_rounded, null),
-          _SheetItem('Feedback', Icons.feedback_rounded, null),
-          _SheetItem('Changelog', Icons.history_rounded, null),
-        ]);
+        _showCategorySheet(
+          context,
+          category: 'System',
+          items: [
+            _SheetItem(
+              'Einstellungen',
+              Icons.settings_rounded,
+              '/einstellungen',
+            ),
+            _SheetItem('Admin', Icons.admin_panel_settings_rounded, null),
+            _SheetItem('Feedback', Icons.feedback_rounded, null),
+            _SheetItem('Changelog', Icons.history_rounded, null),
+          ],
+        );
       case _NavCategory.gemeinschaft:
-        _showCategorySheet(context, category: 'Gemeinschaft', items: [
-          _SheetItem('Forum', Icons.forum_rounded, null),
-          _SheetItem('Kritik', Icons.rate_review_rounded, null),
-          _SheetItem('Rezepte', Icons.restaurant_rounded, null),
-          _SheetItem('Fotos', Icons.photo_library_rounded, null),
-          _SheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
-        ]);
+        _showCategorySheet(
+          context,
+          category: 'Gemeinschaft',
+          items: [
+            _SheetItem('Forum', Icons.forum_rounded, null),
+            _SheetItem('Kritik', Icons.rate_review_rounded, null),
+            _SheetItem('Rezepte', Icons.restaurant_rounded, null),
+            _SheetItem('Fotos', Icons.photo_library_rounded, null),
+            _SheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
+          ],
+        );
       case _NavCategory.unterwegs:
-        _showCategorySheet(context, category: 'Unterwegs', items: [
-          _SheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
-          _SheetItem('Reisen', Icons.flight_rounded, '/reisen'),
-        ]);
+        _showCategorySheet(
+          context,
+          category: 'Unterwegs',
+          items: [
+            _SheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
+            _SheetItem('Reisen', Icons.flight_rounded, '/reisen'),
+          ],
+        );
       case _NavCategory.organisation:
-        _showCategorySheet(context, category: 'Organisation', items: [
-          _SheetItem(
-              'Kalender', Icons.calendar_month_rounded, '/kalender'),
-          _SheetItem('Umfrage', Icons.poll_rounded, null),
-          _SheetItem('Abos', Icons.subscriptions_rounded, null),
-        ]);
+        _showCategorySheet(
+          context,
+          category: 'Organisation',
+          items: [
+            _SheetItem('Kalender', Icons.calendar_month_rounded, '/kalender'),
+            _SheetItem('Umfrage', Icons.poll_rounded, null),
+            _SheetItem('Abos', Icons.subscriptions_rounded, null),
+          ],
+        );
     }
   }
 
@@ -309,8 +348,9 @@ class _CategorySheet extends StatelessWidget {
                 item.label,
                 style: isPlaceholder
                     ? TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.4),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.4,
+                        ),
                       )
                     : null,
               ),
