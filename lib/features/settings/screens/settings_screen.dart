@@ -200,7 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               : 'Wird geladen...',
           onTap: () {},
         ),
-        if (!kIsWeb)
+        if (!kIsWeb && kReleaseMode)
           ListTile(
             leading: Icon(
               Icons.system_update_rounded,

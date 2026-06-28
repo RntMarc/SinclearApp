@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../notifications/services/notification_service.dart';
@@ -29,6 +30,7 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _checkForUpdate() async {
+    if (!kReleaseMode) return;
     final androidUpdate = AppScope.of(context).androidUpdate;
     if (!androidUpdate.isSupported) return;
 
