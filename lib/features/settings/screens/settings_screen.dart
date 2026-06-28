@@ -217,8 +217,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   )
                 : _checkingUpdate
-                    ? const Text('Wird geprüft...')
-                    : const Text('Auf neuere Version prüfen'),
+                ? const Text('Wird geprüft...')
+                : const Text('Auf neuere Version prüfen'),
             trailing: _checkingUpdate
                 ? const SizedBox(
                     width: 20,
@@ -307,6 +307,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _checkForUpdateManually() async {
     final androidUpdate = AppScope.of(context).androidUpdate;
+    developer.log(
+      'Settings: manual update check — isSupported=${androidUpdate.isSupported}',
+    );
     if (!androidUpdate.isSupported) return;
 
     setState(() {
@@ -316,6 +319,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     try {
       final updateInfo = await androidUpdate.checkForUpdate();
+      developer.log('Settings: updateInfo=$updateInfo, mounted=$mounted');
       if (!mounted) return;
 
       if (updateInfo == null) {
@@ -335,12 +339,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _downloadAndInstall(dialog, androidUpdate, updateInfo),
       );
     } catch (e) {
+      developer.log('Settings: update check error: $e');
       if (!mounted) return;
       final message = e.toString().contains('SocketException')
           ? 'Keine Internetverbindung.'
           : e.toString().contains('TimeoutException')
-              ? 'Zeitüberschreitung – Server antwortet nicht.'
-              : 'Update-Prüfung fehlgeschlagen: $e';
+          ? 'Zeitüberschreitung – Server antwortet nicht.'
+          : 'Update-Prüfung fehlgeschlagen: $e';
       setState(() {
         _checkingUpdate = false;
         _updateError = message;
@@ -353,17 +358,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AndroidUpdateService service,
     AppUpdateInfo info,
   ) async {
+    developer.log('Settings: _downloadAndInstall started');
     try {
       final filePath = await service.downloadApk(
         info.downloadUrl,
         onProgress: (p) => dialog.setProgress(p),
       );
-      if (!mounted) return;
+      developer.log('Settings: download done, filePath=$filePath');
+      if (!mounted) {
+        developer.log('Settings: unmounted before pop, aborting');
+        return;
+      }
       // ignore: use_build_context_synchronously
       Navigator.pop(context, true);
       await Future<void>.delayed(Duration.zero);
+      developer.log('Settings: calling installApk…');
       await service.installApk(filePath);
+      developer.log('Settings: installApk returned');
     } catch (e) {
+      developer.log('Settings: install error: $e');
       dialog.setError('Download fehlgeschlagen: $e');
     }
   }

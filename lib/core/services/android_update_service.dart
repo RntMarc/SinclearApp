@@ -19,33 +19,31 @@ class AndroidUpdateService {
   bool get isSupported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
+  void _log(String msg, {Object? error, StackTrace? st}) {
+    developer.log(
+      msg,
+      name: 'AndroidUpdateService',
+      error: error,
+      stackTrace: st,
+    );
+  }
+
   Future<AppUpdateInfo?> checkForUpdate() async {
-    if (!isSupported) return null;
+    _log('checkForUpdate() called — baseUrl=$baseUrl');
+    if (!isSupported) {
+      _log('Platform not supported, skipping');
+      return null;
+    }
 
     final uri = Uri.parse('$baseUrl/app/version');
-    developer.log(
-      'Checking for update',
-      name: 'AndroidUpdateService',
-      error: 'URL: $uri',
-    );
+    _log('Requesting $uri');
 
     try {
-      final response = await http.get(uri).timeout(
-            const Duration(seconds: 15),
-          );
+      final response = await http.get(uri).timeout(const Duration(seconds: 15));
 
-      developer.log(
-        'Update check response',
-        name: 'AndroidUpdateService',
-        error: 'Status: ${response.statusCode}, Body: ${response.body}',
-      );
+      _log('Response ${response.statusCode}: ${response.body}');
 
       if (response.statusCode != 200) {
-        developer.log(
-          'Update check failed',
-          name: 'AndroidUpdateService',
-          error: 'HTTP ${response.statusCode}: ${response.body}',
-        );
         throw ApiException(
           'Server returned ${response.statusCode}',
           response.body,
@@ -58,37 +56,27 @@ class AndroidUpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersionCode = int.parse(packageInfo.buildNumber);
 
-      developer.log(
-        'Version comparison',
-        name: 'AndroidUpdateService',
-        error:
-            'Server: ${updateInfo.versionCode}, Local: $currentVersionCode',
+      _log(
+        'Version check — server: ${updateInfo.versionCode} '
+        '(${updateInfo.version}), local: $currentVersionCode '
+        '(${packageInfo.version})',
       );
 
       if (updateInfo.versionCode > currentVersionCode) {
+        _log('Update available!');
         return updateInfo;
       }
+
+      _log('Already up-to-date');
       return null;
     } on TimeoutException {
-      developer.log(
-        'Update check timed out',
-        name: 'AndroidUpdateService',
-      );
+      _log('Request timed out after 15s');
       rethrow;
     } on SocketException catch (e) {
-      developer.log(
-        'Update check socket error',
-        name: 'AndroidUpdateService',
-        error: e.message,
-      );
+      _log('Socket error: ${e.message}');
       rethrow;
     } catch (e, st) {
-      developer.log(
-        'Update check error',
-        name: 'AndroidUpdateService',
-        error: e,
-        stackTrace: st,
-      );
+      _log('Unexpected error', error: e, st: st);
       rethrow;
     }
   }
@@ -97,15 +85,29 @@ class AndroidUpdateService {
     String downloadUrl, {
     void Function(double progress)? onProgress,
   }) async {
+    _log('downloadApk() — url=$downloadUrl');
     if (!isSupported) {
       throw StateError('APK download is only supported on Android');
     }
 
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/sinclear-update.apk');
+    _log('Target file: ${file.path}');
+
+    // Delete old update if present
+    if (await file.exists()) {
+      await file.delete();
+      _log('Deleted previous update file');
+    }
 
     final request = http.Request('GET', Uri.parse(downloadUrl));
+    _log('Sending download request…');
     final response = await http.Client().send(request);
+
+    _log(
+      'Download response ${response.statusCode}, '
+      'contentLength=${response.contentLength}',
+    );
 
     if (response.statusCode != 200) {
       throw StateError('Download failed: ${response.statusCode}');
@@ -113,53 +115,69 @@ class AndroidUpdateService {
 
     final totalBytes = response.contentLength ?? 0;
     var receivedBytes = 0;
+    var lastLogPercent = 0;
 
     final sink = file.openWrite();
     await for (final chunk in response.stream) {
       sink.add(chunk);
       receivedBytes += chunk.length;
       if (totalBytes > 0) {
+        final percent = (receivedBytes * 100 / totalBytes).toInt();
+        if (percent >= lastLogPercent + 10) {
+          _log(
+            'Download progress: $percent% ($receivedBytes/$totalBytes bytes)',
+          );
+          lastLogPercent = percent;
+        }
         onProgress?.call(receivedBytes / totalBytes);
       }
     }
     await sink.close();
 
+    final savedSize = await file.length();
+    _log('Download complete — saved $savedSize bytes to ${file.path}');
+
     return file.path;
   }
 
   Future<void> installApk(String filePath) async {
+    _log('installApk() — filePath=$filePath');
+
     final file = File(filePath);
     final exists = await file.exists();
-    final size = exists ? await file.length() : 0;
-
-    developer.log(
-      'Installing APK',
-      name: 'AndroidUpdateService',
-      error: 'Path: $filePath, Exists: $exists, Size: $size bytes',
-    );
+    _log('File exists: $exists');
 
     if (!exists) {
+      _log('ERROR: APK file not found at $filePath');
       throw StateError('APK file not found: $filePath');
     }
 
+    final size = await file.length();
+    _log('File size: $size bytes');
+
     if (size == 0) {
+      _log('ERROR: APK file is empty');
       throw StateError('APK file is empty: $filePath');
     }
 
+    _log(
+      'Calling OpenFile.open() with type=application/vnd.android.package-archive',
+    );
     final result = await OpenFile.open(
       filePath,
       type: 'application/vnd.android.package-archive',
     );
 
-    developer.log(
-      'OpenFile result',
-      name: 'AndroidUpdateService',
-      error: 'Type: ${result.type}, Message: ${result.message}',
+    _log(
+      'OpenFile.open() returned — type=${result.type}, message=${result.message}',
     );
 
     if (result.type != ResultType.done) {
+      _log('ERROR: OpenFile failed — ${result.message}');
       throw StateError('Failed to open APK: ${result.message}');
     }
+
+    _log('OpenFile succeeded — intent dispatched');
   }
 }
 
@@ -170,5 +188,6 @@ class ApiException implements Exception {
   ApiException(this.message, [this.body]);
 
   @override
-  String toString() => 'ApiException: $message${body != null ? ' ($body)' : ''}';
+  String toString() =>
+      'ApiException: $message${body != null ? ' ($body)' : ''}';
 }
