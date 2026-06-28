@@ -128,7 +128,35 @@ class AndroidUpdateService {
   }
 
   Future<void> installApk(String filePath) async {
-    final result = await OpenFile.open(filePath);
+    final file = File(filePath);
+    final exists = await file.exists();
+    final size = exists ? await file.length() : 0;
+
+    developer.log(
+      'Installing APK',
+      name: 'AndroidUpdateService',
+      error: 'Path: $filePath, Exists: $exists, Size: $size bytes',
+    );
+
+    if (!exists) {
+      throw StateError('APK file not found: $filePath');
+    }
+
+    if (size == 0) {
+      throw StateError('APK file is empty: $filePath');
+    }
+
+    final result = await OpenFile.open(
+      filePath,
+      type: 'application/vnd.android.package-archive',
+    );
+
+    developer.log(
+      'OpenFile result',
+      name: 'AndroidUpdateService',
+      error: 'Type: ${result.type}, Message: ${result.message}',
+    );
+
     if (result.type != ResultType.done) {
       throw StateError('Failed to open APK: ${result.message}');
     }
