@@ -336,9 +336,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      final message = e.toString().contains('SocketException')
+          ? 'Keine Internetverbindung.'
+          : e.toString().contains('TimeoutException')
+              ? 'Zeitüberschreitung – Server antwortet nicht.'
+              : 'Update-Prüfung fehlgeschlagen: $e';
       setState(() {
         _checkingUpdate = false;
-        _updateError = 'Update-Prüfung fehlgeschlagen.';
+        _updateError = message;
       });
     }
   }

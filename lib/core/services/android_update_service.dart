@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -22,13 +23,35 @@ class AndroidUpdateService {
   Future<AppUpdateInfo?> checkForUpdate() async {
     if (!isSupported) return null;
 
+    final uri = Uri.parse('$baseUrl/app/version');
+    developer.log(
+      'Checking for update',
+      name: 'AndroidUpdateService',
+      error: 'URL: $uri',
+    );
+
     try {
-      final uri = Uri.parse('$baseUrl/app/version');
       final response = await http.get(uri).timeout(
             const Duration(seconds: 15),
           );
 
-      if (response.statusCode != 200) return null;
+      developer.log(
+        'Update check response',
+        name: 'AndroidUpdateService',
+        error: 'Status: ${response.statusCode}, Body: ${response.body}',
+      );
+
+      if (response.statusCode != 200) {
+        developer.log(
+          'Update check failed',
+          name: 'AndroidUpdateService',
+          error: 'HTTP ${response.statusCode}: ${response.body}',
+        );
+        throw ApiException(
+          'Server returned ${response.statusCode}',
+          response.body,
+        );
+      }
 
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       final updateInfo = AppUpdateInfo.fromJson(json);
@@ -36,12 +59,38 @@ class AndroidUpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersionCode = int.parse(packageInfo.buildNumber);
 
+      developer.log(
+        'Version comparison',
+        name: 'AndroidUpdateService',
+        error:
+            'Server: ${updateInfo.versionCode}, Local: $currentVersionCode',
+      );
+
       if (updateInfo.versionCode > currentVersionCode) {
         return updateInfo;
       }
       return null;
-    } catch (_) {
-      return null;
+    } on TimeoutException {
+      developer.log(
+        'Update check timed out',
+        name: 'AndroidUpdateService',
+      );
+      rethrow;
+    } on SocketException catch (e) {
+      developer.log(
+        'Update check socket error',
+        name: 'AndroidUpdateService',
+        error: e.message,
+      );
+      rethrow;
+    } catch (e, st) {
+      developer.log(
+        'Update check error',
+        name: 'AndroidUpdateService',
+        error: e,
+        stackTrace: st,
+      );
+      rethrow;
     }
   }
 
@@ -90,4 +139,14 @@ class AndroidUpdateService {
       throw StateError('Failed to open APK: ${result.message}');
     }
   }
+}
+
+class ApiException implements Exception {
+  final String message;
+  final String? body;
+
+  ApiException(this.message, [this.body]);
+
+  @override
+  String toString() => 'ApiException: $message${body != null ? ' ($body)' : ''}';
 }
