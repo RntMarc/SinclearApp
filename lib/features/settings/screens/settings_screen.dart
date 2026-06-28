@@ -361,6 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       // ignore: use_build_context_synchronously
       Navigator.pop(context, true);
+      await Future<void>.delayed(Duration.zero);
       await service.installApk(filePath);
     } catch (e) {
       dialog.setError('Download fehlgeschlagen: $e');
