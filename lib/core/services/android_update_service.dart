@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'package:open_file/open_file.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../models/app_update_info.dart';
 
@@ -100,11 +99,6 @@ class AndroidUpdateService {
   }) async {
     if (!isSupported) {
       throw StateError('APK download is only supported on Android');
-    }
-
-    final permission = await Permission.requestInstallPackages.request();
-    if (!permission.isGranted) {
-      throw StateError('Install permission denied');
     }
 
     final tempDir = await getTemporaryDirectory();
