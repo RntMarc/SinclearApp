@@ -137,10 +137,9 @@ def load_env():
 
 
 def parse_version():
-    """Extrahiert Version aus pubspec.yaml und berechnet versionCode.
+    """Extrahiert Version aus pubspec.yaml und den versionCode.
 
-    Version "0.5.5"  → versionCode 55
-    Version "1.2.4"  → versionCode 124
+    Version "0.5.8+5801" → ver="0.5.8", vc=5801
     """
     if not PUBSPEC.exists():
         fail(f'pubspec.yaml nicht gefunden ({PUBSPEC})')
@@ -149,8 +148,18 @@ def parse_version():
         for line in f:
             m = re.match(r'^version:\s*(\S+)', line)
             if m:
-                raw = m.group(1)
-                raw = re.split(r'[+-]', raw)[0]
+                full_version = m.group(1)
+                # Versuche versionCode aus dem Teil nach dem '+' zu lesen
+                if '+' in full_version:
+                    ver, build = full_version.split('+', 1)
+                    try:
+                        vc = int(build)
+                        return ver, vc
+                    except ValueError:
+                        pass
+
+                # Fallback: Berechne versionCode aus der Version (z.B. 0.5.8 -> 58)
+                raw = re.split(r'[+-]', full_version)[0]
                 parts = raw.split('.')
                 if len(parts) >= 3:
                     major, minor, patch = parts[:3]
@@ -158,7 +167,7 @@ def parse_version():
                     vc = int(f'{major}{minor}{patch}')
                     return ver, vc
 
-    fail('Keine Version in pubspec.yaml (z. B. "version: 0.5.5")')
+    fail('Keine Version in pubspec.yaml (z. B. "version: 0.5.8+5801")')
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -478,7 +487,7 @@ def ftp_mkdir(ftp, path):
 #  POST-PROCESSING (Python-Integration)
 # ══════════════════════════════════════════════════════════════════════════
 
-def post_process_web(version):
+def post_process_web(version, version_code):
     """Erstellt die versionierte Verzeichnisstruktur aus build/web/."""
     if not BUILD_WEB.is_dir():
         fail(f'Build-Verzeichnis nicht gefunden: {BUILD_WEB}\n'
@@ -502,7 +511,7 @@ def post_process_web(version):
     if htaccess_versioned.exists() and not DRY_RUN:
         shutil.copy2(htaccess_versioned, versioned / '.htaccess')
 
-    # index.html aus dem Flutter-Build übernehmen und nur <base href> anpassen
+    # index.html aus dem Flutter-Build übernehmen und anpassen
     source_index_html = BUILD_WEB / 'index.html'
     index_html = DIST / 'index.html'
     if not source_index_html.exists():
@@ -511,6 +520,8 @@ def post_process_web(version):
     if not DRY_RUN:
         shutil.copy2(source_index_html, index_html)
         index_content = index_html.read_text(encoding='utf-8')
+
+        # 1. <base href> anpassen
         if '<base href=' not in index_content:
             fail('Kein <base href= in build/web/index.html gefunden.')
 
@@ -527,16 +538,32 @@ def post_process_web(version):
                 'Kein unterstützter <base href= in build/web/index.html gefunden.'
             )
 
+        # 2. Service Worker Registrierung anpassen (absoluter Pfad + Version-Busting)
+        # Wir wollen sicherstellen dass es /firebase-messaging-sw.js?v=... ist
+        # damit er Root-Scope behält aber bei jedem Update neu geladen wird.
+        sw_pattern = re.compile(
+            r"navigator\.serviceWorker\.register\(['\"][^'\"]+['\"]\)"
+        )
+        full_ver = f"{version}+{version_code}"
+        updated_content = sw_pattern.sub(
+            f"navigator.serviceWorker.register('/firebase-messaging-sw.js?v={full_ver}')",
+            updated_content
+        )
+
         index_html.write_text(updated_content, encoding='utf-8')
 
-    # version.json auf Root kopieren
+    # Root-Dateien kopieren
     if not DRY_RUN:
+        # version.json
         shutil.copy2(BUILD_WEB / 'version.json', DIST / 'version.json')
-
-    # .htaccess für Root
-    htaccess_root = ROOT / 'web' / '.htaccess'
-    if htaccess_root.exists() and not DRY_RUN:
-        shutil.copy2(htaccess_root, DIST / '.htaccess')
+        # firebase-messaging-sw.js (muss im Root liegen für vollen Scope)
+        sw_file = BUILD_WEB / 'firebase-messaging-sw.js'
+        if sw_file.exists():
+            shutil.copy2(sw_file, DIST / 'firebase-messaging-sw.js')
+        # .htaccess
+        htaccess_root = ROOT / 'web' / '.htaccess'
+        if htaccess_root.exists():
+            shutil.copy2(htaccess_root, DIST / '.htaccess')
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -593,7 +620,7 @@ def main():
 
     # ── 5. Post-Processing ────────────────────────────────────────────
     step('📁  Post-Processing (versionierte Struktur)')
-    post_process_web(version)
+    post_process_web(version, version_code)
 
     if DIST.is_dir():
         versioned = DIST / version
@@ -650,7 +677,8 @@ def main():
         # 6c. Root-Dateien gezielt ersetzen, ohne den alten Web-Einstieg
         # vorher zu löschen.
         print(f'    {GR}Root-Dateien ersetzen …{R}')
-        for root_file in ('index.html', 'version.json', '.htaccess'):
+        for root_file in ('index.html', 'version.json', '.htaccess',
+                          'firebase-messaging-sw.js'):
             local_file = DIST / root_file
             if local_file.exists():
                 ftp_upload_file(ftp, str(local_file), root_file)
