@@ -35,6 +35,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # ── Pfade ──────────────────────────────────────────────────────────────────
@@ -250,17 +251,30 @@ def ftp_list(ftp, path):
     return dirs, files
 
 
-def ftp_clean_versioned_dirs(ftp, keep_recent=10, skip=frozenset({'api', 'downloads'})):
-    """Löscht alte versionierte Verzeichnisse, behält die neuesten `keep_recent`.
+def ftp_clean_versioned_dirs(
+    ftp,
+    keep_recent=10,
+    min_age_days=30,
+    skip=frozenset({'api', 'downloads'}),
+):
+    """Löscht nur alte und nicht mehr referenzierte Web-Versionen.
 
-    Nutzer die noch die App offen haben brauchen Assets aus ihrem geladenen
-    Version-Ordner. Deshalb wird immer mindestens eine Vorgängerversion behalten.
+    Versionierte Web-Ordner bleiben absichtlich länger auf dem Server, weil
+    Browser-Caches, Service-Worker und laufende Sessions noch Assets aus dem
+    beim Laden aktiven Versionsordner anfordern können. Neben den neuesten
+    `keep_recent` Releases werden deshalb auch alle Versionen behalten, deren
+    FTP-Änderungsdatum jünger als `min_age_days` Tage ist.
+
+    Verzeichnisse in `skip`, zum Beispiel `api` und `downloads`, werden nie
+    gelöscht.
     """
     if ftp is None:
         return
 
     dirs, _ = ftp_list(ftp, '.')
     version_pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)$')
+    root_references = _ftp_collect_root_version_references(ftp)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=min_age_days)
     versions = []
 
     for d in dirs:
@@ -269,17 +283,68 @@ def ftp_clean_versioned_dirs(ftp, keep_recent=10, skip=frozenset({'api', 'downlo
         m = version_pattern.match(d)
         if m:
             parts = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
-            versions.append((parts, d))
+            modified_at = _ftp_dir_modified_at(ftp, d)
+            versions.append((parts, d, modified_at))
 
-    # Sortiere absteigend (neueste zuerst)
+    # Sortiere absteigend (neueste zuerst).
     versions.sort(key=lambda x: x[0], reverse=True)
 
-    # Behalte die neuesten `keep_recent`, lösche den Rest
-    to_delete = versions[keep_recent:]
+    for index, (_, name, modified_at) in enumerate(versions):
+        if index < keep_recent:
+            continue
+        if name in root_references:
+            print(f'    ↪  {name}/ behalten (noch in Root-Dateien referenziert)')
+            continue
+        if modified_at is None:
+            print(f'    ↪  {name}/ behalten (Alter konnte nicht geprüft werden)')
+            continue
+        if modified_at > cutoff:
+            print(f'    ↪  {name}/ behalten (jünger als {min_age_days} Tage)')
+            continue
 
-    for parts, name in to_delete:
-        print(f'    🗑  {name}/ (alte Version)')
+        print(f'    🗑  {name}/ (älter als {min_age_days} Tage)')
         _ftp_rmtree(ftp, name)
+
+
+def _ftp_dir_modified_at(ftp, dirname):
+    """Liefert das Änderungsdatum eines FTP-Verzeichnisses als UTC-Zeit."""
+    try:
+        for name, facts in ftp.mlsd('.', facts=['modify']):
+            if name == dirname and facts.get('modify'):
+                return datetime.strptime(
+                    facts['modify'],
+                    '%Y%m%d%H%M%S',
+                ).replace(tzinfo=timezone.utc)
+    except (AttributeError, ftplib.error_perm, ValueError):
+        return None
+    return None
+
+
+def _ftp_collect_root_version_references(ftp):
+    """Findet Versionsordner, die noch in Root- oder Manifest-Dateien stehen."""
+    _, files = ftp_list(ftp, '.')
+    checked_suffixes = ('.html', '.js', '.json', '.webmanifest', '.txt')
+    references = set()
+    version_pattern = re.compile(r'(?<![\d.])(\d+\.\d+\.\d+)(?:/|["\'])')
+
+    for filename in files:
+        if filename.startswith('.') and filename != '.htaccess':
+            continue
+        if filename != '.htaccess' and not filename.endswith(checked_suffixes):
+            continue
+
+        try:
+            buf = io.BytesIO()
+            ftp.retrbinary(f'RETR {filename}', buf.write)
+        except (ftplib.error_perm, OSError):
+            continue
+
+        content = buf.getvalue()[:1024 * 1024].decode('utf-8', errors='ignore')
+        references.update(
+            match.group(1) for match in version_pattern.finditer(content)
+        )
+
+    return references
 
 
 def _ftp_rmtree(ftp, path):
