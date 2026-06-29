@@ -667,6 +667,7 @@ def main():
 
         # 6a. Erst den neuen versionierten Web-Ordner vollständig hochladen.
         print(f'    {GR}Versionierten Web-Build hochladen …{R}')
+        ftp_mkdir(ftp, version)
         ftp_upload_dir(ftp, str(DIST / version), version)
 
         # 6b. Erst nach erfolgreicher Prüfung zeigt index.html auf den
