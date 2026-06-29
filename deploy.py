@@ -394,44 +394,32 @@ def post_process_web(version):
     if htaccess_versioned.exists() and not DRY_RUN:
         shutil.copy2(htaccess_versioned, versioned / '.htaccess')
 
-    # index.html mit angepasstem <base href> erzeugen
+    # index.html aus dem Flutter-Build übernehmen und nur <base href> anpassen
+    source_index_html = BUILD_WEB / 'index.html'
     index_html = DIST / 'index.html'
+    if not source_index_html.exists():
+        fail(f'build/web/index.html nicht gefunden: {source_index_html}')
+
     if not DRY_RUN:
-        index_html.write_text(f'''<!DOCTYPE html>
-<html>
-<head>
-  <base href="/{version}/">
+        shutil.copy2(source_index_html, index_html)
+        index_content = index_html.read_text(encoding='utf-8')
+        if '<base href=' not in index_content:
+            fail('Kein <base href= in build/web/index.html gefunden.')
 
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Sinclear Beyond – Deine intelligente Plattform.">
+        base_href_pattern = re.compile(
+            r'<base href="(?:\$FLUTTER_BASE_HREF|/(?:[^"]*/)?)">'
+        )
+        updated_content, replacements = base_href_pattern.subn(
+            f'<base href="/{version}/">',
+            index_content,
+            count=1,
+        )
+        if replacements == 0:
+            fail(
+                'Kein unterstützter <base href= in build/web/index.html gefunden.'
+            )
 
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Beyond">
-  <link rel="apple-touch-icon" href="/{version}/apple-touch-icon.png">
-
-  <link rel="icon" type="image/x-icon" href="/{version}/favicon.ico">
-  <link rel="icon" type="image/png" sizes="192x192" href="/{version}/icons/icon-192x192.png"/>
-  <link rel="icon" type="image/png" sizes="512x512" href="/{version}/icons/icon-512x512.png"/>
-
-  <title>Sinclear Beyond</title>
-  <link rel="manifest" href="/{version}/manifest.json">
-</head>
-<body>
-  <script>
-    if ('serviceWorker' in navigator) {{
-      navigator.serviceWorker.register('/{version}/firebase-messaging-sw.js');
-    }}
-  </script>
-  <script src="/{version}/flutter_bootstrap.js" async></script>
-</body>
-</html>
-''', encoding='utf-8')
+        index_html.write_text(updated_content, encoding='utf-8')
 
     # version.json auf Root kopieren
     if not DRY_RUN:
