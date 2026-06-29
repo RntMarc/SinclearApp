@@ -209,7 +209,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Social Media')),
+      appBar: AppBar(title: const Text('SOCIAL MEDIA')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

@@ -100,7 +100,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Code eingeben'),
+        title: const Text('CODE EINGEBEN'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.go('/login'),

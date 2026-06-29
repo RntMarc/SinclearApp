@@ -64,7 +64,7 @@ class _ExploreSearchOverlayState extends State<ExploreSearchOverlay> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Suchen'),
+        title: const Text('SUCHEN'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
