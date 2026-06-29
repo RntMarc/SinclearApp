@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'web_update_service_stub.dart'
     if (dart.library.html) 'web_update_service_web.dart'
@@ -7,6 +8,9 @@ import 'web_update_service_stub.dart'
 class WebUpdateService {
   static const _buildNumberKey = 'web_known_build_number';
   static const _pollInterval = Duration(minutes: 5);
+
+  final ValueNotifier<bool> updateAvailable = ValueNotifier(false);
+  String? latestVersion;
 
   Timer? _timer;
 
@@ -29,15 +33,24 @@ class WebUpdateService {
       }
 
       if (serverBuildNumber != localBuildNumber) {
-        await prefs.setString(_buildNumberKey, serverBuildNumber);
-        platform.reloadPage();
+        latestVersion = await platform.fetchLatestVersion();
+        updateAvailable.value = true;
       }
     } catch (_) {
       // Silently ignore – update check should never crash the app
     }
   }
 
+  void reload() {
+    platform.reloadPage();
+  }
+
+  void dismiss() {
+    updateAvailable.value = false;
+  }
+
   void dispose() {
     _timer?.cancel();
+    updateAvailable.dispose();
   }
 }

@@ -76,6 +76,7 @@ void main() async {
   final calendar = CalendarService(api: api, auth: auth);
   final notification = NotificationService(api: api, auth: auth);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
+  final webUpdate = WebUpdateService();
   try {
     await notification.init();
     if (auth.isLoggedIn) notification.onLoggedIn();
@@ -95,7 +96,7 @@ void main() async {
     }
   });
   if (kIsWeb) {
-    WebUpdateService().init();
+    webUpdate.init();
   }
 
   final router = createRouter(auth);
@@ -121,6 +122,7 @@ void main() async {
       calendar: calendar,
       notification: notification,
       androidUpdate: androidUpdate,
+      webUpdate: webUpdate,
       router: router,
     ),
   );
