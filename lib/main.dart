@@ -76,7 +76,9 @@ void main() async {
   final calendar = CalendarService(api: api, auth: auth);
   final notification = NotificationService(api: api, auth: auth);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
-  final webUpdate = WebUpdateService();
+  final webUpdate = WebUpdateService(
+    currentBuildNumber: packageInfo.buildNumber,
+  );
   try {
     await notification.init();
     if (auth.isLoggedIn) notification.onLoggedIn();
