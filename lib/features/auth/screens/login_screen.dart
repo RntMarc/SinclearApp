@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Anmelden'),
+        title: const Text('ANMELDEN'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.go('/'),

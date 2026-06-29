@@ -220,7 +220,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _imageBytes != null || (_existingImage != null && !_removeImage);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil bearbeiten')),
+      appBar: AppBar(title: const Text('PROFIL BEARBEITEN')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

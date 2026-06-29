@@ -131,7 +131,7 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
     final hasDiscord = _user?.base.discordId != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Discord-Verknüpfung')),
+      appBar: AppBar(title: const Text('DISCORD-VERKNÜPFUNG')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

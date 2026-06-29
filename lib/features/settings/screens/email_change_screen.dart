@@ -110,7 +110,7 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('E-Mail ändern')),
+      appBar: AppBar(title: const Text('E-MAIL ÄNDERN')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

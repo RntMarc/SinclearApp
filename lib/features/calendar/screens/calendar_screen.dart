@@ -265,7 +265,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildMobileLayout() {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kalender'),
         actions: [
           TextButton.icon(
             onPressed: () => setState(() {

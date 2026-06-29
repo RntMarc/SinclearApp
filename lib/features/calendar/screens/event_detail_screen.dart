@@ -151,14 +151,14 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Termin')),
+        appBar: AppBar(title: const Text('TERMIN')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_error != null || _event == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Termin')),
+        appBar: AppBar(title: const Text('TERMIN')),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -179,7 +179,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(event.title),
+        title: Text(event.title.toUpperCase()),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),

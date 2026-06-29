@@ -148,12 +148,12 @@ class _MobileShell extends StatelessWidget {
 }
 
 String _titleForLocation(String location) {
-  if (location.startsWith('/kalender')) return 'Kalender';
-  if (location.startsWith('/entdecken')) return 'Entdecken';
-  if (location.startsWith('/reisen')) return 'Reisen & Events';
-  if (location.startsWith('/kontakte')) return 'Kontakte';
-  if (location.startsWith('/einstellungen')) return 'Einstellungen';
-  return 'Home';
+  if (location.startsWith('/kalender')) return 'KALENDER';
+  if (location.startsWith('/entdecken')) return 'ENTDECKEN';
+  if (location.startsWith('/reisen')) return 'REISEN & EVENTS';
+  if (location.startsWith('/kontakte')) return 'KONTAKTE';
+  if (location.startsWith('/einstellungen')) return 'EINSTELLUNGEN';
+  return 'HOME';
 }
 
 // ---------------------------------------------------------------------------
@@ -418,37 +418,37 @@ class _NavContent extends StatelessWidget {
             Padding(padding: const EdgeInsets.fromLTRB(0, 8, 0, 8)),
             ListTile(
               leading: const Icon(Icons.home_rounded),
-              title: const Text('Home'),
+              title: const Text('HOME'),
               selected: selectedIndex == 0,
               onTap: () => onNavigate('/home'),
             ),
             ListTile(
               leading: const Icon(Icons.calendar_month_rounded),
-              title: const Text('Kalender'),
+              title: const Text('KALENDER'),
               selected: selectedIndex == 1,
               onTap: () => onNavigate('/kalender'),
             ),
             ListTile(
               leading: const Icon(Icons.explore_rounded),
-              title: const Text('Entdecken'),
+              title: const Text('ENTDECKEN'),
               selected: selectedIndex == 2,
               onTap: () => onNavigate('/entdecken'),
             ),
             ListTile(
               leading: const Icon(Icons.flight_rounded),
-              title: const Text('Reisen & Events'),
+              title: const Text('REISEN & EVENTS'),
               selected: selectedIndex == 3,
               onTap: () => onNavigate('/reisen'),
             ),
             ListTile(
               leading: const Icon(Icons.people_rounded),
-              title: const Text('Kontakte'),
+              title: const Text('KONTAKTE'),
               selected: selectedIndex == 4,
               onTap: () => onNavigate('/kontakte'),
             ),
             ListTile(
               leading: const Icon(Icons.settings_rounded),
-              title: const Text('Einstellungen'),
+              title: const Text('EINSTELLUNGEN'),
               selected: selectedIndex == 5,
               onTap: () => onNavigate('/einstellungen'),
             ),
