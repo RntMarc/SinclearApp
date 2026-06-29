@@ -371,8 +371,6 @@ def ftp_clean_root_files(ftp):
         return
 
     _, files = ftp_list(ftp, '.')
-    version_pattern = re.compile(r'^\d+\.\d+\.\d+$')
-
     for f in files:
         if f in ('api', 'downloads'):
             continue
@@ -402,6 +400,51 @@ def ftp_upload_dir(ftp, local, remote):
             print(f'    📄  {rpath}')
             with open(entry.path, 'rb') as fh:
                 ftp.storbinary(f'STOR {rpath}', fh)
+
+
+def collect_required_web_files(version):
+    """Liefert Dateien, die nach dem versionierten Upload existieren müssen."""
+    versioned = DIST / version
+    required = [
+        f'{version}/flutter_bootstrap.js',
+        f'{version}/version.json',
+    ]
+
+    if versioned.is_dir():
+        js_files = sorted(
+            path.relative_to(DIST).as_posix()
+            for path in versioned.rglob('*.js')
+            if path.is_file()
+        )
+        for path in js_files:
+            if path not in required:
+                required.append(path)
+
+    return required
+
+
+def ftp_file_exists(ftp, path):
+    """Prüft, ob eine Remote-Datei per FTP abrufbar ist."""
+    if ftp is None:
+        return True
+    try:
+        ftp.size(path)
+        return True
+    except (ftplib.error_perm, ftplib.error_reply, OSError):
+        try:
+            ftp.retrbinary(f'RETR {path}', lambda _: None, blocksize=1)
+            return True
+        except (ftplib.error_perm, ftplib.error_reply, OSError):
+            return False
+
+
+def ftp_verify_files(ftp, paths):
+    """Bricht ab, wenn eine erwartete Remote-Datei fehlt."""
+    missing = [path for path in paths if not ftp_file_exists(ftp, path)]
+    if missing:
+        fail('FTP-Upload unvollständig. Fehlende Dateien:\n' +
+             '\n'.join(f'  - {path}' for path in missing))
+    print(f'    {G}✔  {len(paths)} Dateien auf dem Server verifiziert{R}')
 
 
 def ftp_upload_file(ftp, local_path, remote_path, label=''):
@@ -575,12 +618,14 @@ def main():
 
     if DRY_RUN:
         print(f'    {GR}→ Verbinde zu {env["FTP_HOST"]} …{R}')
-        print(f'    {GR}→ Lösche alte versionierte Verzeichnisse (X.Y.Z){R}')
-        print(f'    {GR}→ Lösche alte Root-Dateien (außer api/, downloads/){R}')
-        print(f'    {GR}→ Lade dist/ → {remote_root}/ hoch:{R}')
-        print(f'       index.html, version.json, .htaccess, {version}/')
+        print(f'    {GR}→ Lade zuerst dist/{version}/ vollständig hoch{R}')
+        print(f'    {GR}→ Verifiziere Web-Dateien im Ordner {version}/{R}')
+        print(f'    {GR}→ Ersetze danach index.html, version.json '
+              f'und .htaccess{R}')
         print(f'    {GR}→ Lade {apk_name} → {remote_root}/downloads/ hoch{R}')
-        print(f'    {GR}→ Schreibe api/app_version.json:{R}')
+        print(f'    {GR}→ Schreibe api/app_version.json erst nach Web + APK{R}')
+        print(f'    {GR}→ Lösche alte versionierte Verzeichnisse '
+              f'ganz zum Schluss{R}')
         print(json.dumps(vj_data, indent=4, ensure_ascii=False))
         ok('Dry-Run erfolgreich')
     else:
@@ -593,27 +638,38 @@ def main():
                  f'  Stelle sicher, dass der Server TLS unterstützt.')
         ok(f'Verbunden mit {env["FTP_HOST"]}')
 
-        # 6a. Alte versionierte Verzeichnisse löschen
-        print(f'    {GR}Alte versionierte Verzeichnisse bereinigen …{R}')
-        ftp_clean_versioned_dirs(ftp)
+        # 6a. Erst den neuen versionierten Web-Ordner vollständig hochladen.
+        print(f'    {GR}Versionierten Web-Build hochladen …{R}')
+        ftp_upload_dir(ftp, str(DIST / version), version)
 
-        # 6b. Alte Root-Dateien löschen (index.html, version.json, etc.)
-        print(f'    {GR}Alte Root-Dateien bereinigen …{R}')
-        ftp_clean_root_files(ftp)
+        # 6b. Erst nach erfolgreicher Prüfung zeigt index.html auf den
+        # neuen Build.
+        print(f'    {GR}Versionierten Web-Build verifizieren …{R}')
+        ftp_verify_files(ftp, collect_required_web_files(version))
 
-        # 6c. Dist hochladen (Root-Dateien + versioniertes Verzeichnis)
-        print(f'    {GR}Web-Build hochladen (versioniert) …{R}')
-        ftp_upload_dir(ftp, str(DIST), '.')
+        # 6c. Root-Dateien gezielt ersetzen, ohne den alten Web-Einstieg
+        # vorher zu löschen.
+        print(f'    {GR}Root-Dateien ersetzen …{R}')
+        for root_file in ('index.html', 'version.json', '.htaccess'):
+            local_file = DIST / root_file
+            if local_file.exists():
+                ftp_upload_file(ftp, str(local_file), root_file)
 
-        # 6d. APK hochladen
+        # 6d. APK hochladen.
         print(f'    {GR}APK hochladen …{R}')
         ftp_mkdir(ftp, 'downloads')
         ftp_upload_file(ftp, str(BUILD_APK), f'downloads/{apk_name}',
                         label=f'downloads/{apk_name}')
 
-        # 6e. app_version.json schreiben
+        # 6e. app_version.json erst schreiben, wenn Web und APK
+        # erfolgreich sind.
         print(f'    {GR}app_version.json aktualisieren …{R}')
+        ftp_mkdir(ftp, 'api')
         ftp_write_json(ftp, 'api/app_version.json', vj_data)
+
+        # 6f. Alte versionierte Verzeichnisse ganz zum Schluss bereinigen.
+        print(f'    {GR}Alte versionierte Verzeichnisse bereinigen …{R}')
+        ftp_clean_versioned_dirs(ftp)
 
         ftp.quit()
         ok('FTP-Verbindung geschlossen')
