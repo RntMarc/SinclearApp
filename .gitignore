@@ -62,6 +62,7 @@ gradlew.bat
 .pub-cache/
 .pub/
 /build/
+/dist/
 /coverage/
 
 # Symbolication related

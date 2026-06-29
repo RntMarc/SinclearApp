@@ -4,9 +4,20 @@ Sinclear Build & Deploy Tool
 
 Automatisiert den gesamten Deployment-Prozess:
   1. Build  (flutter clean → pub get → build web → build apk)
-  2. FTP-Upload  (Web + APK)
-  3. app_version.json aktualisieren
-  4. Optional:  flutter run --debug starten
+  2. Post-Process  (Build-Ausgabe in versionierte Verzeichnisstruktur)
+  3. FTP-Upload  (Web + APK)
+  4. app_version.json aktualisieren
+  5. Optional:  flutter run --debug starten
+
+Versionierte Verzeichnisstruktur:
+  /
+  ├── index.html          (mit <base href="/{version}/">)
+  ├── version.json        (immer fresh, kein Cache)
+  ├── .htaccess
+  └── {version}/
+      ├── main.dart.js
+      ├── flutter_bootstrap.js
+      └── ...
 
 Usage:
   python deploy.py            # Vollautomatischer Durchlauf
@@ -21,6 +32,7 @@ import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -32,6 +44,7 @@ ENV_EXAMPLE = ROOT / '.env.example'
 PUBSPEC = ROOT / 'pubspec.yaml'
 BUILD_WEB = ROOT / 'build' / 'web'
 BUILD_APK = ROOT / 'build' / 'app' / 'outputs' / 'flutter-apk' / 'app-release.apk'
+DIST = ROOT / 'dist'
 
 # ── ANSI-Farben ────────────────────────────────────────────────────────────
 R = '\033[0m'
@@ -53,7 +66,8 @@ DRY_RUN = '--dry-run' in sys.argv
 def print_header():
     print()
     print(f'  {BL}{"=" * 50}{R}')
-    print(f'  {BL}   Sinclear Build & Deploy Tool   v1.0{R}')
+    print(f'  {BL}   Sinclear Build & Deploy Tool   v2.0{R}')
+    print(f'  {BL}   (versionierte Web-Deployment){R}')
     print(f'  {BL}{"=" * 50}{R}')
     if DRY_RUN:
         print(f'  {Y}   ⚠  DRY RUN – keine Änderungen{R}')
@@ -143,7 +157,7 @@ def parse_version():
                     vc = int(f'{major}{minor}{patch}')
                     return ver, vc
 
-    fail('Keine Version in pubspec.yaml (z. B. "version: 0.5.5")')
+    fail('Keine Version in pubspec.yaml (z. B. "version: 0.5.5")')
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -236,35 +250,72 @@ def ftp_list(ftp, path):
     return dirs, files
 
 
-def ftp_clean(ftp, path, skip=frozenset({'api', 'downloads'})):
-    """Löscht rekursiv Dateien/Ordner unter path, außer denen in skip."""
+def ftp_clean_versioned_dirs(ftp, keep_recent=10, skip=frozenset({'api', 'downloads'})):
+    """Löscht alte versionierte Verzeichnisse, behält die neuesten `keep_recent`.
+
+    Nutzer die noch die App offen haben brauchen Assets aus ihrem geladenen
+    Version-Ordner. Deshalb wird immer mindestens eine Vorgängerversion behalten.
+    """
     if ftp is None:
         return
 
-    base = Path(path).name
-    if base in skip:
-        return
-
-    dirs, files = ftp_list(ftp, path)
-
-    for f in files:
-        full = f'{path}/{f}' if path and path != '.' else f
-        try:
-            ftp.delete(full)
-            print(f'    🗑  {full}')
-        except ftplib.error_perm as e:
-            print(f'    {Y}⚠  {full} konnte nicht gelöscht werden: {e}{R}')
+    dirs, _ = ftp_list(ftp, '.')
+    version_pattern = re.compile(r'^(\d+)\.(\d+)\.(\d+)$')
+    versions = []
 
     for d in dirs:
         if d in skip:
             continue
-        full = f'{path}/{d}' if path and path != '.' else d
-        ftp_clean(ftp, full, skip)
+        m = version_pattern.match(d)
+        if m:
+            parts = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            versions.append((parts, d))
+
+    # Sortiere absteigend (neueste zuerst)
+    versions.sort(key=lambda x: x[0], reverse=True)
+
+    # Behalte die neuesten `keep_recent`, lösche den Rest
+    to_delete = versions[keep_recent:]
+
+    for parts, name in to_delete:
+        print(f'    🗑  {name}/ (alte Version)')
+        _ftp_rmtree(ftp, name)
+
+
+def _ftp_rmtree(ftp, path):
+    """Löscht ein Verzeichnis rekursiv via FTP."""
+    dirs, files = ftp_list(ftp, path)
+
+    for f in files:
         try:
-            ftp.rmd(full)
-            print(f'    🗑  {full}/')
+            ftp.delete(f'{path}/{f}')
+        except ftplib.error_perm:
+            pass
+
+    for d in dirs:
+        _ftp_rmtree(ftp, f'{path}/{d}')
+        try:
+            ftp.rmd(f'{path}/{d}')
+        except ftplib.error_perm:
+            pass
+
+
+def ftp_clean_root_files(ftp):
+    """Löscht Dateien im Root (außer api/, downloads/, versionierten Verzeichnissen)."""
+    if ftp is None:
+        return
+
+    _, files = ftp_list(ftp, '.')
+    version_pattern = re.compile(r'^\d+\.\d+\.\d+$')
+
+    for f in files:
+        if f in ('api', 'downloads'):
+            continue
+        try:
+            ftp.delete(f)
+            print(f'    🗑  {f}')
         except ftplib.error_perm as e:
-            print(f'    {Y}⚠  {full}/ konnte nicht entfernt werden: {e}{R}')
+            print(f'    {Y}⚠  {f} konnte nicht gelöscht werden: {e}{R}')
 
 
 def ftp_upload_dir(ftp, local, remote):
@@ -316,6 +367,83 @@ def ftp_mkdir(ftp, path):
 
 
 # ══════════════════════════════════════════════════════════════════════════
+#  POST-PROCESSING (Python-Integration)
+# ══════════════════════════════════════════════════════════════════════════
+
+def post_process_web(version):
+    """Erstellt die versionierte Verzeichnisstruktur aus build/web/."""
+    if not BUILD_WEB.is_dir():
+        fail(f'Build-Verzeichnis nicht gefunden: {BUILD_WEB}\n'
+             f'  Der Web-Build war vermutlich nicht erfolgreich.')
+    if not (BUILD_WEB / 'version.json').exists():
+        fail(f'build/web/version.json nicht gefunden.')
+
+    # Dist vorbereiten
+    if DIST.exists() and not DRY_RUN:
+        shutil.rmtree(DIST)
+    if not DRY_RUN:
+        DIST.mkdir(parents=True, exist_ok=True)
+
+    # Build-Inhalte in versioniertes Verzeichnis verschieben
+    versioned = DIST / version
+    if not DRY_RUN:
+        shutil.copytree(BUILD_WEB, versioned)
+
+    # .htaccess für versionierte Assets
+    htaccess_versioned = ROOT / 'web' / '.htaccess.versioned'
+    if htaccess_versioned.exists() and not DRY_RUN:
+        shutil.copy2(htaccess_versioned, versioned / '.htaccess')
+
+    # index.html mit angepasstem <base href> erzeugen
+    index_html = DIST / 'index.html'
+    if not DRY_RUN:
+        index_html.write_text(f'''<!DOCTYPE html>
+<html>
+<head>
+  <base href="/{version}/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Sinclear Beyond – Deine intelligente Plattform.">
+
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Beyond">
+  <link rel="apple-touch-icon" href="/{version}/apple-touch-icon.png">
+
+  <link rel="icon" type="image/x-icon" href="/{version}/favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="/{version}/icons/icon-192x192.png"/>
+  <link rel="icon" type="image/png" sizes="512x512" href="/{version}/icons/icon-512x512.png"/>
+
+  <title>Sinclear Beyond</title>
+  <link rel="manifest" href="/{version}/manifest.json">
+</head>
+<body>
+  <script>
+    if ('serviceWorker' in navigator) {{
+      navigator.serviceWorker.register('/{version}/firebase-messaging-sw.js');
+    }}
+  </script>
+  <script src="/{version}/flutter_bootstrap.js" async></script>
+</body>
+</html>
+''', encoding='utf-8')
+
+    # version.json auf Root kopieren
+    if not DRY_RUN:
+        shutil.copy2(BUILD_WEB / 'version.json', DIST / 'version.json')
+
+    # .htaccess für Root
+    htaccess_root = ROOT / 'web' / '.htaccess'
+    if htaccess_root.exists() and not DRY_RUN:
+        shutil.copy2(htaccess_root, DIST / '.htaccess')
+
+
+# ══════════════════════════════════════════════════════════════════════════
 #  MAIN
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -326,7 +454,6 @@ def main():
     step('📋  Konfiguration')
     env = load_env()
     version, version_code = parse_version()
-    #apk_name = f'beyond-v{version}.apk'
     apk_name = "app-release.apk"
     remote_root = env['FTP_PROJECT_ROOT_PATH'].rstrip('/') or '.'
 
@@ -364,15 +491,26 @@ def main():
     run_cmd('flutter build web --release')
     run_cmd('flutter build apk --release')
 
-    # Prüfen, ob Build-Output existiert
-    if not BUILD_WEB.is_dir():
-        fail(f'Build-Verzeichnis nicht gefunden: {BUILD_WEB}\n'
-             f'  Der Web-Build war vermutlich nicht erfolgreich.')
     if not BUILD_APK.is_file():
         fail(f'APK nicht gefunden: {BUILD_APK}\n'
              f'  Der APK-Build war vermutlich nicht erfolgreich.')
 
-    # ── 5. FTP-Deployment ─────────────────────────────────────────────
+    # ── 5. Post-Processing ────────────────────────────────────────────
+    step('📁  Post-Processing (versionierte Struktur)')
+    post_process_web(version)
+
+    if DIST.is_dir():
+        versioned = DIST / version
+        print(f'    Dist-Inhalt:')
+        for item in sorted(DIST.iterdir()):
+            if item.is_dir():
+                count = sum(1 for _ in item.rglob('*') if _.is_file())
+                print(f'    {G}📁  {item.name}/  ({count} Dateien){R}')
+            else:
+                print(f'    {G}📄  {item.name}{R}')
+    ok(f'Versioniertes Build erstellt: {version}')
+
+    # ── 6. FTP-Deployment ─────────────────────────────────────────────
     step('🌐  FTP-Deployment')
 
     vj_data = {
@@ -384,8 +522,10 @@ def main():
 
     if DRY_RUN:
         print(f'    {GR}→ Verbinde zu {env["FTP_HOST"]} …{R}')
-        print(f'    {GR}→ Lösche alte Web-Dateien (außer api/, downloads/){R}')
-        print(f'    {GR}→ Lade {BUILD_WEB}/ → {remote_root}/ hoch{R}')
+        print(f'    {GR}→ Lösche alte versionierte Verzeichnisse (X.Y.Z){R}')
+        print(f'    {GR}→ Lösche alte Root-Dateien (außer api/, downloads/){R}')
+        print(f'    {GR}→ Lade dist/ → {remote_root}/ hoch:{R}')
+        print(f'       index.html, version.json, .htaccess, {version}/')
         print(f'    {GR}→ Lade {apk_name} → {remote_root}/downloads/ hoch{R}')
         print(f'    {GR}→ Schreibe api/app_version.json:{R}')
         print(json.dumps(vj_data, indent=4, ensure_ascii=False))
@@ -400,31 +540,44 @@ def main():
                  f'  Stelle sicher, dass der Server TLS unterstützt.')
         ok(f'Verbunden mit {env["FTP_HOST"]}')
 
-        # 5a. Alte Web-Dateien löschen (außer api/, downloads/)
-        print(f'    {GR}Alte Web-Dateien bereinigen …{R}')
-        ftp_clean(ftp, '.')
+        # 6a. Alte versionierte Verzeichnisse löschen
+        print(f'    {GR}Alte versionierte Verzeichnisse bereinigen …{R}')
+        ftp_clean_versioned_dirs(ftp)
 
-        # 5b. Web-Build hochladen
-        print(f'    {GR}Web-Build hochladen …{R}')
-        ftp_upload_dir(ftp, str(BUILD_WEB), '.')
+        # 6b. Alte Root-Dateien löschen (index.html, version.json, etc.)
+        print(f'    {GR}Alte Root-Dateien bereinigen …{R}')
+        ftp_clean_root_files(ftp)
 
-        # 5c. APK hochladen
+        # 6c. Dist hochladen (Root-Dateien + versioniertes Verzeichnis)
+        print(f'    {GR}Web-Build hochladen (versioniert) …{R}')
+        ftp_upload_dir(ftp, str(DIST), '.')
+
+        # 6d. APK hochladen
         print(f'    {GR}APK hochladen …{R}')
         ftp_mkdir(ftp, 'downloads')
         ftp_upload_file(ftp, str(BUILD_APK), f'downloads/{apk_name}',
                         label=f'downloads/{apk_name}')
 
-        # 5d. app_version.json schreiben
+        # 6e. app_version.json schreiben
         print(f'    {GR}app_version.json aktualisieren …{R}')
         ftp_write_json(ftp, 'api/app_version.json', vj_data)
 
         ftp.quit()
         ok('FTP-Verbindung geschlossen')
 
-    # ── 6. Zusammenfassung ────────────────────────────────────────────
+    # ── 7. Lokales Dist bereinigen ────────────────────────────────────
+    step('🧹  Lokales Dist bereinigen')
+    if DIST.exists() and not DRY_RUN:
+        shutil.rmtree(DIST)
+        ok(f'Dist gelöscht: {DIST}')
+    else:
+        ok('Dist nicht vorhanden (Dry-Run)')
+
+    # ── 8. Zusammenfassung ────────────────────────────────────────────
     step(f'✅  Deployment abgeschlossen')
     host = env['FTP_HOST']
     print(f'    Web:       {C}https://{host}/{R}')
+    print(f'    Version:   {C}/{version}/{R}')
     print(f'    APK:       {C}https://{host}/downloads/{apk_name}{R}')
     print(f'    Version:   {version}  (Code {version_code})')
     if changelog:
@@ -432,7 +585,7 @@ def main():
         for e in changelog:
             print(f'      • {e}')
 
-    # ── 7. Debug-Frage ────────────────────────────────────────────────
+    # ── 8. Debug-Frage ────────────────────────────────────────────────
     if not DRY_RUN:
         print()
         try:

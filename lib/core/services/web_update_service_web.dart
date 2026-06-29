@@ -14,6 +14,18 @@ Future<String?> fetchServerBuildNumber() async {
   return json['build_number'] as String?;
 }
 
+Future<String?> fetchLatestVersion() async {
+  final timestamp = DateTime.now().millisecondsSinceEpoch;
+  final origin = web.window.location.origin;
+  final uri = Uri.parse('$origin/version.json?t=$timestamp');
+
+  final response = await http.get(uri).timeout(const Duration(seconds: 10));
+  if (response.statusCode != 200) return null;
+
+  final json = jsonDecode(response.body) as Map<String, dynamic>;
+  return json['version'] as String?;
+}
+
 void reloadPage() {
   web.window.location.reload();
 }
