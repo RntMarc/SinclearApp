@@ -383,70 +383,108 @@ class UserMe {
 
 class ProfileUpdateRequest {
   final String? image;
+  final bool removeImage;
   final String? displayName;
   final String? birthday;
+  final bool removeBirthday;
   final String? discordHandle;
+  final bool removeDiscordHandle;
   final String? fluxerHandle;
+  final bool removeFluxerHandle;
   final String? signalNumber;
+  final bool removeSignalNumber;
   final String? whatsappNumber;
+  final bool removeWhatsappNumber;
   final String? matrixUser;
+  final bool removeMatrixUser;
   final String? matrixHomeserver;
+  final bool removeMatrixHomeserver;
   final String? unsplashHandle;
+  final bool removeUnsplashHandle;
   final String? instagramHandle;
+  final bool removeInstagramHandle;
   final String? mastodonUser;
+  final bool removeMastodonUser;
   final String? mastodonServer;
+  final bool removeMastodonServer;
   final String? pixelfedUser;
+  final bool removePixelfedUser;
   final String? pixelfedServer;
+  final bool removePixelfedServer;
   final String? blueskyHandle;
+  final bool removeBlueskyHandle;
   final String? youtubeHandle;
+  final bool removeYoutubeHandle;
   final String? twitchHandle;
+  final bool removeTwitchHandle;
 
   const ProfileUpdateRequest({
     this.image,
     this.removeImage = false,
     this.displayName,
     this.birthday,
+    this.removeBirthday = false,
     this.discordHandle,
+    this.removeDiscordHandle = false,
     this.fluxerHandle,
+    this.removeFluxerHandle = false,
     this.signalNumber,
+    this.removeSignalNumber = false,
     this.whatsappNumber,
+    this.removeWhatsappNumber = false,
     this.matrixUser,
+    this.removeMatrixUser = false,
     this.matrixHomeserver,
+    this.removeMatrixHomeserver = false,
     this.unsplashHandle,
+    this.removeUnsplashHandle = false,
     this.instagramHandle,
+    this.removeInstagramHandle = false,
     this.mastodonUser,
+    this.removeMastodonUser = false,
     this.mastodonServer,
+    this.removeMastodonServer = false,
     this.pixelfedUser,
+    this.removePixelfedUser = false,
     this.pixelfedServer,
+    this.removePixelfedServer = false,
     this.blueskyHandle,
+    this.removeBlueskyHandle = false,
     this.youtubeHandle,
+    this.removeYoutubeHandle = false,
     this.twitchHandle,
+    this.removeTwitchHandle = false,
   });
-
-  final bool removeImage;
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
-    if (image != null) map['image'] = image;
-    if (removeImage) map['image'] = null;
+    _apply(map, 'image', image, removeImage);
     if (displayName != null) map['displayName'] = displayName;
-    if (birthday != null) map['birthday'] = birthday;
-    if (discordHandle != null) map['discordHandle'] = discordHandle;
-    if (fluxerHandle != null) map['fluxerHandle'] = fluxerHandle;
-    if (signalNumber != null) map['signalNumber'] = signalNumber;
-    if (whatsappNumber != null) map['whatsappNumber'] = whatsappNumber;
-    if (matrixUser != null) map['matrixUser'] = matrixUser;
-    if (matrixHomeserver != null) map['matrixHomeserver'] = matrixHomeserver;
-    if (unsplashHandle != null) map['unsplashHandle'] = unsplashHandle;
-    if (instagramHandle != null) map['instagramHandle'] = instagramHandle;
-    if (mastodonUser != null) map['mastodonUser'] = mastodonUser;
-    if (mastodonServer != null) map['mastodonServer'] = mastodonServer;
-    if (pixelfedUser != null) map['pixelfedUser'] = pixelfedUser;
-    if (pixelfedServer != null) map['pixelfedServer'] = pixelfedServer;
-    if (blueskyHandle != null) map['blueskyHandle'] = blueskyHandle;
-    if (youtubeHandle != null) map['youtubeHandle'] = youtubeHandle;
-    if (twitchHandle != null) map['twitchHandle'] = twitchHandle;
+    _apply(map, 'birthday', birthday, removeBirthday);
+    _apply(map, 'discordHandle', discordHandle, removeDiscordHandle);
+    _apply(map, 'fluxerHandle', fluxerHandle, removeFluxerHandle);
+    _apply(map, 'signalNumber', signalNumber, removeSignalNumber);
+    _apply(map, 'whatsappNumber', whatsappNumber, removeWhatsappNumber);
+    _apply(map, 'matrixUser', matrixUser, removeMatrixUser);
+    _apply(map, 'matrixHomeserver', matrixHomeserver, removeMatrixHomeserver);
+    _apply(map, 'unsplashHandle', unsplashHandle, removeUnsplashHandle);
+    _apply(map, 'instagramHandle', instagramHandle, removeInstagramHandle);
+    _apply(map, 'mastodonUser', mastodonUser, removeMastodonUser);
+    _apply(map, 'mastodonServer', mastodonServer, removeMastodonServer);
+    _apply(map, 'pixelfedUser', pixelfedUser, removePixelfedUser);
+    _apply(map, 'pixelfedServer', pixelfedServer, removePixelfedServer);
+    _apply(map, 'blueskyHandle', blueskyHandle, removeBlueskyHandle);
+    _apply(map, 'youtubeHandle', youtubeHandle, removeYoutubeHandle);
+    _apply(map, 'twitchHandle', twitchHandle, removeTwitchHandle);
     return map;
+  }
+
+  void _apply(Map<String, dynamic> map, String key, String? val, bool remove) {
+    if (remove) {
+      map[key] = null;
+    } else if (val != null) {
+      map[key] = val;
+    }
   }
 }
 

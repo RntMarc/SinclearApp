@@ -120,14 +120,27 @@ class _EditContactScreenState extends State<EditContactScreen> {
 
     try {
       final scope = AppScope.of(context);
+      final discord = _discordController.text.trim();
+      final fluxer = _fluxerController.text.trim();
+      final signal = _signalController.text.trim();
+      final whatsapp = _whatsappController.text.trim();
+      final matrixUser = _matrixUserController.text.trim();
+      final matrixServer = _matrixServerController.text.trim();
+
       await scope.user.updateProfile(
         ProfileUpdateRequest(
-          discordHandle: _emptyToNull(_discordController),
-          fluxerHandle: _emptyToNull(_fluxerController),
-          signalNumber: _emptyToNull(_signalController),
-          whatsappNumber: _emptyToNull(_whatsappController),
-          matrixUser: _emptyToNull(_matrixUserController),
-          matrixHomeserver: _emptyToNull(_matrixServerController),
+          discordHandle: discord.isNotEmpty ? discord : null,
+          removeDiscordHandle: discord.isEmpty,
+          fluxerHandle: fluxer.isNotEmpty ? fluxer : null,
+          removeFluxerHandle: fluxer.isEmpty,
+          signalNumber: signal.isNotEmpty ? signal : null,
+          removeSignalNumber: signal.isEmpty,
+          whatsappNumber: whatsapp.isNotEmpty ? whatsapp : null,
+          removeWhatsappNumber: whatsapp.isEmpty,
+          matrixUser: matrixUser.isNotEmpty ? matrixUser : null,
+          removeMatrixUser: matrixUser.isEmpty,
+          matrixHomeserver: matrixServer.isNotEmpty ? matrixServer : null,
+          removeMatrixHomeserver: matrixServer.isEmpty,
         ),
       );
       await scope.user.updateVisibility(

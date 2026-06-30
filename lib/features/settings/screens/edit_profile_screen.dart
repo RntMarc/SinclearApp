@@ -85,6 +85,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           removeImage: _removeImage,
           displayName: displayName,
           birthday: _birthday,
+          removeBirthday: _birthday == null,
         ),
       );
       if (!mounted) return;
