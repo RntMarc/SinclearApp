@@ -153,6 +153,7 @@ String _titleForLocation(String location) {
   if (location.startsWith('/reisen')) return 'REISEN & EVENTS';
   if (location.startsWith('/kontakte')) return 'KONTAKTE';
   if (location.startsWith('/einstellungen')) return 'EINSTELLUNGEN';
+  if (location.startsWith('/feedback')) return 'FEEDBACK';
   return 'HOME';
 }
 
@@ -224,7 +225,7 @@ class _MobileBottomNav extends StatelessWidget {
               '/einstellungen',
             ),
             _SheetItem('Admin', Icons.admin_panel_settings_rounded, null),
-            _SheetItem('Feedback', Icons.feedback_rounded, null),
+            _SheetItem('Feedback', Icons.feedback_rounded, '/feedback'),
             _SheetItem('Changelog', Icons.history_rounded, null),
           ],
         );
@@ -452,6 +453,12 @@ class _NavContent extends StatelessWidget {
               selected: selectedIndex == 5,
               onTap: () => onNavigate('/einstellungen'),
             ),
+            ListTile(
+              leading: const Icon(Icons.feedback_rounded),
+              title: const Text('FEEDBACK'),
+              selected: selectedIndex == 6,
+              onTap: () => onNavigate('/feedback'),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -465,6 +472,7 @@ class _NavContent extends StatelessWidget {
     if (location.startsWith('/reisen')) return 3;
     if (location.startsWith('/kontakte')) return 4;
     if (location.startsWith('/einstellungen')) return 5;
+    if (location.startsWith('/feedback')) return 6;
     return 0;
   }
 }

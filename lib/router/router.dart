@@ -23,6 +23,8 @@ import '../features/settings/screens/edit_social_screen.dart';
 import '../features/settings/screens/edit_contact_screen.dart';
 import '../features/settings/screens/email_change_screen.dart';
 import '../features/settings/screens/discord_relink_screen.dart';
+import '../features/feedback/screens/feedback_screen.dart';
+import '../features/feedback/screens/feedback_detail_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -38,7 +40,8 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/entdecken') ||
           location.startsWith('/reisen') ||
           location.startsWith('/kontakte') ||
-          location.startsWith('/einstellungen');
+          location.startsWith('/einstellungen') ||
+          location.startsWith('/feedback');
 
       if (loggedIn && !auth.onboardingCompleted &&
           location != '/onboarding') {
@@ -125,6 +128,17 @@ GoRouter createRouter(AuthService auth) {
                 path: ':id',
                 builder: (context, state) =>
                     UserDetailScreen(id: state.pathParameters['id']!),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/feedback',
+            builder: (context, state) => const FeedbackScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    FeedbackDetailScreen(id: state.pathParameters['id']!),
               ),
             ],
           ),
