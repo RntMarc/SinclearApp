@@ -21,7 +21,7 @@ enum FeedbackStatus {
       case FeedbackStatus.done:
         return 'Umgesetzt';
       case FeedbackStatus.cancelled:
-        return 'Abgesagt';
+        return 'Abgebrochen';
       case FeedbackStatus.rejected:
         return 'Abgelehnt';
       case FeedbackStatus.later:
@@ -30,13 +30,25 @@ enum FeedbackStatus {
   }
 
   static FeedbackStatus fromJson(String value) {
-    return FeedbackStatus.values.firstWhere(
-      (e) => e.name == value,
-      orElse: () => FeedbackStatus.submitted,
-    );
+    switch (value) {
+      case 'in_progress':
+        return FeedbackStatus.inProgress;
+      default:
+        return FeedbackStatus.values.firstWhere(
+          (e) => e.name == value,
+          orElse: () => FeedbackStatus.submitted,
+        );
+    }
   }
 
-  String toJson() => name;
+  String toJson() {
+    switch (this) {
+      case FeedbackStatus.inProgress:
+        return 'in_progress';
+      default:
+        return name;
+    }
+  }
 
   int get sortIndex {
     switch (this) {
@@ -67,6 +79,7 @@ class FeedbackSuggestion {
   final String? description;
   final FeedbackStatus status;
   final int upvoteCount;
+  final int commentCount;
   final bool hasVoted;
   final String createdAt;
   final String updatedAt;
@@ -78,6 +91,7 @@ class FeedbackSuggestion {
     this.description,
     required this.status,
     required this.upvoteCount,
+    this.commentCount = 0,
     required this.hasVoted,
     required this.createdAt,
     required this.updatedAt,
@@ -91,6 +105,7 @@ class FeedbackSuggestion {
       description: json['description'] as String?,
       status: FeedbackStatus.fromJson(json['status'] as String),
       upvoteCount: json['upvoteCount'] as int,
+      commentCount: json['commentCount'] as int? ?? 0,
       hasVoted: json['hasVoted'] as bool? ?? false,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
@@ -172,4 +187,115 @@ class FeedbackStatusUpdateRequest {
   const FeedbackStatusUpdateRequest({required this.status});
 
   Map<String, dynamic> toJson() => {'status': status.toJson()};
+}
+
+class FeedbackComment {
+  final String id;
+  final String suggestionId;
+  final String userId;
+  final String? parentId;
+  final String? text;
+  final String createdAt;
+  final String updatedAt;
+  final List<FeedbackComment> children;
+
+  const FeedbackComment({
+    required this.id,
+    required this.suggestionId,
+    required this.userId,
+    this.parentId,
+    this.text,
+    required this.createdAt,
+    required this.updatedAt,
+    this.children = const [],
+  });
+
+  factory FeedbackComment.fromJson(Map<String, dynamic> json) {
+    return FeedbackComment(
+      id: json['id'] as String,
+      suggestionId: json['suggestionId'] as String,
+      userId: json['userId'] as String,
+      parentId: json['parentId'] as String?,
+      text: json['text'] as String?,
+      createdAt: json['createdAt'] as String,
+      updatedAt: json['updatedAt'] as String,
+      children: (json['children'] as List<dynamic>?)
+              ?.map((e) => FeedbackComment.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+
+  bool get isDeleted => text == null;
+}
+
+class FeedbackCommentListResponse {
+  final List<FeedbackComment> data;
+  final int total;
+
+  const FeedbackCommentListResponse({required this.data, required this.total});
+
+  factory FeedbackCommentListResponse.fromJson(Map<String, dynamic> json) {
+    final items = (json['data'] as List)
+        .map((e) => FeedbackComment.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final meta = json['meta'] as Map<String, dynamic>?;
+    return FeedbackCommentListResponse(
+      data: items,
+      total: meta?['total'] as int? ?? items.length,
+    );
+  }
+}
+
+class FeedbackCommentCreateRequest {
+  final String text;
+  final String? parentId;
+
+  const FeedbackCommentCreateRequest({required this.text, this.parentId});
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{'text': text};
+    if (parentId != null) map['parentId'] = parentId;
+    return map;
+  }
+}
+
+class FeedbackCommentUpdateRequest {
+  final String text;
+
+  const FeedbackCommentUpdateRequest({required this.text});
+
+  Map<String, dynamic> toJson() => {'text': text};
+}
+
+class BugReportRequest {
+  final String text;
+  final String? version;
+  final int? buildNumber;
+  final String? image;
+
+  const BugReportRequest({
+    required this.text,
+    this.version,
+    this.buildNumber,
+    this.image,
+  });
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{'text': text};
+    if (version != null) map['version'] = version;
+    if (buildNumber != null) map['buildNumber'] = buildNumber;
+    if (image != null) map['image'] = image;
+    return map;
+  }
+}
+
+class BugReportResponse {
+  final bool sent;
+
+  const BugReportResponse({required this.sent});
+
+  factory BugReportResponse.fromJson(Map<String, dynamic> json) {
+    return BugReportResponse(sent: json['data']['sent'] as bool);
+  }
 }
