@@ -71,4 +71,70 @@ class FeedbackService {
       token: await _token(),
     );
   }
+
+  Future<FeedbackCommentListResponse> listComments(String suggestionId) async {
+    final data = await _api.get(
+      '/feedback/suggestions/$suggestionId/comments',
+      token: await _token(),
+    );
+    return FeedbackCommentListResponse.fromJson(data);
+  }
+
+  Future<FeedbackComment> createComment(
+    String suggestionId, {
+    required String text,
+    String? parentId,
+  }) async {
+    final body = FeedbackCommentCreateRequest(
+      text: text,
+      parentId: parentId,
+    ).toJson();
+    final data = await _api.post(
+      '/feedback/suggestions/$suggestionId/comments',
+      body: body,
+      token: await _token(),
+    );
+    return FeedbackComment.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<FeedbackComment> updateComment(
+    String suggestionId,
+    String commentId, {
+    required String text,
+  }) async {
+    final body = FeedbackCommentUpdateRequest(text: text).toJson();
+    final data = await _api.put(
+      '/feedback/suggestions/$suggestionId/comments/$commentId',
+      body: body,
+      token: await _token(),
+    );
+    return FeedbackComment.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteComment(String suggestionId, String commentId) async {
+    await _api.delete(
+      '/feedback/suggestions/$suggestionId/comments/$commentId',
+      token: await _token(),
+    );
+  }
+
+  Future<BugReportResponse> submitBugReport({
+    required String text,
+    String? version,
+    int? buildNumber,
+    String? image,
+  }) async {
+    final body = BugReportRequest(
+      text: text,
+      version: version,
+      buildNumber: buildNumber,
+      image: image,
+    ).toJson();
+    final data = await _api.post(
+      '/feedback/bug-report',
+      body: body,
+      token: await _token(),
+    );
+    return BugReportResponse.fromJson(data);
+  }
 }

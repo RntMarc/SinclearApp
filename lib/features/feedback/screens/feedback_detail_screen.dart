@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../models/feedback_models.dart';
+import '../widgets/comment_input.dart';
+import '../widgets/comment_tile.dart';
 
 class FeedbackDetailScreen extends StatefulWidget {
   final String id;
@@ -17,6 +19,10 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
   FeedbackSuggestion? _suggestion;
   bool _loading = true;
   String? _error;
+
+  List<FeedbackComment> _comments = [];
+  bool _commentsLoading = false;
+  String? _replyToId;
 
   @override
   void didChangeDependencies() {
@@ -47,6 +53,7 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
         _suggestion = match.first;
         _loading = false;
       });
+      _loadComments();
     } catch (e, st) {
       developer.log('Failed to load suggestion', error: e, stackTrace: st);
       if (!mounted) return;
@@ -142,6 +149,197 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
     } catch (e) {
       developer.log('Delete failed', error: e);
     }
+  }
+
+  Future<void> _loadComments() async {
+    setState(() => _commentsLoading = true);
+    try {
+      final feedback = AppScope.of(context).feedback;
+      final response = await feedback.listComments(widget.id);
+      if (!mounted) return;
+      setState(() {
+        _comments = response.data;
+        _commentsLoading = false;
+      });
+    } catch (e, st) {
+      developer.log('Failed to load comments', error: e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _commentsLoading = false);
+    }
+  }
+
+  Future<void> _addComment(String text, {String? parentId}) async {
+    try {
+      final feedback = AppScope.of(context).feedback;
+      final comment = await feedback.createComment(
+        widget.id,
+        text: text,
+        parentId: parentId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _replyToId = null;
+        _insertComment(_comments, comment, parentId);
+      });
+    } catch (e) {
+      developer.log('Failed to create comment', error: e);
+    }
+  }
+
+  void _insertComment(
+    List<FeedbackComment> list,
+    FeedbackComment comment,
+    String? parentId,
+  ) {
+    if (parentId == null) {
+      list.add(comment);
+      return;
+    }
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id == parentId) {
+        list[i] = FeedbackComment(
+          id: list[i].id,
+          suggestionId: list[i].suggestionId,
+          userId: list[i].userId,
+          parentId: list[i].parentId,
+          text: list[i].text,
+          createdAt: list[i].createdAt,
+          updatedAt: list[i].updatedAt,
+          children: [...list[i].children, comment],
+        );
+        return;
+      }
+      if (list[i].children.isNotEmpty) {
+        final updated = List<FeedbackComment>.from(list[i].children);
+        _insertComment(updated, comment, parentId);
+        list[i] = FeedbackComment(
+          id: list[i].id,
+          suggestionId: list[i].suggestionId,
+          userId: list[i].userId,
+          parentId: list[i].parentId,
+          text: list[i].text,
+          createdAt: list[i].createdAt,
+          updatedAt: list[i].updatedAt,
+          children: updated,
+        );
+        return;
+      }
+    }
+  }
+
+  Future<void> _editComment(String commentId, String newText) async {
+    try {
+      final feedback = AppScope.of(context).feedback;
+      final updated = await feedback.updateComment(
+        widget.id,
+        commentId,
+        text: newText,
+      );
+      if (!mounted) return;
+      setState(() => _replaceComment(_comments, updated));
+    } catch (e) {
+      developer.log('Failed to edit comment', error: e);
+    }
+  }
+
+  void _replaceComment(List<FeedbackComment> list, FeedbackComment updated) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id == updated.id) {
+        list[i] = FeedbackComment(
+          id: updated.id,
+          suggestionId: updated.suggestionId,
+          userId: updated.userId,
+          parentId: updated.parentId,
+          text: updated.text,
+          createdAt: updated.createdAt,
+          updatedAt: updated.updatedAt,
+          children: updated.children,
+        );
+        return;
+      }
+      if (list[i].children.isNotEmpty) {
+        final updatedChildren = List<FeedbackComment>.from(list[i].children);
+        _replaceComment(updatedChildren, updated);
+        list[i] = FeedbackComment(
+          id: list[i].id,
+          suggestionId: list[i].suggestionId,
+          userId: list[i].userId,
+          parentId: list[i].parentId,
+          text: list[i].text,
+          createdAt: list[i].createdAt,
+          updatedAt: list[i].updatedAt,
+          children: updatedChildren,
+        );
+        return;
+      }
+    }
+  }
+
+  Future<void> _deleteComment(String commentId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Kommentar löschen'),
+        content: const Text('Kommentar wirklich löschen?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final feedback = AppScope.of(context).feedback;
+      await feedback.deleteComment(widget.id, commentId);
+      if (!mounted) return;
+      _loadComments();
+    } catch (e) {
+      developer.log('Failed to delete comment', error: e);
+    }
+  }
+
+  void _showEditCommentDialog(String commentId, String currentText) {
+    final controller = TextEditingController(text: currentText);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Kommentar bearbeiten'),
+        content: TextField(
+          controller: controller,
+          textCapitalization: TextCapitalization.sentences,
+          maxLines: null,
+          decoration: const InputDecoration(hintText: 'Kommentar'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                Navigator.pop(ctx);
+                _editComment(commentId, text);
+              }
+            },
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _resolveUserName(String userId) {
+    final auth = AppScope.of(context).auth;
+    return auth.userId == userId ? 'Du' : 'Benutzer';
   }
 
   @override
@@ -291,10 +489,96 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
               currentStatus: s.status,
               onStatusChanged: _updateStatus,
             ),
+            const SizedBox(height: 24),
           ],
+
+          const Divider(),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                'Kommentare',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${s.commentCount}',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (_replyToId == null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: CommentInput(
+                hintText: 'Kommentar hinzufügen...',
+                onSubmit: (text) => _addComment(text),
+              ),
+            ),
+
+          if (_replyToId != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: CommentInput(
+                hintText: 'Antworten...',
+                autofocus: true,
+                onSubmit: (text) => _addComment(text, parentId: _replyToId),
+                onCancel: () => setState(() => _replyToId = null),
+              ),
+            ),
+
+          if (_commentsLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_comments.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Text(
+                  'Noch keine Kommentare.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._comments.map(
+              (comment) => CommentTile(
+                comment: comment,
+                currentUserId: AppScope.of(context).auth.userId ?? '',
+                isAdmin: isAdmin,
+                resolveUserName: _resolveUserName,
+                onReply: (id) => setState(() => _replyToId = id),
+                onEdit: (id) {
+                  final c = _findComment(_comments, id);
+                  if (c != null && c.text != null) {
+                    _showEditCommentDialog(id, c.text!);
+                  }
+                },
+                onDelete: _deleteComment,
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  FeedbackComment? _findComment(List<FeedbackComment> list, String id) {
+    for (final c in list) {
+      if (c.id == id) return c;
+      if (c.children.isNotEmpty) {
+        final found = _findComment(c.children, id);
+        if (found != null) return found;
+      }
+    }
+    return null;
   }
 }
 
