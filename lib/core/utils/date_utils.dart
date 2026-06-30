@@ -31,3 +31,17 @@ String formatDateRange(DateTime start, DateTime end) {
 String toApiDate(DateTime date) {
   return date.toUtc().toIso8601String();
 }
+
+String formatRelativeDate(String iso) {
+  final date = DateTime.parse(iso).toLocal();
+  final now = DateTime.now();
+  final diff = now.difference(date);
+
+  if (diff.isNegative) return formatDate(date);
+  if (diff.inMinutes < 1) return 'gerade eben';
+  if (diff.inMinutes < 60) return 'vor ${diff.inMinutes} Min.';
+  if (diff.inHours < 24) return 'vor ${diff.inHours} Std.';
+  if (diff.inDays < 7) return 'vor ${diff.inDays} Tagen';
+  if (diff.inDays < 30) return 'vor ${diff.inDays ~/ 7} Wochen';
+  return formatDate(date);
+}

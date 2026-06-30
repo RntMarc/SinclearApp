@@ -18,6 +18,7 @@ import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
+import 'features/feedback/services/feedback_service.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/user/services/user_service.dart';
@@ -75,6 +76,7 @@ void main() async {
   final user = UserService(api: api, auth: auth);
   final calendar = CalendarService(api: api, auth: auth);
   final notification = NotificationService(api: api, auth: auth);
+  final feedback = FeedbackService(api: api, auth: auth);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
   final webUpdate = WebUpdateService(
     currentBuildNumber: packageInfo.buildNumber,
@@ -123,6 +125,7 @@ void main() async {
       user: user,
       calendar: calendar,
       notification: notification,
+      feedback: feedback,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       router: router,

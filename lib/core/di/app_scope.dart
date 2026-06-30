@@ -5,6 +5,7 @@ import '../../features/auth/services/auth_service.dart';
 import '../../features/calendar/services/calendar_service.dart';
 import '../../features/explore/services/explore_service.dart';
 import '../../features/explore/services/nominatim_service.dart';
+import '../../features/feedback/services/feedback_service.dart';
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/user/services/user_service.dart';
@@ -17,6 +18,7 @@ class AppScope extends InheritedWidget {
   final UserService user;
   final NotificationService notification;
   final CalendarService calendar;
+  final FeedbackService feedback;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
 
@@ -29,6 +31,7 @@ class AppScope extends InheritedWidget {
     required this.user,
     required this.notification,
     required this.calendar,
+    required this.feedback,
     required this.androidUpdate,
     this.webUpdate,
     required super.child,
