@@ -39,17 +39,30 @@ Uint8List? compressImage(Uint8List bytes) {
   }
 
   var quality = _initialQuality;
+  Uint8List? lastEncoded;
+
   while (quality >= _minQuality) {
-    final encoded = img.encodeJpg(resized, quality: quality);
+    final encoded = Uint8List.fromList(img.encodeJpg(resized, quality: quality));
     developer.log(
       'compressImage: quality=$quality, size=${encoded.length}B',
       name: 'image',
     );
-    if (encoded.length <= _maxBytes) return Uint8List.fromList(encoded);
+    if (encoded.length <= _maxBytes) return encoded;
+    lastEncoded = encoded;
     quality -= _qualityStep;
   }
 
-  final encoded = img.encodeJpg(resized, quality: _minQuality);
+  // If even at minQuality it's too large, we might need to downscale further,
+  // but for now we return the best we have or null if it's still way too big.
+  if (lastEncoded != null && lastEncoded.length <= _maxBytes * 1.5) {
+    developer.log(
+      'compressImage: returning slightly oversized image (${lastEncoded.length}B)',
+      name: 'image',
+    );
+    return lastEncoded;
+  }
+
+  final encoded = Uint8List.fromList(img.encodeJpg(resized, quality: _minQuality));
   developer.log(
     'compressImage: final quality=$_minQuality, size=${encoded.length}B',
     name: 'image',

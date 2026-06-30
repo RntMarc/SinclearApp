@@ -173,15 +173,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     try {
       final scope = AppScope.of(context);
+      final displayName = _nameController.text.trim();
+      final birthday = _birthdayController.text.trim();
+
       await scope.user.updateProfile(
         ProfileUpdateRequest(
           image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
-          displayName: _nameController.text.trim().isNotEmpty
-              ? _nameController.text.trim()
-              : null,
-          birthday: _birthdayController.text.isNotEmpty
-              ? _birthdayController.text
-              : null,
+          displayName: displayName.isNotEmpty ? displayName : null,
+          birthday: birthday.isNotEmpty ? birthday : null,
         ),
       );
     } on ApiException catch (e) {

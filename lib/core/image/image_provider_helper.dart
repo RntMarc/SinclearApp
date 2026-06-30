@@ -20,18 +20,27 @@ ImageProvider? resolveImageProvider(String? imageUrl) {
     if (data != null) return MemoryImage(data);
   }
 
-  return null;
+  // Fallback: Try decoding as raw base64
+  try {
+    return MemoryImage(base64.decode(imageUrl));
+  } catch (_) {
+    return null;
+  }
 }
 
 Uint8List? _decodeBase64DataUri(String dataUri) {
-  final commaIndex = dataUri.indexOf(',');
-  if (commaIndex == -1) return null;
+  try {
+    final commaIndex = dataUri.indexOf(',');
+    if (commaIndex == -1) return null;
 
-  final meta = dataUri.substring(0, commaIndex);
-  final payload = dataUri.substring(commaIndex + 1);
+    final meta = dataUri.substring(0, commaIndex);
+    final payload = dataUri.substring(commaIndex + 1);
 
-  if (meta.contains(';base64')) {
-    return base64.decode(payload);
+    if (meta.contains(';base64')) {
+      return base64.decode(payload.trim());
+    }
+  } catch (_) {
+    // Ignore decoding errors
   }
 
   return null;
