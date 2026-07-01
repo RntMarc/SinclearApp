@@ -1,3 +1,6 @@
+import '../../../core/utils/youtube_helper.dart';
+import '../../../core/utils/spotify_helper.dart';
+
 class Forum {
   final String id;
   final String name;
@@ -189,12 +192,73 @@ class FeedPost {
   }
 
   String? get text => content['text'] as String?;
-  List<MusicUrl> get urls {
+  String? get title => content['title'] as String?;
+
+  /// Raw URL list as provided by the API.
+  List get _rawUrls {
     final raw = content['urls'];
     if (raw == null) return const [];
-    return (raw as List)
+    return raw as List;
+  }
+
+  /// True when the API sent plain-string URLs (web post type).
+  bool get _hasStringUrls =>
+      _rawUrls.isNotEmpty && _rawUrls.first is String;
+
+  /// Music/video posts: list of {platform, url} objects.
+  List<MusicUrl> get urls {
+    if (_hasStringUrls) return const [];
+    return _rawUrls
         .map((e) => MusicUrl.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  /// Web posts: list of plain URL strings.
+  List<String> get webUrls {
+    if (!_hasStringUrls) return const [];
+    return _rawUrls.cast<String>().toList();
+  }
+
+  /// YouTube video IDs extracted from web URLs.
+  List<String> get youtubeIds =>
+      webUrls
+          .map(YoutubeHelper.extractVideoId)
+          .whereType<String>()
+          .toList();
+
+  /// Spotify IDs (track/album/playlist) extracted from web URLs.
+  List<SpotifyItem> get spotifyItems =>
+      webUrls.map(SpotifyHelper.parseUrl).whereType<SpotifyItem>().toList();
+
+  /// Web URLs that are neither YouTube nor Spotify.
+  List<String> get genericUrls => webUrls
+      .where((u) => YoutubeHelper.extractVideoId(u) == null)
+      .where((u) => SpotifyHelper.parseUrl(u) == null)
+      .toList();
+
+  // --- Getters for music/video posts (List<MusicUrl>) ---
+
+  /// YouTube video IDs extracted from MusicUrl objects (video posts).
+  List<String> get youtubeVideoIds => urls
+      .where((u) => u.platform.toLowerCase().contains('youtube'))
+      .map((u) => YoutubeHelper.extractVideoId(u.url))
+      .whereType<String>()
+      .toList();
+
+  /// Spotify items extracted from MusicUrl objects (music posts).
+  List<SpotifyItem> get spotifyMusicItems => urls
+      .where((u) => u.platform.toLowerCase().contains('spotify'))
+      .map((u) => SpotifyHelper.parseUrl(u.url))
+      .whereType<SpotifyItem>()
+      .toList();
+
+  /// MusicUrl objects that are neither YouTube nor Spotify.
+  List<MusicUrl> get genericMusicUrls {
+    final lower = urls
+        .where((u) => !u.platform.toLowerCase().contains('youtube'))
+        .where((u) => !u.platform.toLowerCase().contains('spotify'))
+        .toList();
+    return lower;
   }
 }
 

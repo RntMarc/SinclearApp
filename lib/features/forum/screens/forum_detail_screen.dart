@@ -248,7 +248,9 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
           flexibleSpace: FlexibleSpaceBar(
             title: Text(
               forum.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             background: forum.image != null
                 ? Image.memory(

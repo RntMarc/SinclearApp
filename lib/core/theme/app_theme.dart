@@ -17,6 +17,7 @@ class AppTheme {
 
   static TextStyle _subTitleStyle(Color color) => GoogleFonts.chivo(
     fontWeight: FontWeight.w700,
+    fontStyle: FontStyle.normal,
     fontSize: 18,
     color: color,
   );
