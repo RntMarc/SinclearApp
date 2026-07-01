@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
@@ -99,14 +101,43 @@ class ApiClient {
     String? token,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
+    if (kDebugMode) {
+      final bodyPreview = body != null ? _truncateJson(body) : 'null';
+      developer.log('ApiClient.put: $uri body=$bodyPreview', name: 'api_client');
+    }
+    final encodedBody = body != null ? jsonEncode(body) : null;
     final response = await _client
         .put(
           uri,
           headers: _headers(token: token),
-          body: body != null ? jsonEncode(body) : null,
+          body: encodedBody,
         )
         .timeout(timeout);
+    if (kDebugMode) {
+      developer.log(
+        'ApiClient.put: response status=${response.statusCode} body_len=${response.body.length} body_preview=${response.body.length > 200 ? '${response.body.substring(0, 200)}...' : response.body}',
+        name: 'api_client',
+      );
+    }
     return _handleResponse(response);
+  }
+
+  String _truncateJson(Map<String, dynamic> json) {
+    final buffer = StringBuffer('{');
+    var first = true;
+    for (final entry in json.entries) {
+      if (!first) buffer.write(', ');
+      first = false;
+      buffer.write('"${entry.key}": ');
+      if (entry.key == 'image' && entry.value is String) {
+        final str = entry.value as String;
+        buffer.write('"<base64: len=${str.length}, preview=${str.substring(0, 80)}...>"');
+      } else {
+        buffer.write(entry.value.toString());
+      }
+    }
+    buffer.write('}');
+    return buffer.toString();
   }
 
   Future<Map<String, dynamic>> delete(
