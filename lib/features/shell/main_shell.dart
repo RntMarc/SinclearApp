@@ -154,6 +154,7 @@ String _titleForLocation(String location) {
   if (location.startsWith('/kontakte')) return 'KONTAKTE';
   if (location.startsWith('/einstellungen')) return 'EINSTELLUNGEN';
   if (location.startsWith('/feedback')) return 'FEEDBACK';
+  if (location.startsWith('/forum')) return 'FORUM';
   return 'HOME';
 }
 
@@ -165,7 +166,9 @@ enum _NavCategory { system, gemeinschaft, home, unterwegs, organisation }
 
 _NavCategory _categoryForLocation(String location) {
   if (location.startsWith('/einstellungen')) return _NavCategory.system;
-  if (location.startsWith('/kontakte')) return _NavCategory.gemeinschaft;
+  if (location.startsWith('/kontakte') || location.startsWith('/forum')) {
+    return _NavCategory.gemeinschaft;
+  }
   if (location.startsWith('/entdecken') || location.startsWith('/reisen')) {
     return _NavCategory.unterwegs;
   }
@@ -234,7 +237,7 @@ class _MobileBottomNav extends StatelessWidget {
           context,
           category: 'Gemeinschaft',
           items: [
-            _SheetItem('Forum', Icons.forum_rounded, null),
+            _SheetItem('Forum', Icons.forum_rounded, '/forum'),
             _SheetItem('Kritik', Icons.rate_review_rounded, null),
             _SheetItem('Rezepte', Icons.restaurant_rounded, null),
             _SheetItem('Fotos', Icons.photo_library_rounded, null),
@@ -448,6 +451,12 @@ class _NavContent extends StatelessWidget {
               onTap: () => onNavigate('/kontakte'),
             ),
             ListTile(
+              leading: const Icon(Icons.forum_rounded),
+              title: const Text('FORUM'),
+              selected: selectedIndex == 4 && currentLocation.startsWith('/forum'),
+              onTap: () => onNavigate('/forum'),
+            ),
+            ListTile(
               leading: const Icon(Icons.settings_rounded),
               title: const Text('EINSTELLUNGEN'),
               selected: selectedIndex == 5,
@@ -470,7 +479,9 @@ class _NavContent extends StatelessWidget {
     if (location.startsWith('/kalender')) return 1;
     if (location.startsWith('/entdecken')) return 2;
     if (location.startsWith('/reisen')) return 3;
-    if (location.startsWith('/kontakte')) return 4;
+    if (location.startsWith('/kontakte') || location.startsWith('/forum')) {
+      return 4;
+    }
     if (location.startsWith('/einstellungen')) return 5;
     if (location.startsWith('/feedback')) return 6;
     return 0;

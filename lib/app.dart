@@ -10,6 +10,7 @@ import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
+import 'features/forum/services/forum_service.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/user/services/user_service.dart';
@@ -23,6 +24,7 @@ class SinclearApp extends StatelessWidget {
   final NotificationService notification;
   final CalendarService calendar;
   final FeedbackService feedback;
+  final ForumService forum;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService webUpdate;
   final GoRouter router;
@@ -37,6 +39,7 @@ class SinclearApp extends StatelessWidget {
     required this.notification,
     required this.calendar,
     required this.feedback,
+    required this.forum,
     required this.androidUpdate,
     required this.webUpdate,
     required this.router,
@@ -53,6 +56,7 @@ class SinclearApp extends StatelessWidget {
       notification: notification,
       calendar: calendar,
       feedback: feedback,
+      forum: forum,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       child: WebUpdateBanner(
