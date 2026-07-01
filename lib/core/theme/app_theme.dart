@@ -8,47 +8,61 @@ class AppTheme {
   static const _secondaryColor = Color(0xFFBC0091);
   static const _darkSurface = Color(0xFF011219);
 
-  static TextStyle get _titleStyle => GoogleFonts.chivo(
+  static TextStyle _titleStyle(Color color) => GoogleFonts.chivo(
     fontWeight: FontWeight.w900,
     fontStyle: FontStyle.italic,
     fontSize: 22,
+    color: color,
   );
 
-  static TextStyle get _subTitleStyle => GoogleFonts.chivo(
+  static TextStyle _subTitleStyle(Color color) => GoogleFonts.chivo(
     fontWeight: FontWeight.w700,
     fontSize: 18,
+    color: color,
   );
 
-  static ThemeData get light => ThemeData(
-    useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: _primaryColor,
-      secondary: _secondaryColor,
-      brightness: Brightness.light,
-    ).copyWith(
-      onSurface: const Color(0xFF1C1B1F),
-    ),
-    textTheme: TextTheme(
-      titleLarge: _titleStyle,
-      titleMedium: _subTitleStyle,
-    ),
-    appBarTheme: AppBarTheme(titleTextStyle: _titleStyle),
-  );
+  static ThemeData get light {
+    final onSurface = const Color(0xFF1C1B1F);
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _primaryColor,
+        secondary: _secondaryColor,
+        brightness: Brightness.light,
+      ).copyWith(
+        onSurface: onSurface,
+      ),
+      textTheme: TextTheme(
+        titleLarge: _titleStyle(onSurface),
+        titleMedium: _subTitleStyle(onSurface),
+      ),
+      appBarTheme: AppBarTheme(
+        titleTextStyle: _titleStyle(onSurface),
+        foregroundColor: onSurface,
+      ),
+    );
+  }
 
-  static ThemeData get dark => ThemeData(
-    useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: _primaryColor,
-      secondary: _secondaryColor,
-      brightness: Brightness.dark,
-    ).copyWith(
-      surface: _darkSurface,
-      onSurface: const Color(0xFFE6E1E5),
-    ),
-    textTheme: TextTheme(
-      titleLarge: _titleStyle,
-      titleMedium: _subTitleStyle,
-    ),
-    appBarTheme: AppBarTheme(titleTextStyle: _titleStyle),
-  );
+  static ThemeData get dark {
+    final onSurface = const Color(0xFFE6E1E5);
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _primaryColor,
+        secondary: _secondaryColor,
+        brightness: Brightness.dark,
+      ).copyWith(
+        surface: _darkSurface,
+        onSurface: onSurface,
+      ),
+      textTheme: TextTheme(
+        titleLarge: _titleStyle(onSurface),
+        titleMedium: _subTitleStyle(onSurface),
+      ),
+      appBarTheme: AppBarTheme(
+        titleTextStyle: _titleStyle(onSurface),
+        foregroundColor: onSurface,
+      ),
+    );
+  }
 }

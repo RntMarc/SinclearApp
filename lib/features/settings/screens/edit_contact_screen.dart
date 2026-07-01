@@ -183,7 +183,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('KONTAKTMÖGLICHKEITEN'),
+        title: const Text('Kontaktmöglichkeiten'),
         titleTextStyle: theme.textTheme.titleMedium,
       ),
       body: SafeArea(
