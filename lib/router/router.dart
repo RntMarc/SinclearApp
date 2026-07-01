@@ -25,6 +25,10 @@ import '../features/settings/screens/email_change_screen.dart';
 import '../features/settings/screens/discord_relink_screen.dart';
 import '../features/feedback/screens/feedback_screen.dart';
 import '../features/feedback/screens/feedback_detail_screen.dart';
+import '../features/forum/screens/forum_list_screen.dart';
+import '../features/forum/screens/forum_detail_screen.dart';
+import '../features/forum/screens/post_detail_screen.dart';
+import '../features/forum/screens/create_post_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -41,7 +45,8 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/reisen') ||
           location.startsWith('/kontakte') ||
           location.startsWith('/einstellungen') ||
-          location.startsWith('/feedback');
+          location.startsWith('/feedback') ||
+          location.startsWith('/forum');
 
       if (loggedIn && !auth.onboardingCompleted &&
           location != '/onboarding') {
@@ -139,6 +144,31 @@ GoRouter createRouter(AuthService auth) {
                 path: ':id',
                 builder: (context, state) =>
                     FeedbackDetailScreen(id: state.pathParameters['id']!),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/forum',
+            builder: (context, state) => const ForumListScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    ForumDetailScreen(id: state.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'beitrag/:postId',
+                    builder: (context, state) => PostDetailScreen(
+                      forumId: state.pathParameters['id']!,
+                      postId: state.pathParameters['postId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'erstellen',
+                    builder: (context, state) =>
+                        CreatePostScreen(forumId: state.pathParameters['id']!),
+                  ),
+                ],
               ),
             ],
           ),
