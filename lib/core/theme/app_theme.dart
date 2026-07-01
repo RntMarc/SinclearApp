@@ -16,7 +16,7 @@ class AppTheme {
 
   static TextStyle get _subTitleStyle => GoogleFonts.chivo(
     fontWeight: FontWeight.w700,
-    fontSize: 22,
+    fontSize: 18,
   );
 
   static ThemeData get light => ThemeData(
@@ -25,6 +25,8 @@ class AppTheme {
       seedColor: _primaryColor,
       secondary: _secondaryColor,
       brightness: Brightness.light,
+    ).copyWith(
+      onSurface: const Color(0xFF1C1B1F),
     ),
     textTheme: TextTheme(
       titleLarge: _titleStyle,
@@ -39,7 +41,10 @@ class AppTheme {
       seedColor: _primaryColor,
       secondary: _secondaryColor,
       brightness: Brightness.dark,
-    ).copyWith(surface: _darkSurface),
+    ).copyWith(
+      surface: _darkSurface,
+      onSurface: const Color(0xFFE6E1E5),
+    ),
     textTheme: TextTheme(
       titleLarge: _titleStyle,
       titleMedium: _subTitleStyle,

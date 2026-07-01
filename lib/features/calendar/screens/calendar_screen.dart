@@ -390,10 +390,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
                     child: Row(
                       children: [
-                        Text(
-                          'Kalender',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
                         const Spacer(),
                         TextButton.icon(
                           onPressed: () => setState(() {

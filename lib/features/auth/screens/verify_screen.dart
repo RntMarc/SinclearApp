@@ -124,7 +124,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(height: 24),
-                  Text('Code bestätigen', style: theme.textTheme.titleLarge),
+                   Text('Code bestätigen', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(
                     _descriptionText,

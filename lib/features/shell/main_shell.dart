@@ -165,7 +165,10 @@ String _titleForLocation(String location) {
 enum _NavCategory { system, gemeinschaft, home, unterwegs, organisation }
 
 _NavCategory _categoryForLocation(String location) {
-  if (location.startsWith('/einstellungen')) return _NavCategory.system;
+  if (location.startsWith('/einstellungen') ||
+      location.startsWith('/feedback')) {
+    return _NavCategory.system;
+  }
   if (location.startsWith('/kontakte') || location.startsWith('/forum')) {
     return _NavCategory.gemeinschaft;
   }
@@ -386,7 +389,8 @@ class _CategorySheet extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Desktop Sidebar Navigation (unchanged)
+// ---------------------------------------------------------------------------
+// Desktop Sidebar Navigation
 // ---------------------------------------------------------------------------
 
 class _NavContent extends StatelessWidget {
@@ -395,14 +399,16 @@ class _NavContent extends StatelessWidget {
 
   const _NavContent({required this.currentLocation, required this.onNavigate});
 
+  bool _isActive(String route) => currentLocation.startsWith(route);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedIndex = _selectedIndex(currentLocation);
 
     return SafeArea(
       child: SingleChildScrollView(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
@@ -419,54 +425,58 @@ class _NavContent extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(padding: const EdgeInsets.fromLTRB(0, 8, 0, 8)),
+            const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.home_rounded),
               title: const Text('HOME'),
-              selected: selectedIndex == 0,
+              selected: _isActive('/home'),
               onTap: () => onNavigate('/home'),
             ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_rounded),
-              title: const Text('KALENDER'),
-              selected: selectedIndex == 1,
-              onTap: () => onNavigate('/kalender'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.explore_rounded),
-              title: const Text('ENTDECKEN'),
-              selected: selectedIndex == 2,
-              onTap: () => onNavigate('/entdecken'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.flight_rounded),
-              title: const Text('REISEN & EVENTS'),
-              selected: selectedIndex == 3,
-              onTap: () => onNavigate('/reisen'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.people_rounded),
-              title: const Text('KONTAKTE'),
-              selected: selectedIndex == 4,
-              onTap: () => onNavigate('/kontakte'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.forum_rounded),
-              title: const Text('FORUM'),
-              selected: selectedIndex == 4 && currentLocation.startsWith('/forum'),
-              onTap: () => onNavigate('/forum'),
-            ),
+            _CategoryHeader(title: 'SYSTEM'),
             ListTile(
               leading: const Icon(Icons.settings_rounded),
-              title: const Text('EINSTELLUNGEN'),
-              selected: selectedIndex == 5,
+              title: const Text('Einstellungen'),
+              selected: _isActive('/einstellungen'),
               onTap: () => onNavigate('/einstellungen'),
             ),
             ListTile(
               leading: const Icon(Icons.feedback_rounded),
-              title: const Text('FEEDBACK'),
-              selected: selectedIndex == 6,
+              title: const Text('Feedback'),
+              selected: _isActive('/feedback'),
               onTap: () => onNavigate('/feedback'),
+            ),
+            _CategoryHeader(title: 'GEMEINSCHAFT'),
+            ListTile(
+              leading: const Icon(Icons.forum_rounded),
+              title: const Text('Forum'),
+              selected: _isActive('/forum'),
+              onTap: () => onNavigate('/forum'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.people_rounded),
+              title: const Text('Kontakte'),
+              selected: _isActive('/kontakte'),
+              onTap: () => onNavigate('/kontakte'),
+            ),
+            _CategoryHeader(title: 'UNTERWEGS'),
+            ListTile(
+              leading: const Icon(Icons.explore_rounded),
+              title: const Text('Entdecken'),
+              selected: _isActive('/entdecken'),
+              onTap: () => onNavigate('/entdecken'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.flight_rounded),
+              title: const Text('Reisen & Events'),
+              selected: _isActive('/reisen'),
+              onTap: () => onNavigate('/reisen'),
+            ),
+            _CategoryHeader(title: 'ORGANISATION'),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_rounded),
+              title: const Text('Kalender'),
+              selected: _isActive('/kalender'),
+              onTap: () => onNavigate('/kalender'),
             ),
             const SizedBox(height: 8),
           ],
@@ -474,17 +484,26 @@ class _NavContent extends StatelessWidget {
       ),
     );
   }
+}
 
-  int _selectedIndex(String location) {
-    if (location.startsWith('/kalender')) return 1;
-    if (location.startsWith('/entdecken')) return 2;
-    if (location.startsWith('/reisen')) return 3;
-    if (location.startsWith('/kontakte') || location.startsWith('/forum')) {
-      return 4;
-    }
-    if (location.startsWith('/einstellungen')) return 5;
-    if (location.startsWith('/feedback')) return 6;
-    return 0;
+class _CategoryHeader extends StatelessWidget {
+  final String title;
+  const _CategoryHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Text(
+        title,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
   }
 }
 

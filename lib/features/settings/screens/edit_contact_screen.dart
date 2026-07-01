@@ -182,7 +182,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('KONTAKTMÖGLICHKEITEN')),
+      appBar: AppBar(
+        title: const Text('KONTAKTMÖGLICHKEITEN'),
+        titleTextStyle: theme.textTheme.titleMedium,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

@@ -75,7 +75,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
             const SizedBox(height: 16),
             Text(
               _isEditing ? 'Termin bearbeiten' : 'Neuer Termin',
-              style: theme.textTheme.titleLarge?.copyWith(
+               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
