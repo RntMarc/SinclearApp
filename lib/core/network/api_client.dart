@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -103,7 +102,7 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     if (kDebugMode) {
       final bodyPreview = body != null ? _truncateJson(body) : 'null';
-      developer.log('ApiClient.put: $uri body=$bodyPreview', name: 'api_client');
+      debugPrint('[api_client] PUT $uri body=$bodyPreview');
     }
     final encodedBody = body != null ? jsonEncode(body) : null;
     final response = await _client
@@ -114,10 +113,7 @@ class ApiClient {
         )
         .timeout(timeout);
     if (kDebugMode) {
-      developer.log(
-        'ApiClient.put: response status=${response.statusCode} body_len=${response.body.length} body_preview=${response.body.length > 200 ? '${response.body.substring(0, 200)}...' : response.body}',
-        name: 'api_client',
-      );
+      debugPrint('[api_client] PUT response status=${response.statusCode} body=${response.body.length > 500 ? '${response.body.substring(0, 500)}...' : response.body}');
     }
     return _handleResponse(response);
   }

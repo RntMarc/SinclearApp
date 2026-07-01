@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,21 +42,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  /// Schneidet Zeitanteile ab, sodass nur YYYY-MM-DD übrig bleibt.
+  String? _normalizeDate(String? raw) {
+    if (raw == null || raw.length < 10) return raw;
+    return raw.substring(0, 10);
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
       final user = await AppScope.of(context).user.getMeBase();
       if (!mounted) return;
+      final normalized = _normalizeDate(user.birthday);
+      if (kDebugMode) {
+        debugPrint('[edit_profile] _load: raw birthday="${user.birthday}" normalized="$normalized"');
+      }
       setState(() {
         _displayNameController.text = user.displayName;
-        _birthday = user.birthday;
+        _birthday = normalized;
         _existingImage = user.image;
         _imageBytes = null;
         _removeImage = false;
         _loading = false;
       });
-    } catch (e, st) {
-      developer.log('Failed to load profile', error: e, stackTrace: st);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[edit_profile] Failed to load profile: $e');
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -73,13 +82,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
+    final birthdayToSend = _normalizeDate(_birthday);
+
     if (kDebugMode) {
       final imageInfo = _imageBytes != null
           ? 'base64_length=${base64Encode(_imageBytes!).length}, raw_bytes=${_imageBytes!.length}'
           : 'no_image';
-      developer.log(
-        '_save() called displayName=$displayName birthday=$_birthday removeImage=$_removeImage image=$imageInfo',
-        name: 'edit_profile',
+      debugPrint(
+        '[edit_profile] _save: displayName=$displayName birthday=$birthdayToSend (was "$_birthday") removeImage=$_removeImage image=$imageInfo',
       );
     }
 
@@ -93,8 +103,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
         removeImage: _removeImage,
         displayName: displayName,
-        birthday: _birthday,
-        removeBirthday: _birthday == null,
+        birthday: birthdayToSend,
+        removeBirthday: birthdayToSend == null,
       );
 
       if (kDebugMode) {
@@ -102,9 +112,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final imagePreview = json['image'] is String
             ? 'len=${(json['image'] as String).length}, preview=${(json['image'] as String).substring(0, 80)}...'
             : '${json['image']}';
-        developer.log(
-          'Sending ProfileUpdateRequest image=$imagePreview removeImage=${json['removeImage']}',
-          name: 'edit_profile',
+        debugPrint(
+          '[edit_profile] Sending: image=$imagePreview birthday=$birthdayToSend removeImage=${json['removeImage']}',
         );
       }
 
@@ -116,15 +125,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ).showSnackBar(const SnackBar(content: Text('Profil gespeichert')));
     } on ApiException catch (e) {
       if (kDebugMode) {
-        developer.log(
-          'ApiException on save statusCode=${e.statusCode} error=${e.errorCode} message=${e.message} size=${e.responseSize} preview=${e.responsePreview}',
-          name: 'edit_profile',
-          error: e,
+        debugPrint(
+          '[edit_profile] ApiException: status=${e.statusCode} error=${e.errorCode} message=${e.message} preview=${e.responsePreview}',
         );
       }
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
-    } catch (e, st) {
-      developer.log('Failed to save profile', error: e, stackTrace: st);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[edit_profile] Unexpected error: $e');
       if (!mounted) return;
       setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
     } finally {
