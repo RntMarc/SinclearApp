@@ -77,7 +77,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       child: Row(
         children: [
-          Text('Benachrichtigungen', style: theme.textTheme.titleLarge),
+          Text('Benachrichtigungen', style: theme.textTheme.titleMedium),
           const Spacer(),
           if (notif.unreadCount > 0)
             TextButton.icon(

@@ -131,7 +131,10 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
     final hasDiscord = _user?.base.discordId != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('DISCORD-VERKNÜPFUNG')),
+      appBar: AppBar(
+        title: const Text('DISCORD-VERKNÜPFUNG'),
+        titleTextStyle: theme.textTheme.titleMedium,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -148,7 +151,7 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
                 const SizedBox(height: 24),
                 Text(
                   hasDiscord ? 'Discord verbunden' : 'Kein Discord verknüpft',
-                  style: theme.textTheme.titleLarge,
+                   style: theme.textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
                 Text(

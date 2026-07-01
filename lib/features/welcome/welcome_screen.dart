@@ -27,7 +27,7 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Deine intelligente Plattform',
-                  style: theme.textTheme.titleLarge?.copyWith(
+                   style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),

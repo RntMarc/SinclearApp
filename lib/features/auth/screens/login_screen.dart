@@ -173,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('E-Mail-Login', style: theme.textTheme.titleLarge),
+                  Text('E-Mail-Login', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(
                     'Wir senden dir einen Code per E-Mail.',
