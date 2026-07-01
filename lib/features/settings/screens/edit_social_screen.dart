@@ -156,17 +156,36 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
 
     try {
       final scope = AppScope.of(context);
+      final unsplash = _unsplashController.text.trim();
+      final instagram = _instagramController.text.trim();
+      final mastoUser = _mastodonUserController.text.trim();
+      final mastoServer = _mastodonServerController.text.trim();
+      final pixelUser = _pixelfedUserController.text.trim();
+      final pixelServer = _pixelfedServerController.text.trim();
+      final bluesky = _blueskyController.text.trim();
+      final youtube = _youtubeController.text.trim();
+      final twitch = _twitchController.text.trim();
+
       await scope.user.updateProfile(
         ProfileUpdateRequest(
-          unsplashHandle: _emptyToNull(_unsplashController.text.trim()),
-          instagramHandle: _emptyToNull(_instagramController.text.trim()),
-          mastodonUser: _emptyToNull(_mastodonUserController.text.trim()),
-          mastodonServer: _emptyToNull(_mastodonServerController.text.trim()),
-          pixelfedUser: _emptyToNull(_pixelfedUserController.text.trim()),
-          pixelfedServer: _emptyToNull(_pixelfedServerController.text.trim()),
-          blueskyHandle: _emptyToNull(_blueskyController.text.trim()),
-          youtubeHandle: _emptyToNull(_youtubeController.text.trim()),
-          twitchHandle: _emptyToNull(_twitchController.text.trim()),
+          unsplashHandle: unsplash.isNotEmpty ? unsplash : null,
+          removeUnsplashHandle: unsplash.isEmpty,
+          instagramHandle: instagram.isNotEmpty ? instagram : null,
+          removeInstagramHandle: instagram.isEmpty,
+          mastodonUser: mastoUser.isNotEmpty ? mastoUser : null,
+          removeMastodonUser: mastoUser.isEmpty,
+          mastodonServer: mastoServer.isNotEmpty ? mastoServer : null,
+          removeMastodonServer: mastoServer.isEmpty,
+          pixelfedUser: pixelUser.isNotEmpty ? pixelUser : null,
+          removePixelfedUser: pixelUser.isEmpty,
+          pixelfedServer: pixelServer.isNotEmpty ? pixelServer : null,
+          removePixelfedServer: pixelServer.isEmpty,
+          blueskyHandle: bluesky.isNotEmpty ? bluesky : null,
+          removeBlueskyHandle: bluesky.isEmpty,
+          youtubeHandle: youtube.isNotEmpty ? youtube : null,
+          removeYoutubeHandle: youtube.isEmpty,
+          twitchHandle: twitch.isNotEmpty ? twitch : null,
+          removeTwitchHandle: twitch.isEmpty,
         ),
       );
       await scope.user.updateVisibility(
