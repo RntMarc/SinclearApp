@@ -132,7 +132,7 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DISCORD-VERKNÜPFUNG'),
+        title: const Text('Discord-Verknüpfung'),
         titleTextStyle: theme.textTheme.titleMedium,
       ),
       body: SafeArea(

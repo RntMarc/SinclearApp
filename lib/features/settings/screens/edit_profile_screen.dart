@@ -257,7 +257,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PROFIL BEARBEITEN'),
+        title: const Text('Profil bearbeiten'),
         titleTextStyle: theme.textTheme.titleMedium,
       ),
       body: SafeArea(

@@ -229,7 +229,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SOCIAL MEDIA'),
+        title: const Text('Social Media'),
         titleTextStyle: theme.textTheme.titleMedium,
       ),
       body: SafeArea(

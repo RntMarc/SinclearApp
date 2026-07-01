@@ -428,7 +428,7 @@ class _NavContent extends StatelessWidget {
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.home_rounded),
-              title: const Text('HOME'),
+              title: const Text('Start'),
               selected: _isActive('/home'),
               onTap: () => onNavigate('/home'),
             ),
