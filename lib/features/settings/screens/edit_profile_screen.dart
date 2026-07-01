@@ -116,7 +116,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ).showSnackBar(const SnackBar(content: Text('Profil gespeichert')));
     } on ApiException catch (e) {
       if (kDebugMode) {
-        developer.log('ApiException on save', name: 'edit_profile', error: e);
+        developer.log(
+          'ApiException on save statusCode=${e.statusCode} error=${e.errorCode} message=${e.message} size=${e.responseSize} preview=${e.responsePreview}',
+          name: 'edit_profile',
+          error: e,
+        );
       }
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
