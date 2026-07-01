@@ -1,5 +1,7 @@
 // ignore_for_file: prefer_initializing_formals
 
+import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/user_models.dart';
@@ -51,11 +53,28 @@ class UserService {
   // ─── Write ────────────────────────────────────────────────────────────
 
   Future<UserMe> updateProfile(ProfileUpdateRequest request) async {
+    final json = request.toJson();
+    if (kDebugMode) {
+      final imagePreview = json['image'] is String
+          ? 'len=${(json['image'] as String).length} preview=${(json['image'] as String).substring(0, 80)}...'
+          : '${json['image']}';
+      developer.log(
+        'UserService.updateProfile: sending PUT /user/me/profile image=$imagePreview removeImage=${json['removeImage']}',
+        name: 'user_service',
+      );
+    }
     final data = await _api.put(
       '/user/me/profile',
-      body: request.toJson(),
+      body: json,
       token: await _token(),
     );
+    if (kDebugMode) {
+      final responseImage = data['data']?['image'];
+      developer.log(
+        'UserService.updateProfile: response received image=${responseImage is String ? 'len=${responseImage.length} preview=${responseImage.substring(0, 80)}...' : '$responseImage'}',
+        name: 'user_service',
+      );
+    }
     return UserMe.fromJson(data['data'] as Map<String, dynamic>);
   }
 

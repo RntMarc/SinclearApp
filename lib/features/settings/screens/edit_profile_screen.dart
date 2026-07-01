@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/di/app_scope.dart';
@@ -73,27 +73,51 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
+    if (kDebugMode) {
+      final imageInfo = _imageBytes != null
+          ? 'base64_length=${base64Encode(_imageBytes!).length}, raw_bytes=${_imageBytes!.length}'
+          : 'no_image';
+      developer.log(
+        '_save() called displayName=$displayName birthday=$_birthday removeImage=$_removeImage image=$imageInfo',
+        name: 'edit_profile',
+      );
+    }
+
     setState(() {
       _saving = true;
       _error = null;
     });
 
     try {
-      await AppScope.of(context).user.updateProfile(
-        ProfileUpdateRequest(
-          image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
-          removeImage: _removeImage,
-          displayName: displayName,
-          birthday: _birthday,
-          removeBirthday: _birthday == null,
-        ),
+      final request = ProfileUpdateRequest(
+        image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
+        removeImage: _removeImage,
+        displayName: displayName,
+        birthday: _birthday,
+        removeBirthday: _birthday == null,
       );
+
+      if (kDebugMode) {
+        final json = request.toJson();
+        final imagePreview = json['image'] is String
+            ? 'len=${(json['image'] as String).length}, preview=${(json['image'] as String).substring(0, 80)}...'
+            : '${json['image']}';
+        developer.log(
+          'Sending ProfileUpdateRequest image=$imagePreview removeImage=${json['removeImage']}',
+          name: 'edit_profile',
+        );
+      }
+
+      await AppScope.of(context).user.updateProfile(request);
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Profil gespeichert')));
     } on ApiException catch (e) {
+      if (kDebugMode) {
+        developer.log('ApiException on save', name: 'edit_profile', error: e);
+      }
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
       developer.log('Failed to save profile', error: e, stackTrace: st);
