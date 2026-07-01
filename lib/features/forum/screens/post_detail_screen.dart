@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
+import '../../../core/utils/spotify_helper.dart';
 import '../models/forum_models.dart';
 import '../widgets/comment_tree.dart';
+import '../widgets/youtube_player_embed.dart';
+import '../widgets/spotify_player_embed.dart';
+import '../widgets/og_preview_card.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final String forumId;
@@ -191,10 +195,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final auth = AppScope.of(context).auth;
     final isAdmin = auth.isAdmin;
     final currentUserId = auth.userId ?? '';
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Beitrag'),
+        title: Text(
+          _post?.title ?? 'Beitrag',
+          style: theme.textTheme.titleMedium,
+        ),
       ),
       body: _buildBody(context, currentUserId, isAdmin),
     );
@@ -261,6 +269,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ],
           ),
+          if (post.title != null && post.title!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              post.title!,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
           if (post.text != null && post.text!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
@@ -268,56 +285,71 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
             ),
           ],
-          if (post.type != 'text' && post.urls.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            ...post.urls.map(
-              (url) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: InkWell(
-                  onTap: () => launchUrl(Uri.parse(url.url)),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.open_in_new_rounded,
-                          size: 18,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                url.platform.toUpperCase(),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                Uri.tryParse(url.url)?.host ?? url.url,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+          // --- Native embeds for web posts ---
+          if (post.type == 'web') ...[
+            if (post.youtubeIds.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              ...post.youtubeIds.map(
+                (id) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: YouTubePlayerEmbed(videoId: id),
+                ),
+              ),
+            ],
+            if (post.spotifyItems.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              ...post.spotifyItems.map(
+                (SpotifyItem item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: SpotifyPlayerEmbed(
+                    item: item,
+                    originalUrl: post.webUrls.firstWhere(
+                      (u) => SpotifyHelper.parseUrl(u) != null,
+                      orElse: () => post.webUrls.first,
                     ),
                   ),
                 ),
               ),
+            ],
+            if (post.genericUrls.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              ...post.genericUrls.map(
+                (url) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: OgPreviewCard(url: url),
+                ),
+              ),
+            ],
+          ],
+          // --- Native embeds for video posts ---
+          if (post.type == 'video' && post.youtubeVideoIds.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ...post.youtubeVideoIds.map(
+              (id) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: YouTubePlayerEmbed(videoId: id),
+              ),
             ),
           ],
+          // --- Native embeds for music posts ---
+          if (post.type == 'music' && post.spotifyMusicItems.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            ...post.spotifyMusicItems.map(
+              (SpotifyItem item) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: SpotifyPlayerEmbed(
+                  item: item,
+                  originalUrl: post.urls
+                      .firstWhere(
+                        (u) => u.platform.toLowerCase().contains('spotify'),
+                      )
+                      .url,
+                ),
+              ),
+            ),
+          ],
+          // --- Link list for remaining (non-embed) URLs ---
+          ..._linkDetailEntries(theme, post),
           const SizedBox(height: 20),
           Row(
             children: [
@@ -463,5 +495,66 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       default:
         return 'Text';
     }
+  }
+
+  /// Returns link list widgets for URLs that are not shown as native embeds.
+  List<Widget> _linkDetailEntries(ThemeData theme, FeedPost post) {
+    final links = post.type == 'video' || post.type == 'music'
+        ? post.genericMusicUrls
+        : post.type != 'web' && post.type != 'text'
+            ? post.urls
+            : const <MusicUrl>[];
+    if (links.isEmpty) return const [];
+    return [
+      const SizedBox(height: 16),
+      ...links.map(
+        (url) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: InkWell(
+            onTap: () => launchUrl(Uri.parse(url.url)),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.open_in_new_rounded,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          url.platform.toUpperCase(),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          Uri.tryParse(url.url)?.host ?? url.url,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 }

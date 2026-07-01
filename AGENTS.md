@@ -347,6 +347,10 @@ linter:
 * **Coverage:** Aim for high test coverage.
 
 ## Visual Design & Theming
+* **Design System:** Before creating or modifying UI components, read
+  `DESIGN.md` in the project root. It contains project-specific rules for
+  typography, colors, navigation structure, AppBar usage, and layout that
+  override generic guidelines.
 * **UI Design:** Build beautiful and intuitive user interfaces that follow
   modern design guidelines.
 * **Responsiveness:** Ensure the app is mobile responsive and adapts to

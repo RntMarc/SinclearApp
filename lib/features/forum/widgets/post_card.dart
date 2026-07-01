@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
+import '../../../core/utils/spotify_helper.dart';
 import '../models/forum_models.dart';
+import 'youtube_thumbnail.dart';
+import 'spotify_thumbnail.dart';
+import 'og_preview_card.dart';
 
 class PostCard extends StatelessWidget {
   final FeedPost post;
@@ -85,6 +89,17 @@ class PostCard extends StatelessWidget {
                     ),
                 ],
               ),
+              if (post.title != null && post.title!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  post.title!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
               if (post.text != null && post.text!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -94,34 +109,44 @@ class PostCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
                 ),
               ],
-              if (post.type != 'text' && post.urls.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                ...post.urls.map(
-                  (url) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.link_rounded,
-                          size: 16,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '${url.platform} – ${Uri.tryParse(url.url)?.host ?? url.url}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ],
+              // --- Native embed thumbnails ---
+              if (post.type == 'web') ...[
+                if (post.youtubeIds.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  YouTubeThumbnail(videoId: post.youtubeIds.first),
+                ],
+                if (post.spotifyItems.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  SpotifyThumbnail(
+                    item: post.spotifyItems.first,
+                    originalUrl: post.webUrls.firstWhere(
+                      (u) => SpotifyHelper.parseUrl(u) != null,
+                      orElse: () => post.webUrls.first,
                     ),
                   ),
+                ],
+                if (post.genericUrls.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  OgPreviewCard(url: post.genericUrls.first),
+                ],
+              ],
+              if (post.type == 'video' && post.youtubeVideoIds.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                YouTubeThumbnail(videoId: post.youtubeVideoIds.first),
+              ],
+              if (post.type == 'music' && post.spotifyMusicItems.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                SpotifyThumbnail(
+                  item: post.spotifyMusicItems.first,
+                  originalUrl: post.urls
+                      .firstWhere(
+                        (u) => u.platform.toLowerCase().contains('spotify'),
+                      )
+                      .url,
                 ),
               ],
+              // --- Link list for remaining (non-embed) URLs ---
+              ..._linkListEntries(context, post),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -197,5 +222,44 @@ class PostCard extends StatelessWidget {
       default:
         return 'Text';
     }
+  }
+
+  /// Returns link list widgets for URLs that are not shown as native embeds.
+  List<Widget> _linkListEntries(BuildContext context, FeedPost post) {
+    final theme = Theme.of(context);
+    final links = post.type == 'video' || post.type == 'music'
+        ? post.genericMusicUrls
+        : post.type != 'web' && post.type != 'text'
+            ? post.urls
+            : const <MusicUrl>[];
+    if (links.isEmpty) return const [];
+    return [
+      const SizedBox(height: 8),
+      ...links.map(
+        (url) => Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              Icon(
+                Icons.link_rounded,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${url.platform} – ${Uri.tryParse(url.url)?.host ?? url.url}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
   }
 }

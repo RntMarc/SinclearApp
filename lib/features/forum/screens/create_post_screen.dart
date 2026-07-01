@@ -14,12 +14,14 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   String _selectedType = 'text';
+  final _titleController = TextEditingController();
   final _textController = TextEditingController();
   final List<_UrlEntry> _urls = [];
   bool _submitting = false;
 
   @override
   void dispose() {
+    _titleController.dispose();
     _textController.dispose();
     for (final entry in _urls) {
       entry.dispose();
@@ -44,6 +46,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final content = <String, dynamic>{};
     final text = _textController.text.trim();
     if (text.isNotEmpty) content['text'] = text;
+
+    final title = _titleController.text.trim();
+    if (title.isNotEmpty) content['title'] = title;
 
     if (_selectedType != 'text' && _urls.isNotEmpty) {
       final urlList = _urls
@@ -108,7 +113,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Neuer Beitrag'),
+        title: Text('Neuer Beitrag', style: theme.textTheme.titleMedium),
         actions: [
           FilledButton(
             onPressed: _submitting ? null : _submit,
@@ -167,6 +172,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               },
             ),
             const SizedBox(height: 24),
+            TextField(
+              controller: _titleController,
+              textCapitalization: TextCapitalization.words,
+              maxLines: 1,
+              decoration: const InputDecoration(
+                hintText: 'Titel (optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _textController,
               textCapitalization: TextCapitalization.sentences,
