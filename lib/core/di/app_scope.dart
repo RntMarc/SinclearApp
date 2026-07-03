@@ -11,6 +11,8 @@ import '../../features/notifications/services/notification_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/user/services/user_service.dart';
+import '../../features/location_sharing/services/location_sharing_service.dart';
+import '../../features/location_sharing/services/location_sharing_manager.dart';
 
 class AppScope extends InheritedWidget {
   final AuthService auth;
@@ -25,6 +27,8 @@ class AppScope extends InheritedWidget {
   final RecipesService recipes;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
+  final LocationSharingService locationSharing;
+  final LocationSharingManager locationSharingManager;
 
   const AppScope({
     super.key,
@@ -40,6 +44,8 @@ class AppScope extends InheritedWidget {
     required this.recipes,
     required this.androidUpdate,
     this.webUpdate,
+    required this.locationSharing,
+    required this.locationSharingManager,
     required super.child,
   });
 
