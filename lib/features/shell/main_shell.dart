@@ -155,6 +155,7 @@ String _titleForLocation(String location) {
   if (location.startsWith('/einstellungen')) return 'EINSTELLUNGEN';
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/forum')) return 'FORUM';
+  if (location.startsWith('/rezepte')) return 'REZEPTE';
   return 'HOME';
 }
 
@@ -169,7 +170,9 @@ _NavCategory _categoryForLocation(String location) {
       location.startsWith('/feedback')) {
     return _NavCategory.system;
   }
-  if (location.startsWith('/kontakte') || location.startsWith('/forum')) {
+  if (location.startsWith('/kontakte') ||
+      location.startsWith('/forum') ||
+      location.startsWith('/rezepte')) {
     return _NavCategory.gemeinschaft;
   }
   if (location.startsWith('/entdecken') || location.startsWith('/reisen')) {
@@ -242,7 +245,7 @@ class _MobileBottomNav extends StatelessWidget {
           items: [
             _SheetItem('Forum', Icons.forum_rounded, '/forum'),
             _SheetItem('Kritik', Icons.rate_review_rounded, null),
-            _SheetItem('Rezepte', Icons.restaurant_rounded, null),
+            _SheetItem('Rezepte', Icons.restaurant_rounded, '/rezepte'),
             _SheetItem('Fotos', Icons.photo_library_rounded, null),
             _SheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
           ],
@@ -451,6 +454,12 @@ class _NavContent extends StatelessWidget {
               title: const Text('Forum'),
               selected: _isActive('/forum'),
               onTap: () => onNavigate('/forum'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.restaurant_rounded),
+              title: const Text('Rezepte'),
+              selected: _isActive('/rezepte'),
+              onTap: () => onNavigate('/rezepte'),
             ),
             ListTile(
               leading: const Icon(Icons.people_rounded),

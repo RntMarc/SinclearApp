@@ -21,6 +21,7 @@ import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/notifications/services/notification_service.dart';
+import 'features/recipes/services/recipes_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/user/services/user_service.dart';
 import 'firebase_options.dart';
@@ -79,6 +80,7 @@ void main() async {
   final notification = NotificationService(api: api, auth: auth);
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
+  final recipes = RecipesService(api: api, auth: auth);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
   final webUpdate = WebUpdateService(
     currentBuildNumber: packageInfo.buildNumber,
@@ -129,6 +131,7 @@ void main() async {
       notification: notification,
       feedback: feedback,
       forum: forum,
+      recipes: recipes,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       router: router,
