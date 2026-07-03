@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../../user/models/user_models.dart';
 
 class CreateShareScreen extends StatefulWidget {
@@ -221,22 +222,10 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
     );
   }
 
-  Widget _buildAvatar(UserBasePublic user) {
-    if (user.image != null) {
-      return CircleAvatar(
-        backgroundImage: NetworkImage(user.image!),
-        radius: 20,
-      );
-    }
-    return CircleAvatar(
-      radius: 20,
-      child: Text(
-        user.displayName.isNotEmpty
-            ? user.displayName[0].toUpperCase()
-            : '?',
-      ),
-    );
-  }
+  Widget _buildAvatar(UserBasePublic user) => UserAvatar(
+    imageUrl: user.image,
+    displayName: user.displayName,
+  );
 
   String _formatDuration(int seconds) {
     final h = seconds ~/ 3600;

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/image/image_provider_helper.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../../../core/models/app_update_info.dart';
 import '../../../core/services/android_update_service.dart';
 import '../../update/update_dialog.dart';
@@ -98,21 +98,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              CircleAvatar(
+              UserAvatar(
+                imageUrl: user.base.image,
+                displayName: user.base.displayName,
                 radius: 32,
-                backgroundImage: resolveImageProvider(user.base.image),
-                child: resolveImageProvider(user.base.image) == null
-                    ? Text(
-                        user.base.displayName.isNotEmpty
-                            ? user.base.displayName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      )
-                    : null,
               ),
               const SizedBox(width: 16),
               Expanded(

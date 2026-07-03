@@ -2,7 +2,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/image/image_provider_helper.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../../user/models/user_models.dart';
 import '../models/recipes_models.dart';
 
@@ -881,23 +881,10 @@ class _ReviewCard extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
                     children: [
-                      CircleAvatar(
+                      UserAvatar(
+                        imageUrl: reviewUser!.image,
+                        displayName: reviewUser!.displayName,
                         radius: 14,
-                        backgroundImage: resolveImageProvider(
-                          reviewUser!.image,
-                        ),
-                        child: resolveImageProvider(reviewUser!.image) == null
-                            ? Text(
-                                reviewUser!.displayName.isNotEmpty
-                                    ? reviewUser!.displayName[0].toUpperCase()
-                                    : '?',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                              )
-                            : null,
                       ),
                       const SizedBox(width: 8),
                       Text(

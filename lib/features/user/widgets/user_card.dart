@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/image/image_provider_helper.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../models/user_models.dart';
 
 class UserCard extends StatelessWidget {
@@ -25,21 +25,10 @@ class UserCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              CircleAvatar(
+              UserAvatar(
+                imageUrl: user.image,
+                displayName: user.displayName,
                 radius: 24,
-                backgroundImage: resolveImageProvider(user.image),
-                child: resolveImageProvider(user.image) == null
-                    ? Text(
-                        user.displayName.isNotEmpty
-                            ? user.displayName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      )
-                    : null,
               ),
               const SizedBox(width: 16),
               Expanded(

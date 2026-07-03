@@ -2,7 +2,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/image/image_provider_helper.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../models/user_models.dart';
 
 class UserDetailScreen extends StatefulWidget {
@@ -92,21 +92,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           const BackButton(),
           const SizedBox(height: 8),
           Center(
-            child: CircleAvatar(
+            child: UserAvatar(
+              imageUrl: user.base.image,
+              displayName: user.base.displayName,
               radius: 48,
-              backgroundImage: resolveImageProvider(user.base.image),
-              child: resolveImageProvider(user.base.image) == null
-                  ? Text(
-                      user.base.displayName.isNotEmpty
-                          ? user.base.displayName[0].toUpperCase()
-                          : '?',
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    )
-                  : null,
             ),
           ),
           const SizedBox(height: 16),
