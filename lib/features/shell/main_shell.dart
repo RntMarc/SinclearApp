@@ -156,6 +156,7 @@ String _titleForLocation(String location) {
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/forum')) return 'FORUM';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
+  if (location.startsWith('/standort-teilen')) return 'STANDORT TEILEN';
   return 'HOME';
 }
 
@@ -175,7 +176,9 @@ _NavCategory _categoryForLocation(String location) {
       location.startsWith('/rezepte')) {
     return _NavCategory.gemeinschaft;
   }
-  if (location.startsWith('/entdecken') || location.startsWith('/reisen')) {
+  if (location.startsWith('/entdecken') ||
+      location.startsWith('/reisen') ||
+      location.startsWith('/standort-teilen')) {
     return _NavCategory.unterwegs;
   }
   if (location.startsWith('/kalender')) return _NavCategory.organisation;
@@ -257,6 +260,11 @@ class _MobileBottomNav extends StatelessWidget {
           items: [
             _SheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
             _SheetItem('Reisen', Icons.flight_rounded, '/reisen'),
+            _SheetItem(
+              'Standort teilen',
+              Icons.share_location_rounded,
+              '/standort-teilen',
+            ),
           ],
         );
       case _NavCategory.organisation:
@@ -479,6 +487,12 @@ class _NavContent extends StatelessWidget {
               title: const Text('Reisen & Events'),
               selected: _isActive('/reisen'),
               onTap: () => onNavigate('/reisen'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_location_rounded),
+              title: const Text('Standort teilen'),
+              selected: _isActive('/standort-teilen'),
+              onTap: () => onNavigate('/standort-teilen'),
             ),
             _CategoryHeader(title: 'ORGANISATION'),
             ListTile(
