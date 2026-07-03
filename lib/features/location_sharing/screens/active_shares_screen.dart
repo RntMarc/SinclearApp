@@ -14,14 +14,23 @@ class ActiveSharesScreen extends StatefulWidget {
 
 class _ActiveSharesScreenState extends State<ActiveSharesScreen> {
   Timer? _countdownTimer;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      _load();
+    }
   }
 
   @override
@@ -126,121 +135,108 @@ class _ActiveSharesScreenState extends State<ActiveSharesScreen> {
     final sessions = manager.mySessions;
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        titleTextStyle: theme.textTheme.titleMedium,
-        title: const Text('Meine geteilten Standorte'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _load,
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/standort-teilen/erstellen'),
-        icon: const Icon(Icons.share_location_rounded),
-        label: const Text('Standort teilen'),
-      ),
-      body: sessions.isEmpty
-          ? Center(
+    if (sessions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.location_off_rounded,
+              size: 64,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Du teilst gerade keinen Standort.',
+              style: theme.textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              onPressed: () => context.go('/standort-teilen/erstellen'),
+              child: const Text('Standort teilen'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        itemCount: sessions.length,
+        itemBuilder: (context, index) {
+          final session = sessions[index];
+          final remaining = _remaining(session.expiresAt);
+          final recipients = session.recipients
+              .map((r) => r.displayName)
+              .join(', ');
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.location_off_rounded,
-                    size: 64,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  Row(
+                    children: [
+                      const Icon(Icons.circle,
+                          size: 12, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Aktiv',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: Colors.green,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (remaining != null)
+                        Text(
+                          _formatRemaining(remaining),
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
-                    'Du teilst gerade keinen Standort.',
-                    style: theme.textTheme.bodyLarge,
+                    'Empfänger: $recipients',
+                    style: theme.textTheme.bodyMedium,
                   ),
-                  const SizedBox(height: 8),
-                  FilledButton.tonal(
-                    onPressed: () =>
-                        context.go('/standort-teilen/erstellen'),
-                    child: const Text('Standort teilen'),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Aktualisierung: alle ${session.frequencySeconds ~/ 60} Minuten',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _extend(session.id),
+                        icon: const Icon(Icons.timer_outlined,
+                            size: 18),
+                        label: const Text('Verlängern'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton.tonalIcon(
+                        onPressed: () => _stop(session.id),
+                        icon: const Icon(Icons.stop_rounded,
+                            size: 18),
+                        label: const Text('Beenden'),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-              itemCount: sessions.length,
-              itemBuilder: (context, index) {
-                final session = sessions[index];
-                final remaining = _remaining(session.expiresAt);
-                final recipients = session.recipients
-                    .map((r) => r.displayName)
-                    .join(', ');
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.circle,
-                                size: 12, color: Colors.green),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Aktiv',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: Colors.green,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (remaining != null)
-                              Text(
-                                _formatRemaining(remaining),
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Empfänger: $recipients',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Aktualisierung: alle ${session.frequencySeconds ~/ 60} Minuten',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: () => _extend(session.id),
-                              icon: const Icon(Icons.timer_outlined,
-                                  size: 18),
-                              label: const Text('Verlängern'),
-                            ),
-                            const SizedBox(width: 8),
-                            FilledButton.tonalIcon(
-                              onPressed: () => _stop(session.id),
-                              icon: const Icon(Icons.stop_rounded,
-                                  size: 18),
-                              label: const Text('Beenden'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
             ),
+          );
+        },
+      ),
     );
   }
 }

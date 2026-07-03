@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_compressor.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../../../core/network/api_client.dart';
 import '../../user/models/user_models.dart';
 
@@ -540,7 +541,7 @@ class _ProfilePage extends StatelessWidget {
       avatar = MemoryImage(imageBytes!);
     } else if (existingImageUrl != null &&
         existingImageUrl!.isNotEmpty) {
-      avatar = NetworkImage(existingImageUrl!);
+      avatar = resolveImageProvider(existingImageUrl!);
     }
 
     return SingleChildScrollView(

@@ -26,11 +26,20 @@ class _SessionMapScreenState extends State<SessionMapScreen> {
   List<LocationSharingLocation> _locations = [];
   Timer? _pollTimer;
   bool _loading = true;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      _load();
+    }
   }
 
   @override

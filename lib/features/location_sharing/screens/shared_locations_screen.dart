@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/widgets/user_avatar.dart';
 
 class SharedLocationsScreen extends StatefulWidget {
   const SharedLocationsScreen({super.key});
@@ -74,19 +75,10 @@ class _SharedLocationsScreenState extends State<SharedLocationsScreen> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
-                    leading: active.owner.image != null
-                        ? CircleAvatar(
-                            backgroundImage:
-                                NetworkImage(active.owner.image!),
-                          )
-                        : CircleAvatar(
-                            child: Text(
-                              active.owner.displayName.isNotEmpty
-                                  ? active.owner.displayName[0]
-                                      .toUpperCase()
-                                  : '?',
-                            ),
-                          ),
+                    leading: UserAvatar(
+                      imageUrl: active.owner.image,
+                      displayName: active.owner.displayName,
+                    ),
                     title: Text(active.owner.displayName),
                     subtitle: Text(
                       'Zuletzt aktualisiert: ${_timeAgo(lastLoc?.recordedAt)}',

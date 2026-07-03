@@ -5,7 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/image/image_provider_helper.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../widgets/user_tile.dart';
@@ -351,17 +351,10 @@ class _AccommodationCard extends StatelessWidget {
                 spacing: 4,
                 runSpacing: 4,
                 children: accommodation.users.map((u) {
-                  return CircleAvatar(
+                  return UserAvatar(
+                    imageUrl: u.image,
+                    displayName: u.displayName,
                     radius: 14,
-                    backgroundImage: resolveImageProvider(u.image),
-                    child: resolveImageProvider(u.image) == null
-                        ? Text(
-                            u.displayName.isNotEmpty
-                                ? u.displayName[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(fontSize: 11),
-                          )
-                        : null,
                   );
                 }).toList(),
               ),
@@ -543,17 +536,10 @@ class _EventCard extends StatelessWidget {
                   spacing: 4,
                   runSpacing: 4,
                   children: event.participants.map((p) {
-                    return CircleAvatar(
+                    return UserAvatar(
+                      imageUrl: p.image,
+                      displayName: p.displayName,
                       radius: 12,
-                      backgroundImage: resolveImageProvider(p.image),
-                      child: resolveImageProvider(p.image) == null
-                          ? Text(
-                              p.displayName.isNotEmpty
-                                  ? p.displayName[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(fontSize: 10),
-                            )
-                          : null,
                     );
                   }).toList(),
                 ),
