@@ -136,6 +136,31 @@ class ApiClient {
     return buffer.toString();
   }
 
+  Future<Map<String, dynamic>> patch(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    if (kDebugMode) {
+      final bodyPreview = body != null ? _truncateJson(body) : 'null';
+      debugPrint('[api_client] PATCH $uri body=$bodyPreview');
+    }
+    final encodedBody = body != null ? jsonEncode(body) : null;
+    final response = await _client
+        .send(
+          http.Request('PATCH', uri)
+            ..headers.addAll(_headers(token: token))
+            ..body = encodedBody ?? '',
+        )
+        .timeout(timeout);
+    final httpResponse = await http.Response.fromStream(response);
+    if (kDebugMode) {
+      debugPrint('[api_client] PATCH response status=${httpResponse.statusCode}');
+    }
+    return _handleResponse(httpResponse);
+  }
+
   Future<Map<String, dynamic>> delete(
     String path, {
     Map<String, dynamic>? body,

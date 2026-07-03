@@ -8,6 +8,7 @@ import '../../features/explore/services/nominatim_service.dart';
 import '../../features/feedback/services/feedback_service.dart';
 import '../../features/forum/services/forum_service.dart';
 import '../../features/notifications/services/notification_service.dart';
+import '../../features/recipes/services/recipes_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/user/services/user_service.dart';
 
@@ -21,6 +22,7 @@ class AppScope extends InheritedWidget {
   final CalendarService calendar;
   final FeedbackService feedback;
   final ForumService forum;
+  final RecipesService recipes;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
 
@@ -35,6 +37,7 @@ class AppScope extends InheritedWidget {
     required this.calendar,
     required this.feedback,
     required this.forum,
+    required this.recipes,
     required this.androidUpdate,
     this.webUpdate,
     required super.child,

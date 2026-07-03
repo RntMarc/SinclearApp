@@ -29,6 +29,10 @@ import '../features/forum/screens/forum_list_screen.dart';
 import '../features/forum/screens/forum_detail_screen.dart';
 import '../features/forum/screens/post_detail_screen.dart';
 import '../features/forum/screens/create_post_screen.dart';
+import '../features/recipes/screens/recipe_list_screen.dart';
+import '../features/recipes/screens/category_recipes_screen.dart';
+import '../features/recipes/screens/recipe_detail_screen.dart';
+import '../features/recipes/screens/create_recipe_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -46,7 +50,8 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/kontakte') ||
           location.startsWith('/einstellungen') ||
           location.startsWith('/feedback') ||
-          location.startsWith('/forum');
+          location.startsWith('/forum') ||
+          location.startsWith('/rezepte');
 
       if (loggedIn && !auth.onboardingCompleted &&
           location != '/onboarding') {
@@ -195,6 +200,50 @@ GoRouter createRouter(AuthService auth) {
               GoRoute(
                 path: 'discord',
                 builder: (context, state) => const DiscordRelinkScreen(),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/rezepte',
+            builder: (context, state) => const RecipeListScreen(),
+            routes: [
+              GoRoute(
+                path: 'alle',
+                builder: (context, state) =>
+                    const CategoryRecipesScreen(category: 'alle'),
+              ),
+              GoRoute(
+                path: 'suche',
+                builder: (context, state) {
+                  final q = state.uri.queryParameters['q'] ?? '';
+                  return CategoryRecipesScreen(
+                    category: 'suche',
+                    initialQuery: q,
+                  );
+                },
+              ),
+              GoRoute(
+                path: 'neu',
+                builder: (context, state) => const CreateRecipeScreen(),
+              ),
+              GoRoute(
+                path: ':kategorie',
+                builder: (context, state) => CategoryRecipesScreen(
+                  category: state.pathParameters['kategorie']!,
+                ),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    RecipeDetailScreen(id: state.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'bearbeiten',
+                    builder: (context, state) => CreateRecipeScreen(
+                      recipeId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
