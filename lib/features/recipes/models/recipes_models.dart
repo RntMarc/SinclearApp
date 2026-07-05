@@ -381,6 +381,7 @@ class RecipeUpdateRequest {
   final String? category;
   final String? dietaryTags;
   final String? image;
+  final bool removeImage;
   final int? servings;
   final List<RecipeIngredientCreateRequest>? ingredients;
   final List<RecipeStepCreateRequest>? steps;
@@ -391,6 +392,7 @@ class RecipeUpdateRequest {
     this.category,
     this.dietaryTags,
     this.image,
+    this.removeImage = false,
     this.servings,
     this.ingredients,
     this.steps,
@@ -402,7 +404,11 @@ class RecipeUpdateRequest {
     if (description != null) map['description'] = description;
     if (category != null) map['category'] = category;
     if (dietaryTags != null) map['dietaryTags'] = dietaryTags;
-    if (image != null) map['image'] = image;
+    if (removeImage) {
+      map['image'] = null;
+    } else if (image != null) {
+      map['image'] = image;
+    }
     if (servings != null) map['servings'] = servings;
     if (ingredients != null) {
       map['ingredients'] = ingredients!.map((e) => e.toJson()).toList();

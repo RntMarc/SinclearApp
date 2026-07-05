@@ -192,7 +192,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         error: e,
       );
       if (!mounted) return;
-      setState(() => _error = 'Profil speichern fehlgeschlagen: $e');
+      setState(
+        () => _error = e.message ?? 'Profil speichern fehlgeschlagen.',
+      );
       return;
     } catch (e, st) {
       developer.log(
@@ -203,7 +205,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         stackTrace: st,
       );
       if (!mounted) return;
-      setState(() => _error = 'Profil speichern fehlgeschlagen: $e');
+      setState(
+        () => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.',
+      );
       return;
     }
 
@@ -218,7 +222,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         error: e,
       );
       if (!mounted) return;
-      setState(() => _error = 'Onboarding abschließen fehlgeschlagen: $e');
+      setState(
+        () => _error = e.message ?? 'Onboarding abschließen fehlgeschlagen.',
+      );
       return;
     } catch (e, st) {
       developer.log(
@@ -229,7 +235,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         stackTrace: st,
       );
       if (!mounted) return;
-      setState(() => _error = 'Onboarding abschließen fehlgeschlagen: $e');
+      setState(
+        () => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.',
+      );
       return;
     }
 

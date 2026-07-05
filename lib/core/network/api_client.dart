@@ -127,7 +127,10 @@ class ApiClient {
       buffer.write('"${entry.key}": ');
       if (entry.key == 'image' && entry.value is String) {
         final str = entry.value as String;
-        buffer.write('"<base64: len=${str.length}, preview=${str.substring(0, 80)}...>"');
+        final preview = str.length > 80
+            ? '${str.substring(0, 80)}...'
+            : str;
+        buffer.write('"<base64: len=${str.length}, preview=$preview>"');
       } else {
         buffer.write(entry.value.toString());
       }
