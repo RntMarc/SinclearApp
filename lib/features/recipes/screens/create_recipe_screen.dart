@@ -1,11 +1,10 @@
 import 'dart:developer' as developer;
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/image/image_compressor.dart';
 import '../../../core/network/api_client.dart';
 import '../models/recipes_models.dart';
 
@@ -26,6 +25,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   final _dietaryTagsController = TextEditingController();
   String _category = 'hauptgerichte';
   String? _imageBase64;
+  bool _removeImage = false;
   List<_IngredientEntry> _ingredients = [];
   List<_StepEntry> _steps = [];
   bool _submitting = false;
@@ -65,6 +65,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         _dietaryTagsController.text = recipe.dietaryTags ?? '';
         _category = recipe.category;
         _imageBase64 = recipe.image;
+        _removeImage = false;
         _ingredients = recipe.ingredients
             .map(
               (i) => _IngredientEntry(
@@ -111,15 +112,19 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     );
     if (picked == null) return;
 
-    final bytes = await picked.readAsBytes();
-    if (bytes.length > 200 * 1024) {
+    final rawBytes = await picked.readAsBytes();
+    final compressed = compressImage(rawBytes);
+    if (compressed == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bild darf maximal 200 KB groß sein.')),
+        const SnackBar(content: Text('Bild konnte nicht verarbeitet werden.')),
       );
       return;
     }
-    setState(() => _imageBase64 = base64Encode(bytes));
+    setState(() {
+      _imageBase64 = base64Encode(compressed);
+      _removeImage = false;
+    });
   }
 
   void _addIngredient() {
@@ -209,6 +214,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                 ? null
                 : _dietaryTagsController.text.trim(),
             image: _imageBase64,
+            removeImage: _removeImage,
             servings: int.tryParse(_servingsController.text) ?? 4,
             ingredients: ingredients,
             steps: steps,
@@ -352,31 +358,24 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: kIsWeb
-                        ? Image.memory(
-                            base64Decode(_imageBase64!),
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _ImagePlaceholder(
-                              onTap: _pickImage,
-                            ),
-                          )
-                        : Image.file(
-                            File(_imageBase64!),
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _ImagePlaceholder(
-                              onTap: _pickImage,
-                            ),
-                          ),
+                    child: Image.memory(
+                      base64Decode(_imageBase64!),
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _ImagePlaceholder(
+                        onTap: _pickImage,
+                      ),
+                    ),
                   ),
                   Positioned(
                     top: 8,
                     right: 8,
                     child: IconButton.filled(
-                      onPressed: () => setState(() => _imageBase64 = null),
+                      onPressed: () => setState(() {
+                        _imageBase64 = null;
+                        _removeImage = true;
+                      }),
                       icon: const Icon(Icons.close_rounded, size: 18),
                     ),
                   ),

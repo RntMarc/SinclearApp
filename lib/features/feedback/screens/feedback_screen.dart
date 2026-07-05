@@ -183,8 +183,16 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     if (image == null) return;
 
     final bytes = await image.readAsBytes();
-    final compressed = compressImage(bytes);
+    final compressed = compressImage(bytes, maxDimension: 4000);
     if (!mounted) return;
+    if (compressed == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Screenshot konnte nicht verarbeitet werden.'),
+        ),
+      );
+      return;
+    }
     setState(() => _bugScreenshot = compressed);
   }
 
