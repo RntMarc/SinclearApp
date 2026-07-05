@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/utils/date_utils.dart';
 
 class ActiveSharesScreen extends StatefulWidget {
   const ActiveSharesScreen({super.key});
@@ -46,7 +47,7 @@ class _ActiveSharesScreenState extends State<ActiveSharesScreen> {
   }
 
   Duration? _remaining(String expiresAt) {
-    final dt = DateTime.tryParse(expiresAt);
+    final dt = parseApiDate(expiresAt);
     if (dt == null) return null;
     final remaining = dt.difference(DateTime.now());
     return remaining.isNegative ? null : remaining;

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../../core/utils/date_utils.dart';
 import '../models/location_sharing_models.dart';
 import 'location_sender.dart';
 import 'location_sharing_service.dart';
@@ -146,7 +147,7 @@ class LocationSharingManager extends ChangeNotifier {
   void _startSending(LocationSharingSessionDetail session) {
     _activeSenderSessions.add(session.id);
 
-    final expiresAt = DateTime.tryParse(session.expiresAt);
+    final expiresAt = parseApiDate(session.expiresAt);
     if (expiresAt != null) {
       final remaining = expiresAt.difference(DateTime.now());
       if (remaining.isNegative) return;
@@ -185,7 +186,7 @@ class LocationSharingManager extends ChangeNotifier {
           latitude: position.latitude,
           longitude: position.longitude,
           accuracy: position.accuracy,
-          recordedAt: DateTime.now().toUtc().toIso8601String(),
+          recordedAt: toApiDate(DateTime.now()),
         ),
       );
     } catch (_) {}

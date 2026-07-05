@@ -3,6 +3,7 @@ import '../models/notification_models.dart';
 import '../services/notification_service.dart';
 import '../../../core/config/notification_config.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/utils/date_utils.dart';
 
 class NotificationSheet extends StatefulWidget {
   const NotificationSheet({super.key});
@@ -219,7 +220,7 @@ class _NotificationItem extends StatelessWidget {
 
   String _timeAgo(String isoDate) {
     try {
-      final date = DateTime.parse(isoDate);
+      final date = parseApiDate(isoDate);
       final diff = DateTime.now().difference(date);
       if (diff.inMinutes < 1) return 'Jetzt';
       if (diff.inMinutes < 60) return '${diff.inMinutes}m';

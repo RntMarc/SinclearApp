@@ -28,7 +28,7 @@ class CommentTile extends StatelessWidget {
     final canEdit =
         isOwner &&
         !comment.isDeleted &&
-        DateTime.now().difference(DateTime.parse(comment.createdAt)).inMinutes <
+        DateTime.now().difference(app_date.parseApiDate(comment.createdAt)).inMinutes <
             10;
 
     return Column(
