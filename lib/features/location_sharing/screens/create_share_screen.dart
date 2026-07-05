@@ -70,6 +70,13 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
       if (!mounted) return;
       if (session != null) {
         context.go('/standort-teilen');
+      } else {
+        final error = scope.locationSharingManager.error;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error ?? 'Fehler beim Erstellen der Sitzung'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _creating = false);
