@@ -260,35 +260,45 @@ class _AccommodationMap extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
         height: 200,
-        child: FlutterMap(
-          options: MapOptions(initialCenter: center, initialZoom: 13),
-          children: [
-            TileLayer(
-              urlTemplate: OsmConfig.tileUrlTemplate,
-              userAgentPackageName: OsmConfig.tileUserAgent,
-              tileProvider: osmTileProvider(),
+        child: GestureDetector(
+          onTap: () =>
+              DefaultTabController.of(context).animateTo(2),
+          child: FlutterMap(
+            options: MapOptions(
+              initialCenter: center,
+              initialZoom: 13,
+              interactionOptions: InteractionOptions(
+                flags: InteractiveFlag.none,
+              ),
             ),
-            MarkerLayer(
-              markers: coords.map((a) {
-                final isMine =
-                    currentUserId != null &&
-                    a.users.any((u) => u.id == currentUserId);
-                return Marker(
-                  point: LatLng(a.latitude!, a.longitude!),
-                  child: Icon(
-                    Icons.location_on,
-                    color: isMine ? Colors.blue : Colors.red,
-                    size: 36,
-                  ),
-                );
-              }).toList(),
-            ),
-            SimpleAttributionWidget(
-              source: const Text('OpenStreetMap contributors'),
-              onTap: () =>
-                  launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
-            ),
-          ],
+            children: [
+              TileLayer(
+                urlTemplate: OsmConfig.tileUrlTemplate,
+                userAgentPackageName: OsmConfig.tileUserAgent,
+                tileProvider: osmTileProvider(),
+              ),
+              MarkerLayer(
+                markers: coords.map((a) {
+                  final isMine =
+                      currentUserId != null &&
+                      a.users.any((u) => u.id == currentUserId);
+                  return Marker(
+                    point: LatLng(a.latitude!, a.longitude!),
+                    child: Icon(
+                      Icons.location_on,
+                      color: isMine ? Colors.blue : Colors.red,
+                      size: 36,
+                    ),
+                  );
+                }).toList(),
+              ),
+              SimpleAttributionWidget(
+                source: const Text('OpenStreetMap contributors'),
+                onTap: () =>
+                    launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -612,7 +622,14 @@ class _MapTab extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       clipBehavior: Clip.antiAlias,
       child: FlutterMap(
-        options: MapOptions(initialCenter: first, initialZoom: 12),
+        options: MapOptions(
+          initialCenter: first,
+          initialZoom: 12,
+          interactionOptions: InteractionOptions(
+            flags:
+                InteractiveFlag.all & ~InteractiveFlag.rotate,
+          ),
+        ),
         children: [
           TileLayer(
             urlTemplate: OsmConfig.tileUrlTemplate,

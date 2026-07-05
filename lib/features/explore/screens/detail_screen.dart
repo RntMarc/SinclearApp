@@ -664,6 +664,10 @@ class _MapCard extends StatelessWidget {
           options: MapOptions(
             initialCenter: LatLng(place.latitude!, place.longitude!),
             initialZoom: 15,
+            interactionOptions: InteractionOptions(
+              flags:
+                  InteractiveFlag.all & ~InteractiveFlag.rotate,
+            ),
           ),
           children: [
             TileLayer(

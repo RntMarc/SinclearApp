@@ -123,6 +123,10 @@ class _AllLocationsMapScreenState extends State<AllLocationsMapScreen> {
           options: MapOptions(
             initialCenter: LatLng(latAvg, lngAvg),
             initialZoom: 12,
+            interactionOptions: InteractionOptions(
+              flags:
+                  InteractiveFlag.all & ~InteractiveFlag.rotate,
+            ),
           ),
           children: [
             TileLayer(
