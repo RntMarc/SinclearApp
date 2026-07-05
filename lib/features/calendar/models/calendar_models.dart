@@ -1,3 +1,5 @@
+import '../../../core/utils/date_utils.dart';
+
 class UserBrief {
   final String id;
   final String displayName;
@@ -45,16 +47,16 @@ class CalendarEvent {
       creatorId: json['creatorId'] as String,
       title: json['title'] as String,
       description: json['description'] as String?,
-      startTime: DateTime.parse(json['startTime'] as String).toLocal(),
-      endTime: DateTime.parse(json['endTime'] as String).toLocal(),
+      startTime: parseApiDate(json['startTime'] as String),
+      endTime: parseApiDate(json['endTime'] as String),
       visibility: json['visibility'] as int,
       participants:
           (json['participants'] as List?)
               ?.map((e) => UserBrief.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
-      updatedAt: DateTime.parse(json['updatedAt'] as String).toLocal(),
+      createdAt: parseApiDate(json['createdAt'] as String),
+      updatedAt: parseApiDate(json['updatedAt'] as String),
     );
   }
 
@@ -62,8 +64,8 @@ class CalendarEvent {
     return {
       'title': title,
       'description': description,
-      'startTime': startTime.toUtc().toIso8601String(),
-      'endTime': endTime.toUtc().toIso8601String(),
+      'startTime': toApiDate(startTime),
+      'endTime': toApiDate(endTime),
       'visibility': visibility,
     };
   }

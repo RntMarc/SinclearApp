@@ -1,8 +1,37 @@
 import 'package:intl/intl.dart';
 
-DateTime parseUtcToLocal(String iso) {
-  return DateTime.parse(iso).toLocal();
+/// API-Zeitformat: UTC, kein T, kein Z, keine Millisekunden.
+const _apiDateFormat = 'yyyy-MM-dd HH:mm:ss';
+final _apiFormatter = DateFormat(_apiDateFormat);
+
+/// Formatiert ein DateTime als UTC-String im API-Format: `YYYY-MM-DD HH:MM:SS`.
+String toApiDate(DateTime date) {
+  return _apiFormatter.format(date.toUtc());
 }
+
+/// Parst einen API-String `YYYY-MM-DD HH:MM:SS` als UTC und konvertiert
+/// zur lokalen Zeitzone.
+///
+/// Erkennt auch ältere ISO-8601-Formate (mit T, Z, Millisekunden) für
+/// eine nahtlose Übergangsphase.
+DateTime parseApiDate(String value) {
+  final trimmed = value.trim();
+  final hasTzIndicator =
+      trimmed.endsWith('Z') ||
+      trimmed.endsWith('z') ||
+      trimmed.contains('+') ||
+      (trimmed.length > 19 &&
+          (trimmed[19] == '-' || trimmed[19] == '+') &&
+          trimmed.codeUnitAt(10) == 84); // T separator
+
+  if (hasTzIndicator) {
+    return DateTime.parse(trimmed).toLocal();
+  }
+  return DateTime.parse('${trimmed}Z').toLocal();
+}
+
+/// Kompatibilitäts-alias – nutzt jetzt [parseApiDate].
+DateTime parseUtcToLocal(String iso) => parseApiDate(iso);
 
 String formatDate(DateTime date) {
   final local = date.toLocal();
@@ -28,12 +57,8 @@ String formatDateRange(DateTime start, DateTime end) {
   return '${DateFormat('dd.MM.yyyy HH:mm').format(s)} – ${DateFormat('dd.MM.yyyy HH:mm').format(e)}';
 }
 
-String toApiDate(DateTime date) {
-  return date.toUtc().toIso8601String();
-}
-
 String formatRelativeDate(String iso) {
-  final date = DateTime.parse(iso).toLocal();
+  final date = parseApiDate(iso);
   final now = DateTime.now();
   final diff = now.difference(date);
 

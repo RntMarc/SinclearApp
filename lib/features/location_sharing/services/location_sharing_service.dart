@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/location_sharing_models.dart';
 
@@ -87,7 +88,7 @@ class LocationSharingService {
   }) async {
     final params = <String, String>{};
     if (since != null) {
-      params['since'] = since.toUtc().toIso8601String();
+      params['since'] = toApiDate(since);
     }
     final data = await _api.get(
       '/location-sharing/sessions/$sessionId/locations',

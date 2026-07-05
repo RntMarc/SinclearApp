@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../user/models/user_models.dart';
 import '../models/explore_models.dart';
@@ -968,7 +969,7 @@ class _ReviewCard extends StatelessWidget {
 
   String _formatDate(String iso) {
     try {
-      final dt = DateTime.parse(iso).toLocal();
+      final dt = parseApiDate(iso);
       return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
     } catch (_) {
       return iso.substring(0, 10);

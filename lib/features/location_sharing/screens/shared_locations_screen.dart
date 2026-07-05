@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../../core/widgets/user_avatar.dart';
 
 class SharedLocationsScreen extends StatefulWidget {
@@ -27,7 +28,7 @@ class _SharedLocationsScreenState extends State<SharedLocationsScreen> {
 
   String _timeAgo(String? dt) {
     if (dt == null) return 'unbekannt';
-    final parsed = DateTime.tryParse(dt);
+    final parsed = parseApiDate(dt);
     if (parsed == null) return 'unbekannt';
     final diff = DateTime.now().difference(parsed);
     if (diff.inSeconds < 60) return 'gerade eben';

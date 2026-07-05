@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/utils/date_utils.dart';
 import '../models/location_sharing_models.dart';
 
 class SessionMapScreen extends StatefulWidget {
@@ -74,7 +75,7 @@ class _SessionMapScreenState extends State<SessionMapScreen> {
   Future<void> _poll() async {
     try {
       final since = _locations.isNotEmpty
-          ? DateTime.tryParse(_locations.last.createdAt)
+          ? parseApiDate(_locations.last.createdAt)
           : null;
       final service = AppScope.of(context).locationSharing;
       final newLocations = await service.getLocations(
@@ -230,7 +231,7 @@ class _SessionMapScreenState extends State<SessionMapScreen> {
   }
 
   String _timeAgo(String dt) {
-    final parsed = DateTime.tryParse(dt);
+    final parsed = parseApiDate(dt);
     if (parsed == null) return 'unbekannt';
     final diff = DateTime.now().difference(parsed);
     if (diff.inSeconds < 60) return 'gerade eben';

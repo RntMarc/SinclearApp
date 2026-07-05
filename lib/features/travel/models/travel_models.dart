@@ -1,3 +1,5 @@
+import '../../../core/utils/date_utils.dart';
+
 class TravelTrip {
   final String id;
   final String name;
@@ -24,8 +26,8 @@ class TravelTrip {
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
-      start: DateTime.parse(json['start'] as String).toLocal(),
-      end: DateTime.parse(json['end'] as String).toLocal(),
+      start: parseApiDate(json['start'] as String),
+      end: parseApiDate(json['end'] as String),
       hastickets: json['hastickets'] as String,
       ticket: json['ticket'] as String?,
       ticketUrl: json['ticketUrl'] as String?,
@@ -78,8 +80,8 @@ class TravelEvent {
       trip: json['trip'] as String?,
       name: json['name'] as String,
       description: json['description'] as String?,
-      start: DateTime.parse(json['start'] as String).toLocal(),
-      end: DateTime.parse(json['end'] as String).toLocal(),
+      start: parseApiDate(json['start'] as String),
+      end: parseApiDate(json['end'] as String),
       hastickets: json['hastickets'] as String,
       ticket: json['ticket'] as String?,
       ticketUrl: json['ticketUrl'] as String?,

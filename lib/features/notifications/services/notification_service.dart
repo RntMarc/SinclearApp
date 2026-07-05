@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/notification_models.dart';
 import '../../../core/config/notification_config.dart';
@@ -481,7 +482,7 @@ class NotificationService extends ChangeNotifier {
       _unreadCount = response.meta.unreadCount;
       await prefs.setString(
         'last_polled_at',
-        DateTime.now().toUtc().toIso8601String(),
+        toApiDate(DateTime.now()),
       );
       notifyListeners();
     } catch (e, s) {
@@ -546,7 +547,7 @@ class NotificationService extends ChangeNotifier {
         }
         await prefs.setString(
           'last_polled_at',
-          DateTime.now().toUtc().toIso8601String(),
+          toApiDate(DateTime.now()),
         );
       } catch (e, s) {
         developer.log(

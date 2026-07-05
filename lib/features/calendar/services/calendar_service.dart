@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/calendar_models.dart';
 
@@ -25,8 +26,8 @@ class CalendarService {
     };
 
     if (start != null && end != null) {
-      params['start'] = start.toUtc().toIso8601String();
-      params['end'] = end.toUtc().toIso8601String();
+      params['start'] = toApiDate(start);
+      params['end'] = toApiDate(end);
     } else if (range != null) {
       params['range'] = range;
     }
@@ -54,8 +55,8 @@ class CalendarService {
   }) async {
     final body = <String, dynamic>{
       'title': title,
-      'startTime': startTime.toUtc().toIso8601String(),
-      'endTime': endTime.toUtc().toIso8601String(),
+      'startTime': toApiDate(startTime),
+      'endTime': toApiDate(endTime),
       'visibility': visibility,
     };
     if (description != null) body['description'] = description;
@@ -83,10 +84,10 @@ class CalendarService {
     if (title != null) body['title'] = title;
     if (description != null) body['description'] = description;
     if (startTime != null) {
-      body['startTime'] = startTime.toUtc().toIso8601String();
+      body['startTime'] = toApiDate(startTime);
     }
     if (endTime != null) {
-      body['endTime'] = endTime.toUtc().toIso8601String();
+      body['endTime'] = toApiDate(endTime);
     }
     if (visibility != null) body['visibility'] = visibility;
 
