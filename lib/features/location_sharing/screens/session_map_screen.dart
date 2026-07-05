@@ -136,6 +136,10 @@ class _SessionMapScreenState extends State<SessionMapScreen> {
                       options: MapOptions(
                         initialCenter: center,
                         initialZoom: 15,
+                        interactionOptions: InteractionOptions(
+                          flags: InteractiveFlag.all &
+                              ~InteractiveFlag.rotate,
+                        ),
                       ),
                       children: [
                         TileLayer(

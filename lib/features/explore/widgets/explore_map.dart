@@ -43,7 +43,14 @@ class ExploreMap extends StatelessWidget {
             : const LatLng(51.1657, 10.4515));
 
     return FlutterMap(
-      options: MapOptions(initialCenter: initialCenter, initialZoom: zoom),
+      options: MapOptions(
+        initialCenter: initialCenter,
+        initialZoom: zoom,
+        interactionOptions: InteractionOptions(
+          flags:
+              InteractiveFlag.all & ~InteractiveFlag.rotate,
+        ),
+      ),
       children: [
         TileLayer(
           urlTemplate: OsmConfig.tileUrlTemplate,
