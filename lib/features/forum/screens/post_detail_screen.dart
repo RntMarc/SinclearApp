@@ -7,7 +7,7 @@ import '../../../core/utils/spotify_helper.dart';
 import '../models/forum_models.dart';
 import '../widgets/comment_tree.dart';
 import '../widgets/youtube_player_embed.dart';
-import '../widgets/spotify_player_embed.dart';
+import '../widgets/spotify_thumbnail.dart';
 import '../widgets/og_preview_card.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -301,7 +301,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ...post.spotifyItems.map(
                 (SpotifyItem item) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: SpotifyPlayerEmbed(
+                  child: SpotifyThumbnail(
                     item: item,
                     originalUrl: post.webUrls.firstWhere(
                       (u) => SpotifyHelper.parseUrl(u) != null,
@@ -331,13 +331,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           ],
-          // --- Native embeds for music posts ---
+          // --- Native embeds for music posts (same style as forum feed) ---
           if (post.type == 'music' && post.spotifyMusicItems.isNotEmpty) ...[
             const SizedBox(height: 16),
             ...post.spotifyMusicItems.map(
               (SpotifyItem item) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: SpotifyPlayerEmbed(
+                child: SpotifyThumbnail(
                   item: item,
                   originalUrl: post.urls
                       .firstWhere(

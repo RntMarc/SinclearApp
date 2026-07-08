@@ -130,6 +130,12 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
       MemberSheet.show(context, members: response.data);
     } catch (e) {
       developer.log('Failed to load members', error: e);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mitglieder konnten nicht geladen werden.'),
+        ),
+      );
     }
   }
 

@@ -28,7 +28,7 @@ class MemberSheet extends StatelessWidget {
       initialChildSize: 0.6,
       maxChildSize: 0.9,
       minChildSize: 0.3,
-      expand: false,
+      expand: true,
       builder: (context, scrollController) {
         return Column(
           children: [
