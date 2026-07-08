@@ -87,7 +87,6 @@ class LocationSharingManager extends ChangeNotifier {
       );
       final session = await _service.createSession(req);
       _mySessions.add(session);
-      _startSending(session);
       _isLoading = false;
       notifyListeners();
       return session;
@@ -144,7 +143,7 @@ class LocationSharingManager extends ChangeNotifier {
     return result;
   }
 
-  void _startSending(LocationSharingSessionDetail session) {
+  void startSending(LocationSharingSessionDetail session) {
     _activeSenderSessions.add(session.id);
 
     final expiresAt = parseApiDate(session.expiresAt);
