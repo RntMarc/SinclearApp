@@ -1,6 +1,7 @@
 class LocationSharingSession {
   final String id;
   final String ownerId;
+  final String sharingMode;
   final int durationSeconds;
   final int frequencySeconds;
   final bool isActive;
@@ -12,6 +13,7 @@ class LocationSharingSession {
   const LocationSharingSession({
     required this.id,
     required this.ownerId,
+    required this.sharingMode,
     required this.durationSeconds,
     required this.frequencySeconds,
     required this.isActive,
@@ -25,6 +27,7 @@ class LocationSharingSession {
     return LocationSharingSession(
       id: json['id'] as String,
       ownerId: json['ownerId'] as String,
+      sharingMode: (json['sharingMode'] as String?) ?? 'location',
       durationSeconds: (json['durationSeconds'] as num).toInt(),
       frequencySeconds: (json['frequencySeconds'] as num).toInt(),
       isActive: json['isActive'] as bool,
@@ -89,6 +92,7 @@ class LocationSharingSessionDetail {
   final String id;
   final String token;
   final String ownerId;
+  final String sharingMode;
   final int durationSeconds;
   final int frequencySeconds;
   final bool isActive;
@@ -98,12 +102,14 @@ class LocationSharingSessionDetail {
   final String updatedAt;
   final List<LocationRecipient> recipients;
   final LocationSharingLocation? lastLocation;
+  final int locationCount;
   final Map<String, String> integrationUrls;
 
   const LocationSharingSessionDetail({
     required this.id,
     required this.token,
     required this.ownerId,
+    required this.sharingMode,
     required this.durationSeconds,
     required this.frequencySeconds,
     required this.isActive,
@@ -113,6 +119,7 @@ class LocationSharingSessionDetail {
     required this.updatedAt,
     required this.recipients,
     this.lastLocation,
+    this.locationCount = 0,
     this.integrationUrls = const {},
   });
 
@@ -121,6 +128,7 @@ class LocationSharingSessionDetail {
       id: json['id'] as String,
       token: (json['token'] as String?) ?? '',
       ownerId: json['ownerId'] as String,
+      sharingMode: (json['sharingMode'] as String?) ?? 'location',
       durationSeconds: (json['durationSeconds'] as num).toInt(),
       frequencySeconds: (json['frequencySeconds'] as num).toInt(),
       isActive: json['isActive'] as bool,
@@ -134,6 +142,7 @@ class LocationSharingSessionDetail {
       lastLocation: json['lastLocation'] != null
           ? LocationSharingLocation.fromJson(json['lastLocation'] as Map<String, dynamic>)
           : null,
+      locationCount: (json['locationCount'] as num?)?.toInt() ?? 0,
       integrationUrls: json['integrationUrls'] != null
           ? (json['integrationUrls'] as Map<String, dynamic>)
               .map((k, v) => MapEntry(k, v as String))
@@ -188,17 +197,20 @@ class CreateSessionRequest {
   final List<String> recipientIds;
   final int durationSeconds;
   final int frequencySeconds;
+  final String sharingMode;
 
   const CreateSessionRequest({
     required this.recipientIds,
     required this.durationSeconds,
     this.frequencySeconds = 600,
+    this.sharingMode = 'location',
   });
 
   Map<String, dynamic> toJson() => {
     'recipient_ids': recipientIds,
     'duration_seconds': durationSeconds,
     'frequency_seconds': frequencySeconds,
+    'sharing_mode': sharingMode,
   };
 }
 

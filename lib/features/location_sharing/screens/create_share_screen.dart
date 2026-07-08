@@ -19,6 +19,7 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
   bool _loading = true;
   final Set<String> _selectedIds = {};
   bool _creating = false;
+  String _sharingMode = 'location';
 
   @override
   void didChangeDependencies() {
@@ -60,6 +61,7 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
         recipientIds: _selectedIds.toList(),
         durationSeconds: 3600,
         frequencySeconds: 600,
+        sharingMode: _sharingMode,
       );
       if (!mounted) return;
       if (session != null) {
@@ -112,6 +114,36 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
                           secondary: _buildAvatar(user),
                           title: Text(user.displayName),
                         )),
+                const SizedBox(height: 24),
+                Text(
+                  'Teilen-Modus',
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'location',
+                      label: Text('Live-Standort'),
+                      icon: Icon(Icons.my_location_rounded),
+                    ),
+                    ButtonSegment(
+                      value: 'route',
+                      label: Text('Route aufzeichnen'),
+                      icon: Icon(Icons.route_rounded),
+                    ),
+                  ],
+                  selected: {_sharingMode},
+                  onSelectionChanged: (v) =>
+                      setState(() => _sharingMode = v.first),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Kann nach dem Erstellen nicht mehr geändert werden.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 32),
                 FilledButton.icon(
                   onPressed:
