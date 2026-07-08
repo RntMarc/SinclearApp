@@ -74,6 +74,7 @@ class LocationSharingManager extends ChangeNotifier {
     required List<String> recipientIds,
     required int durationSeconds,
     int frequencySeconds = 600,
+    String sharingMode = 'location',
   }) async {
     _isLoading = true;
     _error = null;
@@ -84,6 +85,7 @@ class LocationSharingManager extends ChangeNotifier {
         recipientIds: recipientIds,
         durationSeconds: durationSeconds,
         frequencySeconds: frequencySeconds,
+        sharingMode: sharingMode,
       );
       final session = await _service.createSession(req);
       _mySessions.add(session);

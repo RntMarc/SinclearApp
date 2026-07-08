@@ -7,15 +7,57 @@ import '../../../core/di/app_scope.dart';
 import '../data/third_party_apps.dart';
 import '../models/location_sharing_models.dart';
 
-class IntegrationSetupScreen extends StatelessWidget {
+class IntegrationSetupScreen extends StatefulWidget {
   final LocationSharingSessionDetail session;
 
   const IntegrationSetupScreen({super.key, required this.session});
 
   @override
+  State<IntegrationSetupScreen> createState() => _IntegrationSetupScreenState();
+}
+
+class _IntegrationSetupScreenState extends State<IntegrationSetupScreen> {
+  late final TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  String _customizeUrl(String url) {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      // Remove the /{name} segment (the last path segment before query params)
+      final queryIndex = url.indexOf('?');
+      final path = queryIndex >= 0 ? url.substring(0, queryIndex) : url;
+      final query = queryIndex >= 0 ? url.substring(queryIndex) : '';
+      final segments = path.split('/');
+      if (segments.length >= 2) {
+        segments.removeLast();
+        return '${segments.join('/')}$query';
+      }
+      return url;
+    }
+    // Replace /yourname (the last path segment) with the entered name
+    const placeholder = 'yourname';
+    final lastSlash = url.lastIndexOf('/$placeholder');
+    if (lastSlash >= 0) {
+      return '${url.substring(0, lastSlash)}/$name${url.substring(lastSlash + 1 + placeholder.length)}';
+    }
+    return url;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final urls = session.integrationUrls;
+    final urls = widget.session.integrationUrls;
 
     return Scaffold(
       appBar: AppBar(
@@ -28,6 +70,8 @@ class IntegrationSetupScreen extends StatelessWidget {
           _buildSuccessHeader(theme),
           const SizedBox(height: 16),
           _buildTokenCard(theme, context),
+          const SizedBox(height: 16),
+          _buildNameField(theme),
           const SizedBox(height: 16),
           _buildWarningBanner(theme),
           const SizedBox(height: 24),
@@ -93,10 +137,50 @@ class IntegrationSetupScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildNameField(ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Gerätename (optional)',
+              style: theme.textTheme.labelLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Viele Tracking-Apps unterstützen einen Namen in der URL. '
+              'Wenn du einen Namen vergibst, kannst du mehrere Geräte '
+              'in deiner Session unterscheiden.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                hintText: 'z.B. mein-handy',
+                prefixIcon: const Icon(Icons.phone_android_rounded, size: 18),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                isDense: true,
+              ),
+              textInputAction: TextInputAction.done,
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showInAppSettingsDialog(BuildContext context) {
     final manager = AppScope.of(context).locationSharingManager;
-    int durationMinutes = session.durationSeconds ~/ 60;
-    int frequencyMinutes = session.frequencySeconds ~/ 60;
+    int durationMinutes = widget.session.durationSeconds ~/ 60;
+    int frequencyMinutes = widget.session.frequencySeconds ~/ 60;
 
     showDialog(
       context: context,
@@ -141,7 +225,7 @@ class IntegrationSetupScreen extends StatelessWidget {
             FilledButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                manager.startSending(session);
+                manager.startSending(widget.session);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('In-App-Sharing gestartet.'),
@@ -218,7 +302,7 @@ class IntegrationSetupScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      session.token,
+                      widget.session.token,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontFamily: 'monospace',
                       ),
@@ -228,7 +312,7 @@ class IntegrationSetupScreen extends StatelessWidget {
                     icon: const Icon(Icons.copy_rounded, size: 18),
                     onPressed: () {
                       Clipboard.setData(
-                        ClipboardData(text: session.token),
+                        ClipboardData(text: widget.session.token),
                       );
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -307,6 +391,8 @@ class IntegrationSetupScreen extends StatelessWidget {
   }) {
     if (url == null || url.isEmpty) return const SizedBox.shrink();
 
+    final customizedUrl = _customizeUrl(url);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -373,7 +459,7 @@ class IntegrationSetupScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
               ),
               child: SelectableText(
-                url,
+                customizedUrl,
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontFamily: 'monospace',
                 ),
@@ -385,7 +471,7 @@ class IntegrationSetupScreen extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      Clipboard.setData(ClipboardData(text: url));
+                      Clipboard.setData(ClipboardData(text: customizedUrl));
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('URL für ${app.name} kopiert.'),
