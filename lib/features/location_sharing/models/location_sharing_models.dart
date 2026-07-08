@@ -87,6 +87,7 @@ class LocationSharingLocation {
 
 class LocationSharingSessionDetail {
   final String id;
+  final String token;
   final String ownerId;
   final int durationSeconds;
   final int frequencySeconds;
@@ -97,9 +98,11 @@ class LocationSharingSessionDetail {
   final String updatedAt;
   final List<LocationRecipient> recipients;
   final LocationSharingLocation? lastLocation;
+  final Map<String, String> integrationUrls;
 
   const LocationSharingSessionDetail({
     required this.id,
+    required this.token,
     required this.ownerId,
     required this.durationSeconds,
     required this.frequencySeconds,
@@ -110,11 +113,13 @@ class LocationSharingSessionDetail {
     required this.updatedAt,
     required this.recipients,
     this.lastLocation,
+    this.integrationUrls = const {},
   });
 
   factory LocationSharingSessionDetail.fromJson(Map<String, dynamic> json) {
     return LocationSharingSessionDetail(
       id: json['id'] as String,
+      token: (json['token'] as String?) ?? '',
       ownerId: json['ownerId'] as String,
       durationSeconds: (json['durationSeconds'] as num).toInt(),
       frequencySeconds: (json['frequencySeconds'] as num).toInt(),
@@ -129,6 +134,10 @@ class LocationSharingSessionDetail {
       lastLocation: json['lastLocation'] != null
           ? LocationSharingLocation.fromJson(json['lastLocation'] as Map<String, dynamic>)
           : null,
+      integrationUrls: json['integrationUrls'] != null
+          ? (json['integrationUrls'] as Map<String, dynamic>)
+              .map((k, v) => MapEntry(k, v as String))
+          : const {},
     );
   }
 }

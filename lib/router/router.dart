@@ -34,8 +34,10 @@ import '../features/recipes/screens/category_recipes_screen.dart';
 import '../features/recipes/screens/recipe_detail_screen.dart';
 import '../features/recipes/screens/create_recipe_screen.dart';
 import '../features/location_sharing/screens/create_share_screen.dart';
+import '../features/location_sharing/screens/integration_setup_screen.dart';
 import '../features/location_sharing/screens/location_sharing_screen.dart';
 import '../features/location_sharing/screens/session_map_screen.dart';
+import '../features/location_sharing/models/location_sharing_models.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -258,6 +260,12 @@ GoRouter createRouter(AuthService auth) {
               GoRoute(
                 path: 'erstellen',
                 builder: (context, state) => const CreateShareScreen(),
+              ),
+              GoRoute(
+                path: 'einrichten',
+                builder: (context, state) => IntegrationSetupScreen(
+                  session: state.extra as LocationSharingSessionDetail,
+                ),
               ),
               GoRoute(
                 path: ':id',

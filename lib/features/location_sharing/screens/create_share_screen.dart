@@ -69,7 +69,7 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
       );
       if (!mounted) return;
       if (session != null) {
-        context.go('/standort-teilen');
+        context.go('/standort-teilen/einrichten', extra: session);
       } else {
         final error = scope.locationSharingManager.error;
         ScaffoldMessenger.of(context).showSnackBar(
