@@ -213,24 +213,27 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 8),
-            Text(_error!),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: _load,
-              child: const Text('Erneut versuchen'),
-            ),
-          ],
+if (_error != null) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 8),
+              Text(_error!),
+              const SizedBox(height: 16),
+              FilledButton.tonal(
+                onPressed: _load,
+                child: const Text('Erneut versuchen'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -238,9 +241,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final post = _post!;
     final theme = Theme.of(context);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -466,7 +471,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 onDelete: _deleteComment,
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
