@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart';
+import '../models/location_sharing_models.dart';
+import 'integration_setup_screen.dart';
 
 class ActiveSharesScreen extends StatefulWidget {
   const ActiveSharesScreen({super.key});
@@ -130,6 +132,17 @@ class _ActiveSharesScreenState extends State<ActiveSharesScreen> {
     }
   }
 
+  void _showIntegrationLinks(
+    BuildContext context,
+    LocationSharingSessionDetail session,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => IntegrationSetupScreen(session: session),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final manager = AppScope.of(context).locationSharingManager;
@@ -217,6 +230,15 @@ class _ActiveSharesScreenState extends State<ActiveSharesScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _showIntegrationLinks(
+                          context,
+                          session,
+                        ),
+                        icon: const Icon(Icons.link_rounded, size: 18),
+                        label: const Text('Links'),
+                      ),
+                      const SizedBox(width: 8),
                       OutlinedButton.icon(
                         onPressed: () => _extend(session.id),
                         icon: const Icon(Icons.timer_outlined,

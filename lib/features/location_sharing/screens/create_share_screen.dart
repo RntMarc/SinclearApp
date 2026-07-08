@@ -1,6 +1,5 @@
 import 'dart:developer' as developer;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,8 +18,6 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
   List<UserBasePublic>? _users;
   bool _loading = true;
   final Set<String> _selectedIds = {};
-  double _durationHours = 1;
-  double _frequencyMinutes = 10;
   bool _creating = false;
 
   @override
@@ -54,9 +51,6 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
     }
   }
 
-  int get _durationSeconds => (_durationHours * 3600).round().clamp(300, 86400);
-  int get _frequencySeconds => (_frequencyMinutes * 60).round().clamp(300, 1200);
-
   Future<void> _create() async {
     if (_selectedIds.isEmpty) return;
     setState(() => _creating = true);
@@ -64,8 +58,8 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
       final scope = AppScope.of(context);
       final session = await scope.locationSharingManager.createSession(
         recipientIds: _selectedIds.toList(),
-        durationSeconds: _durationSeconds,
-        frequencySeconds: _frequencySeconds,
+        durationSeconds: 3600,
+        frequencySeconds: 600,
       );
       if (!mounted) return;
       if (session != null) {
@@ -118,92 +112,6 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
                           secondary: _buildAvatar(user),
                           title: Text(user.displayName),
                         )),
-                const SizedBox(height: 24),
-                Text('Dauer', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Slider(
-                  value: _durationHours,
-                  min: 5 / 60,
-                  max: 24,
-                  divisions: 48,
-                  label: _formatDuration(_durationSeconds),
-                  onChanged: (v) => setState(() => _durationHours = v),
-                ),
-                Text(
-                  _formatDuration(_durationSeconds),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text('Aktualisierung', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Slider(
-                  value: _frequencyMinutes,
-                  min: 5,
-                  max: 20,
-                  divisions: 15,
-                  label: '${_frequencyMinutes.round()} Min',
-                  onChanged: (v) => setState(() => _frequencyMinutes = v),
-                ),
-                Text(
-                  'Alle ${_frequencyMinutes.round()} Minuten',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                if (!kIsWeb &&
-                    defaultTargetPlatform == TargetPlatform.android)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.battery_saver_rounded,
-                              color: theme.colorScheme.tertiary,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Der Standort wird nur zu den einge stellten Zeiten gesendet – '
-                                'batterieschonend.',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                if (kIsWeb)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Card(
-                      color: theme.colorScheme.errorContainer,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning_rounded,
-                              color: theme.colorScheme.error,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Standort-Sharing im Browser funktioniert nur bei geöffnetem Tab. '
-                                'Nutze die Android-App für zuverlässiges Hintergrund-Sharing.',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                 const SizedBox(height: 32),
                 FilledButton.icon(
                   onPressed:
@@ -233,11 +141,4 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
     imageUrl: user.image,
     displayName: user.displayName,
   );
-
-  String _formatDuration(int seconds) {
-    final h = seconds ~/ 3600;
-    final m = (seconds % 3600) ~/ 60;
-    if (h > 0) return '${h}h ${m}min';
-    return '${m}min';
-  }
 }
