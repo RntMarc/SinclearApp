@@ -179,8 +179,12 @@ class _IntegrationSetupScreenState extends State<IntegrationSetupScreen> {
 
   void _showInAppSettingsDialog(BuildContext context) {
     final manager = AppScope.of(context).locationSharingManager;
-    int durationMinutes = widget.session.durationSeconds ~/ 60;
+    final defaultMinutes = widget.session.durationSeconds != null
+        ? widget.session.durationSeconds! ~/ 60
+        : 60;
+    int durationMinutes = defaultMinutes;
     int frequencyMinutes = widget.session.frequencySeconds ~/ 60;
+    bool unlimited = widget.session.durationSeconds == null;
 
     showDialog(
       context: context,
@@ -190,18 +194,32 @@ class _IntegrationSetupScreenState extends State<IntegrationSetupScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Dauer: $durationMinutes Minuten',
-              ),
-              Slider(
-                value: durationMinutes.toDouble(),
-                min: 5,
-                max: 1440,
-                divisions: 50,
-                label: '$durationMinutes Min',
+              CheckboxListTile(
+                value: unlimited,
                 onChanged: (v) =>
-                    setDialogState(() => durationMinutes = v.round()),
+                    setDialogState(() => unlimited = v ?? false),
+                title: const Text('Unbegrenzt'),
+                subtitle: const Text(
+                  'Läuft bis zum manuellen Beenden.',
+                ),
+                controlAffinity: ListTileControlAffinity.trailing,
+                dense: true,
               ),
+              if (!unlimited) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Dauer: $durationMinutes Minuten',
+                ),
+                Slider(
+                  value: durationMinutes.toDouble(),
+                  min: 5,
+                  max: 1440,
+                  divisions: 50,
+                  label: '$durationMinutes Min',
+                  onChanged: (v) =>
+                      setDialogState(() => durationMinutes = v.round()),
+                ),
+              ],
               const SizedBox(height: 16),
               Text(
                 'Aktualisierung: alle $frequencyMinutes Minuten',
@@ -223,7 +241,14 @@ class _IntegrationSetupScreenState extends State<IntegrationSetupScreen> {
               child: const Text('Abbrechen'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
+                if (!unlimited) {
+                  await manager.setSessionDuration(
+                    widget.session.id,
+                    durationMinutes * 60,
+                  );
+                }
+                if (!ctx.mounted) return;
                 Navigator.pop(ctx);
                 manager.startSending(widget.session);
                 ScaffoldMessenger.of(context).showSnackBar(
