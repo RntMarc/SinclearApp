@@ -33,6 +33,12 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    _postPage = 1;
+    _hasMorePosts = true;
+    await _load();
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -246,155 +252,158 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     final forum = _forum!;
     final theme = Theme.of(context);
 
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 120,
-          pinned: true,
-          flexibleSpace: FlexibleSpaceBar(
-            title: Text(
-              forum.name,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            background: forum.image != null
-                ? Image.memory(
-                    _decodeBase64(forum.image!),
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) =>
-                        Container(color: theme.colorScheme.primaryContainer),
-                  )
-                : Container(
-                    color: theme.colorScheme.primaryContainer,
-                    child: Center(
-                      child: Icon(
-                        Icons.forum_rounded,
-                        size: 48,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ),
-          ),
-          actions: [
-            IconButton(
-              onPressed: _showMembers,
-              icon: Badge(
-                label: Text('${forum.memberCount}'),
-                child: const Icon(Icons.people_rounded),
-              ),
-              tooltip: 'Mitglieder',
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'notifications') _toggleNotifications();
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'notifications',
-                  child: Row(
-                    children: [
-                      Icon(
-                        forum.notificationsEnabled
-                            ? Icons.notifications_active_rounded
-                            : Icons.notifications_off_rounded,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        forum.notificationsEnabled
-                            ? 'Benachrichtigungen aus'
-                            : 'Benachrichtigungen an',
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (forum.description != null && forum.description!.isNotEmpty)
-                  Text(
-                    forum.description!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      height: 1.5,
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                if (forum.isMember)
-                  FilledButton.tonalIcon(
-                    onPressed: _toggleJoin,
-                    icon: const Icon(Icons.exit_to_app_rounded),
-                    label: const Text('Forum verlassen'),
-                  )
-                else
-                  FilledButton.icon(
-                    onPressed: _toggleJoin,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Forum beitreten'),
-                  ),
-                const SizedBox(height: 16),
-                const Divider(),
-              ],
-            ),
-          ),
-        ),
-        if (_postsLoading && _posts.isEmpty)
-          const SliverFillRemaining(
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (_posts.isEmpty)
-          SliverFillRemaining(
-            child: Center(
-              child: Text(
-                forum.isMember
-                    ? 'Noch keine Posts. Erstelle den ersten Beitrag!'
-                    : 'Tritt dem Forum bei, um Posts zu sehen.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+return RefreshIndicator(
+      onRefresh: _refresh,
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                forum.name,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          )
-        else
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if (index == _posts.length) {
-                  if (_hasMorePosts && !_postsLoading) {
-                    _loadMorePosts();
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
+              background: forum.image != null
+                  ? Image.memory(
+                      _decodeBase64(forum.image!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          Container(color: theme.colorScheme.primaryContainer),
+                    )
+                  : Container(
+                      color: theme.colorScheme.primaryContainer,
+                      child: Center(
+                        child: Icon(
+                          Icons.forum_rounded,
+                          size: 48,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
                       ),
-                    );
+                    ),
+            ),
+            actions: [
+              IconButton(
+                onPressed: _showMembers,
+                icon: Badge(
+                  label: Text('${forum.memberCount}'),
+                  child: const Icon(Icons.people_rounded),
+                ),
+                tooltip: 'Mitglieder',
+              ),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'notifications') _toggleNotifications();
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'notifications',
+                    child: Row(
+                      children: [
+                        Icon(
+                          forum.notificationsEnabled
+                              ? Icons.notifications_active_rounded
+                              : Icons.notifications_off_rounded,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          forum.notificationsEnabled
+                              ? 'Benachrichtigungen aus'
+                              : 'Benachrichtigungen an',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (forum.description != null && forum.description!.isNotEmpty)
+                    Text(
+                      forum.description!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  if (forum.isMember)
+                    FilledButton.tonalIcon(
+                      onPressed: _toggleJoin,
+                      icon: const Icon(Icons.exit_to_app_rounded),
+                      label: const Text('Forum verlassen'),
+                    )
+                  else
+                    FilledButton.icon(
+                      onPressed: _toggleJoin,
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text('Forum beitreten'),
+                    ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                ],
+              ),
+            ),
+          ),
+          if (_postsLoading && _posts.isEmpty)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_posts.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Text(
+                  forum.isMember
+                      ? 'Noch keine Posts. Erstelle den ersten Beitrag!'
+                      : 'Tritt dem Forum bei, um Posts zu sehen.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index == _posts.length) {
+                    if (_hasMorePosts && !_postsLoading) {
+                      _loadMorePosts();
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
                   }
-                  return const SizedBox.shrink();
-                }
-                final post = _posts[index];
-                return PostCard(
-                  post: post,
-                  currentUserId: auth.userId ?? '',
-                  onTap: () => context.go(
-                    '/forum/${widget.id}/beitrag/${post.id}',
-                  ),
-                  onVote: () => _votePost(post),
-                  onDelete: (post.userId == auth.userId || auth.isAdmin)
-                      ? () => _deletePost(post)
-                      : null,
-                );
-              },
-              childCount: _posts.length + 1,
-            ),
+                  final post = _posts[index];
+                  return PostCard(
+                    post: post,
+                    currentUserId: auth.userId ?? '',
+                    onTap: () => context.go(
+                      '/forum/${widget.id}/beitrag/${post.id}',
+                    ),
+                    onVote: () => _votePost(post),
+                    onDelete: (post.userId == auth.userId || auth.isAdmin)
+                        ? () => _deletePost(post)
+                        : null,
+                  );
+                },
+                childCount: _posts.length + 1,
+),
           ),
-      ],
+        ],
+      ),
     );
   }
 

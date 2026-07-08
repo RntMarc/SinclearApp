@@ -97,19 +97,22 @@ class _ForumListScreenState extends State<ForumListScreen> {
       );
     }
 
-    return TabBarView(
-      children: [
-        _ForumList(
-          forums: myForums,
-          emptyText: 'Du bist noch keinem Forum beigetreten.',
-          onForumTap: (forum) => context.go('/forum/${forum.id}'),
-        ),
-        _ForumList(
-          forums: _allForums,
-          emptyText: 'Keine Foren vorhanden.',
-          onForumTap: (forum) => context.go('/forum/${forum.id}'),
-        ),
-      ],
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: TabBarView(
+        children: [
+          _ForumList(
+            forums: myForums,
+            emptyText: 'Du bist noch keinem Forum beigetreten.',
+            onForumTap: (forum) => context.go('/forum/${forum.id}'),
+          ),
+          _ForumList(
+            forums: _allForums,
+            emptyText: 'Keine Foren vorhanden.',
+            onForumTap: (forum) => context.go('/forum/${forum.id}'),
+          ),
+        ],
+      ),
     );
   }
 }
