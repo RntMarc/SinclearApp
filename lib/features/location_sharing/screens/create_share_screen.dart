@@ -59,7 +59,6 @@ class _CreateShareScreenState extends State<CreateShareScreen> {
       final scope = AppScope.of(context);
       final session = await scope.locationSharingManager.createSession(
         recipientIds: _selectedIds.toList(),
-        durationSeconds: 3600,
         frequencySeconds: 600,
         sharingMode: _sharingMode,
       );

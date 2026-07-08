@@ -72,7 +72,7 @@ class LocationSharingManager extends ChangeNotifier {
 
   Future<LocationSharingSessionDetail?> createSession({
     required List<String> recipientIds,
-    required int durationSeconds,
+    int? durationSeconds,
     int frequencySeconds = 600,
     String sharingMode = 'location',
   }) async {
@@ -100,12 +100,26 @@ class LocationSharingManager extends ChangeNotifier {
     }
   }
 
+  Future<void> setSessionDuration(String id, int durationSeconds) async {
+    try {
+      final updated = await _service.updateSession(
+        id,
+        UpdateSessionRequest(durationSeconds: durationSeconds),
+      );
+      _mySessions = _mySessions.map((s) => s.id == id ? updated : s).toList();
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
   Future<void> extendSession(String id, int additionalSeconds) async {
     try {
       final current = _mySessions.where((s) => s.id == id).firstOrNull;
-      if (current == null) return;
+      if (current == null || current.durationSeconds == null) return;
 
-      final newDuration = current.durationSeconds + additionalSeconds;
+      final newDuration = current.durationSeconds! + additionalSeconds;
       final updated = await _service.updateSession(
         id,
         UpdateSessionRequest(durationSeconds: newDuration),
@@ -148,7 +162,9 @@ class LocationSharingManager extends ChangeNotifier {
   void startSending(LocationSharingSessionDetail session) {
     _activeSenderSessions.add(session.id);
 
-    final expiresAt = parseApiDate(session.expiresAt);
+    final expiresAt = session.expiresAt != null
+        ? parseApiDate(session.expiresAt!)
+        : null;
     if (expiresAt != null) {
       final remaining = expiresAt.difference(DateTime.now());
       if (remaining.isNegative) return;

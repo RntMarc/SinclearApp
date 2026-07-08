@@ -48,7 +48,8 @@ class _ActiveSharesScreenState extends State<ActiveSharesScreen> {
     if (mounted) setState(() {});
   }
 
-  Duration? _remaining(String expiresAt) {
+  Duration? _remaining(String? expiresAt) {
+    if (expiresAt == null) return null;
     final dt = parseApiDate(expiresAt);
     if (dt == null) return null;
     final remaining = dt.difference(DateTime.now());

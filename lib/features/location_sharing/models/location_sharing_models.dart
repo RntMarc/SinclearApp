@@ -2,11 +2,11 @@ class LocationSharingSession {
   final String id;
   final String ownerId;
   final String sharingMode;
-  final int durationSeconds;
+  final int? durationSeconds;
   final int frequencySeconds;
   final bool isActive;
   final String startedAt;
-  final String expiresAt;
+  final String? expiresAt;
   final String createdAt;
   final String updatedAt;
 
@@ -14,11 +14,11 @@ class LocationSharingSession {
     required this.id,
     required this.ownerId,
     required this.sharingMode,
-    required this.durationSeconds,
+    this.durationSeconds,
     required this.frequencySeconds,
     required this.isActive,
     required this.startedAt,
-    required this.expiresAt,
+    this.expiresAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -28,11 +28,11 @@ class LocationSharingSession {
       id: json['id'] as String,
       ownerId: json['ownerId'] as String,
       sharingMode: (json['sharingMode'] as String?) ?? 'location',
-      durationSeconds: (json['durationSeconds'] as num).toInt(),
+      durationSeconds: (json['durationSeconds'] as num?)?.toInt(),
       frequencySeconds: (json['frequencySeconds'] as num).toInt(),
       isActive: json['isActive'] as bool,
       startedAt: json['startedAt'] as String,
-      expiresAt: json['expiresAt'] as String,
+      expiresAt: json['expiresAt'] as String?,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
     );
@@ -93,11 +93,11 @@ class LocationSharingSessionDetail {
   final String token;
   final String ownerId;
   final String sharingMode;
-  final int durationSeconds;
+  final int? durationSeconds;
   final int frequencySeconds;
   final bool isActive;
   final String startedAt;
-  final String expiresAt;
+  final String? expiresAt;
   final String createdAt;
   final String updatedAt;
   final List<LocationRecipient> recipients;
@@ -110,11 +110,11 @@ class LocationSharingSessionDetail {
     required this.token,
     required this.ownerId,
     required this.sharingMode,
-    required this.durationSeconds,
+    this.durationSeconds,
     required this.frequencySeconds,
     required this.isActive,
     required this.startedAt,
-    required this.expiresAt,
+    this.expiresAt,
     required this.createdAt,
     required this.updatedAt,
     required this.recipients,
@@ -129,11 +129,11 @@ class LocationSharingSessionDetail {
       token: (json['token'] as String?) ?? '',
       ownerId: json['ownerId'] as String,
       sharingMode: (json['sharingMode'] as String?) ?? 'location',
-      durationSeconds: (json['durationSeconds'] as num).toInt(),
+      durationSeconds: (json['durationSeconds'] as num?)?.toInt(),
       frequencySeconds: (json['frequencySeconds'] as num).toInt(),
       isActive: json['isActive'] as bool,
       startedAt: json['startedAt'] as String,
-      expiresAt: json['expiresAt'] as String,
+      expiresAt: json['expiresAt'] as String?,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
       recipients: (json['recipients'] as List<dynamic>)
@@ -195,20 +195,20 @@ class LocationSharingActiveOwner {
 
 class CreateSessionRequest {
   final List<String> recipientIds;
-  final int durationSeconds;
+  final int? durationSeconds;
   final int frequencySeconds;
   final String sharingMode;
 
   const CreateSessionRequest({
     required this.recipientIds,
-    required this.durationSeconds,
+    this.durationSeconds,
     this.frequencySeconds = 600,
     this.sharingMode = 'location',
   });
 
   Map<String, dynamic> toJson() => {
     'recipient_ids': recipientIds,
-    'duration_seconds': durationSeconds,
+    if (durationSeconds != null) 'duration_seconds': durationSeconds,
     'frequency_seconds': frequencySeconds,
     'sharing_mode': sharingMode,
   };
