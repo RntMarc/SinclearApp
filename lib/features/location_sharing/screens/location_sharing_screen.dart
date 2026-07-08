@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/di/app_scope.dart';
 import 'all_locations_map_screen.dart';
 import 'active_shares_screen.dart';
 
@@ -36,43 +35,42 @@ class _LocationSharingScreenState extends State<LocationSharingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        titleTextStyle: theme.textTheme.titleMedium,
-        title: const Text('Standort teilen'),
-        actions: [
-          if (_currentTab == 1)
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: () {
-                AppScope.of(context).locationSharingManager.loadMySessions();
-                if (mounted) setState(() {});
-              },
+      body: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(icon: Icon(Icons.map_rounded), text: 'Karte'),
+              Tab(icon: Icon(Icons.list_alt_rounded), text: 'Verwalten'),
+            ],
+          ),
+          Expanded(
+            child: IndexedStack(
+              index: _currentTab,
+              children: const [
+                AllLocationsMapScreen(),
+                ActiveSharesScreen(),
+              ],
             ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(icon: Icon(Icons.map_rounded), text: 'Karte'),
-            Tab(icon: Icon(Icons.list_alt_rounded), text: 'Verwalten'),
-          ],
-        ),
-      ),
-      body: IndexedStack(
-        index: _currentTab,
-        children: const [
-          AllLocationsMapScreen(),
-          ActiveSharesScreen(),
+          ),
         ],
       ),
-      floatingActionButton: _currentTab == 1
-          ? FloatingActionButton.extended(
-              onPressed: () => context.go('/standort-teilen/erstellen'),
-              icon: const Icon(Icons.share_location_rounded),
-              label: const Text('Standort teilen'),
-            )
-          : null,
+      floatingActionButton: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: _currentTab == 1
+            ? FloatingActionButton.extended(
+                key: const ValueKey('extended'),
+                onPressed: () => context.go('/standort-teilen/erstellen'),
+                icon: const Icon(Icons.share_location_rounded),
+                label: const Text('Standort teilen'),
+              )
+            : FloatingActionButton(
+                key: const ValueKey('icon'),
+                onPressed: () => context.go('/standort-teilen/erstellen'),
+                child: const Icon(Icons.share_location_rounded),
+              ),
+      ),
     );
   }
 }

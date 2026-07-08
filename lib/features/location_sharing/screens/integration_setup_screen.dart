@@ -15,7 +15,6 @@ class IntegrationSetupScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final manager = AppScope.of(context).locationSharingManager;
     final urls = session.integrationUrls;
 
     return Scaffold(
@@ -79,15 +78,7 @@ class IntegrationSetupScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () {
-              manager.startSending(session);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('In-App-Sharing gestartet.'),
-                ),
-              );
-              context.go('/standort-teilen');
-            },
+            onPressed: () => _showInAppSettingsDialog(context),
             icon: const Icon(Icons.share_location_rounded),
             label: const Text('Trotzdem direkt aus der App teilen'),
           ),
@@ -98,6 +89,70 @@ class IntegrationSetupScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  void _showInAppSettingsDialog(BuildContext context) {
+    final manager = AppScope.of(context).locationSharingManager;
+    int durationMinutes = session.durationSeconds ~/ 60;
+    int frequencyMinutes = session.frequencySeconds ~/ 60;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('In-App-Sharing'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Dauer: $durationMinutes Minuten',
+              ),
+              Slider(
+                value: durationMinutes.toDouble(),
+                min: 5,
+                max: 1440,
+                divisions: 50,
+                label: '$durationMinutes Min',
+                onChanged: (v) =>
+                    setDialogState(() => durationMinutes = v.round()),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Aktualisierung: alle $frequencyMinutes Minuten',
+              ),
+              Slider(
+                value: frequencyMinutes.toDouble(),
+                min: 5,
+                max: 20,
+                divisions: 15,
+                label: '$frequencyMinutes Min',
+                onChanged: (v) =>
+                    setDialogState(() => frequencyMinutes = v.round()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                manager.startSending(session);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('In-App-Sharing gestartet.'),
+                  ),
+                );
+                context.go('/standort-teilen');
+              },
+              child: const Text('Starten'),
+            ),
+          ],
+        ),
       ),
     );
   }

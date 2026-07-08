@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../models/notification_models.dart';
 import '../services/notification_service.dart';
 import '../../../core/config/notification_config.dart';
@@ -152,9 +153,14 @@ class _NotificationSheetState extends State<NotificationSheet> {
 
     Navigator.pop(context);
 
+    if (notification.code == 'location_sharing.started') {
+      context.go('/standort-teilen');
+      return;
+    }
+
     final deepLink = notification.payload['deepLink'] as String?;
     if (deepLink != null) {
-      // Navigate to deepLink via router
+      context.go(deepLink);
     }
   }
 }

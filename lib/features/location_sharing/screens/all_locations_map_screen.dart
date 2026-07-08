@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../models/location_sharing_models.dart';
 import 'session_map_screen.dart';
 
@@ -53,7 +54,8 @@ class _AllLocationsMapScreenState extends State<AllLocationsMapScreen> {
       if (s.isActive && s.lastLocation != null) {
         items.add(_MapItem(
           sessionId: s.id,
-          name: s.recipients.map((r) => r.displayName).join(', '),
+          displayName: s.recipients.map((r) => r.displayName).join(', '),
+          imageUrl: null,
           isOwn: true,
           location: s.lastLocation!,
         ));
@@ -63,7 +65,8 @@ class _AllLocationsMapScreenState extends State<AllLocationsMapScreen> {
       if (s.lastLocation != null) {
         items.add(_MapItem(
           sessionId: s.session.id,
-          name: s.owner.displayName,
+          displayName: s.owner.displayName,
+          imageUrl: s.owner.image,
           isOwn: false,
           location: s.lastLocation!,
         ));
@@ -141,16 +144,14 @@ class _AllLocationsMapScreenState extends State<AllLocationsMapScreen> {
                           item.location.latitude,
                           item.location.longitude,
                         ),
-                        width: 40,
-                        height: 40,
+                        width: 44,
+                        height: 44,
                         child: GestureDetector(
                           onTap: () => _openSession(item),
-                          child: Icon(
-                            item.isOwn
-                                ? Icons.my_location_rounded
-                                : Icons.person_pin_circle_rounded,
-                            color: item.isOwn ? Colors.blue : Colors.red,
-                            size: 40,
+                          child: UserAvatar(
+                            imageUrl: item.imageUrl,
+                            displayName: item.displayName,
+                            radius: 22,
                           ),
                         ),
                       ))
@@ -203,13 +204,15 @@ class _AllLocationsMapScreenState extends State<AllLocationsMapScreen> {
 
 class _MapItem {
   final String sessionId;
-  final String name;
+  final String displayName;
+  final String? imageUrl;
   final bool isOwn;
   final LocationSharingLocation location;
 
   const _MapItem({
     required this.sessionId,
-    required this.name,
+    required this.displayName,
+    this.imageUrl,
     required this.isOwn,
     required this.location,
   });
