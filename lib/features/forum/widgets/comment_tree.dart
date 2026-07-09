@@ -37,6 +37,7 @@ class CommentTreeTile extends StatelessWidget {
               Row(
                 children: [
                   UserAvatar(
+                    imageUrl: comment.userImage,
                     displayName: resolveUserName(comment.userId),
                     radius: 10,
                   ),

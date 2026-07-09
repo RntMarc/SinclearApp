@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../core/utils/spotify_helper.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../models/forum_models.dart';
 import '../widgets/comment_tree.dart';
 import '../widgets/youtube_player_embed.dart';
@@ -125,6 +126,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           id: list[i].id,
           postId: list[i].postId,
           userId: list[i].userId,
+          userName: list[i].userName,
+          userImage: list[i].userImage,
           parentId: list[i].parentId,
           text: list[i].text,
           createdAt: list[i].createdAt,
@@ -140,6 +143,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           id: list[i].id,
           postId: list[i].postId,
           userId: list[i].userId,
+          userName: list[i].userName,
+          userImage: list[i].userImage,
           parentId: list[i].parentId,
           text: list[i].text,
           createdAt: list[i].createdAt,
@@ -265,26 +270,43 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         children: [
           Row(
             children: [
+              UserAvatar(
+                imageUrl: post.userImage,
+                displayName: post.userName ?? post.userId,
+                radius: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      post.userName ?? 'Benutzer',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      app_date.formatRelativeDate(post.createdAt),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               Icon(
                 _typeIcon(post.type),
                 size: 16,
                 color: theme.colorScheme.primary,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Text(
                 _typeLabel(post.type),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                app_date.formatRelativeDate(post.createdAt),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.6,
-                  ),
                 ),
               ),
             ],
@@ -391,6 +413,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         id: post.id,
                         forumId: post.forumId,
                         userId: post.userId,
+                        userName: post.userName,
+                        userImage: post.userImage,
                         type: post.type,
                         content: post.content,
                         upvoteCount:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../core/utils/spotify_helper.dart';
+import '../../../core/widgets/user_avatar.dart';
 import '../models/forum_models.dart';
 import 'youtube_thumbnail.dart';
 import 'spotify_thumbnail.dart';
@@ -33,33 +34,50 @@ class PostCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
+                  UserAvatar(
+                    imageUrl: post.userImage,
+                    displayName: post.userName ?? post.userId,
+                    radius: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.userName ?? 'Benutzer',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          app_date.formatRelativeDate(post.createdAt),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Icon(
                     typeIcon,
                     size: 16,
                     color: theme.colorScheme.primary,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   Text(
                     typeLabel,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    app_date.formatRelativeDate(post.createdAt),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
-                      ),
                     ),
                   ),
                   if (post.userId == currentUserId && onDelete != null)

@@ -170,6 +170,8 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
             id: p.id,
             forumId: p.forumId,
             userId: p.userId,
+            userName: p.userName,
+            userImage: p.userImage,
             type: p.type,
             content: p.content,
             upvoteCount: p.hasVoted ? p.upvoteCount - 1 : p.upvoteCount + 1,
