@@ -171,6 +171,7 @@ class _ForumList extends StatelessWidget {
               itemBuilder: (context, index) {
                 final forum = forums[index];
                 return ForumCard(
+                  key: ValueKey(forum.id),
                   forum: forum,
                   onTap: () => onForumTap(forum),
                 );

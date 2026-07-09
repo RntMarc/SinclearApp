@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/utils/og_helper.dart';
@@ -82,12 +83,12 @@ class _OgPreviewCardState extends State<OgPreviewCard> {
               SizedBox(
                 width: 120,
                 height: 100,
-                child: Image.network(
-                  _data!.imageUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: _data!.imageUrl!,
                   width: 120,
                   height: 100,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, e, s) => Container(
+                  errorWidget: (_, e, s) => Container(
                     width: 120,
                     height: 100,
                     color: theme.colorScheme.surfaceContainerHighest,
