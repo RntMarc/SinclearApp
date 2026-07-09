@@ -161,6 +161,8 @@ class FeedPost {
   final String id;
   final String forumId;
   final String userId;
+  final String? userName;
+  final String? userImage;
   final String type;
   final Map<String, dynamic> content;
   final int upvoteCount;
@@ -173,6 +175,8 @@ class FeedPost {
     required this.id,
     required this.forumId,
     required this.userId,
+    this.userName,
+    this.userImage,
     required this.type,
     required this.content,
     required this.upvoteCount,
@@ -187,6 +191,8 @@ class FeedPost {
       id: json['id'] as String,
       forumId: json['forumId'] as String,
       userId: json['userId'] as String,
+      userName: json['userName'] as String?,
+      userImage: json['userImage'] as String?,
       type: json['type'] as String,
       content: json['content'] as Map<String, dynamic>,
       upvoteCount: (json['upvoteCount'] as num?)?.toInt() ?? 0,
@@ -303,6 +309,8 @@ class FeedPostComment {
   final String id;
   final String postId;
   final String userId;
+  final String? userName;
+  final String? userImage;
   final String? parentId;
   final String? text;
   final String createdAt;
@@ -313,6 +321,8 @@ class FeedPostComment {
     required this.id,
     required this.postId,
     required this.userId,
+    this.userName,
+    this.userImage,
     this.parentId,
     this.text,
     required this.createdAt,
@@ -327,6 +337,8 @@ class FeedPostComment {
       id: json['id'] as String,
       postId: json['postId'] as String,
       userId: json['userId'] as String,
+      userName: json['userName'] as String?,
+      userImage: json['userImage'] as String?,
       parentId: json['parentId'] as String?,
       text: json['text'] as String?,
       createdAt: json['createdAt'] as String,
