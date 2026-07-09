@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/utils/base64_helper.dart';
 import '../models/forum_models.dart';
 
 class MemberSheet extends StatelessWidget {
@@ -61,7 +61,7 @@ class MemberSheet extends StatelessWidget {
                     leading: member.image != null
                         ? CircleAvatar(
                             backgroundImage: MemoryImage(
-                              _decodeBase64(member.image!),
+                              decodeBase64Image(member.image!),
                             ),
                           )
                         : CircleAvatar(
@@ -95,30 +95,4 @@ class MemberSheet extends StatelessWidget {
     );
   }
 
-  static Uint8List _decodeBase64(String base64String) {
-    final cleaned = base64String.contains(',')
-        ? base64String.split(',').last
-        : base64String;
-    return _base64Decode(cleaned);
-  }
-
-  static Uint8List _base64Decode(String s) {
-    final padded = s.padRight(
-      s.length + (4 - s.length % 4) % 4,
-      '=',
-    );
-    return Uint8List.fromList(
-      List<int>.generate(padded.length, (i) {
-        const chars =
-            'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        int val = 0;
-        for (int j = 0; j < 4; j++) {
-          final c = padded[i + j];
-          if (c == '=') continue;
-          val = (val << 6) | chars.indexOf(c);
-        }
-        return val >> 8 * (3 - i % 4);
-      }).take(padded.length * 3 ~/ 4).toList(),
-    );
-  }
 }
