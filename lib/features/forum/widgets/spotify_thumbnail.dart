@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/utils/spotify_helper.dart';
@@ -30,6 +31,17 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
   }
 
   Future<void> _fetch() async {
+    final cached = SpotifyHelper.cachedOEmbed(widget.originalUrl);
+    if (cached != null) {
+      if (mounted) {
+        setState(() {
+          _data = cached;
+          _loading = false;
+        });
+      }
+      return;
+    }
+
     try {
       final uri = Uri.https(
         'open.spotify.com',
@@ -40,12 +52,14 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
       if (res.statusCode == 200 && mounted) {
         // oEmbed returns JSON with thumbnail_url, title, provider_name
         final json = _parseJson(res.body);
+        final data = SpotifyOEmbedData(
+          thumbnailUrl: json['thumbnail_url'] ?? '',
+          title: json['title'] ?? '',
+          artistName: json['provider_name'] ?? 'Spotify',
+        );
+        SpotifyHelper.cacheOEmbed(widget.originalUrl, data);
         setState(() {
-          _data = SpotifyOEmbedData(
-            thumbnailUrl: json['thumbnail_url'] ?? '',
-            title: json['title'] ?? '',
-            artistName: json['provider_name'] ?? 'Spotify',
-          );
+          _data = data;
           _loading = false;
         });
       } else if (mounted) {
@@ -103,12 +117,12 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
                 topLeft: Radius.circular(8),
                 bottomLeft: Radius.circular(8),
               ),
-              child: Image.network(
-                _data!.thumbnailUrl,
+              child: CachedNetworkImage(
+                imageUrl: _data!.thumbnailUrl,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorBuilder: (_, e, s) => Container(
+                errorWidget: (_, e, s) => Container(
                   width: 80,
                   height: 80,
                   color: const Color(0xFF1DB954).withValues(alpha: 0.2),

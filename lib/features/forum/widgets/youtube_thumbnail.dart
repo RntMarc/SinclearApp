@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../core/utils/youtube_helper.dart';
 
@@ -27,24 +28,19 @@ class YouTubeThumbnail extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Image.network(
-              thumbnailUrl,
+            CachedNetworkImage(
+              imageUrl: thumbnailUrl,
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) return child;
-                return Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: const Center(child: CircularProgressIndicator()),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  child: const Icon(Icons.error_outline, size: 32),
-                );
-              },
+              placeholder: (_, _) => Container(
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+              errorWidget: (_, _, _) => Container(
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.error_outline, size: 32),
+              ),
             ),
             // Play button overlay
             Container(

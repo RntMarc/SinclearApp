@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/utils/youtube_helper.dart';
@@ -27,28 +28,23 @@ class YouTubePlayerEmbed extends StatelessWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Image.network(
-                  thumbnailUrl,
+                CachedNetworkImage(
+                  imageUrl: thumbnailUrl,
                   width: double.infinity,
                   height: 220,
                   fit: BoxFit.cover,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return Container(
-                      width: double.infinity,
-                      height: 220,
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      child: const Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: double.infinity,
-                      height: 220,
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      child: const Icon(Icons.error_outline, size: 48),
-                    );
-                  },
+                  placeholder: (_, _) => Container(
+                    width: double.infinity,
+                    height: 220,
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (_, _, _) => Container(
+                    width: double.infinity,
+                    height: 220,
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: const Icon(Icons.error_outline, size: 48),
+                  ),
                 ),
                 Container(
                   width: 64,

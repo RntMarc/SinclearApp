@@ -400,6 +400,7 @@ return RefreshIndicator(
                   }
                   final post = _posts[index];
                   return PostCard(
+                    key: ValueKey(post.id),
                     post: post,
                     currentUserId: auth.userId ?? '',
                     onTap: () => context.go(
