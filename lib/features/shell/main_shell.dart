@@ -20,6 +20,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   bool _updateChecked = false;
+  bool _standortWarningShown = false;
 
   @override
   void didChangeDependencies() {
@@ -27,6 +28,26 @@ class _MainShellState extends State<MainShell> {
     if (!_updateChecked) {
       _updateChecked = true;
       _checkForUpdate();
+    }
+    if (!_standortWarningShown) {
+      final location = GoRouterState.of(context).matchedLocation;
+      if (location.startsWith('/standort-teilen')) {
+        _standortWarningShown = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Hinweis: Standort-Teilen befindet sich noch in der '
+                  'Entwicklung. Die Funktion ist noch nicht vollständig '
+                  'funktionsfähig.',
+                ),
+                duration: const Duration(seconds: 10),
+              ),
+            );
+          }
+        });
+      }
     }
   }
 
@@ -156,7 +177,7 @@ String _titleForLocation(String location) {
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/forum')) return 'FORUM';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
-  if (location.startsWith('/standort-teilen')) return 'STANDORT TEILEN';
+  if (location.startsWith('/standort-teilen')) return 'STANDORT TEILEN ∝';
   return 'HOME';
 }
 
@@ -264,6 +285,7 @@ class _MobileBottomNav extends StatelessWidget {
               'Standort teilen',
               Icons.share_location_rounded,
               '/standort-teilen',
+              comingSoon: true,
             ),
           ],
         );
@@ -310,8 +332,14 @@ class _SheetItem {
   final String label;
   final IconData icon;
   final String? route;
+  final bool comingSoon;
 
-  const _SheetItem(this.label, this.icon, this.route);
+  const _SheetItem(
+    this.label,
+    this.icon,
+    this.route, {
+    this.comingSoon = false,
+  });
 }
 
 class _CategorySheet extends StatelessWidget {
@@ -354,6 +382,7 @@ class _CategorySheet extends StatelessWidget {
             final isActive =
                 item.route != null && currentLocation.startsWith(item.route!);
             final isPlaceholder = item.route == null;
+            final showBadge = isPlaceholder || item.comingSoon;
 
             return ListTile(
               leading: Icon(
@@ -372,7 +401,7 @@ class _CategorySheet extends StatelessWidget {
                       )
                     : null,
               ),
-              trailing: isPlaceholder
+              trailing: showBadge
                   ? Chip(
                       label: const Text('Bald'),
                       visualDensity: VisualDensity.compact,
@@ -490,7 +519,20 @@ class _NavContent extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.share_location_rounded),
-              title: const Text('Standort teilen'),
+              title: Row(
+                children: [
+                  const Text('Standort teilen'),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: const Text('Bald'),
+                    visualDensity: VisualDensity.compact,
+                    side: BorderSide.none,
+                    backgroundColor:
+                        theme.colorScheme.surfaceContainerHighest,
+                    labelStyle: theme.textTheme.labelSmall,
+                  ),
+                ],
+              ),
               selected: _isActive('/standort-teilen'),
               onTap: () => onNavigate('/standort-teilen'),
             ),
