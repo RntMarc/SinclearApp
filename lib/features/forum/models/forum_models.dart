@@ -58,8 +58,11 @@ class ForumDetail extends Forum {
       memberCount: json['memberCount'] as int,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
-      isMember: json['isMember'] as bool,
-      notificationsEnabled: json['notificationsEnabled'] as bool? ?? false,
+      isMember: json['isMember'] == true || json['isMember'] == 1,
+      notificationsEnabled: json['notificationsEnabled'] == null
+          ? false
+          : json['notificationsEnabled'] == true ||
+                json['notificationsEnabled'] == 1,
     );
   }
 }
@@ -132,7 +135,10 @@ class ForumMember {
       userId: json['userId'] as String,
       displayName: json['displayName'] as String?,
       image: json['image'] as String?,
-      notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
+      notificationsEnabled: json['notificationsEnabled'] == null
+          ? true
+          : json['notificationsEnabled'] == true ||
+                json['notificationsEnabled'] == 1,
       createdAt: json['createdAt'] as String,
     );
   }
@@ -185,7 +191,7 @@ class FeedPost {
       content: json['content'] as Map<String, dynamic>,
       upvoteCount: (json['upvoteCount'] as num?)?.toInt() ?? 0,
       commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
-      hasVoted: json['hasVoted'] as bool? ?? false,
+      hasVoted: json['hasVoted'] == true || json['hasVoted'] == 1,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
     );
