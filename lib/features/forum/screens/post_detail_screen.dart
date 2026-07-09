@@ -210,30 +210,45 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Widget _buildBody(BuildContext context, String currentUserId, bool isAdmin) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-if (_error != null) {
       return RefreshIndicator(
         onRefresh: _load,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Theme.of(context).colorScheme.error,
+        child: ListView(
+          children: const [
+            SizedBox(height: 120),
+            Center(child: CircularProgressIndicator()),
+          ],
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.3,
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(_error!),
+                  const SizedBox(height: 16),
+                  FilledButton.tonal(
+                    onPressed: _load,
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(_error!),
-              const SizedBox(height: 16),
-              FilledButton.tonal(
-                onPressed: _load,
-                child: const Text('Erneut versuchen'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }

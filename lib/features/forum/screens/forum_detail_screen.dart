@@ -133,13 +133,23 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
       final forumService = AppScope.of(context).forum;
       final response = await forumService.listMembers(widget.id);
       if (!mounted) return;
+      debugPrint(
+        '[ForumDetail] Members loaded: ${response.data.length} members',
+      );
+      if (response.data.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Keine Mitglieder vorhanden.')),
+        );
+        return;
+      }
       MemberSheet.show(context, members: response.data);
-    } catch (e) {
-      developer.log('Failed to load members', error: e);
+    } catch (e, st) {
+      debugPrint('[ForumDetail] Failed to load members: $e');
+      debugPrint('[ForumDetail] Stack: $st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mitglieder konnten nicht geladen werden.'),
+        SnackBar(
+          content: Text('Mitglieder konnten nicht geladen werden: $e'),
         ),
       );
     }
