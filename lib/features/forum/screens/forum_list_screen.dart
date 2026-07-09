@@ -56,63 +56,77 @@ class _ForumListScreenState extends State<ForumListScreen> {
 
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('FORUM'),
-          bottom: const TabBar(
+      child: Column(
+        children: [
+          const TabBar(
             tabs: [
               Tab(text: 'Meine Foren'),
               Tab(text: 'Alle Foren'),
             ],
           ),
-        ),
-        body: _buildBody(context, myForums),
+          Expanded(child: _buildBody(context, myForums)),
+        ],
       ),
     );
   }
 
   Widget _buildBody(BuildContext context, List<Forum> myForums) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          children: const [
+            SizedBox(height: 120),
+            Center(child: CircularProgressIndicator()),
+          ],
+        ),
+      );
     }
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 8),
-            Text(_error!),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: _load,
-              child: const Text('Erneut versuchen'),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(_error!),
+                  const SizedBox(height: 16),
+                  FilledButton.tonal(
+                    onPressed: _load,
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: TabBarView(
-        children: [
-          _ForumList(
-            forums: myForums,
-            emptyText: 'Du bist noch keinem Forum beigetreten.',
-            onForumTap: (forum) => context.go('/forum/${forum.id}'),
-          ),
-          _ForumList(
-            forums: _allForums,
-            emptyText: 'Keine Foren vorhanden.',
-            onForumTap: (forum) => context.go('/forum/${forum.id}'),
-          ),
-        ],
-      ),
+    return TabBarView(
+      children: [
+        _ForumList(
+          forums: myForums,
+          emptyText: 'Du bist noch keinem Forum beigetreten.',
+          onForumTap: (forum) => context.go('/forum/${forum.id}'),
+          onRefresh: _load,
+        ),
+        _ForumList(
+          forums: _allForums,
+          emptyText: 'Keine Foren vorhanden.',
+          onForumTap: (forum) => context.go('/forum/${forum.id}'),
+          onRefresh: _load,
+        ),
+      ],
     );
   }
 }
@@ -121,36 +135,47 @@ class _ForumList extends StatelessWidget {
   final List<Forum> forums;
   final String emptyText;
   final ValueChanged<Forum> onForumTap;
+  final Future<void> Function() onRefresh;
 
   const _ForumList({
     required this.forums,
     required this.emptyText,
     required this.onForumTap,
+    required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (forums.isEmpty) {
-      return Center(
-        child: Text(
-          emptyText,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: forums.length,
-      itemBuilder: (context, index) {
-        final forum = forums[index];
-        return ForumCard(
-          forum: forum,
-          onTap: () => onForumTap(forum),
-        );
-      },
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: forums.isEmpty
+          ? ListView(
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.3,
+                ),
+                Center(
+                  child: Text(
+                    emptyText,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: forums.length,
+              itemBuilder: (context, index) {
+                final forum = forums[index];
+                return ForumCard(
+                  forum: forum,
+                  onTap: () => onForumTap(forum),
+                );
+              },
+            ),
     );
   }
 }
