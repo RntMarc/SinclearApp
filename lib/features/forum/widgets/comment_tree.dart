@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
+import '../../../core/widgets/user_avatar.dart';
 import '../models/forum_models.dart';
 
 class CommentTreeTile extends StatelessWidget {
@@ -35,10 +36,9 @@ class CommentTreeTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.account_circle_rounded,
-                    size: 20,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                  UserAvatar(
+                    displayName: resolveUserName(comment.userId),
+                    radius: 10,
                   ),
                   const SizedBox(width: 6),
                   Text(
