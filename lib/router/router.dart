@@ -38,6 +38,7 @@ import '../features/location_sharing/screens/integration_setup_screen.dart';
 import '../features/location_sharing/screens/location_sharing_screen.dart';
 import '../features/location_sharing/screens/session_map_screen.dart';
 import '../features/location_sharing/models/location_sharing_models.dart';
+import '../features/showcase/screens/design_showcase_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -57,7 +58,8 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/feedback') ||
           location.startsWith('/forum') ||
           location.startsWith('/rezepte') ||
-          location.startsWith('/standort-teilen');
+          location.startsWith('/standort-teilen') ||
+          location.startsWith('/design-showcase');
 
       if (loggedIn && !auth.onboardingCompleted &&
           location != '/onboarding') {
@@ -208,6 +210,10 @@ GoRouter createRouter(AuthService auth) {
                 builder: (context, state) => const DiscordRelinkScreen(),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/design-showcase',
+            builder: (context, state) => const DesignShowcaseScreen(),
           ),
           GoRoute(
             path: '/rezepte',

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'design/design_variant.dart';
+import 'design/theme/design_theme.dart';
 import 'core/di/app_scope.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
@@ -35,7 +37,11 @@ class SinclearApp extends StatelessWidget {
   final WebUpdateService webUpdate;
   final GoRouter router;
 
-  const SinclearApp({
+  /// In-memory selection of the active showcase design.
+  final ValueNotifier<DesignVariant> designVariant =
+      ValueNotifier<DesignVariant>(DesignVariant.materiaPop);
+
+  SinclearApp({
     super.key,
     required this.auth,
     required this.explore,
@@ -73,13 +79,16 @@ class SinclearApp extends StatelessWidget {
       webUpdate: webUpdate,
       child: WebUpdateBanner(
         service: webUpdate,
-        child: MaterialApp.router(
-          title: 'Sinclear Beyond',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: ThemeMode.system,
-          routerConfig: router,
+        child: DesignScope(
+          variant: designVariant,
+          child: MaterialApp.router(
+            title: 'Sinclear Beyond',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: ThemeMode.system,
+            routerConfig: router,
+          ),
         ),
       ),
     );

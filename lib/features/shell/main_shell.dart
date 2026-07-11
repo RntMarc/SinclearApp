@@ -177,6 +177,7 @@ String _titleForLocation(String location) {
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/forum')) return 'FORUM';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
+  if (location.startsWith('/design-showcase')) return 'DESIGN SHOWCASE';
   if (location.startsWith('/standort-teilen')) return 'STANDORT TEILEN ∝';
   return 'HOME';
 }
@@ -252,6 +253,11 @@ class _MobileBottomNav extends StatelessWidget {
           context,
           category: 'System',
           items: [
+            _SheetItem(
+              'Design Showcase',
+              Icons.palette_rounded,
+              '/design-showcase',
+            ),
             _SheetItem(
               'Einstellungen',
               Icons.settings_rounded,
@@ -471,6 +477,12 @@ class _NavContent extends StatelessWidget {
               title: const Text('Start'),
               selected: _isActive('/home'),
               onTap: () => onNavigate('/home'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.palette_rounded),
+              title: const Text('Design Showcase'),
+              selected: _isActive('/design-showcase'),
+              onTap: () => onNavigate('/design-showcase'),
             ),
             _CategoryHeader(title: 'SYSTEM'),
             ListTile(
