@@ -105,3 +105,101 @@ Sub-Seiten gehören immer zur Kategorie ihrer übergeordneten Seite:
 - Mobile: Kalender als `SliverPersistentHeader` (collapsible) + Agenda
 - **Keine** eigene "Kalender"-Überschrift im Body – der Shell-AppBar zeigt
   den Titel bereits
+
+---
+
+# Eigenes Design-System (Design Showcase)
+
+Neben dem Material-3-Look der App existiert ein **eigenständiges, nicht auf
+Material/Cupertino basierendes Design-System**, das ausschließlich im
+**Design Showcase** (`/design-showcase`) gezeigt wird. Die übrige App bleibt
+unverändert auf Material 3.
+
+## Grundprinzipien
+
+1. **Ein Widget-Katalog** – alle neuen Widgets leben unter `lib/design/` und
+   werden von Screens nur zusammengesetzt, nie lokal neu definiert.
+2. **Hierarchie & Vererbung** – Widgets bauen aufeinander auf (Foundation →
+   Primitive → Composite → Showcase). `DesignButton` erbt über eine
+   `PressScale`-Basis; `DesignCard` nutzt `DesignGlass`/`DesignSurface`.
+3. **Variablenbasiertes Farbschema** – keine hart codierten Farben. Alle Werte
+   kommen aus `DesignTokens`; pro Design gibt es Light- und Dark-Instanzen.
+4. **Effekte selbst gebaut** – Grain (CustomPaint/`ui.Image`, gecacht),
+   Glas (`BackdropFilter`), Glow (`BoxShadow`). Keine externen Pakete.
+5. **Punktuell, nicht als Füllfläche** – Grain/Blur/Glow nur auf Panels, nie
+   über den ganzen Screen gestreckt.
+
+## Die drei Designs
+
+| | Materia Pop | Aurora Glass | Liquid Pulse |
+|---|---|---|---|
+| Charakter | Verspielt, Squircle, federnd | Luftig, Frosted Glass, Mesh | Dunkel, Spotify-artig, Neon-Glow |
+| Radius LG | 26 px | 24 px | 26 px |
+| Radius Pill | 999 px | 999 px | 999 px |
+| Glass-Modus | aus | **an** | aus |
+| Grain | 4 % | 5 % | 6 % |
+| Glass-Blur | 6 px | **18 px** | 10 px |
+| Glow-Blur | 26 px | 18 px | **32 px** |
+| Primärfarbe (Light) | `#7C3AED` | `#2563EB` | `#16A34A` |
+| Primärfarbe (Dark) | `#A78BFA` | `#60A5FA` | `#1ED760` |
+| Font | Chivo | Chivo | Chivo |
+
+Jeder Screen-Wechsel zwischen den Designs ist **rein in-memory**
+(`ValueNotifier<DesignVariant>` in `SinclearApp`, verwaltet durch
+`DesignScope`). Ein Neustart setzt auf `Materia Pop` zurück.
+
+## Widget-Katalog (Struktur)
+
+```
+lib/design/
+  design_variant.dart            # enum + Label/Tagline der 3 Designs
+  theme/
+    design_theme.dart            # DesignScope/DesignTheme (InheritedWidget)
+    app_design.dart              # Resolver variant+brightness -> Tokens
+  tokens/
+    design_tokens.dart           # abstrakte Basisklasse (alle Werte variabel)
+    materia_pop_tokens.dart      # Light + Dark
+    aurora_glass_tokens.dart     # Light + Dark
+    liquid_pulse_tokens.dart     # Light + Dark
+  effects/
+    grain_painter.dart           # GrainOverlay + Noise-Cache
+  widgets/
+    foundation/                  # Layer 0: DesignSurface, DesignText, DesignGlass
+    primitives/                  # Layer 1: Button, Card, Chip, TextField,
+                                 #           IconButton, Avatar, Badge, Divider,
+                                 #           PressScale
+    composite/                   # Layer 2: AppBar, BottomSheet, NavItem,
+                                 #           SegmentedSwitch, ListTile
+    showcase/                    # Layer 3: ShowcaseSection, ColorSwatch,
+                                 #           TokenSpec
+```
+
+## Token-Spezifikation (Beispiel Materia Pop, Light)
+
+Alle Werte sind in `DesignTokens` als benannte Getter definiert und werden
+pro Design/Modus neu belegt. Auszug:
+
+- Farben: `background`, `surface`, `primary`, `secondary`, `accentA`,
+  `accentB`, `textHigh`, `textLow`, `glow`, `success`, `warning`, `danger`
+- Radien: `sm 14 · md 20 · lg 26 · xl 30 · pill 999` (px)
+- Spacing: `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32` (px)
+- Typografie: `display 30/w900 · title 22/w700 · subtitle 18/w700 ·
+  body 15/w400 · label 13/w600` (Chivo)
+- Effekte: `grainOpacity 0.04 · glassBlur 6 · glowBlur 26 · useGlass false`
+
+Die Showcase-Screens rendern die aktuelle Palette (`DesignColorSwatch`) und
+eine Mess-Tabelle (`DesignTokenSpec`) live für das gewählte Design.
+
+## Zugriff in Widgets
+
+```dart
+final tokens = DesignTheme.of(context);          // aktive DesignTokens
+final variant = DesignScope.variantOf(context);  // aktives Design
+DesignScope.notifierOf(context).value = DesignVariant.auroraGlass; // umschalten
+```
+
+## Verknüpfung
+
+Der Showcase ist über das Hauptmenü erreichbar (Sidebar + System-Sheet,
+Eintrag **Design Showcase**, Icon `palette_rounded`) und unter der Route
+`/design-showcase` eingehängt.
