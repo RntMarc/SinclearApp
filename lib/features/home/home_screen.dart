@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:sinclear_beyond/design/beyond.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -30,6 +33,14 @@ class HomeScreen extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: BeyondButton(
+                label: 'Design Showcase öffnen',
+                onPressed: () => context.go('/design-showcase'),
               ),
             ),
           ],

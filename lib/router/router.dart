@@ -13,6 +13,7 @@ import '../features/explore/screens/detail_screen.dart';
 import '../features/explore/screens/create_place_screen.dart';
 
 import '../features/shell/main_shell.dart';
+import '../design/showcase/design_showcase_screen.dart';
 import '../features/travel/screens/travel_screen.dart';
 import '../features/travel/screens/trip_detail_screen.dart';
 import '../features/user/screens/contacts_screen.dart';
@@ -72,6 +73,10 @@ GoRouter createRouter(AuthService auth) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/design-showcase',
+        builder: (context, state) => const DesignShowcaseScreen(),
+      ),
       GoRoute(path: '/', builder: (context, state) => const WelcomeScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(

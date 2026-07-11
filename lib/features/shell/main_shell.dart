@@ -2,6 +2,8 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../design/beyond.dart';
 import '../notifications/services/notification_service.dart';
 import '../notifications/widgets/notification_sheet.dart';
 import '../../core/di/app_scope.dart';
@@ -129,23 +131,88 @@ class _DesktopShell extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(_titleForLocation(location)),
-        actions: [_NotificationBell()],
+      backgroundColor: Colors.transparent,
+      appBar: BeyondAppBar(
+        titleText: _titleForLocation(location),
+        actions: const <Widget>[_NotificationBell()],
       ),
-      body: Row(
-        children: [
-          SizedBox(
-            width: 288,
-            child: _NavContent(
-              currentLocation: location,
-              onNavigate: (route) => context.go(route),
+      body: BeyondSurface(
+        child: Row(
+          children: <Widget>[
+            BeyondSidebar(
+              children: <Widget>[
+                const BeyondSidebarBrand(),
+                BeyondNavItem(
+                  icon: Icons.home_rounded,
+                  label: 'Start',
+                  selected: _isActive(location, '/home'),
+                  onTap: () => context.go('/home'),
+                ),
+                const BeyondCategoryHeader(title: 'SYSTEM'),
+                BeyondNavItem(
+                  icon: Icons.settings_rounded,
+                  label: 'Einstellungen',
+                  selected: _isActive(location, '/einstellungen'),
+                  onTap: () => context.go('/einstellungen'),
+                ),
+                BeyondNavItem(
+                  icon: Icons.feedback_rounded,
+                  label: 'Feedback',
+                  selected: _isActive(location, '/feedback'),
+                  onTap: () => context.go('/feedback'),
+                ),
+                const BeyondCategoryHeader(title: 'GEMEINSCHAFT'),
+                BeyondNavItem(
+                  icon: Icons.forum_rounded,
+                  label: 'Forum',
+                  selected: _isActive(location, '/forum'),
+                  onTap: () => context.go('/forum'),
+                ),
+                BeyondNavItem(
+                  icon: Icons.restaurant_rounded,
+                  label: 'Rezepte',
+                  selected: _isActive(location, '/rezepte'),
+                  onTap: () => context.go('/rezepte'),
+                ),
+                BeyondNavItem(
+                  icon: Icons.people_rounded,
+                  label: 'Kontakte',
+                  selected: _isActive(location, '/kontakte'),
+                  onTap: () => context.go('/kontakte'),
+                ),
+                const BeyondCategoryHeader(title: 'UNTERWEGS'),
+                BeyondNavItem(
+                  icon: Icons.explore_rounded,
+                  label: 'Entdecken',
+                  selected: _isActive(location, '/entdecken'),
+                  onTap: () => context.go('/entdecken'),
+                ),
+                BeyondNavItem(
+                  icon: Icons.flight_rounded,
+                  label: 'Reisen & Events',
+                  selected: _isActive(location, '/reisen'),
+                  onTap: () => context.go('/reisen'),
+                ),
+                BeyondNavItem(
+                  icon: Icons.share_location_rounded,
+                  label: 'Standort teilen',
+                  trailing: const BeyondChip(label: 'Bald'),
+                  selected: _isActive(location, '/standort-teilen'),
+                  onTap: () => context.go('/standort-teilen'),
+                ),
+                const BeyondCategoryHeader(title: 'ORGANISATION'),
+                BeyondNavItem(
+                  icon: Icons.calendar_month_rounded,
+                  label: 'Kalender',
+                  selected: _isActive(location, '/kalender'),
+                  onTap: () => context.go('/kalender'),
+                ),
+              ],
             ),
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(child: child),
-        ],
+            const VerticalDivider(width: 1),
+            Expanded(child: child),
+          ],
+        ),
       ),
     );
   }
@@ -159,11 +226,49 @@ class _MobileShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     final title = _titleForLocation(location);
+    final active = _categoryForLocation(location);
 
     return Scaffold(
-      appBar: AppBar(title: Text(title), actions: [_NotificationBell()]),
-      body: child,
-      bottomNavigationBar: _MobileBottomNav(currentLocation: location),
+      backgroundColor: Colors.transparent,
+      appBar: BeyondAppBar(
+        titleText: title,
+        actions: const <Widget>[_NotificationBell()],
+      ),
+      body: BeyondSurface(child: child),
+      bottomNavigationBar: BeyondBottomNav(
+        destinations: <BeyondNavDestination>[
+          BeyondNavDestination(
+            icon: Icons.settings_rounded,
+            label: 'System',
+            active: active == _NavCategory.system,
+            onTap: () => _onTap(context, _NavCategory.system),
+          ),
+          BeyondNavDestination(
+            icon: Icons.people_rounded,
+            label: 'Gemeinschaft',
+            active: active == _NavCategory.gemeinschaft,
+            onTap: () => _onTap(context, _NavCategory.gemeinschaft),
+          ),
+          BeyondNavDestination(
+            icon: Icons.home_rounded,
+            label: 'Start',
+            active: active == _NavCategory.home,
+            onTap: () => _onTap(context, _NavCategory.home),
+          ),
+          BeyondNavDestination(
+            icon: Icons.explore_rounded,
+            label: 'Unterwegs',
+            active: active == _NavCategory.unterwegs,
+            onTap: () => _onTap(context, _NavCategory.unterwegs),
+          ),
+          BeyondNavDestination(
+            icon: Icons.calendar_month_rounded,
+            label: 'Organisation',
+            active: active == _NavCategory.organisation,
+            onTap: () => _onTap(context, _NavCategory.organisation),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -181,8 +286,11 @@ String _titleForLocation(String location) {
   return 'HOME';
 }
 
+bool _isActive(String location, String route) =>
+    location.startsWith(route);
+
 // ---------------------------------------------------------------------------
-// Mobile Bottom Navigation
+// Mobile category navigation
 // ---------------------------------------------------------------------------
 
 enum _NavCategory { system, gemeinschaft, home, unterwegs, organisation }
@@ -206,128 +314,6 @@ _NavCategory _categoryForLocation(String location) {
   return _NavCategory.home;
 }
 
-class _MobileBottomNav extends StatelessWidget {
-  final String currentLocation;
-
-  const _MobileBottomNav({required this.currentLocation});
-
-  @override
-  Widget build(BuildContext context) {
-    final active = _categoryForLocation(currentLocation);
-
-    return BottomNavigationBar(
-      currentIndex: active.index,
-      onTap: (index) => _onTap(context, _NavCategory.values[index]),
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Theme.of(context).colorScheme.primary,
-      unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings_rounded),
-          label: 'System',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.people_rounded),
-          label: 'Gemeinschaft',
-        ),
-        BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Start'),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.explore_rounded),
-          label: 'Unterwegs',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month_rounded),
-          label: 'Organisation',
-        ),
-      ],
-    );
-  }
-
-  void _onTap(BuildContext context, _NavCategory category) {
-    switch (category) {
-      case _NavCategory.home:
-        context.go('/home');
-      case _NavCategory.system:
-        _showCategorySheet(
-          context,
-          category: 'System',
-          items: [
-            _SheetItem(
-              'Einstellungen',
-              Icons.settings_rounded,
-              '/einstellungen',
-            ),
-            _SheetItem('Admin', Icons.admin_panel_settings_rounded, null),
-            _SheetItem('Feedback', Icons.feedback_rounded, '/feedback'),
-            _SheetItem('Changelog', Icons.history_rounded, null),
-          ],
-        );
-      case _NavCategory.gemeinschaft:
-        _showCategorySheet(
-          context,
-          category: 'Gemeinschaft',
-          items: [
-            _SheetItem('Forum', Icons.forum_rounded, '/forum'),
-            _SheetItem('Kritik', Icons.rate_review_rounded, null),
-            _SheetItem('Rezepte', Icons.restaurant_rounded, '/rezepte'),
-            _SheetItem('Fotos', Icons.photo_library_rounded, null),
-            _SheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
-          ],
-        );
-      case _NavCategory.unterwegs:
-        _showCategorySheet(
-          context,
-          category: 'Unterwegs',
-          items: [
-            _SheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
-            _SheetItem('Reisen', Icons.flight_rounded, '/reisen'),
-            _SheetItem(
-              'Standort teilen',
-              Icons.share_location_rounded,
-              '/standort-teilen',
-              comingSoon: true,
-            ),
-          ],
-        );
-      case _NavCategory.organisation:
-        _showCategorySheet(
-          context,
-          category: 'Organisation',
-          items: [
-            _SheetItem('Kalender', Icons.calendar_month_rounded, '/kalender'),
-            _SheetItem('Umfrage', Icons.poll_rounded, null),
-            _SheetItem('Abos', Icons.subscriptions_rounded, null),
-          ],
-        );
-    }
-  }
-
-  void _showCategorySheet(
-    BuildContext context, {
-    required String category,
-    required List<_SheetItem> items,
-  }) {
-    final location = GoRouterState.of(context).matchedLocation;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _CategorySheet(
-        category: category,
-        items: items,
-        currentLocation: location,
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Category Bottom Sheet
-// ---------------------------------------------------------------------------
-
 class _SheetItem {
   final String label;
   final IconData icon;
@@ -342,241 +328,108 @@ class _SheetItem {
   });
 }
 
-class _CategorySheet extends StatelessWidget {
-  final String category;
-  final List<_SheetItem> items;
-  final String currentLocation;
-
-  const _CategorySheet({
-    required this.category,
-    required this.items,
-    required this.currentLocation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            category,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...items.map((item) {
-            final isActive =
-                item.route != null && currentLocation.startsWith(item.route!);
-            final isPlaceholder = item.route == null;
-            final showBadge = isPlaceholder || item.comingSoon;
-
-            return ListTile(
-              leading: Icon(
-                item.icon,
-                color: isPlaceholder
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-                    : null,
-              ),
-              title: Text(
-                item.label,
-                style: isPlaceholder
-                    ? TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.4,
-                        ),
-                      )
-                    : null,
-              ),
-              trailing: showBadge
-                  ? Chip(
-                      label: const Text('Bald'),
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide.none,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      labelStyle: theme.textTheme.labelSmall,
-                    )
-                  : null,
-              selected: isActive,
-              selectedTileColor: theme.colorScheme.primaryContainer,
-              onTap: isPlaceholder
-                  ? null
-                  : () {
-                      Navigator.pop(context);
-                      context.go(item.route!);
-                    },
-            );
-          }),
-          const SizedBox(height: 8),
+void _onTap(BuildContext context, _NavCategory category) {
+  switch (category) {
+    case _NavCategory.home:
+      context.go('/home');
+    case _NavCategory.system:
+      _showCategorySheet(
+        context,
+        category: 'System',
+        items: <_SheetItem>[
+          _SheetItem('Einstellungen', Icons.settings_rounded, '/einstellungen'),
+          _SheetItem('Admin', Icons.admin_panel_settings_rounded, null),
+          _SheetItem('Feedback', Icons.feedback_rounded, '/feedback'),
+          _SheetItem('Changelog', Icons.history_rounded, null),
         ],
-      ),
-    );
+      );
+    case _NavCategory.gemeinschaft:
+      _showCategorySheet(
+        context,
+        category: 'Gemeinschaft',
+        items: <_SheetItem>[
+          _SheetItem('Forum', Icons.forum_rounded, '/forum'),
+          _SheetItem('Kritik', Icons.rate_review_rounded, null),
+          _SheetItem('Rezepte', Icons.restaurant_rounded, '/rezepte'),
+          _SheetItem('Fotos', Icons.photo_library_rounded, null),
+          _SheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
+        ],
+      );
+    case _NavCategory.unterwegs:
+      _showCategorySheet(
+        context,
+        category: 'Unterwegs',
+        items: <_SheetItem>[
+          _SheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
+          _SheetItem('Reisen', Icons.flight_rounded, '/reisen'),
+          _SheetItem(
+            'Standort teilen',
+            Icons.share_location_rounded,
+            '/standort-teilen',
+            comingSoon: true,
+          ),
+        ],
+      );
+    case _NavCategory.organisation:
+      _showCategorySheet(
+        context,
+        category: 'Organisation',
+        items: <_SheetItem>[
+          _SheetItem('Kalender', Icons.calendar_month_rounded, '/kalender'),
+          _SheetItem('Umfrage', Icons.poll_rounded, null),
+          _SheetItem('Abos', Icons.subscriptions_rounded, null),
+        ],
+      );
   }
 }
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// Desktop Sidebar Navigation
-// ---------------------------------------------------------------------------
+void _showCategorySheet(
+  BuildContext context, {
+  required String category,
+  required List<_SheetItem> items,
+}) {
+  final location = GoRouterState.of(context).matchedLocation;
 
-class _NavContent extends StatelessWidget {
-  final String currentLocation;
-  final void Function(String route) onNavigate;
+  BeyondSheet.show(
+    context: context,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        BeyondHeadline(category),
+        const SizedBox(height: 8),
+        ...items.map((item) {
+          final isPlaceholder = item.route == null;
+          final isActive = item.route != null &&
+              location.startsWith(item.route!);
 
-  const _NavContent({required this.currentLocation, required this.onNavigate});
-
-  bool _isActive(String route) => currentLocation.startsWith(route);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Row(
-                children: [
-                  Image.asset('assets/logo.png', width: 32, height: 32),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Beyond',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.home_rounded),
-              title: const Text('Start'),
-              selected: _isActive('/home'),
-              onTap: () => onNavigate('/home'),
-            ),
-            _CategoryHeader(title: 'SYSTEM'),
-            ListTile(
-              leading: const Icon(Icons.settings_rounded),
-              title: const Text('Einstellungen'),
-              selected: _isActive('/einstellungen'),
-              onTap: () => onNavigate('/einstellungen'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.feedback_rounded),
-              title: const Text('Feedback'),
-              selected: _isActive('/feedback'),
-              onTap: () => onNavigate('/feedback'),
-            ),
-            _CategoryHeader(title: 'GEMEINSCHAFT'),
-            ListTile(
-              leading: const Icon(Icons.forum_rounded),
-              title: const Text('Forum'),
-              selected: _isActive('/forum'),
-              onTap: () => onNavigate('/forum'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.restaurant_rounded),
-              title: const Text('Rezepte'),
-              selected: _isActive('/rezepte'),
-              onTap: () => onNavigate('/rezepte'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.people_rounded),
-              title: const Text('Kontakte'),
-              selected: _isActive('/kontakte'),
-              onTap: () => onNavigate('/kontakte'),
-            ),
-            _CategoryHeader(title: 'UNTERWEGS'),
-            ListTile(
-              leading: const Icon(Icons.explore_rounded),
-              title: const Text('Entdecken'),
-              selected: _isActive('/entdecken'),
-              onTap: () => onNavigate('/entdecken'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.flight_rounded),
-              title: const Text('Reisen & Events'),
-              selected: _isActive('/reisen'),
-              onTap: () => onNavigate('/reisen'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.share_location_rounded),
-              title: Row(
-                children: [
-                  const Text('Standort teilen'),
-                  const SizedBox(width: 8),
-                  Chip(
-                    label: const Text('Bald'),
-                    visualDensity: VisualDensity.compact,
-                    side: BorderSide.none,
-                    backgroundColor:
-                        theme.colorScheme.surfaceContainerHighest,
-                    labelStyle: theme.textTheme.labelSmall,
-                  ),
-                ],
-              ),
-              selected: _isActive('/standort-teilen'),
-              onTap: () => onNavigate('/standort-teilen'),
-            ),
-            _CategoryHeader(title: 'ORGANISATION'),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_rounded),
-              title: const Text('Kalender'),
-              selected: _isActive('/kalender'),
-              onTap: () => onNavigate('/kalender'),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CategoryHeader extends StatelessWidget {
-  final String title;
-  const _CategoryHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        title,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
+          return BeyondNavItem(
+            icon: item.icon,
+            label: item.label,
+            selected: isActive,
+            trailing: isPlaceholder || item.comingSoon
+                ? const BeyondChip(label: 'Bald')
+                : null,
+            onTap: isPlaceholder
+                ? null
+                : () {
+                    Navigator.pop(context);
+                    context.go(item.route!);
+                  },
+          );
+        }),
+        const SizedBox(height: 8),
+      ],
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
-// Notification Bell (shared between desktop & mobile)
+// Notification bell (shared between desktop & mobile)
 // ---------------------------------------------------------------------------
 
 class _NotificationBell extends StatefulWidget {
+  const _NotificationBell();
+
   @override
   State<_NotificationBell> createState() => _NotificationBellState();
 }
@@ -613,16 +466,10 @@ class _NotificationBellState extends State<_NotificationBell> {
               child: const Icon(Icons.notifications_rounded),
             )
           : const Icon(Icons.notifications_outlined),
-      onPressed: () => _showSheet(context),
-    );
-  }
-
-  void _showSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (_) => const NotificationSheet(),
+      onPressed: () => BeyondSheet.show(
+        context: context,
+        child: const NotificationSheet(),
+      ),
     );
   }
 }

@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'core/di/app_scope.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
-import 'core/theme/app_theme.dart';
 import 'core/widgets/web_update_banner.dart';
+import 'design/beyond.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
@@ -76,9 +76,9 @@ class SinclearApp extends StatelessWidget {
         child: MaterialApp.router(
           title: 'Sinclear Beyond',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: ThemeMode.system,
+          theme: BeyondTheme.light(),
+          darkTheme: BeyondTheme.dark(),
+          themeMode: ThemeMode.dark,
           routerConfig: router,
         ),
       ),
