@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'design/theme/design_preferences.dart';
 import 'core/config/osm_config.dart';
 import 'core/network/api_client.dart';
 import 'core/services/android_update_service.dart';
@@ -115,6 +116,8 @@ void main() async {
 
   final router = createRouter(auth);
 
+  final initialDesign = await DesignPreferences.load();
+
   notification.onNotificationTapped = (notificationId) {
     if (auth.isLoggedIn) {
       router.go('/home');
@@ -142,6 +145,7 @@ void main() async {
       locationSharingManager: locationSharingManager,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
+      initialDesignVariant: initialDesign,
       router: router,
     ),
   );
