@@ -144,9 +144,22 @@ unverändert auf Material 3.
 | Primärfarbe (Dark) | `#A78BFA` | `#60A5FA` | `#1ED760` |
 | Font | Chivo | Chivo | Chivo |
 
-Jeder Screen-Wechsel zwischen den Designs ist **rein in-memory**
-(`ValueNotifier<DesignVariant>` in `SinclearApp`, verwaltet durch
-`DesignScope`). Ein Neustart setzt auf `Materia Pop` zurück.
+Jeder Screen-Wechsel zwischen den Designs ist **rein in-memory** innerhalb
+einer Session (`ValueNotifier<DesignVariant>` in `SinclearApp`, verwaltet
+durch `DesignScope`).
+
+**Persistenz:** Die gewählte Variante wird lokal auf dem Endgerät gespeichert
+(`DesignController` + `DesignPreferences` via `shared_preferences`, egal ob
+Android oder Web). Die Auswahl überlebt Logout/Login und App-Neustart und
+bleibt bestehen, bis sie explizit geändert wird. Default ist `Materia Pop`,
+wenn nichts gespeichert ist. Geladen wird in `main.dart`
+(`DesignPreferences.load()`), gespeichert automatisch bei jeder Änderung des
+`DesignController`.
+
+**Auswahl in den Einstellungen:** Unter *Einstellungen → Erscheinungsbild*
+kann der Nutzer die Variante über den Katalog-`DesignSegmentedSwitch` wählen;
+die Änderung wird sofort persistiert und wirkt auf den Showcase sowie künftig
+auf migrierte Screens.
 
 ## Widget-Katalog (Struktur)
 
@@ -203,3 +216,21 @@ DesignScope.notifierOf(context).value = DesignVariant.auroraGlass; // umschalten
 Der Showcase ist über das Hauptmenü erreichbar (Sidebar + System-Sheet,
 Eintrag **Design Showcase**, Icon `palette_rounded`) und unter der Route
 `/design-showcase` eingehängt.
+
+## Governance & Migrationsregeln
+
+Ab der Migration der bestehenden Screens gilt zwingend:
+
+1. **Ein einziger Katalog** – alle Widgets (grundlegend *und* spezialisiert)
+   leben unter `lib/design/widgets/` und werden von Screens nur zusammengesetzt.
+2. **Vererbung & Hierarchie** – jedes Widget basiert auf einem einheitlichen
+   Grund-Widget des Katalogs (Foundation → Primitive → Composite). Komplexe
+   Widgets werden komponentenartig aus grundlegenderen Katalog-Widgets gebaut.
+3. **Keine lokalen Widgets** – keine ad-hoc Widget-Definitionen mehr in Screens;
+   jede Spezialisierung bekommt ihren Platz im Katalog und wird hier dokumentiert.
+4. **Dokumentation** – jedes neue/überführte Widget ist in dieser Datei und
+   (bei abweichenden Specs) in `doc/migration_plan.md` erfasst.
+
+Der fortschreitende Umstieg Screen für Screen ist in
+[`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste
+(Screens sortiert nach mobiler Menüposition, mit allen Widgets) hinterlegt.

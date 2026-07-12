@@ -7,6 +7,7 @@ import '../../../core/di/app_scope.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../core/models/app_update_info.dart';
 import '../../../core/services/android_update_service.dart';
+import '../../../design/widgets/composite/design_segmented_switch.dart';
 import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
 
@@ -174,6 +175,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ? 'Verbunden (${user.base.discordId})'
               : 'Nicht verbunden',
           onTap: () => context.push('/einstellungen/discord'),
+        ),
+
+        const SizedBox(height: 8),
+        _SectionHeader(title: 'Erscheinungsbild'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('Design', style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                'Wähle das Erscheinungsbild der App. Die Auswahl wird lokal '
+                'auf dem Gerät gespeichert und überlebt Ab- und Anmeldung.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const DesignSegmentedSwitch(),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
 
         const SizedBox(height: 16),
