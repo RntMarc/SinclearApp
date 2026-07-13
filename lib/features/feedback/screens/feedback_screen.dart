@@ -1,12 +1,17 @@
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/image/image_compressor.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../models/feedback_models.dart';
+import '../services/feedback_service.dart';
 import '../widgets/suggestion_list.dart';
 
 class FeedbackScreen extends StatefulWidget {
@@ -19,33 +24,21 @@ class FeedbackScreen extends StatefulWidget {
 class _FeedbackScreenState extends State<FeedbackScreen> {
   List<FeedbackSuggestion> _suggestions = [];
   bool _loading = true;
-  bool _hasLoaded = false;
   String? _error;
-
-  bool _bugReportExpanded = false;
-  final _bugTextController = TextEditingController();
-  final _bugVersionController = TextEditingController();
-  final _bugBuildController = TextEditingController();
-  Uint8List? _bugScreenshot;
-  bool _bugSubmitting = false;
+  bool _creating = false;
+  final _titleController = TextEditingController();
+  final _descController = TextEditingController();
+  final _bugText = TextEditingController();
+  Uint8List? _screenshotBytes;
+  bool _sendingBug = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_hasLoaded) {
-      _hasLoaded = true;
-      _load();
-      _loadVersionInfo();
-    }
+    if (_loading) _load();
   }
 
-  @override
-  void dispose() {
-    _bugTextController.dispose();
-    _bugVersionController.dispose();
-    _bugBuildController.dispose();
-    super.dispose();
-  }
+  FeedbackService get _feedback => AppScope.of(context).feedback;
 
   Future<void> _load() async {
     setState(() {
@@ -53,46 +46,34 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       _error = null;
     });
     try {
-      final feedback = AppScope.of(context).feedback;
-      final response = await feedback.list(limit: 100);
+      final response = await _feedback.list(limit: 50);
       if (!mounted) return;
       setState(() {
         _suggestions = response.data;
         _loading = false;
       });
-    } catch (e, st) {
-      developer.log('Failed to load feedback', error: e, stackTrace: st);
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _loading = false;
         _error = 'Vorschläge konnten nicht geladen werden.';
+        _loading = false;
       });
     }
   }
 
-  Future<void> _loadVersionInfo() async {
+  Future<void> _vote(String id) async {
+    final current = _suggestions.where((s) => s.id == id).firstOrNull;
+    if (current == null) return;
     try {
-      final info = await PackageInfo.fromPlatform();
-      if (!mounted) return;
-      _bugVersionController.text = info.version;
-      _bugBuildController.text = info.buildNumber;
-    } catch (e) {
-      developer.log('Failed to load package info', error: e);
-    }
-  }
-
-  Future<void> _toggleVote(FeedbackSuggestion suggestion) async {
-    try {
-      final feedback = AppScope.of(context).feedback;
-      if (suggestion.hasVoted) {
-        await feedback.removeVote(suggestion.id);
+      if (current.hasVoted) {
+        await _feedback.removeVote(id);
       } else {
-        await feedback.vote(suggestion.id);
+        await _feedback.vote(id);
       }
       if (!mounted) return;
       setState(() {
         _suggestions = _suggestions.map((s) {
-          if (s.id != suggestion.id) return s;
+          if (s.id != id) return s;
           return FeedbackSuggestion(
             id: s.id,
             userId: s.userId,
@@ -107,492 +88,351 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         }).toList();
       });
     } catch (e) {
-      developer.log('Vote failed', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Stimme konnte nicht abgegeben werden: $e')),
+        );
+      }
     }
   }
 
-  Future<void> _deleteSuggestion(FeedbackSuggestion suggestion) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Vorschlag löschen'),
-        content: Text(
-          'Möchtest du „${suggestion.title}" wirklich löschen?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Löschen'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
+  Future<void> _deleteSuggestion(String id) async {
     try {
-      final feedback = AppScope.of(context).feedback;
-      await feedback.delete(suggestion.id);
+      await _feedback.delete(id);
       if (!mounted) return;
-      setState(() {
-        _suggestions.removeWhere((s) => s.id == suggestion.id);
-      });
+      setState(() => _suggestions = _suggestions.where((s) => s.id != id).toList());
     } catch (e) {
-      developer.log('Delete failed', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Löschen fehlgeschlagen: $e')),
+        );
+      }
     }
   }
 
-  void _showCreateSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _CreateSuggestionSheet(
-        onSubmit: (title, description) async {
-          try {
-            final feedback = AppScope.of(context).feedback;
-            final created = await feedback.create(
-              title: title,
-              description: description,
-            );
-            if (!mounted) return;
-            setState(() => _suggestions.insert(0, created));
-            Navigator.pop(context);
-          } catch (e) {
-            developer.log('Create failed', error: e);
-            rethrow;
-          }
-        },
-      ),
-    );
+  Future<void> _submitSuggestion() async {
+    final title = _titleController.text.trim();
+    final description = _descController.text.trim();
+    if (title.isEmpty || _creating) return;
+    setState(() => _creating = true);
+    try {
+      final created = await _feedback.create(
+        title: title,
+        description: description.isEmpty ? null : description,
+      );
+      if (!mounted) return;
+      _titleController.clear();
+      _descController.clear();
+      Navigator.of(context).pop();
+      setState(() => _suggestions = [created, ..._suggestions]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Vorschlag konnte nicht erstellt werden: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _creating = false);
+    }
+  }
+
+  Future<void> _sendBugReport() async {
+    final text = _bugText.text.trim();
+    if (text.isEmpty || _sendingBug) return;
+    setState(() => _sendingBug = true);
+    try {
+      String? imageBase64;
+      if (_screenshotBytes != null) imageBase64 = base64Encode(_screenshotBytes!);
+      await _feedback.submitBugReport(text: text, image: imageBase64);
+      if (!mounted) return;
+      _bugText.clear();
+      setState(() => _screenshotBytes = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fehlerbericht gesendet. Danke!')),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Fehlerbericht fehlgeschlagen: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sendingBug = false);
+    }
   }
 
   Future<void> _pickScreenshot() async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(
+    final picked = await picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 4000,
-      maxHeight: 4000,
+      maxWidth: 1200,
+      imageQuality: 85,
     );
-    if (image == null) return;
-
-    final bytes = await image.readAsBytes();
-    final compressed = compressImage(bytes, maxDimension: 4000);
-    if (!mounted) return;
-    if (compressed == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Screenshot konnte nicht verarbeitet werden.'),
-        ),
-      );
-      return;
-    }
-    setState(() => _bugScreenshot = compressed);
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (mounted) setState(() => _screenshotBytes = bytes);
   }
 
-  Future<void> _submitBugReport() async {
-    final text = _bugTextController.text.trim();
-    if (text.isEmpty) return;
-
-    setState(() => _bugSubmitting = true);
-    try {
-      final feedback = AppScope.of(context).feedback;
-      final version = _bugVersionController.text.trim();
-      final buildText = _bugBuildController.text.trim();
-      final buildNumber = int.tryParse(buildText);
-
-      String? imageBase64;
-      if (_bugScreenshot != null) {
-        imageBase64 = base64Encode(_bugScreenshot!);
-      }
-
-      await feedback.submitBugReport(
-        text: text,
-        version: version.isEmpty ? null : version,
-        buildNumber: buildNumber,
-        image: imageBase64,
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _bugReportExpanded = false;
-        _bugTextController.clear();
-        _bugScreenshot = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bug-Report erfolgreich gesendet.')),
-      );
-    } catch (e) {
-      developer.log('Bug report failed', error: e);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bug-Report konnte nicht gesendet werden.')),
-      );
-    } finally {
-      if (mounted) setState(() => _bugSubmitting = false);
-    }
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    _bugText.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _buildBody(context),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateSheet,
-        tooltip: 'Neuen Vorschlag erstellen',
-        child: const Icon(Icons.add_rounded),
-      ),
-    );
-  }
-
-  Widget _buildBody(BuildContext context) {
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId ?? '';
     final isAdmin = auth.isAdmin;
+    return DesignSurface(
+      child: _buildBody(currentUserId, isAdmin),
+    );
+  }
 
+  Widget _buildBody(String currentUserId, bool isAdmin) {
+    final tokens = DesignTheme.of(context);
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
-
     if (_error != null) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 8),
-            Text(_error!),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: _load,
-              child: const Text('Erneut versuchen'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: tokens.danger),
+              SizedBox(height: tokens.spaceMd),
+              DesignText(
+                _error!,
+                style: DesignTextStyle.body,
+                color: tokens.textHigh,
+              ),
+              SizedBox(height: tokens.spaceLg),
+              DesignButton(
+                variant: DesignButtonVariant.outlined,
+                label: 'Erneut versuchen',
+                onPressed: _load,
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return Column(
+    return Stack(
       children: [
-        _BugReportSection(
-          expanded: _bugReportExpanded,
-          onToggle: () => setState(() => _bugReportExpanded = !_bugReportExpanded),
-          textController: _bugTextController,
-          versionController: _bugVersionController,
-          buildController: _bugBuildController,
-          screenshot: _bugScreenshot,
-          submitting: _bugSubmitting,
-          onPickScreenshot: _pickScreenshot,
-          onRemoveScreenshot: () => setState(() => _bugScreenshot = null),
-          onSubmit: _submitBugReport,
+        SuggestionList(
+          suggestions: _suggestions,
+          currentUserId: currentUserId,
+          isAdmin: isAdmin,
+          onVote: (s) => _vote(s.id),
+          onDelete: (s) => _deleteSuggestion(s.id),
         ),
-        Expanded(
-          child: SuggestionList(
-            suggestions: _suggestions,
-            currentUserId: currentUserId,
-            isAdmin: isAdmin,
-            onVote: _toggleVote,
-            onDelete: _deleteSuggestion,
+        _bugReportSection(),
+        Positioned(
+          right: tokens.spaceLg,
+          bottom: tokens.spaceXl,
+          child: DesignIconButton(
+            icon: Icons.add_rounded,
+            tinted: true,
+            onPressed: _showCreateSheet,
           ),
         ),
       ],
     );
   }
-}
 
-class _CreateSuggestionSheet extends StatefulWidget {
-  final Future<void> Function(String title, String? description) onSubmit;
-
-  const _CreateSuggestionSheet({required this.onSubmit});
-
-  @override
-  State<_CreateSuggestionSheet> createState() => _CreateSuggestionSheetState();
-}
-
-class _CreateSuggestionSheetState extends State<_CreateSuggestionSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  bool _submitting = false;
-  String? _submitError;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
+  void _showCreateSheet() {
+    showDesignSheet(context: context, child: _buildCreateSheet());
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _submitting = true;
-      _submitError = null;
-    });
-    try {
-      final title = _titleController.text.trim();
-      final desc = _descriptionController.text.trim();
-      await widget.onSubmit(title, desc.isEmpty ? null : desc);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _submitError = 'Erstellen fehlgeschlagen.';
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-
+  Widget _buildCreateSheet() {
+    final tokens = DesignTheme.of(context);
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomPadding),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Neuer Vorschlag',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: DesignText(
+                  'Neuer Vorschlag',
+                  style: DesignTextStyle.title,
+                  color: tokens.textHigh,
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _titleController,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Titel *',
-                hintText: 'Kurze Überschrift für deinen Vorschlag',
               ),
-              maxLength: 255,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Bitte gib einen Titel ein.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _descriptionController,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Beschreibung',
-                hintText: 'Was genau schlägst du vor?',
-              ),
-              maxLines: 3,
-            ),
-            if (_submitError != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _submitError!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+              DesignIconButton(
+                icon: Icons.close_rounded,
+                onPressed: () => Navigator.of(context).pop(),
               ),
             ],
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Erstellen'),
-            ),
-          ],
+          ),
+          SizedBox(height: tokens.spaceLg),
+          _styledField(controller: _titleController, hint: 'Titel'),
+          SizedBox(height: tokens.spaceMd),
+          _styledField(
+            controller: _descController,
+            hint: 'Beschreibung (optional)',
+            maxLines: 3,
+          ),
+          SizedBox(height: tokens.spaceLg),
+          DesignButton(
+            label: 'Vorschlag erstellen',
+            fullWidth: true,
+            loading: _creating,
+            onPressed: _creating ? null : _submitSuggestion,
+          ),
+          SizedBox(height: tokens.spaceXs),
+        ],
+      ),
+    );
+  }
+
+  Widget _styledField({
+    required TextEditingController controller,
+    required String hint,
+    int maxLines = 1,
+  }) {
+    final tokens = DesignTheme.of(context);
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.spaceMd,
+        vertical: tokens.spaceSm,
+      ),
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        border: Border.all(
+          color: tokens.border.withValues(alpha: 0.8),
+          width: 1.5,
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        style: tokens.bodyStyle(tokens.textHigh),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: tokens.bodyStyle(tokens.textLow),
+          border: InputBorder.none,
+          isCollapsed: true,
         ),
       ),
     );
   }
-}
 
-class _BugReportSection extends StatelessWidget {
-  final bool expanded;
-  final VoidCallback onToggle;
-  final TextEditingController textController;
-  final TextEditingController versionController;
-  final TextEditingController buildController;
-  final Uint8List? screenshot;
-  final bool submitting;
-  final VoidCallback onPickScreenshot;
-  final VoidCallback onRemoveScreenshot;
-  final VoidCallback onSubmit;
-
-  const _BugReportSection({
-    required this.expanded,
-    required this.onToggle,
-    required this.textController,
-    required this.versionController,
-    required this.buildController,
-    required this.screenshot,
-    required this.submitting,
-    required this.onPickScreenshot,
-    required this.onRemoveScreenshot,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          InkWell(
-            onTap: onToggle,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.bug_report_outlined,
-                    color: theme.colorScheme.error,
+  Widget _bugReportSection() {
+    final tokens = DesignTheme.of(context);
+    return Positioned(
+      left: tokens.spaceLg,
+      right: tokens.spaceLg,
+      bottom: tokens.spaceLg,
+      child: DesignCard(
+        margin: EdgeInsets.zero,
+        padding: EdgeInsets.all(tokens.spaceLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.bug_report_rounded, color: tokens.primary),
+                SizedBox(width: tokens.spaceMd),
+                Expanded(
+                  child: DesignText(
+                    'Einen Fehler melden',
+                    style: DesignTextStyle.subtitle,
+                    color: tokens.textHigh,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Bug melden',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                ),
+                if (_screenshotBytes != null)
+                  DesignIconButton(
+                    icon: Icons.close_rounded,
+                    onPressed: () => setState(() => _screenshotBytes = null),
                   ),
-                  Icon(
-                    expanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                  ),
-                ],
-              ),
+              ],
             ),
-          ),
-          if (expanded) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    controller: textController,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'Bug-Beschreibung *',
-                      hintText: 'Was ist passiert?',
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              'Ein Problem gefunden? Schicke uns einen Fehlerbericht – '
+              'gern mit Screenshot.',
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
+            ),
+            SizedBox(height: tokens.spaceMd),
+            _styledField(
+              controller: _bugText,
+              hint: 'Beschreibe den Fehler...',
+              maxLines: 3,
+            ),
+            SizedBox(height: tokens.spaceMd),
+            Row(
+              children: [
+                DesignButton(
+                  icon: Icons.add_a_photo_outlined,
+                  label: 'Screenshot',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: _pickScreenshot,
+                ),
+                if (_screenshotBytes != null) ...[
+                  SizedBox(width: tokens.spaceMd),
+                  Stack(
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: versionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Version',
-                            hintText: 'z.B. 0.5.0',
-                          ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(tokens.radiusMd),
+                        child: Image.memory(
+                          _screenshotBytes!,
+                          width: 56,
+                          height: 56,
+                          fit: BoxFit.cover,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: buildController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Build',
-                            hintText: 'z.B. 5',
+                      Positioned(
+                        top: 2,
+                        right: 2,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _screenshotBytes = null),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: tokens.surface.withValues(alpha: 0.85),
+                              shape: BoxShape.circle,
+                            ),
+                            padding: const EdgeInsets.all(2),
+                            child: Icon(
+                              Icons.close,
+                              size: 14,
+                              color: tokens.textHigh,
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  if (screenshot != null)
-                    Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.memory(
-                            screenshot!,
-                            height: 120,
-                            fit: BoxFit.cover,
+                  SizedBox(width: tokens.spaceMd),
+                  _sendingBug
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: tokens.primary,
                           ),
+                        )
+                      : DesignButton(
+                          label: 'Senden',
+                          onPressed: _sendBugReport,
                         ),
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: onRemoveScreenshot,
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              padding: const EdgeInsets.all(4),
-                              child: const Icon(
-                                Icons.close,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    OutlinedButton.icon(
-                      onPressed: onPickScreenshot,
-                      icon: const Icon(Icons.screenshot_monitor_rounded, size: 18),
-                      label: const Text('Screenshot hinzufügen'),
-                    ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: submitting ? null : onSubmit,
-                    child: submitting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Bug-Report senden'),
-                  ),
                 ],
-              ),
+              ],
             ),
           ],
-        ],
+        ),
       ),
     );
   }

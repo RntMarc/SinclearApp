@@ -37,7 +37,7 @@ class DesignGlass extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: effectiveTint.withValues(alpha: 0.55),
+            color: effectiveTint.withValues(alpha: tokens.glassOpacity),
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(
               color: (borderColor ?? tokens.border).withValues(alpha: 0.6),

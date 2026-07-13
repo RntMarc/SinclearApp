@@ -110,6 +110,9 @@ abstract class DesignTokens {
   /// Blur sigma used by frosted-glass surfaces.
   double get glassBlur;
 
+  /// Fill opacity of glass surfaces (0..1). Higher = less background bleed-through.
+  double get glassOpacity => 0.65;
+
   /// Blur radius used by neon glow shadows.
   double get glowBlur;
 
@@ -135,6 +138,7 @@ abstract class DesignTokens {
       fontWeight: weight,
       color: color,
       height: 1.35,
+      decoration: TextDecoration.none,
     );
   }
 

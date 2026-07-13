@@ -38,7 +38,7 @@ class _WavePatternPainter extends CustomPainter {
 }
 
 /// Visual variants for [DesignButton].
-enum DesignButtonVariant { filled, outlined, ghost, patterned }
+enum DesignButtonVariant { filled, outlined, ghost, patterned, text }
 
 /// The catalog button. All variants inherit the same shape/layout from this
 /// single widget and only differ in how they read the [DesignTokens].
@@ -48,6 +48,7 @@ class DesignButton extends StatelessWidget {
     this.onPressed,
     this.variant = DesignButtonVariant.filled,
     this.icon,
+    this.loading = false,
     this.fullWidth = false,
     super.key,
   });
@@ -56,19 +57,45 @@ class DesignButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final DesignButtonVariant variant;
   final IconData? icon;
+  final bool loading;
   final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final radius = tokens.radiusPill;
-    final enabled = onPressed != null;
+    final enabled = onPressed != null && !loading;
+
+    final contentPadding = variant == DesignButtonVariant.text
+        ? EdgeInsets.symmetric(
+            horizontal: tokens.spaceXs,
+            vertical: tokens.spaceXs,
+          )
+        : EdgeInsets.symmetric(
+            horizontal: tokens.spaceXl,
+            vertical: tokens.spaceMd,
+          );
+
+    final Widget leading = loading
+        ? SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: _textColor(tokens),
+            ),
+          )
+        : (icon != null
+            ? Row(
+                children: <Widget>[
+                  Icon(icon, size: 18),
+                  SizedBox(width: tokens.spaceSm),
+                ],
+              )
+            : const SizedBox.shrink());
 
     Widget content = Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: tokens.spaceXl,
-        vertical: tokens.spaceMd,
-      ),
+      padding: contentPadding,
       decoration: _decoration(tokens, enabled),
       child: DefaultTextStyle(
         style: tokens.labelStyle(tokens.textOnPrimary),
@@ -76,10 +103,7 @@ class DesignButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            if (icon != null) ...<Widget>[
-              Icon(icon, size: 18),
-              SizedBox(width: tokens.spaceSm),
-            ],
+            leading,
             DesignText(
               label,
               style: DesignTextStyle.label,
@@ -149,6 +173,11 @@ class DesignButton extends StatelessWidget {
           color: tokens.surfaceVariant.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(tokens.radiusPill),
         );
+      case DesignButtonVariant.text:
+        return BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(tokens.radiusPill),
+        );
     }
   }
 
@@ -162,6 +191,7 @@ class DesignButton extends StatelessWidget {
         return tokens.textOnPrimary;
       case DesignButtonVariant.outlined:
       case DesignButtonVariant.ghost:
+      case DesignButtonVariant.text:
         return tokens.primary;
     }
   }

@@ -9,6 +9,9 @@ class DesignTextField extends StatefulWidget {
     this.controller,
     this.obscure = false,
     this.keyboardType,
+    this.textAlign = TextAlign.start,
+    this.maxLength,
+    this.prefixIcon,
     super.key,
   });
 
@@ -16,6 +19,9 @@ class DesignTextField extends StatefulWidget {
   final TextEditingController? controller;
   final bool obscure;
   final TextInputType? keyboardType;
+  final TextAlign textAlign;
+  final int? maxLength;
+  final IconData? prefixIcon;
 
   @override
   State<DesignTextField> createState() => _DesignTextFieldState();
@@ -54,18 +60,25 @@ class _DesignTextFieldState extends State<DesignTextField> {
       ),
       child: Row(
         children: <Widget>[
+          if (widget.prefixIcon != null) ...<Widget>[
+            Icon(widget.prefixIcon, color: tokens.textLow, size: 20),
+            SizedBox(width: tokens.spaceSm),
+          ],
           Expanded(
             child: TextField(
               controller: widget.controller,
               focusNode: _focus,
               obscureText: widget.obscure,
               keyboardType: widget.keyboardType,
+              textAlign: widget.textAlign,
+              maxLength: widget.maxLength,
               style: tokens.bodyStyle(tokens.textHigh),
               decoration: InputDecoration(
                 hintText: widget.hint,
                 hintStyle: tokens.bodyStyle(tokens.textLow),
                 border: InputBorder.none,
                 isCollapsed: true,
+                counterText: widget.maxLength != null ? '' : null,
               ),
             ),
           ),

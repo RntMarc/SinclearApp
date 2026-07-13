@@ -139,6 +139,9 @@ class AuroraGlassTokens extends DesignTokens {
   double get glassBlur => 18;
 
   @override
+  double get glassOpacity => 0.70;
+
+  @override
   double get glowBlur => 18;
 
   @override

@@ -24,52 +24,74 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
 
 ## 0. Vor der Anmeldung (Pre-Login)
 
-### Welcome — `lib/features/welcome/welcome_screen.dart` `- [ ]`
+### Welcome — `lib/features/welcome/welcome_screen.dart` `- [x]`
 - **Material:** Scaffold, SafeArea, Center, SingleChildScrollView, Column,
   Image.asset, FilledButton.icon
 - **Eigene Widgets:** keine
 - **Katalog-Arbeit:**
-  - [ ] `Scaffold`+`AppBar` → `DesignSurface` + `DesignAppBar`
-  - [ ] `FilledButton.icon` → `DesignButton`
-  - [ ] `Image.asset` (Logo) → `DesignAvatar`/`_Branding`-Muster
+  - [x] `Scaffold`+`AppBar` → `DesignSurface` + `DesignText` (kein AppBar nötig)
+  - [x] `FilledButton.icon` → `DesignButton` (filled)
+  - [~] `Image.asset` (Logo) → vorerst direkt `Image.asset` (kein eigenes
+        Branding-Widget im Katalog)
 
-### Login — `lib/features/auth/screens/login_screen.dart` `- [ ]`
+### Login — `lib/features/auth/screens/login_screen.dart` `- [x]`
 - **Material:** Scaffold, AppBar, SafeArea, Center, SingleChildScrollView,
   ConstrainedBox, Column, TextField (OutlineInputBorder), Icon,
   FilledButton.icon, OutlinedButton.icon, TextButton, Row, Divider,
   CircularProgressIndicator
 - **Eigene Widgets:** keine
 - **Katalog-Arbeit:**
-  - [ ] `TextField` → `DesignTextField`
-  - [ ] Buttons → `DesignButton` (filled/outlined/ghost)
-  - [ ] `Divider` → `DesignDivider`
+  - [x] `Scaffold`+`AppBar` → `DesignSurface` + `DesignAppBar` (back via
+        `DesignIconButton`)
+  - [x] `TextField` → `DesignTextField`
+  - [x] `FilledButton.icon` → `DesignButton` (filled, `loading` zeigt Spinner)
+  - [x] `OutlinedButton.icon` → `DesignButton` (outlined)
+  - [x] `TextButton` (Registrieren) → `DesignButton` (text)
+  - [x] `Divider` → `DesignDivider`
+  - [~] `CircularProgressIndicator` im Button entfällt (via `DesignButton.loading`)
 
-### Verify — `lib/features/auth/screens/verify_screen.dart` `- [ ]`
+### Verify — `lib/features/auth/screens/verify_screen.dart` `- [x]`
 - **Material:** Scaffold, AppBar, SafeArea, Center, SingleChildScrollView,
   ConstrainedBox, Column, TextField, Icon, FilledButton.icon,
   CircularProgressIndicator
+- **Eigene Widgets:** keine
 - **Katalog-Arbeit:**
-  - [ ] `TextField` → `DesignTextField`
-  - [ ] `FilledButton.icon` → `DesignButton`
+  - [x] `Scaffold`+`AppBar` → `DesignSurface` (ganze Seite) + `DesignAppBar`
+        (back via `DesignIconButton`)
+  - [x] `TextField` → `DesignTextField` (`textAlign`, `maxLength: 6`,
+        `prefixIcon`)
+  - [x] `FilledButton.icon` → `DesignButton` (filled, `loading` zeigt Spinner)
+  - [~] `CircularProgressIndicator` im Button entfällt (via `DesignButton.loading`)
 
-### Onboarding — `lib/features/onboarding/screens/onboarding_screen.dart` `- [ ]`
+### Onboarding — `lib/features/onboarding/screens/onboarding_screen.dart` `- [x]`
 - **Material:** Scaffold, SafeArea, Column, Expanded, PageView, Row,
   Container, Icon, Text, Card, CheckboxListTile, TextField, InputDecorator,
   GestureDetector, CircleAvatar, TextButton, FilledButton, Spacer
 - **Eigene Widgets (lokal, auflösen):** `_WelcomePage`, `_ConsentPage`,
   `_ProfilePage`, `_SocialHintPage`, `_PwaHintPage`, `_DonePage`
 - **Katalog-Arbeit:**
-  - [ ] `CircleAvatar` (direkt) → `DesignAvatar`
-  - [ ] `Card` → `DesignCard`
-  - [ ] `CheckboxListTile` → `DesignListTile` + `DesignChip`
-  - [ ] `TextField` → `DesignTextField`
-  - [ ] Lokale Pages → `DesignSurface`/Katalog-Screens
+  - [x] `Scaffold`+`SafeArea` → `DesignSurface` (ganze Seite), Pages sind
+        jetzt vollständig aus Katalog-Widgets aufgebaut
+  - [x] `CircleAvatar` (direkt) → `DesignAvatar` (bytes via data:-URI,
+        sonst `existingImageUrl`); Kamera-Badge als `Container`+`Icon`
+  - [x] `Card` → `DesignCard`
+  - [x] `CheckboxListTile` → `DesignListTile` + `DesignChip` (Chip = Toggle,
+        ganzer Tile tippbar)
+  - [x] `TextField` → `DesignTextField` (`prefixIcon`)
+  - [x] `InputDecorator`+`InkWell` (Geburtstag) → `DesignListTile`
+        (`leading` cake, `trailing` calendar, `onTap` picker)
+  - [x] `TextButton`/`FilledButton` → `DesignButton` (text/filled,
+        `loading` zeigt Spinner)
+  - [x] `showModalBottomSheet` (Bildquelle) → `showDesignSheet` +
+        `DesignListTile`
+  - [~] `Text` → `DesignText`; lokale Pages bleiben als private
+        `StatelessWidget`-Pages (Page-Content, keine ad-hoc Katalog-Widgets)
 
 ---
 
 ## 1. System (Bottom-Nav Index 0)
 
-### Einstellungen — `lib/features/settings/screens/settings_screen.dart` `- [ ]`
+### Einstellungen — `lib/features/settings/screens/settings_screen.dart` `- [x]`
 - **Material:** ListView, ListTile, Divider, Card, AlertDialog,
   CircularProgressIndicator, OutlinedButton, FilledButton/FilledButton.tonal,
   Text, Icon, Row, Column, Padding, Image
@@ -77,31 +99,49 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
   **lokale** `_SectionHeader`, `_SettingsTile` (→ im Katalog als
   `DesignListTile`/Section aufgehen lassen)
 - **Katalog-Arbeit:**
-  - [ ] `UserAvatar` → `DesignAvatar`
-  - [ ] `_SettingsTile`/`ListTile` → `DesignListTile`
-  - [ ] `OutlinedButton`/`FilledButton` → `DesignButton`
-  - [ ] `AlertDialog` (Logout) → `showDesignSheet`/Design-Dialog
+  - [x] `Scaffold`/`AppBar` (Shell) → Body in `DesignSurface` gewrappt
+        (Shell liefert Material-`AppBar`; Surface-Seam ist Shell-Thema,
+        hier nicht migriert)
+  - [x] `UserAvatar` (core) → `DesignAvatar`
+  - [x] `_SettingsTile`/`ListTile` → `DesignListTile` (`leading` Icon,
+        `trailing` chevron, `onTap`), gruppiert in `DesignCard.list`
+        (sektionsweise Karten mit konsistentem Seitenabstand); keine
+        lokalen Widgets mehr
+  - [x] `_SectionHeader` (lokal) → inline `DesignText` (label, primary)
+  - [x] `Divider` → `DesignDivider`
+  - [x] `OutlinedButton`/`FilledButton.tonal` → `DesignButton`
+        (outlined/text/filled); Logout als `DesignButton` outlined
+        (`fullWidth`) – **ohne** eigene Danger-Tönung (Katalog hat aktuell
+        keine Danger-Variante; bei Bedarf `DesignButton` um `danger` ergänzen)
+  - [x] `AlertDialog` (Logout) → `showDesignSheet` + `DesignButton`
+  - [x] `CircularProgressIndicator` (Loading/Update) → `tokens.primary`
   - [x] **Erscheinungsbild-Auswahl** bereits eingehängt (persistenter
         `DesignSegmentedSwitch` in dieser Screen)
 
 ### Admin — *Platzhalter (kein Screen)* `- [ ]`
 - Noch nicht gebaut → direkt im Katalog-Stil neu erstellen.
 
-### Feedback — `lib/features/feedback/screens/feedback_screen.dart` `- [ ]`
+### Feedback — `lib/features/feedback/screens/feedback_screen.dart` `- [x]`
 - **Material:** Scaffold, Column, Card, InkWell, TextFormField/Form,
   TextField, Icon, FloatingActionButton, CircularProgressIndicator,
   AlertDialog, FilledButton/FilledButton.tonal, SnackBar,
   SingleChildScrollView
 - **Eigene Widgets:** `SuggestionList` → `SuggestionCard` → lokal
   `_StatusBadge`, `_VoteButton`, `_MenuAction`; lokal `_CreateSuggestionSheet`,
-  `_BugReportSection`
+  `_BugReportSection` *(alle lokalen Widgets aufgelöst: `DesignCard`,
+  `DesignBadge`, `DesignButton`, `DesignIconButton`, `showDesignSheet`)*
 - **Katalog-Arbeit:**
-  - [ ] `SuggestionCard` → `DesignCard` (baut auf `DesignText`, `DesignBadge`,
+  - [x] `SuggestionCard` → `DesignCard` (baut auf `DesignText`, `DesignBadge`,
         `DesignButton`)
-  - [ ] `_StatusBadge` → `DesignBadge`
-  - [ ] `_VoteButton` → `DesignIconButton`/`DesignButton`
-  - [ ] `TextFormField` → `DesignTextField`
-  - [ ] `_CreateSuggestionSheet` → `showDesignSheet`
+  - [x] `_StatusBadge` → `DesignBadge`
+  - [x] `_VoteButton` → `DesignIconButton`/`DesignButton`
+  - [x] `TextFormField` → `DesignTextField`
+  - [x] `_CreateSuggestionSheet` → `showDesignSheet`
+- **Hinweis:** `feedback_detail_screen.dart` ebenfalls migriert
+  (`DesignSurface` + `DesignAppBar`, `DesignBadge`, `DesignButton`,
+  `DesignDivider`, `DesignChip` für `ChoiceChip`, `showDesignSheet` für
+  Lösch-/Bearbeiten-Dialoge; lokale `_StatusBadge`, `_VoteButtonLarge`,
+  `_StatusChangeSection` aufgelöst).
 
 ### Changelog — *Platzhalter (kein Screen)* `- [ ]`
 - Noch nicht gebaut → direkt im Katalog-Stil neu erstellen.
@@ -301,4 +341,4 @@ zusammen geführt bzw. durch sie ersetzt:
 ### Bekannte Inkonsistenzen (beim Migrieren normalisieren)
 - `CommentInput` existiert doppelt (`feedback` + `forum`) → eine Definition.
 - `CircleAvatar` wird direkt statt `UserAvatar` genutzt in: `TravelScreen`,
-  `NotificationSheet`, `OnboardingScreen`.
+  `NotificationSheet`. (OnboardingScreen migriert → `DesignAvatar`)

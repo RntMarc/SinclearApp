@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
 import '../models/feedback_models.dart';
 import '../widgets/suggestion_card.dart';
 
+/// Scrollable list of [FeedbackSuggestion] cards, sorted by status.
 class SuggestionList extends StatelessWidget {
   final List<FeedbackSuggestion> suggestions;
   final String currentUserId;
@@ -21,6 +24,8 @@ class SuggestionList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+
     if (suggestions.isEmpty) {
       return Center(
         child: Column(
@@ -29,22 +34,19 @@ class SuggestionList extends StatelessWidget {
             Icon(
               Icons.feedback_outlined,
               size: 48,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: tokens.textLow,
             ),
-            const SizedBox(height: 12),
-            Text(
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
               'Noch keine Vorschläge vorhanden.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
             ),
-            const SizedBox(height: 4),
-            Text(
+            SizedBox(height: tokens.spaceXs),
+            DesignText(
               'Tippe auf „+", um einen Vorschlag zu erstellen.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant
-                    .withValues(alpha: 0.7),
-              ),
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
             ),
           ],
         ),
@@ -55,7 +57,7 @@ class SuggestionList extends StatelessWidget {
       ..sort((a, b) => a.status.sortIndex.compareTo(b.status.sortIndex));
 
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 88),
+      padding: const EdgeInsets.only(bottom: 180),
       itemCount: sorted.length,
       itemBuilder: (context, index) {
         final suggestion = sorted[index];

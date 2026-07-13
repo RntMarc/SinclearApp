@@ -2,6 +2,16 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/primitives/design_badge.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_chip.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_divider.dart';
 import '../models/feedback_models.dart';
 import '../widgets/comment_input.dart';
 import '../widgets/comment_tile.dart';
@@ -121,20 +131,41 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
   Future<void> _delete() async {
     final s = _suggestion;
     if (s == null) return;
-
-    final confirmed = await showDialog<bool>(
+    final tokens = DesignTheme.of(context);
+    final confirmed = await showDesignSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Vorschlag löschen'),
-        content: Text('Möchtest du „${s.title}" wirklich löschen?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Abbrechen'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesignText(
+            'Vorschlag löschen',
+            style: DesignTextStyle.title,
+            color: tokens.textHigh,
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Löschen'),
+          SizedBox(height: tokens.spaceMd),
+          DesignText(
+            'Möchtest du „${s.title}" wirklich löschen?',
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceLg),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  variant: DesignButtonVariant.outlined,
+                  label: 'Abbrechen',
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              SizedBox(width: tokens.spaceSm),
+              Expanded(
+                child: DesignButton(
+                  label: 'Löschen',
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -276,19 +307,41 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
   }
 
   Future<void> _deleteComment(String commentId) async {
-    final confirmed = await showDialog<bool>(
+    final tokens = DesignTheme.of(context);
+    final confirmed = await showDesignSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Kommentar löschen'),
-        content: const Text('Kommentar wirklich löschen?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Abbrechen'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesignText(
+            'Kommentar löschen',
+            style: DesignTextStyle.title,
+            color: tokens.textHigh,
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Löschen'),
+          SizedBox(height: tokens.spaceMd),
+          DesignText(
+            'Kommentar wirklich löschen?',
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceLg),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  variant: DesignButtonVariant.outlined,
+                  label: 'Abbrechen',
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              SizedBox(width: tokens.spaceSm),
+              Expanded(
+                child: DesignButton(
+                  label: 'Löschen',
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -307,30 +360,43 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
 
   void _showEditCommentDialog(String commentId, String currentText) {
     final controller = TextEditingController(text: currentText);
-    showDialog(
+    final tokens = DesignTheme.of(context);
+    showDesignSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Kommentar bearbeiten'),
-        content: TextField(
-          controller: controller,
-          textCapitalization: TextCapitalization.sentences,
-          maxLines: null,
-          decoration: const InputDecoration(hintText: 'Kommentar'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Abbrechen'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesignText(
+            'Kommentar bearbeiten',
+            style: DesignTextStyle.title,
+            color: tokens.textHigh,
           ),
-          FilledButton(
-            onPressed: () {
-              final text = controller.text.trim();
-              if (text.isNotEmpty) {
-                Navigator.pop(ctx);
-                _editComment(commentId, text);
-              }
-            },
-            child: const Text('Speichern'),
+          SizedBox(height: tokens.spaceMd),
+          _styledField(controller: controller, hint: 'Kommentar'),
+          SizedBox(height: tokens.spaceLg),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  variant: DesignButtonVariant.outlined,
+                  label: 'Abbrechen',
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              SizedBox(width: tokens.spaceSm),
+              Expanded(
+                child: DesignButton(
+                  label: 'Speichern',
+                  onPressed: () {
+                    final text = controller.text.trim();
+                    if (text.isNotEmpty) {
+                      Navigator.pop(context);
+                      _editComment(commentId, text);
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -342,42 +408,93 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
     return auth.userId == userId ? 'Du' : 'Benutzer';
   }
 
+  Color _statusColor(FeedbackStatus status, DesignTokens tokens) {
+    switch (status) {
+      case FeedbackStatus.submitted:
+        return tokens.textLow;
+      case FeedbackStatus.planned:
+        return Colors.blue;
+      case FeedbackStatus.next:
+        return Colors.orange;
+      case FeedbackStatus.inProgress:
+        return Colors.amber.shade700;
+      case FeedbackStatus.done:
+        return tokens.success;
+      case FeedbackStatus.cancelled:
+      case FeedbackStatus.rejected:
+        return tokens.danger;
+      case FeedbackStatus.later:
+        return Colors.purple;
+    }
+  }
+
+  Widget _styledField({
+    required TextEditingController controller,
+    required String hint,
+    int maxLines = 1,
+  }) {
+    final tokens = DesignTheme.of(context);
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.spaceMd,
+        vertical: tokens.spaceSm,
+      ),
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        border: Border.all(
+          color: tokens.border.withValues(alpha: 0.8),
+          width: 1.5,
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        style: tokens.bodyStyle(tokens.textHigh),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: tokens.bodyStyle(tokens.textLow),
+          border: InputBorder.none,
+          isCollapsed: true,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = AppScope.of(context).auth;
     final isAdmin = auth.isAdmin;
     final currentUserId = auth.userId ?? '';
 
-    return Scaffold(
-      appBar: AppBar(
-        actions: [
-          if (_suggestion != null)
-            PopupMenuButton<String>(
-              itemBuilder: (context) => [
-                if (_suggestion!.userId == currentUserId || isAdmin)
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline_rounded, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Löschen',
-                            style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-              ],
-              onSelected: (value) {
-                if (value == 'delete') _delete();
-              },
-            ),
+    final appBar = DesignAppBar(
+      leading: DesignIconButton(
+        icon: Icons.arrow_back_rounded,
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        if (_suggestion != null &&
+            (_suggestion!.userId == currentUserId || isAdmin))
+          DesignIconButton(
+            icon: Icons.more_vert_rounded,
+            onPressed: _delete,
+          ),
+      ],
+    );
+
+    return DesignSurface(
+      child: Column(
+        children: [
+          appBar,
+          Expanded(child: _buildBody(context, isAdmin)),
         ],
       ),
-      body: _buildBody(context, isAdmin),
     );
   }
 
   Widget _buildBody(BuildContext context, bool isAdmin) {
+    final tokens = DesignTheme.of(context);
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -390,14 +507,19 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
             Icon(
               Icons.error_outline,
               size: 48,
-              color: Theme.of(context).colorScheme.error,
+              color: tokens.danger,
             ),
-            const SizedBox(height: 8),
-            Text(_error!),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              _error!,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.outlined,
+              label: 'Erneut versuchen',
               onPressed: _load,
-              child: const Text('Erneut versuchen'),
             ),
           ],
         ),
@@ -405,127 +527,127 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
     }
 
     final s = _suggestion!;
-    final theme = Theme.of(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(tokens.spaceLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
+                child: DesignText(
                   s.title,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: DesignTextStyle.title,
+                  color: tokens.textHigh,
                 ),
               ),
-              const SizedBox(width: 12),
-              _StatusBadge(status: s.status),
+              SizedBox(width: tokens.spaceMd),
+              DesignBadge(
+                label: s.status.label,
+                color: _statusColor(s.status, tokens),
+              ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: tokens.spaceXl),
 
           Row(
             children: [
-              _VoteButtonLarge(
-                count: s.upvoteCount,
-                hasVoted: s.hasVoted,
-                onTap: _toggleVote,
+              DesignButton(
+                variant: s.hasVoted
+                    ? DesignButtonVariant.filled
+                    : DesignButtonVariant.outlined,
+                icon: s.hasVoted
+                    ? Icons.thumb_up_rounded
+                    : Icons.thumb_up_outlined,
+                label: '${s.upvoteCount}',
+                onPressed: _toggleVote,
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: tokens.spaceLg),
               Icon(
                 Icons.schedule_rounded,
                 size: 16,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.6,
-                ),
+                color: tokens.textLow.withValues(alpha: 0.6),
               ),
-              const SizedBox(width: 4),
-              Text(
+              SizedBox(width: tokens.spaceXs),
+              DesignText(
                 'Erstellt ${app_date.formatRelativeDate(s.createdAt)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.6,
-                  ),
-                ),
+                style: DesignTextStyle.label,
+                color: tokens.textLow.withValues(alpha: 0.7),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: tokens.spaceXl),
 
           if (s.description != null && s.description!.isNotEmpty) ...[
-            Text(
+            DesignText(
               'Beschreibung',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.primary,
-              ),
+              style: DesignTextStyle.subtitle,
+              color: tokens.primary,
             ),
-            const SizedBox(height: 8),
-            Text(
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
               s.description!,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                height: 1.6,
-              ),
+              style: DesignTextStyle.body,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: tokens.spaceXl),
           ],
 
           if (isAdmin) ...[
-            const Divider(),
-            const SizedBox(height: 12),
-            Text(
+            const DesignDivider(),
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
               'Admin-Aktionen',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.primary,
-              ),
+              style: DesignTextStyle.subtitle,
+              color: tokens.primary,
             ),
-            const SizedBox(height: 12),
-            _StatusChangeSection(
-              currentStatus: s.status,
-              onStatusChanged: _updateStatus,
+            SizedBox(height: tokens.spaceMd),
+            Wrap(
+              spacing: tokens.spaceSm,
+              runSpacing: tokens.spaceSm,
+              children: FeedbackStatus.values.map((status) {
+                final isActive = status == s.status;
+                return DesignChip(
+                  label: status.label,
+                  selected: isActive,
+                  onTap: isActive ? null : () => _updateStatus(status),
+                );
+              }).toList(),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: tokens.spaceXl),
           ],
 
-          const Divider(),
-          const SizedBox(height: 12),
+          const DesignDivider(),
+          SizedBox(height: tokens.spaceMd),
           Row(
             children: [
-              Text(
+              DesignText(
                 'Kommentare',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.primary,
-                ),
+                style: DesignTextStyle.subtitle,
+                color: tokens.primary,
               ),
-              const SizedBox(width: 8),
-              Text(
+              SizedBox(width: tokens.spaceSm),
+              DesignText(
                 '${s.commentCount}',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: DesignTextStyle.label,
+                color: tokens.textLow,
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: tokens.spaceMd),
 
           if (_replyToId == null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.only(bottom: tokens.spaceMd),
               child: CommentInput(
                 hintText: 'Kommentar hinzufügen...',
                 onSubmit: (text) => _addComment(text),
               ),
-            ),
-
-          if (_replyToId != null)
+            )
+          else
             Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.only(bottom: tokens.spaceMd),
               child: CommentInput(
                 hintText: 'Antworten...',
                 autofocus: true,
@@ -538,13 +660,12 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
             const Center(child: CircularProgressIndicator())
           else if (_comments.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceMd),
               child: Center(
-                child: Text(
+                child: DesignText(
                   'Noch keine Kommentare.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: DesignTextStyle.body,
+                  color: tokens.textLow,
                 ),
               ),
             )
@@ -579,136 +700,5 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
       }
     }
     return null;
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final FeedbackStatus status;
-
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _statusColor(status, Theme.of(context));
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        status.label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  Color _statusColor(FeedbackStatus status, ThemeData theme) {
-    switch (status) {
-      case FeedbackStatus.submitted:
-        return theme.colorScheme.onSurfaceVariant;
-      case FeedbackStatus.planned:
-        return Colors.blue;
-      case FeedbackStatus.next:
-        return Colors.orange;
-      case FeedbackStatus.inProgress:
-        return Colors.amber.shade700;
-      case FeedbackStatus.done:
-        return Colors.green;
-      case FeedbackStatus.cancelled:
-        return theme.colorScheme.error;
-      case FeedbackStatus.rejected:
-        return theme.colorScheme.error;
-      case FeedbackStatus.later:
-        return Colors.purple;
-    }
-  }
-}
-
-class _VoteButtonLarge extends StatelessWidget {
-  final int count;
-  final bool hasVoted;
-  final VoidCallback onTap;
-
-  const _VoteButtonLarge({
-    required this.count,
-    required this.hasVoted,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = hasVoted
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurfaceVariant;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: hasVoted
-                ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                : theme.colorScheme.outline,
-          ),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasVoted ? Icons.thumb_up_rounded : Icons.thumb_up_outlined,
-              size: 20,
-              color: color,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '$count',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusChangeSection extends StatelessWidget {
-  final FeedbackStatus currentStatus;
-  final ValueChanged<FeedbackStatus> onStatusChanged;
-
-  const _StatusChangeSection({
-    required this.currentStatus,
-    required this.onStatusChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: FeedbackStatus.values.map((status) {
-        final isActive = status == currentStatus;
-        return ChoiceChip(
-          label: Text(status.label),
-          selected: isActive,
-          onSelected: isActive
-              ? null
-              : (_) => onStatusChanged(status),
-        );
-      }).toList(),
-    );
   }
 }

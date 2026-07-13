@@ -200,7 +200,7 @@ pro Design/Modus neu belegt. Auszug:
 - Spacing: `xs 4 · sm 8 · md 12 · lg 16 · xl 24 · xxl 32` (px)
 - Typografie: `display 30/w900 · title 22/w700 · subtitle 18/w700 ·
   body 15/w400 · label 13/w600` (Chivo)
-- Effekte: `grainOpacity 0.04 · glassBlur 6 · glowBlur 26 · useGlass false`
+- Effekte: `grainOpacity 0.04 · glassBlur 6 · glassOpacity 0.65 · glowBlur 26 · useGlass false`
 
 Die Showcase-Screens rendern die aktuelle Palette (`DesignColorSwatch`) und
 eine Mess-Tabelle (`DesignTokenSpec`) live für das gewählte Design.
@@ -256,11 +256,33 @@ Stattdessen gilt:
   `DesignCard` + `DesignAvatar` + `DesignText` + `DesignBadge`. Modell-frei
   (`imageUrl`, `name`, `subtitle?`, `isSelf`, `onTap`); Feature-Screens
   mappen ihr Modell darüber (Adapter: `UserCard`).
-- **`DesignCard.list`** (`primitives`) – Variante von `DesignCard` für
-  vertikal gestapelte Kinder (z.B. Listen-Tiles). Rendert ein `Column` mit
-  konsistentem horizontalem Padding (`spaceLg`) und vertikalem Abstand
-  (`spaceMd`) zwischen den Kindern. Ersetzt lokale `_divided`-Helfer in
-  Screens; alle zukünftigen Listen nutzen `DesignCard.list(children: ...)`.
+- **`DesignCard`** / **`DesignCard.list`** (`primitives`) – Erhöhte
+  Oberflächen-Karte (glas-first oder solid mit Shadow/Border).
+  `DesignCard.list` rendert vertikal gestapelte Kinder mit konsistentem
+  horizontalem Padding (`spaceLg`) und vertikalem Abstand (`spaceMd`).
+  Schatten (`surfaceShadow`) wird **sowohl in Solid- als auch in Glas-Mode**
+  angewendet, sodass alle Designs konsistente Tiefe vermitteln.
+  **`margin`** umgibt die gesamte Karte (inkl. Dekoration/Shadow) mit
+  externem Abstand; Standard ist `EdgeInsets.symmetric(horizontal:
+  tokens.spaceLg)` für einheitlichen Seitenabstand aller Karten.
+  `EdgeInsets.zero` entfernt den Abstand (z.B. wenn der Parent-Container
+  den Abstand steuert, wie bei `ListView`-Padding oder Screen-Padding).
+- **`DesignTextField`** (`primitives`) – Katalog-Textfeld (ersetzt Material
+  `TextField`). Parameter: `hint`, `controller`, `obscure`, `keyboardType`,
+  `textAlign`, `maxLength` (blendet den Zähler via `counterText: ''` aus),
+  `prefixIcon`. Baut auf Token-Palette + `radiusMd`; Fokus zeigt Primärfarbe
+  und Glow-Schatten.
+- **`DesignButton`** (`primitives`) – Katalog-Button mit den Varianten
+  `filled` / `outlined` / `ghost` / `patterned` / `text`. `text` rendert einen
+  reinen Text-Link (transparenter Hintergrund, Primärfarbe). `loading: true`
+  blendet den Button aus und zeigt einen `CircularProgressIndicator` an Stelle
+  des `icon` (kein lokaler Spinner nötig). `fullWidth` spannt den Button über
+  die gesamte Breite.
+- **`DesignAppBar`** (`composite`) – Nicht-Material AppBar aus `DesignText`
+  (kein eigenes `DesignSurface`). Rendert einen transparenten 64 px-Strip;
+  der parent Screen wickelt die gesamte Seite (AppBar + Body) in ein einziges
+  `DesignSurface`, damit Gradient und Grain unterbrechungsfrei laufen.
+  Status-bar-sicher (`SafeArea`).
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste
