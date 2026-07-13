@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../../theme/design_theme.dart';
 import '../foundation/design_text.dart';
 
 /// Circular avatar showing an image or initials. Builds on the token palette
-/// for the fallback background.
+/// for the fallback background and supports HTTP(S), `data:` and raw base64
+/// image sources via [resolveImageProvider].
 class DesignAvatar extends StatelessWidget {
   const DesignAvatar({
     this.imageUrl,
@@ -22,17 +24,18 @@ class DesignAvatar extends StatelessWidget {
     final initials = name.isNotEmpty
         ? name.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
         : '';
-    final child = imageUrl != null
-        ? ClipOval(
-            child: Image.network(
-              imageUrl!,
+    final provider = resolveImageProvider(imageUrl);
+    final child = provider == null
+        ? _initials(tokens, initials, size)
+        : ClipOval(
+            child: Image(
+              image: provider,
               width: size,
               height: size,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => _initials(tokens, initials, size),
             ),
-          )
-        : _initials(tokens, initials, size);
+          );
     return Container(
       width: size,
       height: size,

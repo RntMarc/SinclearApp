@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../core/widgets/user_avatar.dart';
+import '../../../design/widgets/composite/design_user_card.dart';
 import '../models/user_models.dart';
 
+/// Feature adapter that maps a [UserBasePublic] onto the catalog [DesignUserCard].
 class UserCard extends StatelessWidget {
   final UserBasePublic user;
   final bool isSelf;
@@ -16,63 +17,12 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              UserAvatar(
-                imageUrl: user.image,
-                displayName: user.displayName,
-                radius: 24,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.displayName,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (user.email != null)
-                      Text(
-                        user.email!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (isSelf)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Das bist du',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
+    return DesignUserCard(
+      imageUrl: user.image,
+      name: user.displayName,
+      subtitle: user.email,
+      isSelf: isSelf,
+      onTap: onTap,
     );
   }
 }

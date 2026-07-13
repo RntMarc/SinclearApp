@@ -200,7 +200,7 @@ class DesignShowcaseScreen extends StatelessWidget {
   }
 
   Widget _listTiles() {
-    return Column(
+    return DesignCard.list(
       children: <Widget>[
         const DesignListTile(
           leading: DesignAvatar(name: 'Lena', size: 40),

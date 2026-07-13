@@ -24,7 +24,26 @@ class DesignSurface extends StatelessWidget {
       decoration: BoxDecoration(gradient: tokens.backgroundGradient),
       child: child,
     );
-    if (!withGrain) return gradient;
-    return GrainOverlay(opacity: tokens.grainOpacity, child: gradient);
+    final expanded = _expandToViewport(gradient);
+    if (!withGrain) return expanded;
+    return GrainOverlay(opacity: tokens.grainOpacity, child: expanded);
+  }
+
+  /// Forces the surface to fill the available height when the parent provides
+  /// bounded constraints (e.g. a screen body), so the gradient and grain reach
+  /// the bottom of the viewport even for short content. Inside a scrolling
+  /// parent the height stays content-driven (no finite bound).
+  Widget _expandToViewport(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 0.0;
+        return ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minHeight),
+          child: child,
+        );
+      },
+    );
   }
 }
