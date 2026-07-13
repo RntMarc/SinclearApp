@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/base64_helper.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_divider.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/forum_models.dart';
 import '../widgets/member_sheet.dart';
 import '../widgets/post_card.dart';
@@ -25,11 +34,35 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
   int _postPage = 1;
   bool _hasMorePosts = true;
 
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_forum == null && _loading) {
       _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_postsLoading &&
+        _hasMorePosts) {
+      _loadMorePosts();
     }
   }
 
@@ -85,6 +118,31 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     }
   }
 
+  Future<void> _loadMorePosts() async {
+    if (_postsLoading || !_hasMorePosts) return;
+    setState(() {
+      _postPage++;
+      _postsLoading = true;
+    });
+    try {
+      final forumService = AppScope.of(context).forum;
+      final response = await forumService.listPosts(
+        widget.id,
+        page: _postPage,
+        limit: 20,
+      );
+      if (!mounted) return;
+      setState(() {
+        _posts = [..._posts, ...response.data];
+        _hasMorePosts = response.meta.hasMore;
+        _postsLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _postsLoading = false);
+    }
+  }
+
   Future<void> _toggleJoin() async {
     final forum = _forum;
     if (forum == null) return;
@@ -133,9 +191,6 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
       final forumService = AppScope.of(context).forum;
       final response = await forumService.listMembers(widget.id);
       if (!mounted) return;
-      debugPrint(
-        '[ForumDetail] Members loaded: ${response.data.length} members',
-      );
       if (response.data.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Keine Mitglieder vorhanden.')),
@@ -143,14 +198,10 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
         return;
       }
       MemberSheet.show(context, members: response.data);
-    } catch (e, st) {
-      debugPrint('[ForumDetail] Failed to load members: $e');
-      debugPrint('[ForumDetail] Stack: $st');
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Mitglieder konnten nicht geladen werden: $e'),
-        ),
+        SnackBar(content: Text('Mitglieder konnten nicht geladen werden.')),
       );
     }
   }
@@ -188,19 +239,35 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
   }
 
   Future<void> _deletePost(FeedPost post) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showDesignSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Post löschen'),
-        content: const Text('Möchtest du diesen Post wirklich löschen?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Abbrechen'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Post löschen',
+            style: DesignTextStyle.subtitle,
+            color: DesignTheme.of(context).textHigh,
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Löschen'),
+          SizedBox(height: DesignTheme.of(context).spaceMd),
+          DesignText(
+            'Möchtest du diesen Post wirklich löschen?',
+            style: DesignTextStyle.body,
+            color: DesignTheme.of(context).textHigh,
+          ),
+          SizedBox(height: DesignTheme.of(context).spaceXl),
+          DesignButton(
+            variant: DesignButtonVariant.filled,
+            label: 'Löschen',
+            fullWidth: true,
+            onPressed: () => Navigator.pop(context, true),
+          ),
+          SizedBox(height: DesignTheme.of(context).spaceSm),
+          DesignButton(
+            variant: DesignButtonVariant.outlined,
+            label: 'Abbrechen',
+            fullWidth: true,
+            onPressed: () => Navigator.pop(context, false),
           ),
         ],
       ),
@@ -221,22 +288,57 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final auth = AppScope.of(context).auth;
 
-    return Scaffold(
-      floatingActionButton: _forum?.isMember == true
-          ? FloatingActionButton(
-              onPressed: () => context.go('/forum/${widget.id}/erstellen'),
-              child: const Icon(Icons.add_rounded),
-            )
-          : null,
-      body: _buildBody(context, auth),
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: _forum?.name ?? 'Forum',
+            actions: [
+              DesignIconButton(
+                icon: Icons.people_rounded,
+                onPressed: _showMembers,
+              ),
+              DesignIconButton(
+                icon: _forum?.notificationsEnabled == true
+                    ? Icons.notifications_active_rounded
+                    : Icons.notifications_off_rounded,
+                onPressed: _toggleNotifications,
+              ),
+            ],
+          ),
+          Expanded(
+            child: _buildBody(context, tokens, auth),
+          ),
+          if (_forum?.isMember == true)
+            Padding(
+              padding: EdgeInsets.all(tokens.spaceLg),
+              child: DesignButton(
+                variant: DesignButtonVariant.filled,
+                icon: Icons.add_rounded,
+                label: 'Neuer Beitrag',
+                fullWidth: true,
+                onPressed: () => context.go('/forum/${widget.id}/erstellen'),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
-  Widget _buildBody(BuildContext context, dynamic auth) {
+  Widget _buildBody(
+    BuildContext context,
+    DesignTokens tokens,
+    dynamic auth,
+  ) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
     if (_error != null) {
@@ -244,17 +346,14 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 8),
-            Text(_error!),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
+            Icon(Icons.error_outline, size: 48, color: tokens.danger),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(_error!, style: DesignTextStyle.body, color: tokens.textHigh),
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              label: 'Erneut versuchen',
               onPressed: _load,
-              child: const Text('Erneut versuchen'),
             ),
           ],
         ),
@@ -262,186 +361,145 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     }
 
     final forum = _forum!;
-    final theme = Theme.of(context);
 
-return RefreshIndicator(
+    return RefreshIndicator(
       onRefresh: _refresh,
-      child: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 120,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                forum.name,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              background: forum.image != null
-                  ? Image.memory(
-                      decodeBase64Image(forum.image!),
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          Container(color: theme.colorScheme.primaryContainer),
-                    )
-                  : Container(
-                      color: theme.colorScheme.primaryContainer,
-                      child: Center(
-                        child: Icon(
-                          Icons.forum_rounded,
-                          size: 48,
-                          color: theme.colorScheme.onPrimaryContainer,
+      child: ListView(
+        controller: _scrollController,
+        padding: EdgeInsets.only(
+          left: tokens.spaceLg,
+          right: tokens.spaceLg,
+          top: tokens.spaceSm,
+          bottom: tokens.spaceXxl,
+        ),
+        children: [
+          // Forum header card
+          DesignCard(
+            padding: EdgeInsets.zero,
+            margin: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (forum.image != null)
+                  Material(
+                    type: MaterialType.transparency,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(tokens.radiusLg),
+                      ),
+                      child: Image.memory(
+                        decodeBase64Image(forum.image!),
+                        width: double.infinity,
+                        height: 120,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          height: 120,
+                          color: tokens.primary.withValues(alpha: 0.15),
+                          child: Center(
+                            child: Icon(Icons.forum_rounded, size: 48, color: tokens.primary),
+                          ),
                         ),
                       ),
                     ),
-            ),
-            actions: [
-              IconButton(
-                onPressed: _showMembers,
-                icon: Badge(
-                  label: Text('${forum.memberCount}'),
-                  child: const Icon(Icons.people_rounded),
-                ),
-                tooltip: 'Mitglieder',
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'notifications') _toggleNotifications();
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'notifications',
-                    child: Row(
-                      children: [
-                        Icon(
-                          forum.notificationsEnabled
-                              ? Icons.notifications_active_rounded
-                              : Icons.notifications_off_rounded,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          forum.notificationsEnabled
-                              ? 'Benachrichtigungen aus'
-                              : 'Benachrichtigungen an',
+                  )
+                else
+                  Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: tokens.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(tokens.radiusLg),
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(Icons.forum_rounded, size: 48, color: tokens.primary),
+                    ),
+                  ),
+                Padding(
+                  padding: EdgeInsets.all(tokens.spaceLg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DesignText(
+                        forum.name,
+                        style: DesignTextStyle.subtitle,
+                        color: tokens.textHigh,
+                      ),
+                      if (forum.description != null &&
+                          forum.description!.isNotEmpty) ...[
+                        SizedBox(height: tokens.spaceSm),
+                        DesignText(
+                          forum.description!,
+                          style: DesignTextStyle.body,
+                          color: tokens.textLow,
                         ),
                       ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (forum.description != null && forum.description!.isNotEmpty)
-                    Text(
-                      forum.description!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        height: 1.5,
+                      SizedBox(height: tokens.spaceLg),
+                      DesignButton(
+                        variant: forum.isMember
+                            ? DesignButtonVariant.outlined
+                            : DesignButtonVariant.filled,
+                        icon: forum.isMember
+                            ? Icons.exit_to_app_rounded
+                            : Icons.add_rounded,
+                        label: forum.isMember
+                            ? 'Forum verlassen'
+                            : 'Forum beitreten',
+                        onPressed: _toggleJoin,
                       ),
-                    ),
-                  const SizedBox(height: 16),
-                  if (forum.isMember)
-                    FilledButton.tonalIcon(
-                      onPressed: _toggleJoin,
-                      icon: const Icon(Icons.exit_to_app_rounded),
-                      label: const Text('Forum verlassen'),
-                    )
-                  else
-                    FilledButton.icon(
-                      onPressed: _toggleJoin,
-                      icon: const Icon(Icons.add_rounded),
-                      label: const Text('Forum beitreten'),
-                    ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                ],
-              ),
-            ),
-          ),
-          if (_postsLoading && _posts.isEmpty)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_posts.isEmpty)
-            SliverFillRemaining(
-              child: Center(
-                child: Text(
-                  forum.isMember
-                      ? 'Noch keine Posts. Erstelle den ersten Beitrag!'
-                      : 'Tritt dem Forum bei, um Posts zu sehen.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    ],
                   ),
                 ),
+              ],
+            ),
+          ),
+          SizedBox(height: tokens.spaceMd),
+          const DesignDivider(),
+          SizedBox(height: tokens.spaceMd),
+          if (_postsLoading && _posts.isEmpty)
+            Center(
+              child: Padding(
+                padding: EdgeInsets.all(tokens.spaceXl),
+                child: CircularProgressIndicator(color: tokens.primary),
               ),
             )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  if (index == _posts.length) {
-                    if (_hasMorePosts && !_postsLoading) {
-                      _loadMorePosts();
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }
-                  final post = _posts[index];
-                  return PostCard(
-                    key: ValueKey(post.id),
-                    post: post,
-                    currentUserId: auth.userId ?? '',
-                    onTap: () => context.go(
-                      '/forum/${widget.id}/beitrag/${post.id}',
-                    ),
-                    onVote: () => _votePost(post),
-                    onDelete: (post.userId == auth.userId || auth.isAdmin)
-                        ? () => _deletePost(post)
-                        : null,
-                  );
-                },
-                childCount: _posts.length + 1,
-),
-          ),
+          else if (_posts.isEmpty)
+            Center(
+              child: DesignText(
+                forum.isMember
+                    ? 'Noch keine Posts. Erstelle den ersten Beitrag!'
+                    : 'Tritt dem Forum bei, um Posts zu sehen.',
+                style: DesignTextStyle.body,
+                color: tokens.textLow,
+              ),
+            )
+          else ...[
+            ...List.generate(_posts.length, (index) {
+              final post = _posts[index];
+              return Padding(
+                padding: EdgeInsets.only(bottom: tokens.spaceSm),
+                child: PostCard(
+                  key: ValueKey(post.id),
+                  post: post,
+                  currentUserId: auth.userId ?? '',
+                  onTap: () => context.go('/forum/${widget.id}/beitrag/${post.id}'),
+                  onVote: () => _votePost(post),
+                  onDelete: (post.userId == auth.userId || auth.isAdmin)
+                      ? () => _deletePost(post)
+                      : null,
+                ),
+              );
+            }),
+            if (_hasMorePosts && _postsLoading)
+              Padding(
+                padding: EdgeInsets.all(tokens.spaceLg),
+                child: Center(
+                  child: CircularProgressIndicator(color: tokens.primary),
+                ),
+              ),
+          ],
         ],
       ),
     );
-  }
-
-  Future<void> _loadMorePosts() async {
-    if (_postsLoading || !_hasMorePosts) return;
-    setState(() {
-      _postPage++;
-      _postsLoading = true;
-    });
-    try {
-      final forumService = AppScope.of(context).forum;
-      final response = await forumService.listPosts(
-        widget.id,
-        page: _postPage,
-        limit: 20,
-      );
-      if (!mounted) return;
-      setState(() {
-        _posts = [..._posts, ...response.data];
-        _hasMorePosts = response.meta.hasMore;
-        _postsLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _postsLoading = false);
-    }
   }
 }
