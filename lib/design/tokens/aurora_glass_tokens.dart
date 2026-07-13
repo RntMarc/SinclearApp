@@ -34,12 +34,12 @@ class AuroraGlassTokens extends DesignTokens {
 
   @override
   Color get surface => isDark
-      ? const Color(0xFF121A2B)
+      ? const Color(0xFF1E2A42)
       : const Color(0xFFFFFFFF);
 
   @override
   Color get surfaceVariant => isDark
-      ? const Color(0xFF1A2540)
+      ? const Color(0xFF283650)
       : const Color(0xFFEAF1FC);
 
   @override

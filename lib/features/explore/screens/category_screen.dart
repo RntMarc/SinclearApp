@@ -2,6 +2,13 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_chip.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/explore_models.dart';
 import '../widgets/explore_map.dart';
 import '../widgets/explore_search_overlay.dart';
@@ -270,139 +277,145 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final tokens = DesignTheme.of(context);
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 600;
     final crossAxisCount = isWide ? (width >= 900 ? 3 : 2) : 1;
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    tooltip: 'Zurück',
-                  ),
-                  Expanded(
-                    child: InkWell(
-                      onTap: _openSearch,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: colorScheme.outline),
-                          borderRadius: BorderRadius.circular(12),
+    return DesignSurface(
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              tokens.spaceLg,
+              tokens.spaceLg,
+              tokens.spaceLg,
+              tokens.spaceSm,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    DesignIconButton(
+                      icon: Icons.arrow_back_rounded,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    SizedBox(width: tokens.spaceSm),
+                    Expanded(
+                      child: DesignCard(
+                        onTap: _openSearch,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.spaceLg,
+                          vertical: tokens.spaceMd,
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+                        margin: EdgeInsets.zero,
                         child: Row(
                           children: [
                             Icon(
                               Icons.search_rounded,
-                              color: colorScheme.onSurfaceVariant,
+                              color: tokens.textLow,
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Orte, Städte, Kategorien…',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
+                            SizedBox(width: tokens.spaceMd),
+                            Flexible(
+                              child: DesignText(
+                                'Orte, Städte, Kategorien…',
+                                style: DesignTextStyle.body,
+                                color: tokens.textLow,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _searchByLocation,
-                    icon: const Icon(Icons.my_location_rounded),
-                    tooltip: 'In meiner Nähe',
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    onPressed: () => setState(() => _showMap = !_showMap),
-                    icon: Icon(
-                      _showMap ? Icons.list_rounded : Icons.map_rounded,
+                    SizedBox(width: tokens.spaceSm),
+                    DesignIconButton(
+                      icon: Icons.my_location_rounded,
+                      onPressed: _searchByLocation,
                     ),
-                    tooltip: _showMap ? 'Liste' : 'Karte',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (_searchResults != null)
-                Row(
-                  children: [
-                    Text(
-                      'Suchergebnisse',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: _clearSearch,
-                      icon: const Icon(Icons.close_rounded, size: 18),
-                      label: const Text('Schließen'),
+                    SizedBox(width: tokens.spaceXs),
+                    DesignIconButton(
+                      icon: _showMap ? Icons.list_rounded : Icons.map_rounded,
+                      onPressed: () =>
+                          setState(() => _showMap = !_showMap),
                     ),
                   ],
-                )
-              else
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final opt in _sortOptions)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: SortChip(
-                            label: '${opt.$2}${_sortLabel(opt.$1)}',
-                            selected: _isSelected(opt.$1),
-                            onTap: () => _setSort(opt.$1),
-                          ),
-                        ),
-                    ],
-                  ),
                 ),
-            ],
+                SizedBox(height: tokens.spaceSm),
+                if (_searchResults != null)
+                  Row(
+                    children: [
+                      DesignText(
+                        'Suchergebnisse',
+                        style: DesignTextStyle.subtitle,
+                        color: tokens.textHigh,
+                      ),
+                      const Spacer(),
+                      DesignButton(
+                        variant: DesignButtonVariant.text,
+                        icon: Icons.close_rounded,
+                        label: 'Schließen',
+                        onPressed: _clearSearch,
+                      ),
+                    ],
+                  )
+                else
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final opt in _sortOptions)
+                          Padding(
+                            padding: EdgeInsets.only(right: tokens.spaceSm),
+                            child: DesignChip(
+                              label: '${opt.$2}${_sortLabel(opt.$1)}',
+                              selected: _isSelected(opt.$1),
+                              onTap: () => _setSort(opt.$1),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
-        ),
-        if (_searchResults != null && _searchResults!.isNotEmpty)
-          Expanded(child: _buildSearchResults(theme, crossAxisCount))
-        else if (_searchResults != null)
-          Expanded(child: _buildSearchEmpty(theme))
-        else if (_showMap)
-          Expanded(child: ExploreMap(places: _places))
-        else
-          Expanded(child: _buildList(theme, crossAxisCount)),
-      ],
+          if (_searchResults != null && _searchResults!.isNotEmpty)
+            Expanded(child: _buildSearchResults(tokens, crossAxisCount))
+          else if (_searchResults != null)
+            Expanded(child: _buildSearchEmpty(tokens))
+          else if (_showMap)
+            Expanded(child: ExploreMap(places: _places))
+          else
+            Expanded(child: _buildList(tokens, crossAxisCount)),
+        ],
+      ),
     );
   }
 
-  Widget _buildSearchResults(ThemeData theme, int crossAxisCount) {
+  Widget _buildSearchResults(DesignTokens tokens, int crossAxisCount) {
     return CustomScrollView(
       controller: _searchScrollController,
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: EdgeInsets.fromLTRB(
+            tokens.spaceLg,
+            tokens.spaceSm,
+            tokens.spaceLg,
+            tokens.spaceLg,
+          ),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              childAspectRatio: crossAxisCount > 1 ? 1.5 : 2.5,
+              childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 if (index >= _searchResults!.length) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(
+                    child: CircularProgressIndicator(color: tokens.primary),
+                  );
                 }
                 return PlaceCard(place: _searchResults![index]);
               },
@@ -414,7 +427,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
     );
   }
 
-  Widget _buildSearchEmpty(ThemeData theme) {
+  Widget _buildSearchEmpty(DesignTokens tokens) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -422,28 +435,28 @@ class _CategoryScreenState extends State<CategoryScreen> {
           Icon(
             Icons.search_off_rounded,
             size: 48,
-            color: theme.colorScheme.onSurfaceVariant,
+            color: tokens.textLow,
           ),
-          const SizedBox(height: 8),
-          Text(
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
             'Keine Ergebnisse gefunden.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
           ),
-          const SizedBox(height: 16),
-          FilledButton.tonal(
+          SizedBox(height: tokens.spaceLg),
+          DesignButton(
+            variant: DesignButtonVariant.filled,
+            label: 'Zurück',
             onPressed: _clearSearch,
-            child: const Text('Zurück'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildList(ThemeData theme, int crossAxisCount) {
+  Widget _buildList(DesignTokens tokens, int crossAxisCount) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
     if (_error != null) {
@@ -451,13 +464,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: 8),
-            Text(_error!, style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
+            Icon(Icons.error_outline, size: 48, color: tokens.danger),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(_error!, style: DesignTextStyle.body, color: tokens.textHigh),
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              label: 'Erneut versuchen',
               onPressed: _load,
-              child: const Text('Erneut versuchen'),
             ),
           ],
         ),
@@ -466,11 +480,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
     if (_places.isEmpty) {
       return Center(
-        child: Text(
+        child: DesignText(
           'Keine Einträge in dieser Kategorie.',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
         ),
       );
     }
@@ -479,43 +492,23 @@ class _CategoryScreenState extends State<CategoryScreen> {
       onRefresh: _load,
       child: GridView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(tokens.spaceLg),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: crossAxisCount > 1 ? 1.5 : 2.5,
+          childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
         ),
         itemCount: _places.length + (_loadingMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _places.length) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(color: tokens.primary),
+            );
           }
           return PlaceCard(place: _places[index]);
         },
       ),
-    );
-  }
-}
-
-class SortChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const SortChip({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
     );
   }
 }

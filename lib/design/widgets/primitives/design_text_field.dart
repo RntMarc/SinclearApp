@@ -65,20 +65,23 @@ class _DesignTextFieldState extends State<DesignTextField> {
             SizedBox(width: tokens.spaceSm),
           ],
           Expanded(
-            child: TextField(
-              controller: widget.controller,
-              focusNode: _focus,
-              obscureText: widget.obscure,
-              keyboardType: widget.keyboardType,
-              textAlign: widget.textAlign,
-              maxLength: widget.maxLength,
-              style: tokens.bodyStyle(tokens.textHigh),
-              decoration: InputDecoration(
-                hintText: widget.hint,
-                hintStyle: tokens.bodyStyle(tokens.textLow),
-                border: InputBorder.none,
-                isCollapsed: true,
-                counterText: widget.maxLength != null ? '' : null,
+            child: Material(
+              type: MaterialType.transparency,
+              child: TextField(
+                controller: widget.controller,
+                focusNode: _focus,
+                obscureText: widget.obscure,
+                keyboardType: widget.keyboardType,
+                textAlign: widget.textAlign,
+                maxLength: widget.maxLength,
+                style: tokens.bodyStyle(tokens.textHigh),
+                decoration: InputDecoration(
+                  hintText: widget.hint,
+                  hintStyle: tokens.bodyStyle(tokens.textLow),
+                  border: InputBorder.none,
+                  isCollapsed: true,
+                  counterText: widget.maxLength != null ? '' : null,
+                ),
               ),
             ),
           ),

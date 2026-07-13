@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/explore_models.dart';
 import '../widgets/explore_map.dart';
 import '../widgets/explore_search_overlay.dart';
@@ -222,140 +228,149 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final tokens = DesignTheme.of(context);
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 600;
     final crossAxisCount = isWide ? (width >= 900 ? 3 : 2) : 1;
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: _openSearch,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: colorScheme.outline),
-                          borderRadius: BorderRadius.circular(12),
+    return DesignSurface(
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              tokens.spaceLg,
+              tokens.spaceLg,
+              tokens.spaceLg,
+              tokens.spaceSm,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: DesignCard(
+                        onTap: _openSearch,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.spaceLg,
+                          vertical: tokens.spaceMd,
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+                        margin: EdgeInsets.zero,
                         child: Row(
                           children: [
                             Icon(
                               Icons.search_rounded,
-                              color: colorScheme.onSurfaceVariant,
+                              color: tokens.textLow,
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Orte, Städte, Kategorien…',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
+                            SizedBox(width: tokens.spaceMd),
+                            Flexible(
+                              child: DesignText(
+                                'Orte, Städte, Kategorien…',
+                                style: DesignTextStyle.body,
+                                color: tokens.textLow,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(
-                    onPressed: _searchByLocation,
-                    icon: const Icon(Icons.my_location_rounded),
-                    tooltip: 'In meiner Nähe suchen',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _CategoryButton(
-                      icon: Icons.restaurant_rounded,
-                      label: 'Gastronomie',
-                      onTap: () => context.go('/entdecken/gastronomie'),
+                    SizedBox(width: tokens.spaceSm),
+                    DesignIconButton(
+                      icon: Icons.my_location_rounded,
+                      tinted: true,
+                      onPressed: _searchByLocation,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _CategoryButton(
-                      icon: Icons.park_rounded,
-                      label: 'Freizeit',
-                      onTap: () => context.go('/entdecken/freizeit'),
+                  ],
+                ),
+                SizedBox(height: tokens.spaceMd),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DesignButton(
+                        variant: DesignButtonVariant.outlined,
+                        icon: Icons.restaurant_rounded,
+                        label: 'Gastronomie',
+                        onPressed: () => context.go('/entdecken/gastronomie'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => setState(() => _showMap = !_showMap),
-                    icon: Icon(
-                      _showMap ? Icons.list_rounded : Icons.map_rounded,
+                    SizedBox(width: tokens.spaceMd),
+                    Expanded(
+                      child: DesignButton(
+                        variant: DesignButtonVariant.outlined,
+                        icon: Icons.park_rounded,
+                        label: 'Freizeit',
+                        onPressed: () => context.go('/entdecken/freizeit'),
+                      ),
                     ),
-                    tooltip: _showMap ? 'Listenansicht' : 'Kartenansicht',
-                  ),
-                ],
-              ),
-            ],
+                    SizedBox(width: tokens.spaceSm),
+                    DesignIconButton(
+                      icon: _showMap ? Icons.list_rounded : Icons.map_rounded,
+                      onPressed: () =>
+                          setState(() => _showMap = !_showMap),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-        if (_searchResults != null && _searchResults!.isNotEmpty)
-          Expanded(child: _buildSearchResults(theme, crossAxisCount))
-        else if (_searchResults != null)
-          Expanded(child: _buildSearchEmpty(theme))
-        else if (_showMap)
-          Expanded(child: ExploreMap(places: _suggestions, zoom: 6))
-        else
-          Expanded(child: _buildSuggestionsList(theme, crossAxisCount)),
-      ],
+          if (_searchResults != null && _searchResults!.isNotEmpty)
+            Expanded(child: _buildSearchResults(tokens, crossAxisCount))
+          else if (_searchResults != null)
+            Expanded(child: _buildSearchEmpty(tokens))
+          else if (_showMap)
+            Expanded(child: ExploreMap(places: _suggestions, zoom: 6))
+          else
+            Expanded(child: _buildSuggestionsList(tokens, crossAxisCount)),
+        ],
+      ),
     );
   }
 
-  Widget _buildSearchResults(ThemeData theme, int crossAxisCount) {
+  Widget _buildSearchResults(DesignTokens tokens, int crossAxisCount) {
     return CustomScrollView(
       controller: _searchScrollController,
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
           sliver: SliverToBoxAdapter(
             child: Row(
               children: [
-                Text(
+                DesignText(
                   'Suchergebnisse',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: DesignTextStyle.subtitle,
+                  color: tokens.textHigh,
                 ),
                 const Spacer(),
-                TextButton.icon(
+                DesignButton(
+                  variant: DesignButtonVariant.text,
+                  icon: Icons.close_rounded,
+                  label: 'Schließen',
                   onPressed: _clearSearch,
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  label: const Text('Schließen'),
                 ),
               ],
             ),
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: EdgeInsets.fromLTRB(
+            tokens.spaceLg,
+            tokens.spaceSm,
+            tokens.spaceLg,
+            tokens.spaceLg,
+          ),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              childAspectRatio: crossAxisCount > 1 ? 1.5 : 2.5,
+              childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 if (index >= _searchResults!.length) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(
+                    child: CircularProgressIndicator(color: tokens.primary),
+                  );
                 }
                 return PlaceCard(place: _searchResults![index]);
               },
@@ -367,7 +382,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  Widget _buildSearchEmpty(ThemeData theme) {
+  Widget _buildSearchEmpty(DesignTokens tokens) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -375,28 +390,28 @@ class _ExploreScreenState extends State<ExploreScreen> {
           Icon(
             Icons.search_off_rounded,
             size: 48,
-            color: theme.colorScheme.onSurfaceVariant,
+            color: tokens.textLow,
           ),
-          const SizedBox(height: 8),
-          Text(
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
             'Keine Ergebnisse gefunden.',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
           ),
-          const SizedBox(height: 16),
-          FilledButton.tonal(
+          SizedBox(height: tokens.spaceLg),
+          DesignButton(
+            variant: DesignButtonVariant.filled,
+            label: 'Zurück',
             onPressed: _clearSearch,
-            child: const Text('Zurück'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSuggestionsList(ThemeData theme, int crossAxisCount) {
+  Widget _buildSuggestionsList(DesignTokens tokens, int crossAxisCount) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
     if (_error != null) {
@@ -404,13 +419,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: 8),
-            Text(_error!, style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
+            Icon(Icons.error_outline, size: 48, color: tokens.danger),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              _error!,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              label: 'Erneut versuchen',
               onPressed: _loadSuggestions,
-              child: const Text('Erneut versuchen'),
             ),
           ],
         ),
@@ -420,27 +440,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
           sliver: SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
+              padding: EdgeInsets.only(bottom: tokens.spaceSm),
+              child: DesignText(
                 'Vorschläge',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: DesignTextStyle.subtitle,
+                color: tokens.textHigh,
               ),
             ),
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
           sliver: SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              childAspectRatio: crossAxisCount > 1 ? 1.5 : 2.5,
+              childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) => PlaceCard(place: _suggestions[index]),
@@ -449,63 +468,66 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          padding: EdgeInsets.fromLTRB(
+            tokens.spaceLg,
+            tokens.spaceXl,
+            tokens.spaceLg,
+            tokens.spaceLg,
+          ),
           sliver: SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                DesignText(
                   'Lesezeichen',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: DesignTextStyle.subtitle,
+                  color: tokens.textHigh,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: tokens.spaceSm),
                 if (_loadingBookmarks)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
+                  Padding(
+                    padding: EdgeInsets.all(tokens.spaceXl),
+                    child: Center(
+                      child: CircularProgressIndicator(color: tokens.primary),
+                    ),
                   )
                 else if (_bookmarksError)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 24,
-                              color: theme.colorScheme.error,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Lesezeichen konnten nicht geladen werden.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _loadBookmarks,
-                              child: const Text('Erneut versuchen'),
-                            ),
-                          ],
-                        ),
+                  DesignCard(
+                    padding: EdgeInsets.all(tokens.spaceXl),
+                    margin: EdgeInsets.zero,
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 24,
+                            color: tokens.danger,
+                          ),
+                          SizedBox(height: tokens.spaceSm),
+                          DesignText(
+                            'Lesezeichen konnten nicht geladen werden.',
+                            style: DesignTextStyle.body,
+                            color: tokens.danger,
+                          ),
+                          SizedBox(height: tokens.spaceSm),
+                          DesignButton(
+                            variant: DesignButtonVariant.text,
+                            label: 'Erneut versuchen',
+                            onPressed: _loadBookmarks,
+                          ),
+                        ],
                       ),
                     ),
                   )
                 else if (_bookmarks.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Text(
-                          'Keine Lesezeichen vorhanden.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                  DesignCard(
+                    padding: EdgeInsets.all(tokens.spaceXl),
+                    margin: EdgeInsets.zero,
+                    child: Center(
+                      child: DesignText(
+                        'Keine Lesezeichen vorhanden.',
+                        style: DesignTextStyle.body,
+                        color: tokens.textLow,
                       ),
                     ),
                   )
@@ -516,7 +538,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       scrollDirection: Axis.horizontal,
                       padding: EdgeInsets.zero,
                       itemCount: _bookmarks.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => SizedBox(width: tokens.spaceSm),
                       itemBuilder: (context, index) => SizedBox(
                         width: 260,
                         child: PlaceCard(place: _bookmarks[index]),
@@ -528,28 +550,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _CategoryButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _CategoryButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
     );
   }
 }

@@ -224,14 +224,51 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
     return Stack(
       children: [
-        SuggestionList(
-          suggestions: _suggestions,
-          currentUserId: currentUserId,
-          isAdmin: isAdmin,
-          onVote: (s) => _vote(s.id),
-          onDelete: (s) => _deleteSuggestion(s.id),
+        SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                  0,
+                ),
+                child: DesignText(
+                  'Fehler melden',
+                  style: DesignTextStyle.title,
+                  color: tokens.textHigh,
+                ),
+              ),
+              SizedBox(height: tokens.spaceSm),
+              _bugReportSection(),
+              SizedBox(height: tokens.spaceLg),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  tokens.spaceLg,
+                  0,
+                  tokens.spaceLg,
+                  0,
+                ),
+                child: DesignText(
+                  'Vorschläge',
+                  style: DesignTextStyle.title,
+                  color: tokens.textHigh,
+                ),
+              ),
+              SizedBox(height: tokens.spaceSm),
+              SuggestionList(
+                suggestions: _suggestions,
+                currentUserId: currentUserId,
+                isAdmin: isAdmin,
+                onVote: (s) => _vote(s.id),
+                onDelete: (s) => _deleteSuggestion(s.id),
+              ),
+              SizedBox(height: tokens.spaceXl + 44),
+            ],
+          ),
         ),
-        _bugReportSection(),
         Positioned(
           right: tokens.spaceLg,
           bottom: tokens.spaceXl,
@@ -330,35 +367,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   Widget _bugReportSection() {
     final tokens = DesignTheme.of(context);
-    return Positioned(
-      left: tokens.spaceLg,
-      right: tokens.spaceLg,
-      bottom: tokens.spaceLg,
-      child: DesignCard(
-        margin: EdgeInsets.zero,
-        padding: EdgeInsets.all(tokens.spaceLg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.bug_report_rounded, color: tokens.primary),
-                SizedBox(width: tokens.spaceMd),
-                Expanded(
-                  child: DesignText(
-                    'Einen Fehler melden',
-                    style: DesignTextStyle.subtitle,
-                    color: tokens.textHigh,
-                  ),
-                ),
-                if (_screenshotBytes != null)
-                  DesignIconButton(
-                    icon: Icons.close_rounded,
-                    onPressed: () => setState(() => _screenshotBytes = null),
-                  ),
-              ],
-            ),
-            SizedBox(height: tokens.spaceSm),
+    return DesignCard(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             DesignText(
               'Ein Problem gefunden? Schicke uns einen Fehlerbericht – '
               'gern mit Screenshot.',
@@ -377,7 +390,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 DesignButton(
                   icon: Icons.add_a_photo_outlined,
                   label: 'Screenshot',
-                  variant: DesignButtonVariant.outlined,
+                  variant: DesignButtonVariant.text,
                   onPressed: _pickScreenshot,
                 ),
                 if (_screenshotBytes != null) ...[
@@ -433,7 +446,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
+    }
   }
-}

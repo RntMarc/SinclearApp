@@ -106,9 +106,10 @@ class DesignCard extends StatelessWidget {
         ),
         child: inner,
       );
-      if (onTap != null) {
-        result = PressScale(onTap: onTap, child: result);
-      }
+    }
+
+    if (onTap != null) {
+      result = PressScale(onTap: onTap, child: result);
     }
 
     final effectiveMargin =

@@ -35,12 +35,12 @@ class LiquidPulseTokens extends DesignTokens {
 
   @override
   Color get surface => isDark
-      ? const Color(0xFF14141C)
+      ? const Color(0xFF20202C)
       : const Color(0xFFFFFFFF);
 
   @override
   Color get surfaceVariant => isDark
-      ? const Color(0xFF1E1E28)
+      ? const Color(0xFF2A2A36)
       : const Color(0xFFF0FFF5);
 
   @override
@@ -78,7 +78,7 @@ class LiquidPulseTokens extends DesignTokens {
 
   @override
   Color get border =>
-      isDark ? const Color(0xFF2A2A36) : const Color(0xFFD6F0DE);
+      isDark ? const Color(0xFF363648) : const Color(0xFFD6F0DE);
 
   @override
   Color get divider =>
