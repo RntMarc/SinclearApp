@@ -150,15 +150,66 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
 
 ## 2. Gemeinschaft (Bottom-Nav Index 1)
 
-### Forum — `lib/features/forum/screens/forum_list_screen.dart` `- [ ]`
-- **Material:** DefaultTabController, TabBar, TabBarView, Column,
+### Forum — `lib/features/forum/screens/forum_list_screen.dart` `[x]`
+- **Material:** ~~DefaultTabController, TabBar, TabBarView, Column,
   ListView/ListView.builder, ListTile, RefreshIndicator,
-  CircularProgressIndicator, FilledButton.tonal, Expanded, Text, Icon
-- **Eigene Widgets:** `ForumCard` → lokal `_FallbackIcon`; lokal `_ForumList`
+  CircularProgressIndicator, FilledButton.tonal, Expanded, Text, Icon~~
+- **Eigene Widgets:** `_ForumList` + `ForumCard` (beide migriert)
 - **Katalog-Arbeit:**
-  - [ ] `ForumCard` → `DesignCard` (mit `DesignAvatar`, `DesignText`,
-        `DesignChip`)
-  - [ ] `TabBar`/`ListTile` → `DesignNavItem`/`DesignListTile`
+  - [x] `DesignSurface` als Seiten-Wrapper
+  - [x] `TabBar` mit Token-Farben (`labelColor`, `unselectedLabelColor`, `indicatorColor`)
+  - [x] `ForumCard` → `DesignCard` + `DesignText` + Token-Icons; `_FallbackIcon` → inline
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `FilledButton.tonal` → `DesignButton`(filled)
+  - [x] `CircularProgressIndicator` → `tokens.primary`
+
+### Forum-Detail — `lib/features/forum/screens/forum_detail_screen.dart` `[x]`
+- **Material:** ~~Scaffold, FloatingActionButton, SliverAppBar, FlexibleSpaceBar,
+  Image.memory, RefreshIndicator, CustomScrollView, SliverToBoxAdapter,
+  SliverList, SliverFillRemaining, FilledButton.tonalIcon, FilledButton.icon,
+  FilledButton, TextButton, IconButton, Badge, PopupMenuButton, AlertDialog,
+  Text, Theme.of, Icon, Divider, CircularProgressIndicator~~
+- **Eigene Widgets:** `PostCard` + `MemberSheet`
+- **Katalog-Arbeit:**
+  - [x] `Scaffold` + `FAB` → `DesignSurface` + `DesignAppBar` (zurück, Aktionen) + bodenseitiger `DesignButton`(filled)
+  - [x] `SliverAppBar`/`FlexibleSpaceBar` (Header-Bild) → `DesignCard`-Header mit `Image.memory` + `ClipRRect`
+  - [x] `FilledButton.tonalIcon`/`FilledButton.icon` (Join/Leave) → `DesignButton`(filled/outlined)
+  - [x] `AlertDialog` (Post löschen) → `showDesignSheet`
+  - [x] `PopupMenuButton` (Benachrichtigungen) → `DesignIconButton`-Aktionen in AppBar
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `Divider` → `DesignDivider`
+  - [x] `CircularProgressIndicator` → `tokens.primary`
+
+### Forumsbeitrag-Detail — `lib/features/forum/screens/post_detail_screen.dart` `[x]`
+- **Material:** ~~Scaffold, AppBar, RefreshIndicator, SingleChildScrollView,
+  Row, Column, Text, UserAvatar, Icon, GestureDetector, Divider,
+  FilledButton.tonal, FilledButton, TextButton, AlertDialog, InkWell,
+  CircularProgressIndicator, DropdownButtonFormField~~
+- **Eigene Widgets:** `CommentTreeTile` + `CommentInput` + Embed-Widgets
+- **Katalog-Arbeit:**
+  - [x] `Scaffold` + `AppBar` → `DesignSurface` + `DesignAppBar` (zurück)
+  - [x] `UserAvatar` → `DesignAvatar`
+  - [x] `AlertDialog` (Kommentar löschen) → `showDesignSheet`
+  - [x] `InkWell` (Link-Zeilen) → `GestureDetector` + `DesignCard`
+  - [x] `FilledButton.tonal`/`FilledButton`/`TextButton` → `DesignButton`
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `Divider` → `DesignDivider`
+  - [x] `CommentTreeTile` → `DesignAvatar` + `DesignText`; `PopupMenuButton` → `DesignIconButton` + `showDesignSheet`
+  - [x] `CommentInput` → `DesignTextField`-Stil + `Material(type: MaterialType.transparency)` + `DesignIconButton`
+  - [x] `CircularProgressIndicator` → `tokens.primary`
+
+### Beitrag erstellen — `lib/features/forum/screens/create_post_screen.dart` `[x]`
+- **Material:** ~~Scaffold, AppBar, FilledButton, SegmentedButton, TextField,
+  OutlineInputBorder, IconButton, DropdownButtonFormField, Text, Theme.of~~
+- **Eigene Widgets:** `_UrlEntry` + `_UrlField` (lokal)
+- **Katalog-Arbeit:**
+  - [x] `Scaffold` + `AppBar` → `DesignSurface` + `DesignAppBar` (zurück + Senden)
+  - [x] `SegmentedButton` → `DesignButton`-Reihe (filled/outlined)
+  - [x] `TextField` → Token-styled `TextField` + `Material(type: MaterialType.transparency)`
+  - [x] `DropdownButtonFormField` → Token-styled + `Material(type: MaterialType.transparency)`
+  - [x] `IconButton` → `DesignIconButton`
+  - [x] `FilledButton` (Senden) → `DesignButton`(filled, loading)
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
 
 ### Kritik — *Platzhalter (kein Screen)* `- [ ]`
 - Noch nicht gebaut → direkt im Katalog-Stil neu erstellen.
@@ -399,16 +450,17 @@ zusammen geführt bzw. durch sie ersetzt:
 - `lib/features/feedback/widgets/comment_tile.dart` → `CommentTile`
 - `lib/features/feedback/widgets/suggestion_card.dart` → `SuggestionCard`
 - `lib/features/feedback/widgets/suggestion_list.dart` → `SuggestionList`
-- `lib/features/forum/widgets/comment_tree.dart` → `CommentTreeTile`
-  (**Duplikat** von `CommentInput` → konsolidieren!)
-- `lib/features/forum/widgets/forum_card.dart` → `ForumCard`
-- `lib/features/forum/widgets/member_sheet.dart` → `MemberSheet`
-- `lib/features/forum/widgets/og_preview_card.dart` → `OgPreviewCard`
-- `lib/features/forum/widgets/post_card.dart` → `PostCard`
-- `lib/features/forum/widgets/spotify_player_embed.dart` → `SpotifyPlayerEmbed`
-- `lib/features/forum/widgets/spotify_thumbnail.dart` → `SpotifyThumbnail`
-- `lib/features/forum/widgets/youtube_player_embed.dart` → `YouTubePlayerEmbed`
-- `lib/features/forum/widgets/youtube_thumbnail.dart` → `YouTubeThumbnail`
+- `lib/features/forum/widgets/comment_tree.dart` → `CommentTreeTile` + `CommentInput`
+  (**Duplikat** von `CommentInput` → konsolidieren!) — Beide auf Design-System migriert
+  (`DesignAvatar`, `DesignText`, `DesignIconButton`, `showDesignSheet`, token-styled `TextField`)
+- `lib/features/forum/widgets/forum_card.dart` → `ForumCard` (migriert: `DesignCard`, `DesignText`)
+- `lib/features/forum/widgets/member_sheet.dart` → `MemberSheet` (noch nicht migriert)
+- `lib/features/forum/widgets/og_preview_card.dart` → `OgPreviewCard` (noch nicht migriert)
+- `lib/features/forum/widgets/post_card.dart` → `PostCard` (migriert: `DesignCard`, `DesignAvatar`, `DesignText`)
+- `lib/features/forum/widgets/spotify_player_embed.dart` → `SpotifyPlayerEmbed` (noch nicht migriert)
+- `lib/features/forum/widgets/spotify_thumbnail.dart` → `SpotifyThumbnail` (noch nicht migriert)
+- `lib/features/forum/widgets/youtube_player_embed.dart` → `YouTubePlayerEmbed` (noch nicht migriert)
+- `lib/features/forum/widgets/youtube_thumbnail.dart` → `YouTubeThumbnail` (noch nicht migriert)
 - `lib/features/recipes/widgets/recipe_card.dart` → `RecipeCard`
 - `lib/features/settings/widgets/visibility_badge.dart` → `VisibilityBadge`
 - `lib/features/travel/widgets/user_tile.dart` → `UserTile`
