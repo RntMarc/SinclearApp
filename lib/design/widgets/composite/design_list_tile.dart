@@ -4,7 +4,8 @@ import '../foundation/design_text.dart';
 import '../primitives/press_scale.dart';
 
 /// A list row composed from catalog primitives: leading, title, subtitle and
-/// an optional trailing widget.
+/// an optional trailing widget. A consistent vertical rhythm (via [padding])
+/// keeps entries evenly spaced even when separated only by a thin divider.
 class DesignListTile extends StatelessWidget {
   const DesignListTile({
     this.leading,
@@ -12,6 +13,7 @@ class DesignListTile extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onTap,
+    this.padding,
     super.key,
   });
 
@@ -20,42 +22,46 @@ class DesignListTile extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final tile = Row(
-      children: <Widget>[
-        if (leading != null) ...<Widget>[
-          leading!,
-          SizedBox(width: tokens.spaceMd),
-        ],
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              DesignText(
-                title,
-                style: DesignTextStyle.body,
-                color: tokens.textHigh,
-              ),
-              if (subtitle != null) ...<Widget>[
-                SizedBox(height: tokens.spaceXs),
+    final tile = Padding(
+      padding: padding ?? EdgeInsets.zero,
+      child: Row(
+        children: <Widget>[
+          if (leading != null) ...<Widget>[
+            leading!,
+            SizedBox(width: tokens.spaceMd),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
                 DesignText(
-                  subtitle!,
-                  style: DesignTextStyle.label,
-                  color: tokens.textLow,
+                  title,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
                 ),
+                if (subtitle != null) ...<Widget>[
+                  SizedBox(height: tokens.spaceXs),
+                  DesignText(
+                    subtitle!,
+                    style: DesignTextStyle.label,
+                    color: tokens.textLow,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-        if (trailing != null)
-          Padding(
-            padding: EdgeInsets.only(left: tokens.spaceMd),
-            child: trailing!,
-          ),
-      ],
+          if (trailing != null)
+            Padding(
+              padding: EdgeInsets.only(left: tokens.spaceMd),
+              child: trailing!,
+            ),
+        ],
+      ),
     );
     if (onTap == null) return tile;
     return PressScale(onTap: onTap, child: tile);

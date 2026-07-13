@@ -138,14 +138,32 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
 ### Fotos — *Platzhalter (kein Screen)* `- [ ]`
 - Noch nicht gebaut → direkt im Katalog-Stil neu erstellen.
 
-### Kontakte — `lib/features/user/screens/contacts_screen.dart` `- [ ]`
+### Kontakte — `lib/features/user/screens/contacts_screen.dart` `- [x]`
 - **Material:** ListView.builder, Card, Padding, Text, Icon,
   CircularProgressIndicator, FilledButton.tonal, Center, Column
 - **Eigene Widgets:** `UserCard` → `UserAvatar` (core)
 - **Katalog-Arbeit:**
-  - [ ] `UserCard` → `DesignCard` (+ `DesignAvatar`, `DesignText`,
-        `DesignBadge`)
-  - [ ] `UserAvatar` → `DesignAvatar`
+  - [x] `UserCard` → `DesignUserCard` (neues Composite aus `DesignCard` +
+        `DesignAvatar`, `DesignText`, `DesignBadge`); `UserCard` ist nun
+        dünner Feature-Adapter `UserBasePublic` → `DesignUserCard`
+  - [x] `UserAvatar` → `DesignAvatar` (jetzt mit data:/base64-Support via
+        `resolveImageProvider`, vollwertiger Ersatz)
+  - [x] `FilledButton.tonal` (Retry) → `DesignButton` (outlined)
+  - [~] `CircularProgressIndicator` (Loading) bleibt vorerst als
+        System-Affordanz; eigener `DesignProgressIndicator` folgt bei Bedarf.
+
+  ### Nutzerprofil (Sub-Screen) — `lib/features/user/screens/user_detail_screen.dart` `- [x]`
+  - **Material:** Scaffold-Body, Center, Column, `BackButton`, `UserAvatar`,
+    `Text` (headlineSmall), `Container`-Badge, `FilledButton.tonal`;
+    **lokale** `_InfoTile`, `_SocialTile`, `_SocialRow`
+  - **Katalog-Arbeit:**
+    - [x] `UserAvatar` → `DesignAvatar`
+    - [x] `_InfoTile`/`_SocialTile`/`_SocialRow` (lokal) → `DesignListTile`
+          (+ `DesignDivider`, `DesignCard`); keine lokalen Widgets mehr
+    - [x] `BackButton` → `DesignIconButton` (`context.pop()`)
+    - [x] `Text` (Name) → `DesignText`; "Das bist du" → `DesignBadge`
+    - [x] `FilledButton.tonal` → `DesignButton` (outlined)
+    - [x] Body → `DesignSurface`
 
 ---
 
@@ -253,7 +271,7 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
 Diese bestehenden, wiederverwendbaren Widgets werden zu Katalog-Widgets
 zusammen geführt bzw. durch sie ersetzt:
 
-- `lib/core/widgets/user_avatar.dart` → `UserAvatar` → **wird zu `DesignAvatar`**
+- `lib/core/widgets/user_avatar.dart` → `UserAvatar` → **ersetzt durch `DesignAvatar`** (paritätischer Support für http/data/base64)
 - `lib/core/widgets/web_update_banner.dart` → `WebUpdateBanner` (web-only)
 - `lib/features/calendar/widgets/agenda_list.dart` → `AgendaList`
 - `lib/features/calendar/widgets/event_form_sheet.dart` → `EventFormSheet`
@@ -277,7 +295,8 @@ zusammen geführt bzw. durch sie ersetzt:
 - `lib/features/recipes/widgets/recipe_card.dart` → `RecipeCard`
 - `lib/features/settings/widgets/visibility_badge.dart` → `VisibilityBadge`
 - `lib/features/travel/widgets/user_tile.dart` → `UserTile`
-- `lib/features/user/widgets/user_card.dart` → `UserCard`
+- `lib/features/user/widgets/user_card.dart` → `UserCard` (jetzt dünner
+  Feature-Adapter auf `DesignUserCard`)
 
 ### Bekannte Inkonsistenzen (beim Migrieren normalisieren)
 - `CommentInput` existiert doppelt (`feedback` + `forum`) → eine Definition.

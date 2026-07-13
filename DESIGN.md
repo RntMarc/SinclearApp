@@ -110,10 +110,11 @@ Sub-Seiten gehören immer zur Kategorie ihrer übergeordneten Seite:
 
 # Eigenes Design-System (Design Showcase)
 
-Neben dem Material-3-Look der App existiert ein **eigenständiges, nicht auf
-Material/Cupertino basierendes Design-System**, das ausschließlich im
-**Design Showcase** (`/design-showcase`) gezeigt wird. Die übrige App bleibt
-unverändert auf Material 3.
+Neben dem ursprünglichen Material-3-Look der App existiert ein
+**eigenständiges, nicht auf Material/Cupertino basierendes Design-System**. Es
+wurde im **Design Showcase** (`/design-showcase`) als Referenz etabliert und
+wird seitdem Screen für Screen in die bestehende App überführt
+(siehe [`doc/migration_plan.md`](doc/migration_plan.md)).
 
 ## Grundprinzipien
 
@@ -182,7 +183,8 @@ lib/design/
                                  #           IconButton, Avatar, Badge, Divider,
                                  #           PressScale
     composite/                   # Layer 2: AppBar, BottomSheet, NavItem,
-                                 #           SegmentedSwitch, ListTile
+                                  #           SegmentedSwitch, ListTile,
+                                  #           UserCard
     showcase/                    # Layer 3: ShowcaseSection, ColorSwatch,
                                  #           TokenSpec
 ```
@@ -230,6 +232,35 @@ Ab der Migration der bestehenden Screens gilt zwingend:
    jede Spezialisierung bekommt ihren Platz im Katalog und wird hier dokumentiert.
 4. **Dokumentation** – jedes neue/überführte Widget ist in dieser Datei und
    (bei abweichenden Specs) in `doc/migration_plan.md` erfasst.
+
+### Spezialisierte Widgets & Feature-Adapter
+
+Ein *spezialisiertes* Widget, das ein Feature-Modell (z.B. `UserBasePublic`)
+kennt, darf nicht ins abhängigkeitsfreie `lib/design/`-Layer gezwungen werden.
+Stattdessen gilt:
+
+- Das eigentliche, modell-unabhängige Widget liegt als **Composite im Katalog**
+  (z.B. `DesignUserCard` mit `imageUrl`/`name`/`subtitle`).
+- Die Feature-Ebene stellt einen **dünnen Adapter** bereit, der das Modell auf
+  die Katalog-Parameter abbildet (z.B. `UserCard` → `DesignUserCard`).
+- Beide bauen ausschließlich auf Katalog-Primitives auf; keine lokalen
+  Widget-Definitionen in Screens.
+
+### Bereits migrierte Katalog-Widgets
+
+- **`DesignAvatar`** (`primitives`) – Kreis-Avatar mit Bild oder Initialen.
+  Unterstützt HTTP(S)-, `data:`- und rohe Base64-Bilder (via
+  `resolveImageProvider`) und ist damit vollwertiger Ersatz für das alte
+  `UserAvatar` (core). Baut auf `DesignText` + Token-Palette.
+- **`DesignUserCard`** (`composite`) – Personenzeile, komponiert aus
+  `DesignCard` + `DesignAvatar` + `DesignText` + `DesignBadge`. Modell-frei
+  (`imageUrl`, `name`, `subtitle?`, `isSelf`, `onTap`); Feature-Screens
+  mappen ihr Modell darüber (Adapter: `UserCard`).
+- **`DesignCard.list`** (`primitives`) – Variante von `DesignCard` für
+  vertikal gestapelte Kinder (z.B. Listen-Tiles). Rendert ein `Column` mit
+  konsistentem horizontalem Padding (`spaceLg`) und vertikalem Abstand
+  (`spaceMd`) zwischen den Kindern. Ersetzt lokale `_divided`-Helfer in
+  Screens; alle zukünftigen Listen nutzen `DesignCard.list(children: ...)`.
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste
