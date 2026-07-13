@@ -8,10 +8,15 @@ import 'press_scale.dart';
 ///
 /// Use [DesignCard.list] for vertically stacked children (e.g. list tiles)
 /// where consistent edge and inter-item spacing is needed.
+///
+/// The [margin] wraps the entire card (including decoration/shadow) with
+/// external spacing. Defaults to [DesignTokens.spaceLg] so cards maintain a
+/// consistent distance from screen edges. Pass `EdgeInsets.zero` to opt out.
 class DesignCard extends StatelessWidget {
   const DesignCard({
     this.child,
     this.padding,
+    this.margin,
     this.onTap,
     this.useGlass,
     this.spacing,
@@ -27,6 +32,7 @@ class DesignCard extends StatelessWidget {
   const DesignCard.list({
     required List<Widget> this.children,
     this.spacing,
+    this.margin,
     this.onTap,
     this.useGlass,
     super.key,
@@ -44,6 +50,12 @@ class DesignCard extends StatelessWidget {
   final double? spacing;
 
   final EdgeInsetsGeometry? padding;
+
+  /// External spacing around the card. Defaults to
+  /// `EdgeInsets.symmetric(horizontal: tokens.spaceLg)`. Pass
+  /// `EdgeInsets.zero` to remove the default margin.
+  final EdgeInsetsGeometry? margin;
+
   final VoidCallback? onTap;
   final bool? useGlass;
   final bool _isList;
@@ -75,19 +87,33 @@ class DesignCard extends StatelessWidget {
       );
     }
 
+    Widget result;
     if (glass) {
-      return DesignGlass(child: inner);
+      result = Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(tokens.radiusLg),
+          boxShadow: tokens.surfaceShadow,
+        ),
+        child: DesignGlass(child: inner),
+      );
+    } else {
+      result = Container(
+        decoration: BoxDecoration(
+          color: tokens.surface,
+          borderRadius: BorderRadius.circular(tokens.radiusLg),
+          border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
+          boxShadow: tokens.surfaceShadow,
+        ),
+        child: inner,
+      );
+      if (onTap != null) {
+        result = PressScale(onTap: onTap, child: result);
+      }
     }
-    final surface = Container(
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: BorderRadius.circular(tokens.radiusLg),
-        border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
-        boxShadow: tokens.surfaceShadow,
-      ),
-      child: inner,
-    );
-    if (onTap == null) return surface;
-    return PressScale(onTap: onTap, child: surface);
+
+    final effectiveMargin =
+        margin ?? EdgeInsets.symmetric(horizontal: tokens.spaceLg);
+    result = Padding(padding: effectiveMargin, child: result);
+    return result;
   }
 }

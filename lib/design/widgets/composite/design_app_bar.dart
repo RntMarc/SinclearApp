@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_theme.dart';
-import '../foundation/design_surface.dart';
 import '../foundation/design_text.dart';
 
 /// Top app bar built entirely from catalog primitives (no Material [AppBar]).
 ///
-/// Shows an optional back action, a title and trailing actions, sitting on a
-/// gradient + grain strip that matches the active design.
+/// Shows an optional back action, a title and trailing actions. Renders as a
+/// transparent strip – the parent screen should wrap the entire page in a
+/// single [DesignSurface] so the gradient is continuous from bar to body.
 class DesignAppBar extends StatelessWidget implements PreferredSizeWidget {
   const DesignAppBar({
     this.title,
     this.leading,
     this.actions,
-    this.useGrain = true,
     super.key,
   });
 
   final String? title;
   final Widget? leading;
   final List<Widget>? actions;
-  final bool useGrain;
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -27,11 +25,12 @@ class DesignAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    return DesignSurface(
-      withGrain: useGrain,
-      child: Container(
-        height: preferredSize.height,
-        padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+    return Container(
+      height: preferredSize.height,
+      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+      child: SafeArea(
+        top: true,
+        bottom: false,
         child: Row(
           children: <Widget>[
             if (leading != null)

@@ -29,6 +29,7 @@ class DesignUserCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DesignCard(
       onTap: onTap,
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: <Widget>[

@@ -4,6 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_divider.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -154,105 +162,98 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('ANMELDEN'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/'),
+    final tokens = DesignTheme.of(context);
+    return DesignSurface(
+      withGrain: false,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: DesignAppBar(
+          leading: DesignIconButton(
+            icon: Icons.arrow_back_rounded,
+            onPressed: () => context.go('/'),
+          ),
+          title: 'Anmelden',
         ),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text('E-Mail-Login', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Wir senden dir einen Code per E-Mail.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: tokens.spaceXl,
+                vertical: tokens.spaceXl,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    DesignText(
+                      'E-Mail-Login',
+                      style: DesignTextStyle.subtitle,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textCapitalization: TextCapitalization.none,
-                    decoration: const InputDecoration(
-                      labelText: 'E-Mail-Adresse',
-                      prefixIcon: Icon(Icons.email_rounded),
-                      border: OutlineInputBorder(),
+                    SizedBox(height: tokens.spaceXs),
+                    DesignText(
+                      'Wir senden dir einen Code per E-Mail.',
+                      style: DesignTextStyle.body,
+                      color: tokens.textLow,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        _error!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.error,
+                    SizedBox(height: tokens.spaceLg),
+                    DesignTextField(
+                      hint: 'E-Mail-Adresse',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    SizedBox(height: tokens.spaceLg),
+                    if (_error != null)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                        child: DesignText(
+                          _error!,
+                          style: DesignTextStyle.body,
+                          color: tokens.danger,
                         ),
                       ),
+                    DesignButton(
+                      label: _loading ? 'Wird gesendet…' : 'Code senden',
+                      icon: Icons.send_rounded,
+                      loading: _loading,
+                      fullWidth: true,
+                      onPressed: _sendOtp,
                     ),
-                  FilledButton.icon(
-                    onPressed: _loading ? null : _sendOtp,
-                    icon: _loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.send_rounded),
-                    label: Text(_loading ? 'Wird gesendet…' : 'Code senden'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'oder',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                    SizedBox(height: tokens.spaceXxl),
+                    Row(
+                      children: <Widget>[
+                        const Expanded(child: DesignDivider()),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: tokens.spaceMd,
+                          ),
+                          child: DesignText(
+                            'oder',
+                            style: DesignTextStyle.label,
+                            color: tokens.textLow,
                           ),
                         ),
+                        const Expanded(child: DesignDivider()),
+                      ],
+                    ),
+                    SizedBox(height: tokens.spaceLg),
+                    DesignButton(
+                      label: 'Mit Discord anmelden',
+                      icon: Icons.headset_mic_rounded,
+                      variant: DesignButtonVariant.outlined,
+                      fullWidth: true,
+                      onPressed: _loading ? null : _discordLogin,
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    Center(
+                      child: DesignButton(
+                        label: 'Noch kein Konto? Registrieren',
+                        variant: DesignButtonVariant.text,
+                        onPressed: _loading ? null : _discordRegister,
                       ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: _loading ? null : _discordLogin,
-                    icon: const Icon(Icons.headset_mic_rounded),
-                    label: const Text('Mit Discord anmelden'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: _loading ? null : _discordRegister,
-                      child: const Text('Noch kein Konto? Registrieren'),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

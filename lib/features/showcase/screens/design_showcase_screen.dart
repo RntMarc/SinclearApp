@@ -235,20 +235,22 @@ class DesignShowcaseScreen extends StatelessWidget {
   }
 
   Widget _appBarSample() {
-    return DesignAppBar(
-      title: 'Beispiel',
-      leading: DesignIconButton(
-        icon: Icons.arrow_back_rounded,
-        onPressed: () {},
-      ),
-      actions: <Widget>[
-        DesignIconButton(icon: Icons.search_rounded, onPressed: () {}),
-        DesignIconButton(
-          icon: Icons.notifications_rounded,
-          tinted: true,
+    return DesignSurface(
+      child: DesignAppBar(
+        title: 'Beispiel',
+        leading: DesignIconButton(
+          icon: Icons.arrow_back_rounded,
           onPressed: () {},
         ),
-      ],
+        actions: <Widget>[
+          DesignIconButton(icon: Icons.search_rounded, onPressed: () {}),
+          DesignIconButton(
+            icon: Icons.notifications_rounded,
+            tinted: true,
+            onPressed: () {},
+          ),
+        ],
+      ),
     );
   }
 

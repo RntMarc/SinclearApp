@@ -1,56 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../design/theme/design_theme.dart';
+import '../../design/widgets/foundation/design_surface.dart';
+import '../../design/widgets/foundation/design_text.dart';
+import '../../design/widgets/primitives/design_button.dart';
+
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      body: SafeArea(
+    final tokens = DesignTheme.of(context);
+    return DesignSurface(
+      child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+            padding: EdgeInsets.symmetric(
+              horizontal: tokens.spaceXl,
+              vertical: tokens.spaceXxl,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+              children: <Widget>[
                 Image.asset('assets/logo.png', width: 96, height: 96),
-                const SizedBox(height: 16),
-                Text(
+                SizedBox(height: tokens.spaceMd),
+                DesignText(
                   'Sinclear Beyond',
-                  style: theme.textTheme.displayMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Deine intelligente Plattform',
-                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Willkommen bei Sinclear Beyond – deiner neuen '
-                  'digitalen Lösung für mehr Übersicht und Effizienz. '
-                  'Wir sind noch im Aufbau, aber bald kannst du hier '
-                  'auf all deine Daten zugreifen und sie verwalten.',
+                  style: DesignTextStyle.display,
+                  color: tokens.primary,
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    height: 1.5,
-                  ),
                 ),
-                const SizedBox(height: 48),
-                FilledButton.icon(
-                  onPressed: () => context.go('/login'),
-                  icon: const Icon(Icons.login_rounded),
-                  label: const Text('Zum Login'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(240, 52),
-                    textStyle: theme.textTheme.titleMedium,
+                SizedBox(height: tokens.spaceXs),
+                DesignText(
+                  'Gemeinsam sind wir Sinclear.',
+                  style: DesignTextStyle.subtitle,
+                  color: tokens.textLow,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: tokens.spaceXl),
+                DesignText(
+                  'Chats, Kalender, Geburtstage, Kontakte – '
+                  'alles was eine Gruppe zum Überleben braucht. '
+                  'An einem Ort.',
+                  style: DesignTextStyle.body,
+                  color: tokens.textLow,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: tokens.spaceXxl),
+                Center(
+                  child: SizedBox(
+                    width: 240,
+                    child: DesignButton(
+                      label: 'Zum Login',
+                      icon: Icons.login_rounded,
+                      fullWidth: true,
+                      onPressed: () => context.go('/login'),
+                    ),
                   ),
                 ),
               ],
