@@ -34,12 +34,12 @@ class MateriaPopTokens extends DesignTokens {
 
   @override
   Color get surface => isDark
-      ? const Color(0xFF251640)
+      ? const Color(0xFF392360)
       : const Color(0xFFFFFFFF);
 
   @override
   Color get surfaceVariant => isDark
-      ? const Color(0xFF321F54)
+      ? const Color(0xFF4A2D78)
       : const Color(0xFFF6ECFF);
 
   @override

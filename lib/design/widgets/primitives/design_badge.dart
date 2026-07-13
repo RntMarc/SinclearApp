@@ -17,6 +17,9 @@ class DesignBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final bg = color ?? tokens.surfaceVariant;
+    final textColor = bg.computeLuminance() > 0.5
+        ? const Color(0xFF1A1A1A)
+        : const Color(0xFFF0F0F0);
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: tokens.spaceSm,
@@ -29,7 +32,7 @@ class DesignBadge extends StatelessWidget {
       child: DesignText(
         label,
         style: DesignTextStyle.label,
-        color: tokens.textLow,
+        color: textColor,
       ),
     );
   }

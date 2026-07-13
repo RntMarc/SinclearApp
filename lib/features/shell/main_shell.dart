@@ -8,6 +8,15 @@ import '../../core/di/app_scope.dart';
 import '../../core/models/app_update_info.dart';
 import '../../core/services/android_update_service.dart';
 import '../update/update_dialog.dart';
+import '../../design/theme/design_theme.dart';
+import '../../design/widgets/foundation/design_surface.dart';
+import '../../design/widgets/foundation/design_text.dart';
+import '../../design/widgets/composite/design_app_bar.dart';
+import '../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../design/widgets/composite/design_list_tile.dart';
+import '../../design/widgets/primitives/design_icon_button.dart';
+import '../../design/widgets/primitives/design_badge.dart';
+import '../../design/widgets/primitives/press_scale.dart';
 
 class MainShell extends StatefulWidget {
   final Widget child;
@@ -126,25 +135,35 @@ class _DesktopShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final location = GoRouterState.of(context).matchedLocation;
 
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(_titleForLocation(location)),
-        actions: [_NotificationBell()],
-      ),
-      body: Row(
+    return DesignSurface(
+      child: Column(
         children: [
-          SizedBox(
-            width: 288,
-            child: _NavContent(
-              currentLocation: location,
-              onNavigate: (route) => context.go(route),
+          DesignAppBar(
+            title: _titleForLocation(location),
+            actions: [_NotificationBell()],
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 288,
+                  child: _NavContent(
+                    currentLocation: location,
+                    onNavigate: (route) => context.go(route),
+                  ),
+                ),
+                VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: tokens.border.withValues(alpha: 0.6),
+                ),
+                Expanded(child: child),
+              ],
             ),
           ),
-          const VerticalDivider(width: 1),
-          Expanded(child: child),
         ],
       ),
     );
@@ -160,10 +179,14 @@ class _MobileShell extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final title = _titleForLocation(location);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(title), actions: [_NotificationBell()]),
-      body: child,
-      bottomNavigationBar: _MobileBottomNav(currentLocation: location),
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(title: title, actions: [_NotificationBell()]),
+          Expanded(child: child),
+          _MobileBottomNav(currentLocation: location),
+        ],
+      ),
     );
   }
 }
@@ -214,33 +237,80 @@ class _MobileBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final active = _categoryForLocation(currentLocation);
 
-    return BottomNavigationBar(
-      currentIndex: active.index,
-      onTap: (index) => _onTap(context, _NavCategory.values[index]),
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Theme.of(context).colorScheme.primary,
-      unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings_rounded),
-          label: 'System',
+    final items = <({IconData icon, String label, _NavCategory category})>[
+      (
+        icon: Icons.settings_rounded,
+        label: 'System',
+        category: _NavCategory.system,
+      ),
+      (
+        icon: Icons.people_rounded,
+        label: 'Gemeinschaft',
+        category: _NavCategory.gemeinschaft,
+      ),
+      (
+        icon: Icons.home_rounded,
+        label: 'Start',
+        category: _NavCategory.home,
+      ),
+      (
+        icon: Icons.explore_rounded,
+        label: 'Unterwegs',
+        category: _NavCategory.unterwegs,
+      ),
+      (
+        icon: Icons.calendar_month_rounded,
+        label: 'Organisation',
+        category: _NavCategory.organisation,
+      ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        border: Border(
+          top: BorderSide(
+            color: tokens.border.withValues(alpha: 0.6),
+            width: 1,
+          ),
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.people_rounded),
-          label: 'Gemeinschaft',
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: tokens.spaceXs,
+            horizontal: tokens.spaceSm,
+          ),
+          child: Row(
+            children: items.map((item) {
+              final isActive = item.category == active;
+              final fg = isActive ? tokens.primary : tokens.textLow;
+              return Expanded(
+                child: PressScale(
+                  onTap: () => _onTap(context, item.category),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(item.icon, color: fg, size: 24),
+                      SizedBox(height: 4),
+                      Text(
+                        item.label,
+                        style: tokens.labelStyle(fg).copyWith(fontSize: 11),
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Start'),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.explore_rounded),
-          label: 'Unterwegs',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month_rounded),
-          label: 'Organisation',
-        ),
-      ],
+      ),
     );
   }
 
@@ -300,7 +370,11 @@ class _MobileBottomNav extends StatelessWidget {
           context,
           category: 'Organisation',
           items: [
-            _SheetItem('Kalender', Icons.calendar_month_rounded, '/kalender'),
+            _SheetItem(
+              'Kalender',
+              Icons.calendar_month_rounded,
+              '/kalender',
+            ),
             _SheetItem('Umfrage', Icons.poll_rounded, null),
             _SheetItem('Abos', Icons.subscriptions_rounded, null),
           ],
@@ -314,14 +388,9 @@ class _MobileBottomNav extends StatelessWidget {
     required List<_SheetItem> items,
   }) {
     final location = GoRouterState.of(context).matchedLocation;
-
-    showModalBottomSheet(
+    showDesignSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _CategorySheet(
+      child: _CategorySheet(
         category: category,
         items: items,
         currentLocation: location,
@@ -361,80 +430,61 @@ class _CategorySheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
-    return SafeArea(
+    return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
+          DesignText(
             category,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: tokens.spaceMd),
           ...items.map((item) {
             final isActive =
                 item.route != null && currentLocation.startsWith(item.route!);
             final isPlaceholder = item.route == null;
             final showBadge = isPlaceholder || item.comingSoon;
 
-            return ListTile(
-              leading: Icon(
-                item.icon,
-                color: isPlaceholder
-                    ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
-                    : null,
+            return Opacity(
+              opacity: isPlaceholder ? 0.45 : 1.0,
+              child: DesignListTile(
+                leading: Icon(
+                  item.icon,
+                  color: isPlaceholder ? tokens.textLow : tokens.textHigh,
+                ),
+                title: item.label,
+                onTap: isPlaceholder
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        context.go(item.route!);
+                      },
+                trailing: showBadge
+                    ? DesignBadge(label: 'Bald')
+                    : isActive
+                        ? DesignBadge(
+                            label: 'Aktiv',
+                            color: tokens.primary,
+                          )
+                        : null,
+                padding: EdgeInsets.symmetric(
+                  horizontal: tokens.spaceMd,
+                  vertical: tokens.spaceSm,
+                ),
               ),
-              title: Text(
-                item.label,
-                style: isPlaceholder
-                    ? TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.4,
-                        ),
-                      )
-                    : null,
-              ),
-              trailing: showBadge
-                  ? Chip(
-                      label: const Text('Bald'),
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide.none,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      labelStyle: theme.textTheme.labelSmall,
-                    )
-                  : null,
-              selected: isActive,
-              selectedTileColor: theme.colorScheme.primaryContainer,
-              onTap: isPlaceholder
-                  ? null
-                  : () {
-                      Navigator.pop(context);
-                      context.go(item.route!);
-                    },
             );
           }),
-          const SizedBox(height: 8),
+          SizedBox(height: tokens.spaceMd),
         ],
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Desktop Sidebar Navigation
 // ---------------------------------------------------------------------------
@@ -443,13 +493,16 @@ class _NavContent extends StatelessWidget {
   final String currentLocation;
   final void Function(String route) onNavigate;
 
-  const _NavContent({required this.currentLocation, required this.onNavigate});
+  const _NavContent({
+    required this.currentLocation,
+    required this.onNavigate,
+  });
 
   bool _isActive(String route) => currentLocation.startsWith(route);
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -457,127 +510,174 @@ class _NavContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+              padding: EdgeInsets.fromLTRB(
+                tokens.spaceLg,
+                tokens.spaceLg,
+                tokens.spaceLg,
+                tokens.spaceMd,
+              ),
               child: Row(
                 children: [
                   Image.asset('assets/logo.png', width: 32, height: 32),
-                  const SizedBox(width: 12),
-                  Text(
+                  SizedBox(width: tokens.spaceMd),
+                  DesignText(
                     'Beyond',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: DesignTextStyle.subtitle,
+                    color: tokens.textHigh,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.home_rounded),
-              title: const Text('Start'),
-              selected: _isActive('/home'),
+            _tile(
+              context,
+              icon: Icons.home_rounded,
+              label: 'Start',
+              active: _isActive('/home'),
               onTap: () => onNavigate('/home'),
             ),
-            ListTile(
-              leading: const Icon(Icons.palette_rounded),
-              title: const Text('Design Showcase'),
-              selected: _isActive('/design-showcase'),
+            _tile(
+              context,
+              icon: Icons.palette_rounded,
+              label: 'Design Showcase',
+              active: _isActive('/design-showcase'),
               onTap: () => onNavigate('/design-showcase'),
             ),
-            _CategoryHeader(title: 'SYSTEM'),
-            ListTile(
-              leading: const Icon(Icons.settings_rounded),
-              title: const Text('Einstellungen'),
-              selected: _isActive('/einstellungen'),
+            _header(context, 'SYSTEM'),
+            _tile(
+              context,
+              icon: Icons.settings_rounded,
+              label: 'Einstellungen',
+              active: _isActive('/einstellungen'),
               onTap: () => onNavigate('/einstellungen'),
             ),
-            ListTile(
-              leading: const Icon(Icons.feedback_rounded),
-              title: const Text('Feedback'),
-              selected: _isActive('/feedback'),
+            _tile(
+              context,
+              icon: Icons.feedback_rounded,
+              label: 'Feedback',
+              active: _isActive('/feedback'),
               onTap: () => onNavigate('/feedback'),
             ),
-            _CategoryHeader(title: 'GEMEINSCHAFT'),
-            ListTile(
-              leading: const Icon(Icons.forum_rounded),
-              title: const Text('Forum'),
-              selected: _isActive('/forum'),
+            _header(context, 'GEMEINSCHAFT'),
+            _tile(
+              context,
+              icon: Icons.forum_rounded,
+              label: 'Forum',
+              active: _isActive('/forum'),
               onTap: () => onNavigate('/forum'),
             ),
-            ListTile(
-              leading: const Icon(Icons.restaurant_rounded),
-              title: const Text('Rezepte'),
-              selected: _isActive('/rezepte'),
+            _tile(
+              context,
+              icon: Icons.restaurant_rounded,
+              label: 'Rezepte',
+              active: _isActive('/rezepte'),
               onTap: () => onNavigate('/rezepte'),
             ),
-            ListTile(
-              leading: const Icon(Icons.people_rounded),
-              title: const Text('Kontakte'),
-              selected: _isActive('/kontakte'),
+            _tile(
+              context,
+              icon: Icons.people_rounded,
+              label: 'Kontakte',
+              active: _isActive('/kontakte'),
               onTap: () => onNavigate('/kontakte'),
             ),
-            _CategoryHeader(title: 'UNTERWEGS'),
-            ListTile(
-              leading: const Icon(Icons.explore_rounded),
-              title: const Text('Entdecken'),
-              selected: _isActive('/entdecken'),
+            _header(context, 'UNTERWEGS'),
+            _tile(
+              context,
+              icon: Icons.explore_rounded,
+              label: 'Entdecken',
+              active: _isActive('/entdecken'),
               onTap: () => onNavigate('/entdecken'),
             ),
-            ListTile(
-              leading: const Icon(Icons.flight_rounded),
-              title: const Text('Reisen & Events'),
-              selected: _isActive('/reisen'),
+            _tile(
+              context,
+              icon: Icons.flight_rounded,
+              label: 'Reisen & Events',
+              active: _isActive('/reisen'),
               onTap: () => onNavigate('/reisen'),
             ),
-            ListTile(
-              leading: const Icon(Icons.share_location_rounded),
-              title: Row(
-                children: [
-                  const Text('Standort teilen'),
-                  const SizedBox(width: 8),
-                  Chip(
-                    label: const Text('Bald'),
-                    visualDensity: VisualDensity.compact,
-                    side: BorderSide.none,
-                    backgroundColor:
-                        theme.colorScheme.surfaceContainerHighest,
-                    labelStyle: theme.textTheme.labelSmall,
-                  ),
-                ],
-              ),
-              selected: _isActive('/standort-teilen'),
+            _tile(
+              context,
+              icon: Icons.share_location_rounded,
+              label: 'Standort teilen',
+              active: _isActive('/standort-teilen'),
               onTap: () => onNavigate('/standort-teilen'),
+              trailing: DesignBadge(label: 'Bald'),
             ),
-            _CategoryHeader(title: 'ORGANISATION'),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_rounded),
-              title: const Text('Kalender'),
-              selected: _isActive('/kalender'),
+            _header(context, 'ORGANISATION'),
+            _tile(
+              context,
+              icon: Icons.calendar_month_rounded,
+              label: 'Kalender',
+              active: _isActive('/kalender'),
               onTap: () => onNavigate('/kalender'),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: tokens.spaceMd),
           ],
         ),
       ),
     );
   }
-}
 
-class _CategoryHeader extends StatelessWidget {
-  final String title;
-  const _CategoryHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _header(BuildContext context, String title) {
+    final tokens = DesignTheme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
+      padding: EdgeInsets.fromLTRB(
+        tokens.spaceLg,
+        tokens.spaceLg,
+        tokens.spaceLg,
+        tokens.spaceXs,
+      ),
+      child: DesignText(
         title,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
+        style: DesignTextStyle.label,
+        color: tokens.primary,
+      ),
+    );
+  }
+
+  Widget _tile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required bool active,
+    required VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    final tokens = DesignTheme.of(context);
+    final enabled = onTap != null;
+    final fg = active
+        ? tokens.primary
+        : enabled
+            ? tokens.textLow
+            : tokens.textLow.withValues(alpha: 0.4);
+
+    return PressScale(
+      onTap: onTap,
+      child: Container(
+        margin: EdgeInsets.symmetric(
+          horizontal: tokens.spaceMd,
+          vertical: tokens.spaceXs,
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: tokens.spaceMd,
+          vertical: tokens.spaceSm,
+        ),
+        decoration: BoxDecoration(
+          color: active ? tokens.surfaceVariant : Colors.transparent,
+          borderRadius: BorderRadius.circular(tokens.radiusMd),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: fg, size: 22),
+            SizedBox(width: tokens.spaceMd),
+            Expanded(
+              child: DesignText(
+                label,
+                style: DesignTextStyle.body,
+                color: fg,
+              ),
+            ),
+            trailing ?? const SizedBox.shrink(),
+          ],
         ),
       ),
     );
@@ -616,16 +716,26 @@ class _NotificationBellState extends State<_NotificationBell> {
   @override
   Widget build(BuildContext context) {
     final notif = AppScope.of(context).notification;
-    return IconButton(
-      icon: notif.unreadCount > 0
-          ? Badge(
-              label: Text(
-                notif.unreadCount > 99 ? '99+' : notif.unreadCount.toString(),
-              ),
-              child: const Icon(Icons.notifications_rounded),
-            )
-          : const Icon(Icons.notifications_outlined),
-      onPressed: () => _showSheet(context),
+    final unread = notif.unreadCount;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        DesignIconButton(
+          icon: unread > 0
+              ? Icons.notifications_rounded
+              : Icons.notifications_outlined,
+          onPressed: () => _showSheet(context),
+        ),
+        if (unread > 0)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: DesignBadge(
+              label: unread > 99 ? '99+' : unread.toString(),
+            ),
+          ),
+      ],
     );
   }
 
@@ -633,7 +743,7 @@ class _NotificationBellState extends State<_NotificationBell> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Colors.transparent,
       builder: (_) => const NotificationSheet(),
     );
   }

@@ -220,30 +220,104 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
 
 ## 4. Unterwegs (Bottom-Nav Index 3)
 
-### Entdecken — `lib/features/explore/screens/explore_screen.dart` `- [ ]`
-- **Material:** Column, Padding, Row, InkWell, Container, IconButton,
+### Entdecken — `lib/features/explore/screens/explore_screen.dart` `[x]`
+- **Material:** ~~Column, Padding, Row, InkWell, Container, IconButton,
   CustomScrollView, SliverPadding, SliverToBoxAdapter, SliverGrid,
   SliverChildBuilderDelegate, ListView.separated, Card, Text, Icon,
   FilledButton.tonal, TextButton, Stack, CircularProgressIndicator,
-  SafeArea, PageRouteBuilder+SlideTransition
-- **Eigene Widgets:** `ExploreMap` (flutter_map), `ExploreSearchOverlay`,
-  `PlaceCard`; lokal `_CategoryButton`
+  SafeArea, PageRouteBuilder+SlideTransition~~
+- **Eigene Widgets:** ~~`_CategoryButton`~~ (entfernt)
 - **Katalog-Arbeit:**
-  - [ ] `PlaceCard` → `DesignCard` (+ `DesignText`, `DesignChip`)
-  - [ ] `_CategoryButton` → `DesignChip`/`DesignButton`
-  - [ ] `IconButton` → `DesignIconButton`
-  - [ ] `ExploreSearchOverlay` (Sheet) → `showDesignSheet` + `DesignTextField`
+  - [x] `DesignSurface` als Seiten-Wrapper
+  - [x] `Card` → `DesignCard` (Suchleiste, Bookmark-Karten)
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `InkWell`/Container (Suchleiste) → `DesignCard(onTap: _openSearch)`
+  - [x] `_CategoryButton` (`OutlinedButton.icon`) → `DesignButton`(outlined) inline
+  - [x] `IconButton.filled` → `DesignIconButton`(tinted)
+  - [x] `IconButton` → `DesignIconButton`
+  - [x] `FilledButton.tonal` → `DesignButton`(filled)
+  - [x] `TextButton` → `DesignButton`(text)
+  - [x] `CircularProgressIndicator` → `tokens.primary`
 
-### Reisen — `lib/features/travel/screens/travel_screen.dart` `- [ ]`
-- **Material:** CustomScrollView, SliverToBoxAdapter, SliverList,
-  SliverChildBuilderDelegate, Card, ListTile, CircleAvatar, Icon, Text,
-  ElevatedButton, Center, Column
-- **Eigene Widgets:** lokal `_TimelineCard` (nutzt `CircleAvatar` **direkt**)
+### Entdecken-Kategorie — `lib/features/explore/screens/category_screen.dart` `[x]`
+- **Material:** ~~Column, Row, InkWell, Container, IconButton, Text,
+  TextButton.icon, FilledButton.tonal, FilterChip, Card, CircularProgressIndicator,
+  GridView.builder, RefreshIndicator, PageRouteBuilder+SlideTransition~~
+- **Eigene Widgets:** ~~lokales `SortChip` (`FilterChip`)~~ (entfernt)
 - **Katalog-Arbeit:**
-  - [ ] `_TimelineCard`/`Card` → `DesignCard` (+ `DesignText`)
-  - [ ] `CircleAvatar` (direkt) → `DesignAvatar`
-  - [ ] `ListTile` → `DesignListTile`
-  - [ ] `ElevatedButton` → `DesignButton`
+  - [x] `DesignSurface` als Seiten-Wrapper
+  - [x] `FilterChip`/`SortChip` → `DesignChip` (selected/unselected)
+  - [x] `Card` → `DesignCard`
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `IconButton` → `DesignIconButton`
+  - [x] `FilledButton.tonal` → `DesignButton`(filled)
+  - [x] `TextButton.icon` → `DesignButton`(text)
+  - [x] `CircularProgressIndicator` → `tokens.primary`
+
+### Entdecken-Detail — `lib/features/explore/screens/detail_screen.dart` `[x]`
+- **Material:** ~~Scaffold, AppBar, Card, BackButton, FilledButton.tonalIcon,
+  OutlinedButton.icon, IconButton, CircleAvatar/UserAvatar, Text, TextButton,
+  AlertDialog, DefaultTabController, TabBar, TabBarView, SimpleAttributionWidget~~
+- **Eigene Widgets:** lokale Tab-Composites (`_WideDetail`, `_NarrowDetail`,
+  `_InfoContent`, `_MapCard`, `_ActionsCard`, `_ReviewsSection`, `_ReviewCard`,
+  `_StarRating`, `_ReviewForm`) bestehen als dünne Katalog-Zusammenbauten.
+  Top-level Hilfen `_infoRow`/`_metaRow` ersetzen die früheren lokalen Klassen.
+- **Katalog-Arbeit:**
+  - [x] `DesignSurface` + `DesignAppBar` (zurück) als Seiten-Wrapper
+  - [x] `Card` → `DesignCard` (auch MapCard mit `useGlass: false` + `ClipRRect`)
+  - [x] `BackButton` → `DesignIconButton` + `context.pop()`
+  - [x] `FilledButton.tonalIcon` → `DesignButton`(filled, `loading`, `icon`)
+  - [x] `OutlinedButton.icon` → `DesignButton`(outlined)
+  - [x] `IconButton` → `DesignIconButton`
+  - [x] `UserAvatar` → `DesignAvatar`
+  - [x] `TextButton` → `DesignButton`(text)
+  - [x] `AlertDialog` (Löschen, Bewertung editieren) → `showDesignSheet`
+  - [x] `SimpleAttributionWidget` → entfernt (overflow)
+  - [x] `TabBar`/`TabBarView` mit Token-Farben (`indicatorColor`, `labelColor`)
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `CircleAvatar` (InfoRow Icons) → `Icon` mit Token-Farben
+
+### Ort hinzufügen — `lib/features/explore/screens/create_place_screen.dart` `[x]`
+- **Material:** ~~TextField, FilledButton.icon, ListView.separated, ListTile,
+  Divider, Text, Theme.of~~
+- **Eigene Widgets:** keine
+- **Katalog-Arbeit:**
+  - [x] `DesignSurface` + `DesignAppBar` als Seiten-Wrapper
+  - [x] `TextField` → `DesignTextField`
+  - [x] `FilledButton.icon` → `DesignButton`(filled)
+  - [x] `ListTile` → `DesignListTile` (+ `DesignCard`)
+  - [x] `Divider` → `DesignDivider`
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+
+### Reisen — `lib/features/travel/screens/travel_screen.dart` `[x]`
+- **Material:** ~~CustomScrollView, SliverToBoxAdapter, SliverList,
+  SliverChildBuilderDelegate, Card, ListTile, CircleAvatar, Icon, Text,
+  ElevatedButton, Center, Column~~
+- **Eigene Widgets:** ~~lokal `_TimelineCard`~~
+- **Katalog-Arbeit:**
+  - [x] `_TimelineCard` → inline-codiert (lokale Klasse entfernt)
+  - [x] `Card` → `DesignCard`
+  - [x] `CircleAvatar` → `Container` + `Icon` + Token-Farben (kein Avatar nötig für Trip/Event-Icons)
+  - [x] `ListTile` → custom `Row` in `DesignCard` (DesignListTile wegen Gesture-Konflikt mit DesignCard.onTap vermieden)
+  - [x] `ElevatedButton` → `DesignButton`
+  - [x] `Text`/`Theme.of(context).textTheme` → `DesignText`
+  - [x] `CustomScrollView`/SliverList → `SingleChildScrollView` + `Column`
+
+### Reisedetail — `lib/features/travel/screens/trip_detail_screen.dart` `[x]`
+- **Material:** ~~TabBar, TabBarView, Card, CircleAvatar, Chip, ElevatedButton,
+  Text, Theme.of~~
+- **Eigene Widgets:** ~~`_SectionHeader`~~ entfernt; lokale Tab-Widgets (`_OverviewTab`,
+  `_AccommodationCard`, `_AccommodationMap`, `_EventsTab`, `_EventCard`,
+  `_MapTab`) bestehen als Thin-Composites aus Katalog-Widgets.
+- **Katalog-Arbeit:**
+  - [x] `DesignSurface` + `DesignAppBar` (zurück) als Seiten-Wrapper
+  - [x] `TabBar` mit Token-Farben (`indicatorColor`, `labelColor`, `unselectedLabelColor`)
+  - [x] `Card` → `DesignCard` (inkl. Karten für FlutterMap mit `useGlass: false`)
+  - [x] `CircleAvatar`/`UserAvatar` → `DesignAvatar`
+  - [x] `Chip` → `DesignBadge`
+  - [x] `ElevatedButton` → `DesignButton`
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `UserTile` (Feature-Adapter) → `DesignAvatar` + `DesignText`
 
 ---
 
@@ -282,16 +356,19 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
   - [ ] `AlertDialog` → `showDesignSheet` + `DesignCard`
   - [ ] Buttons → `DesignButton`
 
-### Notification-Sheet — `lib/features/notifications/widgets/notification_sheet.dart` `- [ ]`
-- **Material:** DraggableScrollableSheet, Column, Padding, Container, Row,
+### Notification-Sheet — `lib/features/notifications/widgets/notification_sheet.dart` `[x]`
+- **Material:** ~~DraggableScrollableSheet, Column, Padding, Container, Row,
   Text, TextButton.icon, Divider, RefreshIndicator, ListView.builder,
-  Dismissible, CircleAvatar, ListTile, Icon, Expanded, Center
-- **Eigene Widgets:** lokal `_NotificationItem` (nutzt `CircleAvatar`
-  **direkt**)
+  Dismissible, CircleAvatar, ListTile, Icon, Expanded, Center~~
+- **Eigene Widgets:** lokal `_NotificationItem` (nutzt `DesignListTile` +
+  `DesignAvatar`-ähnliches Container+Icon)
 - **Katalog-Arbeit:**
-  - [ ] Sheet → `showDesignSheet`
-  - [ ] `_NotificationItem`/`ListTile` → `DesignListTile`
-  - [ ] `CircleAvatar` (direkt) → `DesignAvatar`
+  - [x] Sheet-Background → `Container` mit `tokens.surface` + abgerundeten Ecken
+  - [x] `ListTile` → `DesignListTile`
+  - [x] `CircleAvatar` → `Container` + `Icon` + Token-Farben
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `TextButton.icon` → `DesignButton`(text)
+  - [x] `Divider` → `DesignDivider`
 
 ---
 
@@ -315,9 +392,9 @@ zusammen geführt bzw. durch sie ersetzt:
 - `lib/core/widgets/web_update_banner.dart` → `WebUpdateBanner` (web-only)
 - `lib/features/calendar/widgets/agenda_list.dart` → `AgendaList`
 - `lib/features/calendar/widgets/event_form_sheet.dart` → `EventFormSheet`
-- `lib/features/explore/widgets/explore_map.dart` → `ExploreMap`
-- `lib/features/explore/widgets/explore_search_overlay.dart` → `ExploreSearchOverlay`
-- `lib/features/explore/widgets/place_card.dart` → `PlaceCard`
+- `lib/features/explore/widgets/explore_map.dart` → `ExploreMap` (SimpleAttributionWidget entfernt, da Overflow im constrained Container)
+- `lib/features/explore/widgets/explore_search_overlay.dart` → `ExploreSearchOverlay` (DesignSurface+AppBar, DesignTextField, DesignButton, DesignChip; DesignButton-Reihe statt SegmentedButton)
+- `lib/features/explore/widgets/place_card.dart` → `PlaceCard` (Card→DesignCard, Text→DesignText, Theme.of→DesignTheme.of)
 - `lib/features/feedback/widgets/comment_input.dart` → `CommentInput`
 - `lib/features/feedback/widgets/comment_tile.dart` → `CommentTile`
 - `lib/features/feedback/widgets/suggestion_card.dart` → `SuggestionCard`
@@ -342,3 +419,34 @@ zusammen geführt bzw. durch sie ersetzt:
 - `CommentInput` existiert doppelt (`feedback` + `forum`) → eine Definition.
 - `CircleAvatar` wird direkt statt `UserAvatar` genutzt in: `TravelScreen`,
   `NotificationSheet`. (OnboardingScreen migriert → `DesignAvatar`)
+
+---
+
+## Shell / Navigation (quer über alle Screens) `- [x]`
+
+- **Material:** `Scaffold` + `AppBar` (Titel via `_titleForLocation`),
+  `BottomNavigationBar` (5 Kategorien, öffnet `showModalBottomSheet` mit
+  Untereinträgen), Desktop-`Scaffold` mit 288px-Sidebar (`ListTile` +
+  `VerticalDivider`), `Chip` ("Bald") für Platzhalter, `IconButton`+`Badge`
+  für Notification-Bell
+- **Katalog-Arbeit:**
+  - [x] `Scaffold`+`AppBar` (Shell) → `DesignSurface` (ganze Seite) +
+        `DesignAppBar` (`title` = `_titleForLocation`, `actions` =
+        Notification-Bell). Funktionalität und Struktur (Desktop-Sidebar +
+        Mobile-Bottom-Nav + Kategorie-Sheets) unverändert.
+  - [x] Mobile `BottomNavigationBar` → Design-Bottom-Nav (Container mit
+        `tokens.surface` + oberem `Border`, 5 gleichgewichtete `Expanded`-
+        Spalten aus `Icon` + `DesignText` (label), aktiver Tab in
+        `tokens.primary`, `PressScale` für Tap-Feedback)
+  - [x] Desktop-Sidebar `ListTile` → Design-Nav-Tiles (Inline-Komposition aus
+        `PressScale` + `Container`(`tokens.surfaceVariant` bei aktiv) + `Icon`
+        + `DesignText`), Gruppen-Header als `DesignText`(`label`, `tokens.primary`)
+  - [x] `VerticalDivider` → `tokens.border` (alpha 0.6)
+  - [x] Kategorie-Sheet (`showModalBottomSheet`, `ListTile`, `Chip` "Bald") →
+        `showDesignSheet` + `DesignListTile` + `DesignBadge`("Bald" bzw.
+        "Aktiv"); aktiver Eintrag via `currentLocation`-Präfix, Platzhalter
+        abgeblendet
+  - [x] Notification-Bell `IconButton`+`Badge` → `DesignIconButton` +
+        `Stack`/`Positioned` mit `DesignBadge` (Ungelesen-Count)
+  - [~] `MaterialApp.router` liefert weiterhin den Root-`ScaffoldMessenger`,
+        daher keine Snackbar-Regression trotz entfallenem Shell-`Scaffold`

@@ -57,7 +57,9 @@ class SuggestionList extends StatelessWidget {
       ..sort((a, b) => a.status.sortIndex.compareTo(b.status.sortIndex));
 
     return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 180),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       itemCount: sorted.length,
       itemBuilder: (context, index) {
         final suggestion = sorted[index];
