@@ -290,9 +290,9 @@ Design-Tokens bekommt.
   den Abstand steuert, wie bei `ListView`-Padding oder Screen-Padding).
 - **`DesignTextField`** (`primitives`) – Katalog-Textfeld (ersetzt Material
   `TextField`). Parameter: `hint`, `controller`, `obscure`, `keyboardType`,
-  `textAlign`, `maxLength` (blendet den Zähler via `counterText: ''` aus),
-  `prefixIcon`, `suffix` (Widget, z.B. VisibilityBadge). Baut auf
-  Token-Palette + `radiusMd`; Fokus zeigt Primärfarbe und Glow-Schatten.
+  `textAlign`, `maxLines` (default 1), `maxLength` (blendet den Zähler via
+  `counterText: ''` aus), `prefixIcon`, `suffix` (Widget, z.B. VisibilityBadge).
+  Baut auf Token-Palette + `radiusMd`; Fokus zeigt Primärfarbe und Glow-Schatten.
 - **`DesignButton`** (`primitives`) – Katalog-Button mit den Varianten
   `filled` / `outlined` / `ghost` / `patterned` / `text`. `text` rendert einen
   reinen Text-Link (transparenter Hintergrund, Primärfarbe). `loading: true`

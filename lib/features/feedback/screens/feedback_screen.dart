@@ -9,6 +9,7 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../models/feedback_models.dart';
 import '../services/feedback_service.dart';
@@ -337,31 +338,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     required String hint,
     int maxLines = 1,
   }) {
-    final tokens = DesignTheme.of(context);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: tokens.spaceMd,
-        vertical: tokens.spaceSm,
-      ),
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: BorderRadius.circular(tokens.radiusMd),
-        border: Border.all(
-          color: tokens.border.withValues(alpha: 0.8),
-          width: 1.5,
-        ),
-      ),
-      child: TextField(
-        controller: controller,
-        maxLines: maxLines,
-        style: tokens.bodyStyle(tokens.textHigh),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: tokens.bodyStyle(tokens.textLow),
-          border: InputBorder.none,
-          isCollapsed: true,
-        ),
-      ),
+    return DesignTextField(
+      controller: controller,
+      hint: hint,
+      maxLines: maxLines,
     );
   }
 
