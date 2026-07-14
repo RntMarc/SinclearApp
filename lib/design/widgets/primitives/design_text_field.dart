@@ -12,6 +12,7 @@ class DesignTextField extends StatefulWidget {
     this.textAlign = TextAlign.start,
     this.maxLength,
     this.prefixIcon,
+    this.suffix,
     super.key,
   });
 
@@ -22,6 +23,11 @@ class DesignTextField extends StatefulWidget {
   final TextAlign textAlign;
   final int? maxLength;
   final IconData? prefixIcon;
+
+  /// An optional widget rendered after the text input (e.g. a
+  /// [VisibilityBadge]). The suffix sits inside the field's border, aligned
+  /// to the trailing edge, so it stays visually part of the same input row.
+  final Widget? suffix;
 
   @override
   State<DesignTextField> createState() => _DesignTextFieldState();
@@ -85,6 +91,10 @@ class _DesignTextFieldState extends State<DesignTextField> {
               ),
             ),
           ),
+          if (widget.suffix != null) ...<Widget>[
+            SizedBox(width: tokens.spaceSm),
+            widget.suffix!,
+          ],
         ],
       ),
     );

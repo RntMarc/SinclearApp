@@ -163,13 +163,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push('/einstellungen/profil'),
               ),
-              DesignListTile(
-                leading: const Icon(Icons.cake_rounded),
-                title: 'Geburtstag',
-                subtitle: user.base.birthday ?? 'Nicht angegeben',
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/einstellungen/profil'),
-              ),
             ],
           ),
 

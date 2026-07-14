@@ -246,6 +246,27 @@ Stattdessen gilt:
 - Beide bauen ausschließlich auf Katalog-Primitives auf; keine lokalen
   Widget-Definitionen in Screens.
 
+### Konsistenzregel: Eingabefelder
+
+**Jedes Texteingabefeld** in einem migrierten Screen verwendet `DesignTextField`
+aus dem Katalog. Es gibt keine ad-hoc `TextField`- mit `OutlineInputBorder`-
+oder `InputDecoration`-Kombinationen mehr auf Screen-Ebene.
+
+- Einfache Felder → `DesignTextField` mit den Katalog-Parametern.
+- Felder mit einer Sichtbarkeitsauswahl (wie `VisibilityBadge`) → `suffix`-
+  Parameter am `DesignTextField`.
+- Zwei zusammengehörige Felder nebeneinander (z.B. Benutzername + Server) →
+  zwei `Expanded(DesignTextField(...))` in einem `Row`.
+- Nur wenn ein `TextField` technisch nicht durch `DesignTextField` abbildbar
+  ist (z.B. ein read-only-Date-Picker-Trigger), darf ein token-gestylter
+  `TextField` mit `Material(type: MaterialType.transparency)`-Wrapper
+  verwendet werden – aber auch nur, bis ein entsprechendes Katalog-Widget
+  (z.B. `DesignPickerField`) existiert.
+
+Diese Regel stellt sicher, dass **jeder Input denselben Fokus-Glow, dieselbe
+Border, dieselbe Hintergrundfarbe und dieselbe Schrift** aus den aktiven
+Design-Tokens bekommt.
+
 ### Bereits migrierte Katalog-Widgets
 
 - **`DesignAvatar`** (`primitives`) – Kreis-Avatar mit Bild oder Initialen.
@@ -270,8 +291,8 @@ Stattdessen gilt:
 - **`DesignTextField`** (`primitives`) – Katalog-Textfeld (ersetzt Material
   `TextField`). Parameter: `hint`, `controller`, `obscure`, `keyboardType`,
   `textAlign`, `maxLength` (blendet den Zähler via `counterText: ''` aus),
-  `prefixIcon`. Baut auf Token-Palette + `radiusMd`; Fokus zeigt Primärfarbe
-  und Glow-Schatten.
+  `prefixIcon`, `suffix` (Widget, z.B. VisibilityBadge). Baut auf
+  Token-Palette + `radiusMd`; Fokus zeigt Primärfarbe und Glow-Schatten.
 - **`DesignButton`** (`primitives`) – Katalog-Button mit den Varianten
   `filled` / `outlined` / `ghost` / `patterned` / `text`. `text` rendert einen
   reinen Text-Link (transparenter Hintergrund, Primärfarbe). `loading: true`
@@ -279,10 +300,10 @@ Stattdessen gilt:
   des `icon` (kein lokaler Spinner nötig). `fullWidth` spannt den Button über
   die gesamte Breite.
 - **`DesignAppBar`** (`composite`) – Nicht-Material AppBar aus `DesignText`
-  (kein eigenes `DesignSurface`). Rendert einen transparenten 64 px-Strip;
-  der parent Screen wickelt die gesamte Seite (AppBar + Body) in ein einziges
-  `DesignSurface`, damit Gradient und Grain unterbrechungsfrei laufen.
-  Status-bar-sicher (`SafeArea`).
+  (kein eigenes `DesignSurface`). Rendert einen transparenten 72 px-Strip mit
+  `tokens.spaceXs` Boden-Padding; der parent Screen wickelt die gesamte Seite
+  (AppBar + Body) in ein einziges `DesignSurface`, damit Gradient und Grain
+  unterbrechungsfrei laufen. Status-bar-sicher (`SafeArea`).
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste

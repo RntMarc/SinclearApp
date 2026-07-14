@@ -20,14 +20,16 @@ class DesignAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
 
   @override
-  Size get preferredSize => const Size.fromHeight(64);
+  Size get preferredSize => const Size.fromHeight(72);
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     return Container(
       height: preferredSize.height,
-      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+      padding: EdgeInsets.fromLTRB(
+        tokens.spaceLg, 0, tokens.spaceLg, tokens.spaceXs,
+      ),
       child: SafeArea(
         top: true,
         bottom: false,
