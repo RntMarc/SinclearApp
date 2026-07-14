@@ -10,6 +10,7 @@ class DesignTextField extends StatefulWidget {
     this.obscure = false,
     this.keyboardType,
     this.textAlign = TextAlign.start,
+    this.maxLines = 1,
     this.maxLength,
     this.prefixIcon,
     this.suffix,
@@ -21,6 +22,7 @@ class DesignTextField extends StatefulWidget {
   final bool obscure;
   final TextInputType? keyboardType;
   final TextAlign textAlign;
+  final int maxLines;
   final int? maxLength;
   final IconData? prefixIcon;
 
@@ -79,6 +81,7 @@ class _DesignTextFieldState extends State<DesignTextField> {
                 obscureText: widget.obscure,
                 keyboardType: widget.keyboardType,
                 textAlign: widget.textAlign,
+                maxLines: widget.maxLines,
                 maxLength: widget.maxLength,
                 style: tokens.bodyStyle(tokens.textHigh),
                 decoration: InputDecoration(
