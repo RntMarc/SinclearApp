@@ -374,21 +374,44 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
 
 ## 5. Organisation (Bottom-Nav Index 4)
 
-### Kalender — `lib/features/calendar/screens/calendar_screen.dart` `- [ ]`
-- **Material:** Scaffold (eigen), AppBar, CustomScrollView,
+### Kalender — `lib/features/calendar/screens/calendar_screen.dart` `[x]`
+- **Material:** ~~Scaffold (eigen), AppBar, CustomScrollView,
   SliverPersistentHeader + `_CalendarHeaderDelegate`, SliverToBoxAdapter,
   SliverPadding, SliverList, TableCalendar (package), Column, Row,
   IconButton, TextButton.icon, FilledButton.icon, ElevatedButton.icon,
   FloatingActionButton, VerticalDivider, SingleChildScrollView,
-  CircularProgressIndicator, AlertDialog
+  CircularProgressIndicator, AlertDialog~~
 - **Eigene Widgets:** `AgendaList` → lokal `_DaySection` → `_EventTile`;
   `EventFormSheet` → lokal `_DateTimePicker`, `_VisibilitySelector`;
-  lokal `_WeekStrip`
+  lokal `_WeekStrip` (alle migriert)
 - **Katalog-Arbeit:**
-  - [ ] `AgendaList`/`_EventTile` → `DesignListTile`/`DesignCard`
-  - [ ] `EventFormSheet` → `showDesignSheet` + `DesignTextField` +
-        `DesignChip` (Visibility)
-  - [ ] Buttons → `DesignButton`/`DesignIconButton`
+  - [x] `Scaffold`+`AppBar` → `DesignSurface` (beide Layouts), AppBar-Aktionen
+        (heute, refresh) in Body verschoben (Row unter `DesignAppBar`)
+  - [x] `FloatingActionButton` → `DesignIconButton` in `Stack`/`Positioned`
+  - [x] `AgendaList`/`_EventTile` → `DesignCard`+`DesignText`+Tokens
+  - [x] `EventFormSheet` → `DesignTextField`+`DesignButton`+`Material`-Wrapper
+        für multiline `TextField`; `SegmentedButton` → `DesignButton`-Reihe
+  - [x] `showModalBottomSheet` → `showDesignSheet`
+  - [x] `_WeekStrip` → `DesignText`+Tokens
+  - [x] `_CalendarHeaderDelegate` → Tokens
+  - [x] Buttons → `DesignButton`/`DesignIconButton`
+  - [x] `VerticalDivider` → Token-basierte Farbe
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `CircularProgressIndicator` → `tokens.primary`
+
+### Kalender-Detail — `lib/features/calendar/screens/event_detail_screen.dart` `[x]`
+- **Material:** ~~Scaffold, AppBar, IconButton, ElevatedButton, AlertDialog,
+  ListTile, Text, Theme.of, CircularProgressIndicator, showModalBottomSheet~~
+- **Eigene Widgets:** `_InfoRow` (lokal, aufgelöst → `_infoRow`-Funktion)
+- **Katalog-Arbeit:**
+  - [x] `Scaffold`+`AppBar` → `DesignSurface`+`DesignAppBar` (zurück + edit/delete)
+  - [x] `AlertDialog` (löschen) → `showDesignSheet` + `DesignButton`
+  - [x] `showModalBottomSheet` (editieren) → `showDesignSheet`
+  - [x] `IconButton` → `DesignIconButton`
+  - [x] `ElevatedButton` → `DesignButton`(filled)
+  - [x] `ListTile` → `DesignListTile`
+  - [x] `Text`/`Theme.of` → `DesignText`/`DesignTheme.of`
+  - [x] `CircularProgressIndicator` → `tokens.primary`
 
 ### Umfrage — *Platzhalter (kein Screen)* `- [ ]`
 - Noch nicht gebaut → direkt im Katalog-Stil neu erstellen.
@@ -441,8 +464,8 @@ zusammen geführt bzw. durch sie ersetzt:
 
 - `lib/core/widgets/user_avatar.dart` → `UserAvatar` → **ersetzt durch `DesignAvatar`** (paritätischer Support für http/data/base64)
 - `lib/core/widgets/web_update_banner.dart` → `WebUpdateBanner` (web-only)
-- `lib/features/calendar/widgets/agenda_list.dart` → `AgendaList`
-- `lib/features/calendar/widgets/event_form_sheet.dart` → `EventFormSheet`
+- `lib/features/calendar/widgets/agenda_list.dart` → `AgendaList` (migriert: `DesignCard`, `DesignText`, Tokens)
+- `lib/features/calendar/widgets/event_form_sheet.dart` → `EventFormSheet` (migriert: `DesignTextField`, `DesignButton`, Tokens; `SegmentedButton`→`DesignButton`-Reihe)
 - `lib/features/explore/widgets/explore_map.dart` → `ExploreMap` (SimpleAttributionWidget entfernt, da Overflow im constrained Container)
 - `lib/features/explore/widgets/explore_search_overlay.dart` → `ExploreSearchOverlay` (DesignSurface+AppBar, DesignTextField, DesignButton, DesignChip; DesignButton-Reihe statt SegmentedButton)
 - `lib/features/explore/widgets/place_card.dart` → `PlaceCard` (Card→DesignCard, Text→DesignText, Theme.of→DesignTheme.of)
