@@ -1,7 +1,15 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../user/models/user_models.dart';
 import '../widgets/visibility_badge.dart';
 
@@ -215,275 +223,206 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
     }
   }
 
-  String? _emptyToNull(String v) {
-    return v.isEmpty ? null : v;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return DesignSurface(
+        child: Center(
+          child: CircularProgressIndicator(color: tokens.primary),
+        ),
+      );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Social Media'),
-        titleTextStyle: theme.textTheme.titleMedium,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _SocialField(
-                icon: Icons.camera_alt_rounded,
-                label: 'Unsplash',
-                controller: _unsplashController,
-                hint: 'Benutzername',
-                visibility: _unsplashVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _unsplashVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _SocialField(
-                icon: Icons.photo_camera_rounded,
-                label: 'Instagram',
-                controller: _instagramController,
-                hint: 'Benutzername',
-                visibility: _instagramVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _instagramVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _CompoundSocialField(
-                icon: Icons.group_rounded,
-                label: 'Mastodon',
-                userController: _mastodonUserController,
-                userHint: 'Benutzername',
-                serverController: _mastodonServerController,
-                serverHint: 'Server (z.B. mastodon.social)',
-                visibility: _mastodonVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _mastodonVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _CompoundSocialField(
-                icon: Icons.photo_library_rounded,
-                label: 'Pixelfed',
-                userController: _pixelfedUserController,
-                userHint: 'Benutzername',
-                serverController: _pixelfedServerController,
-                serverHint: 'Server (z.B. pixelfed.de)',
-                visibility: _pixelfedVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _pixelfedVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _SocialField(
-                icon: Icons.tag_rounded,
-                label: 'Bluesky',
-                controller: _blueskyController,
-                hint: 'user.bsky.social',
-                visibility: _blueskyVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _blueskyVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _SocialField(
-                icon: Icons.play_circle_rounded,
-                label: 'YouTube',
-                controller: _youtubeController,
-                hint: 'Kanalname',
-                visibility: _youtubeVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _youtubeVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _SocialField(
-                icon: Icons.videocam_rounded,
-                label: 'Twitch',
-                controller: _twitchController,
-                hint: 'Kanalname',
-                visibility: _twitchVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _twitchVisibility = v),
-              ),
-              const SizedBox(height: 24),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _error!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ),
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.save_rounded),
-                label: Text(_saving ? 'Wird gespeichert…' : 'Speichern'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
-              ),
-            ],
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            title: 'Social Media',
           ),
-        ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(tokens.spaceMd),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _socialField(
+                    tokens: tokens,
+                    prefixIcon: Icons.camera_alt_rounded,
+                    label: 'Unsplash',
+                    controller: _unsplashController,
+                    hint: 'Benutzername',
+                    visibility: _unsplashVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _unsplashVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _socialField(
+                    tokens: tokens,
+                    prefixIcon: Icons.photo_camera_rounded,
+                    label: 'Instagram',
+                    controller: _instagramController,
+                    hint: 'Benutzername',
+                    visibility: _instagramVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _instagramVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _compoundField(
+                    tokens: tokens,
+                    icon: Icons.group_rounded,
+                    label: 'Mastodon',
+                    userController: _mastodonUserController,
+                    userHint: 'Benutzername',
+                    serverController: _mastodonServerController,
+                    serverHint: 'Server (z.B. mastodon.social)',
+                    visibility: _mastodonVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _mastodonVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _compoundField(
+                    tokens: tokens,
+                    icon: Icons.photo_library_rounded,
+                    label: 'Pixelfed',
+                    userController: _pixelfedUserController,
+                    userHint: 'Benutzername',
+                    serverController: _pixelfedServerController,
+                    serverHint: 'Server (z.B. pixelfed.de)',
+                    visibility: _pixelfedVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _pixelfedVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _socialField(
+                    tokens: tokens,
+                    prefixIcon: Icons.tag_rounded,
+                    label: 'Bluesky',
+                    controller: _blueskyController,
+                    hint: 'user.bsky.social',
+                    visibility: _blueskyVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _blueskyVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _socialField(
+                    tokens: tokens,
+                    prefixIcon: Icons.play_circle_rounded,
+                    label: 'YouTube',
+                    controller: _youtubeController,
+                    hint: 'Kanalname',
+                    visibility: _youtubeVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _youtubeVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _socialField(
+                    tokens: tokens,
+                    prefixIcon: Icons.videocam_rounded,
+                    label: 'Twitch',
+                    controller: _twitchController,
+                    hint: 'Kanalname',
+                    visibility: _twitchVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _twitchVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceLg),
+                  if (_error != null)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                      child: DesignText(_error!, color: tokens.danger),
+                    ),
+                  DesignButton(
+                    label: _saving ? 'Wird gespeichert…' : 'Speichern',
+                    icon: Icons.save_rounded,
+                    loading: _saving,
+                    onPressed: _saving ? null : _save,
+                    fullWidth: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SocialField extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final TextEditingController controller;
-  final String hint;
-  final int visibility;
-  final ValueChanged<int> onVisibilityChanged;
-
-  const _SocialField({
-    required this.icon,
-    required this.label,
-    required this.controller,
-    required this.hint,
-    required this.visibility,
-    required this.onVisibilityChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  hintText: hint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-                textCapitalization: TextCapitalization.none,
-              ),
-            ),
-            const SizedBox(width: 8),
-            VisibilityBadge(value: visibility, onChanged: onVisibilityChanged),
-          ],
-        ),
-      ],
-    );
-  }
+Widget _socialField({
+  required DesignTokens tokens,
+  required IconData prefixIcon,
+  required String label,
+  required TextEditingController controller,
+  required String hint,
+  required int visibility,
+  required ValueChanged<int> onVisibilityChanged,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: EdgeInsets.only(left: tokens.spaceXs),
+        child: DesignText(label, style: DesignTextStyle.label),
+      ),
+      SizedBox(height: tokens.spaceXs),
+      DesignTextField(
+        controller: controller,
+        hint: hint,
+        prefixIcon: prefixIcon,
+        suffix: VisibilityBadge(value: visibility, onChanged: onVisibilityChanged),
+      ),
+    ],
+  );
 }
 
-class _CompoundSocialField extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final TextEditingController userController;
-  final String userHint;
-  final TextEditingController serverController;
-  final String serverHint;
-  final int visibility;
-  final ValueChanged<int> onVisibilityChanged;
-
-  const _CompoundSocialField({
-    required this.icon,
-    required this.label,
-    required this.userController,
-    required this.userHint,
-    required this.serverController,
-    required this.serverHint,
-    required this.visibility,
-    required this.onVisibilityChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+Widget _compoundField({
+  required DesignTokens tokens,
+  required IconData icon,
+  required String label,
+  required TextEditingController userController,
+  required String userHint,
+  required TextEditingController serverController,
+  required String serverHint,
+  required int visibility,
+  required ValueChanged<int> onVisibilityChanged,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Icon(icon, size: 18, color: tokens.primary),
+          SizedBox(width: tokens.spaceSm),
+          DesignText(label, style: DesignTextStyle.label),
+        ],
+      ),
+      SizedBox(height: tokens.spaceSm),
+      Row(
+        children: [
+          const SizedBox(width: 26),
+          Expanded(
+            child: DesignTextField(
+              controller: userController,
+              hint: userHint,
             ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const SizedBox(width: 26),
-            Expanded(
-              child: TextField(
-                controller: userController,
-                decoration: InputDecoration(
-                  labelText: 'Benutzername',
-                  hintText: userHint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-                textCapitalization: TextCapitalization.none,
-              ),
+          ),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: DesignTextField(
+              controller: serverController,
+              hint: serverHint,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: serverController,
-                decoration: InputDecoration(
-                  labelText: 'Server',
-                  hintText: serverHint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-                textCapitalization: TextCapitalization.none,
-              ),
-            ),
-            const SizedBox(width: 8),
-            VisibilityBadge(value: visibility, onChanged: onVisibilityChanged),
-          ],
-        ),
-      ],
-    );
-  }
+          ),
+          SizedBox(width: tokens.spaceSm),
+          VisibilityBadge(value: visibility, onChanged: onVisibilityChanged),
+        ],
+      ),
+    ],
+  );
 }

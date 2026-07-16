@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/calendar_models.dart';
 
 class EventFormSheet extends StatefulWidget {
@@ -50,56 +54,44 @@ class _EventFormSheetState extends State<EventFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + bottomInset),
+      padding: EdgeInsets.fromLTRB(
+        tokens.spaceLg, tokens.spaceLg, tokens.spaceLg, tokens.spaceLg + bottomInset,
+      ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 32,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.4,
-                  ),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
+            DesignText(
               _isEditing ? 'Termin bearbeiten' : 'Neuer Termin',
-               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
             ),
-            const SizedBox(height: 20),
-            TextField(
+            SizedBox(height: tokens.spaceLg),
+            DesignTextField(
+              hint: 'Titel *',
               controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Titel *',
-                border: OutlineInputBorder(),
-              ),
-              textCapitalization: TextCapitalization.sentences,
-              autofocus: !_isEditing,
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Beschreibung',
-                border: OutlineInputBorder(),
+            SizedBox(height: tokens.spaceMd),
+            Material(
+              type: MaterialType.transparency,
+              child: TextField(
+                controller: _descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Beschreibung',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(tokens.radiusMd),
+                  ),
+                ),
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: 3,
               ),
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: 3,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: tokens.spaceLg),
             _DateTimePicker(
               label: 'Beginn',
               date: _startDate,
@@ -107,7 +99,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
               onDateChanged: (d) => setState(() => _startDate = d),
               onTimeChanged: (t) => setState(() => _startTime = t),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: tokens.spaceMd),
             _DateTimePicker(
               label: 'Ende',
               date: _endDate,
@@ -115,19 +107,24 @@ class _EventFormSheetState extends State<EventFormSheet> {
               onDateChanged: (d) => setState(() => _endDate = d),
               onTimeChanged: (t) => setState(() => _endTime = t),
             ),
-            const SizedBox(height: 16),
-            const Text('Sichtbarkeit'),
-            const SizedBox(height: 4),
+            SizedBox(height: tokens.spaceLg),
+            DesignText(
+              'Sichtbarkeit',
+              style: DesignTextStyle.label,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceXs),
             _VisibilitySelector(
               value: _visibility,
               onChanged: (v) => setState(() => _visibility = v),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: tokens.spaceLg),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: DesignButton(
+                label: _isEditing ? 'Speichern' : 'Erstellen',
+                variant: DesignButtonVariant.filled,
                 onPressed: _submit,
-                child: Text(_isEditing ? 'Speichern' : 'Erstellen'),
               ),
             ),
           ],
@@ -191,24 +188,35 @@ class _DateTimePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final tokens = DesignTheme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 3,
-          child: OutlinedButton.icon(
-            onPressed: () => _pickDate(context),
-            icon: const Icon(Icons.calendar_today_rounded, size: 18),
-            label: Text(DateFormat('dd.MM.yyyy').format(date)),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 2,
-          child: OutlinedButton.icon(
-            onPressed: () => _pickTime(context),
-            icon: const Icon(Icons.access_time_rounded, size: 18),
-            label: Text(time.format(context)),
-          ),
+        DesignText(label, style: DesignTextStyle.label, color: tokens.textLow),
+        SizedBox(height: tokens.spaceXs),
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: DesignButton(
+                label: DateFormat('dd.MM.yyyy').format(date),
+                variant: DesignButtonVariant.outlined,
+                icon: Icons.calendar_today_rounded,
+                onPressed: () => _pickDate(context),
+              ),
+            ),
+            SizedBox(width: tokens.spaceSm),
+            Expanded(
+              flex: 2,
+              child: DesignButton(
+                label: time.format(context),
+                variant: DesignButtonVariant.outlined,
+                icon: Icons.access_time_rounded,
+                onPressed: () => _pickTime(context),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -238,26 +246,28 @@ class _VisibilitySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SegmentedButton<int>(
-      segments: const [
-        ButtonSegment(
-          value: 0,
-          label: Text('Privat'),
-          icon: Icon(Icons.lock_rounded),
-        ),
-        ButtonSegment(
-          value: 1,
-          label: Text('Öffentlich'),
-          icon: Icon(Icons.public_rounded),
-        ),
-        ButtonSegment(
-          value: 2,
-          label: Text('Freunde'),
-          icon: Icon(Icons.people_rounded),
-        ),
+    final tokens = DesignTheme.of(context);
+
+    return Row(
+      children: [
+        _visButton(tokens, 0, 'Privat', Icons.lock_rounded),
+        SizedBox(width: tokens.spaceSm),
+        _visButton(tokens, 1, 'Öffentlich', Icons.public_rounded),
+        SizedBox(width: tokens.spaceSm),
+        _visButton(tokens, 2, 'Freunde', Icons.people_rounded),
       ],
-      selected: {value},
-      onSelectionChanged: (v) => onChanged(v.first),
+    );
+  }
+
+  Widget _visButton(DesignTokens tokens, int v, String label, IconData icon) {
+    final selected = value == v;
+    return Expanded(
+      child: DesignButton(
+        label: label,
+        icon: icon,
+        variant: selected ? DesignButtonVariant.filled : DesignButtonVariant.outlined,
+        onPressed: () => onChanged(v),
+      ),
     );
   }
 }

@@ -8,8 +8,17 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_compressor.dart';
-import '../../../core/image/image_provider_helper.dart';
 import '../../../core/network/api_client.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_chip.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../user/models/user_models.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -59,8 +68,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _loadProfile() async {
     try {
-      final user =
-          await AppScope.of(context).user.getMeBase();
+      final user = await AppScope.of(context).user.getMeBase();
       if (!mounted) return;
       setState(() {
         _nameController.text = user.displayName;
@@ -97,32 +105,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _pickImage() async {
-    final source = await showModalBottomSheet<ImageSource>(
+    final source = await showDesignSheet<ImageSource>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Text(
-                'Profilbild auswählen',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_rounded),
-              title: const Text('Foto aufnehmen'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded),
-              title: const Text('Aus Gallery wählen'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+      child: Column(
+        children: <Widget>[
+          const DesignText(
+            'Profilbild auswählen',
+            style: DesignTextStyle.subtitle,
+          ),
+          const SizedBox(height: 8),
+          DesignListTile(
+            leading: const Icon(Icons.camera_alt_rounded),
+            title: 'Foto aufnehmen',
+            onTap: () => Navigator.pop(context, ImageSource.camera),
+          ),
+          DesignListTile(
+            leading: const Icon(Icons.photo_library_rounded),
+            title: 'Aus Galerie wählen',
+            onTap: () => Navigator.pop(context, ImageSource.gallery),
+          ),
+        ],
       ),
     );
     if (source == null || !mounted) return;
@@ -247,57 +249,62 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: DesignSurface(
+          child: Center(
+            child: CircularProgressIndicator(
+              color: DesignTheme.of(context).primary,
+            ),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (index) {
-                  setState(() => _currentPage = index);
-                },
-                children: [
-                  _WelcomePage(theme: theme),
-                  _ConsentPage(
-                    theme: theme,
-                    aiConsent: _aiConsent,
-                    dataConsent: _dataConsent,
-                    onAiChanged: (v) => setState(() => _aiConsent = v),
-                    onDataChanged: (v) => setState(() => _dataConsent = v),
-                  ),
-                  _ProfilePage(
-                    theme: theme,
-                    nameController: _nameController,
-                    birthdayController: _birthdayController,
-                    imageBytes: _imageBytes,
-                    existingImageUrl: _existingImageUrl,
-                    onPickImage: _pickImage,
-                    onPickBirthday: _pickBirthday,
-                  ),
-                  _SocialHintPage(theme: theme),
-                  _PwaHintPage(theme: theme),
-                  _DonePage(theme: theme),
-                ],
+      body: DesignSurface(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (index) {
+                    setState(() => _currentPage = index);
+                  },
+                  children: [
+                    const _WelcomePage(),
+                    _ConsentPage(
+                      aiConsent: _aiConsent,
+                      dataConsent: _dataConsent,
+                      onAiChanged: (v) => setState(() => _aiConsent = v),
+                      onDataChanged: (v) => setState(() => _dataConsent = v),
+                    ),
+                    _ProfilePage(
+                      nameController: _nameController,
+                      birthdayController: _birthdayController,
+                      imageBytes: _imageBytes,
+                      existingImageUrl: _existingImageUrl,
+                      onPickImage: _pickImage,
+                      onPickBirthday: _pickBirthday,
+                    ),
+                    const _SocialHintPage(),
+                    const _PwaHintPage(),
+                    const _DonePage(),
+                  ],
+                ),
               ),
-            ),
-            _buildBottomBar(theme),
-          ],
+              _buildBottomBar(),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBottomBar(ThemeData theme) {
+  Widget _buildBottomBar() {
+    final tokens = DesignTheme.of(context);
     final isFirst = _currentPage == 0;
     final isLast = _currentPage == _totalPages - 1;
 
@@ -309,19 +316,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
+              child: DesignText(
                 _error!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
+                style: DesignTextStyle.body,
+                color: tokens.danger,
               ),
             ),
           Row(
             children: [
               if (!isFirst)
-                TextButton(
+                DesignButton(
+                  label: 'Zurück',
+                  variant: DesignButtonVariant.text,
                   onPressed: _prevPage,
-                  child: const Text('Zurück'),
                 )
               else
                 const SizedBox.shrink(),
@@ -334,31 +341,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 3),
                   decoration: BoxDecoration(
                     color: i == _currentPage
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.surfaceContainerHighest,
+                        ? tokens.primary
+                        : tokens.textLow.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ),
               const Spacer(),
               if (isLast)
-                FilledButton(
+                DesignButton(
+                  label: 'Los geht\'s!',
+                  loading: _saving,
                   onPressed: _saving ? null : _finish,
-                  child: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('Los geht\'s!'),
                 )
               else
-                FilledButton(
+                DesignButton(
+                  label: 'Weiter',
                   onPressed: _canProceed ? _nextPage : null,
-                  child: const Text('Weiter'),
                 ),
             ],
           ),
@@ -369,11 +368,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 class _WelcomePage extends StatelessWidget {
-  const _WelcomePage({required this.theme});
-  final ThemeData theme;
+  const _WelcomePage();
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -383,23 +382,20 @@ class _WelcomePage extends StatelessWidget {
             Icon(
               Icons.waving_hand_rounded,
               size: 72,
-              color: theme.colorScheme.primary,
+              color: tokens.primary,
             ),
             const SizedBox(height: 24),
-            Text(
+            const DesignText(
               'Willkommen bei Beyond!',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: DesignTextStyle.display,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            Text(
+            DesignText(
               'Schön, dass du da bist. Lass uns in einigen Schritten '
               'dein Konto einrichten.',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
               textAlign: TextAlign.center,
             ),
           ],
@@ -411,14 +407,12 @@ class _WelcomePage extends StatelessWidget {
 
 class _ConsentPage extends StatelessWidget {
   const _ConsentPage({
-    required this.theme,
     required this.aiConsent,
     required this.dataConsent,
     required this.onAiChanged,
     required this.onDataChanged,
   });
 
-  final ThemeData theme;
   final bool aiConsent;
   final bool dataConsent;
   final ValueChanged<bool> onAiChanged;
@@ -426,6 +420,7 @@ class _ConsentPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -434,87 +429,81 @@ class _ConsentPage extends StatelessWidget {
           Icon(
             Icons.info_outline_rounded,
             size: 48,
-            color: theme.colorScheme.primary,
+            color: tokens.primary,
           ),
           const SizedBox(height: 24),
-          Text(
+          const DesignText(
             'Wichtige Hinweise',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: DesignTextStyle.title,
           ),
           const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.smart_toy_rounded, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Diese App wurde mit Künstlicher Intelligenz '
-                          'erstellt. Es können Fehler und '
-                          'Sicherheitslücken vorhanden sein.',
-                          style: theme.textTheme.bodyMedium,
-                        ),
+          DesignCard(
+            margin: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.smart_toy_rounded, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: DesignText(
+                        'Diese App wurde mit Künstlicher Intelligenz '
+                        'erstellt. Es können Fehler und '
+                        'Sicherheitslücken vorhanden sein.',
+                        style: DesignTextStyle.body,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  CheckboxListTile(
-                    value: aiConsent,
-                    onChanged: (v) => onAiChanged(v ?? false),
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: const Text(
-                      'Ich habe zur Kenntnis genommen, dass die App '
-                      'mit KI erstellt wurde.',
                     ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                DesignListTile(
+                  title: 'Ich habe zur Kenntnis genommen, dass die App '
+                      'mit KI erstellt wurde.',
+                  trailing: DesignChip(
+                    label: aiConsent ? 'Bestätigt' : 'Bestätigen',
+                    selected: aiConsent,
+                    onTap: () => onAiChanged(!aiConsent),
                   ),
-                ],
-              ),
+                  onTap: () => onAiChanged(!aiConsent),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.shield_rounded, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Alle Angaben im Profil sind freiwillig. '
-                          'Teile nur Informationen und Inhalte, '
-                          'mit denen du dich wohlfühlst und der App, '
-                          'der KI und Marc vertraust.',
-                          style: theme.textTheme.bodyMedium,
-                        ),
+          DesignCard(
+            margin: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.shield_rounded, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: DesignText(
+                        'Alle Angaben im Profil sind freiwillig. '
+                        'Teile nur Informationen und Inhalte, '
+                        'mit denen du dich wohlfühlst und der App, '
+                        'der KI und Marc vertraust.',
+                        style: DesignTextStyle.body,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  CheckboxListTile(
-                    value: dataConsent,
-                    onChanged: (v) => onDataChanged(v ?? false),
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: const Text(
-                      'Ich verstehe und stimme zu.',
                     ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                DesignListTile(
+                  title: 'Ich verstehe und stimme zu.',
+                  trailing: DesignChip(
+                    label: dataConsent ? 'Bestätigt' : 'Bestätigen',
+                    selected: dataConsent,
+                    onTap: () => onDataChanged(!dataConsent),
                   ),
-                ],
-              ),
+                  onTap: () => onDataChanged(!dataConsent),
+                ),
+              ],
             ),
           ),
         ],
@@ -525,7 +514,6 @@ class _ConsentPage extends StatelessWidget {
 
 class _ProfilePage extends StatelessWidget {
   const _ProfilePage({
-    required this.theme,
     required this.nameController,
     required this.birthdayController,
     required this.imageBytes,
@@ -534,7 +522,6 @@ class _ProfilePage extends StatelessWidget {
     required this.onPickBirthday,
   });
 
-  final ThemeData theme;
   final TextEditingController nameController;
   final TextEditingController birthdayController;
   final Uint8List? imageBytes;
@@ -544,31 +531,36 @@ class _ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    ImageProvider? avatar;
+    final tokens = DesignTheme.of(context);
+
+    final String? avatarUrl;
     if (imageBytes != null) {
-      avatar = MemoryImage(imageBytes!);
-    } else if (existingImageUrl != null &&
-        existingImageUrl!.isNotEmpty) {
-      avatar = resolveImageProvider(existingImageUrl!);
+      avatarUrl = 'data:image/png;base64,${base64Encode(imageBytes!)}';
+    } else if (existingImageUrl != null && existingImageUrl!.isNotEmpty) {
+      avatarUrl = existingImageUrl;
+    } else {
+      avatarUrl = null;
     }
+
+    final birthdayText = birthdayController.text.isNotEmpty
+        ? birthdayController.text
+        : 'Nicht angegeben';
+    final birthdayMuted = birthdayController.text.isEmpty;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         children: [
-          Text(
+          const DesignText(
             'Dein Profil',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: DesignTextStyle.title,
           ),
           const SizedBox(height: 8),
-          Text(
+          DesignText(
             'Alles ist freiwillig. Du kannst dein Profil '
             'später jederzeit in den Einstellungen ändern.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -576,16 +568,10 @@ class _ProfilePage extends StatelessWidget {
             onTap: onPickImage,
             child: Stack(
               children: [
-                CircleAvatar(
-                  radius: 56,
-                  backgroundImage: avatar,
-                  child: avatar == null
-                      ? Icon(
-                          Icons.person_rounded,
-                          size: 48,
-                          color: theme.colorScheme.onPrimaryContainer,
-                        )
-                      : null,
+                DesignAvatar(
+                  imageUrl: avatarUrl,
+                  name: nameController.text,
+                  size: 112,
                 ),
                 Positioned(
                   bottom: 0,
@@ -593,13 +579,13 @@ class _ProfilePage extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
+                      color: tokens.primary,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.camera_alt_rounded,
                       size: 18,
-                      color: theme.colorScheme.onPrimary,
+                      color: tokens.textOnPrimary,
                     ),
                   ),
                 ),
@@ -607,45 +593,27 @@ class _ProfilePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          TextButton.icon(
+          DesignButton(
+            label: avatarUrl != null
+                ? 'Bild ändern'
+                : 'Profilbild hinzufügen',
+            variant: DesignButtonVariant.text,
+            icon: Icons.edit_rounded,
             onPressed: onPickImage,
-            icon: const Icon(Icons.edit_rounded, size: 16),
-            label: Text(
-              avatar != null ? 'Bild ändern' : 'Profilbild hinzufügen',
-            ),
           ),
           const SizedBox(height: 24),
-          TextField(
+          DesignTextField(
             controller: nameController,
-            decoration: const InputDecoration(
-              labelText: 'Anzeigename',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.person_rounded),
-            ),
-            textCapitalization: TextCapitalization.words,
+            hint: 'Anzeigename',
+            prefixIcon: Icons.person_rounded,
           ),
           const SizedBox(height: 16),
-          InkWell(
+          DesignListTile(
+            leading: const Icon(Icons.cake_rounded),
+            title: birthdayText,
+            subtitle: birthdayMuted ? null : 'Geburtstag',
+            trailing: const Icon(Icons.calendar_today_rounded),
             onTap: onPickBirthday,
-            borderRadius: BorderRadius.circular(12),
-            child: InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Geburtstag',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.cake_rounded),
-                suffixIcon: Icon(Icons.calendar_today_rounded),
-              ),
-              child: Text(
-                birthdayController.text.isNotEmpty
-                    ? birthdayController.text
-                    : 'Nicht angegeben',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: birthdayController.text.isEmpty
-                      ? theme.colorScheme.onSurfaceVariant
-                      : null,
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -654,11 +622,11 @@ class _ProfilePage extends StatelessWidget {
 }
 
 class _SocialHintPage extends StatelessWidget {
-  const _SocialHintPage({required this.theme});
-  final ThemeData theme;
+  const _SocialHintPage();
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -668,24 +636,21 @@ class _SocialHintPage extends StatelessWidget {
             Icon(
               Icons.people_rounded,
               size: 64,
-              color: theme.colorScheme.primary,
+              color: tokens.primary,
             ),
             const SizedBox(height: 24),
-            Text(
+            const DesignText(
               'Social Media & Messenger',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: DesignTextStyle.title,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            Text(
+            DesignText(
               'Du kannst deine Social-Media-Profile und '
               'verwendeten Messenger später in den '
               'Einstellungen hinterlegen.',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
               textAlign: TextAlign.center,
             ),
           ],
@@ -696,11 +661,11 @@ class _SocialHintPage extends StatelessWidget {
 }
 
 class _PwaHintPage extends StatelessWidget {
-  const _PwaHintPage({required this.theme});
-  final ThemeData theme;
+  const _PwaHintPage();
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -708,61 +673,51 @@ class _PwaHintPage extends StatelessWidget {
           Icon(
             Icons.phone_android_rounded,
             size: 64,
-            color: theme.colorScheme.primary,
+            color: tokens.primary,
           ),
           const SizedBox(height: 24),
-          Text(
+          const DesignText(
             'App-Installation',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: DesignTextStyle.title,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Als PWA verwenden',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Öffne Beyond im Browser und füge ihn zur '
-                    'Startseite hinzu. So hast du schnellen '
-                    'Zugriff – ganz ohne App-Store.',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-              ),
+          DesignCard(
+            margin: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const DesignText(
+                  'Als PWA verwenden',
+                  style: DesignTextStyle.subtitle,
+                ),
+                const SizedBox(height: 8),
+                DesignText(
+                  'Öffne Beyond im Browser und füge ihn zur '
+                  'Startseite hinzu. So hast du schnellen '
+                  'Zugriff – ganz ohne App-Store.',
+                  style: DesignTextStyle.body,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Android-App',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Für das beste Erlebnis steht dir eine '
-                    'native Android-App zum Download bereit.',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-              ),
+          DesignCard(
+            margin: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const DesignText(
+                  'Android-App',
+                  style: DesignTextStyle.subtitle,
+                ),
+                const SizedBox(height: 8),
+                DesignText(
+                  'Für das beste Erlebnis steht dir eine '
+                  'native Android-App zum Download bereit.',
+                  style: DesignTextStyle.body,
+                ),
+              ],
             ),
           ),
         ],
@@ -772,11 +727,11 @@ class _PwaHintPage extends StatelessWidget {
 }
 
 class _DonePage extends StatelessWidget {
-  const _DonePage({required this.theme});
-  final ThemeData theme;
+  const _DonePage();
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -786,22 +741,19 @@ class _DonePage extends StatelessWidget {
             Icon(
               Icons.celebration_rounded,
               size: 72,
-              color: theme.colorScheme.primary,
+              color: tokens.primary,
             ),
             const SizedBox(height: 24),
-            Text(
+            const DesignText(
               'Alles fertig!',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: DesignTextStyle.display,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            Text(
+            DesignText(
               'Viel Spaß beim Erkunden!',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
               textAlign: TextAlign.center,
             ),
           ],

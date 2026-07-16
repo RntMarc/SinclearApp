@@ -1,9 +1,14 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../models/calendar_models.dart';
 import '../services/calendar_service.dart';
 import '../widgets/agenda_list.dart';
@@ -201,10 +206,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _createEvent({DateTime? initialDate}) async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
+    final result = await showDesignSheet<Map<String, dynamic>>(
       context: context,
-      isScrollControlled: true,
-      builder: (_) => EventFormSheet(),
+      child: EventFormSheet(),
     );
 
     if (result == null || !mounted) return;
@@ -254,458 +258,285 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final isDesktop = MediaQuery.of(context).size.shortestSide >= 600;
 
-    if (isDesktop) {
-      return _buildDesktopLayout();
-    }
-    return _buildMobileLayout();
+    return DesignSurface(
+      child: isDesktop
+          ? _buildDesktopLayout(tokens)
+          : _buildMobileLayout(tokens),
+    );
   }
 
-  Widget _buildMobileLayout() {
-    return Scaffold(
-      appBar: AppBar(
-        actions: [
-          TextButton.icon(
-            onPressed: () => setState(() {
-              _focusedDay = DateTime.now();
-              _selectedDay = DateTime.now();
-            }),
-            icon: const Icon(Icons.today_rounded, size: 18),
-            label: const Text('Heute'),
-          ),
-          IconButton(
-            onPressed: _refresh,
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Aktualisieren',
-          ),
-        ],
-      ),
-      body: CustomScrollView(
-        controller: _agendaScrollController,
-        slivers: [
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _CalendarHeaderDelegate(
-              focusedDay: _focusedDay,
-              selectedDay: _selectedDay,
-              eventsByDay: _eventsByDay,
-              onDaySelected: _onDaySelected,
-              onFormatChanged: (focused) {
-                setState(() => _focusedDay = focused);
-              },
+  Widget _buildMobileLayout(DesignTokens tokens) {
+    return Stack(
+      children: [
+        Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: tokens.spaceLg,
+                vertical: tokens.spaceXs,
+              ),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  DesignButton(
+                    label: 'Heute',
+                    variant: DesignButtonVariant.text,
+                    icon: Icons.today_rounded,
+                    onPressed: () => setState(() {
+                      _focusedDay = DateTime.now();
+                      _selectedDay = DateTime.now();
+                    }),
+                  ),
+                  DesignIconButton(
+                    icon: Icons.refresh_rounded,
+                    onPressed: _refresh,
+                  ),
+                ],
+              ),
             ),
+            Expanded(
+              child: CustomScrollView(
+                controller: _agendaScrollController,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: TableCalendar(
+                        firstDay: DateTime(2020),
+                        lastDay: DateTime(2035),
+                        focusedDay: _focusedDay,
+                        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                        onDaySelected: _onDaySelected,
+                        onPageChanged: (focused) {
+                          setState(() => _focusedDay = focused);
+                        },
+                        calendarFormat: CalendarFormat.month,
+                        availableCalendarFormats: const {
+                          CalendarFormat.month: 'Monat',
+                        },
+                        locale: 'de',
+                        eventLoader: _getEventsForDay,
+                        calendarStyle: CalendarStyle(
+                          todayDecoration: BoxDecoration(
+                            color: tokens.primary.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          selectedDecoration: BoxDecoration(
+                            color: tokens.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          markerDecoration: BoxDecoration(
+                            color: tokens.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        headerStyle: const HeaderStyle(
+                          formatButtonVisible: false,
+                          titleCentered: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_error != null && _getAllSortedEvents().isEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.error_outline_rounded,
+                                size: 48,
+                                color: tokens.danger,
+                              ),
+                              SizedBox(height: tokens.spaceLg),
+                              DesignText(
+                                'Fehler beim Laden der Termine',
+                                style: DesignTextStyle.subtitle,
+                                color: tokens.textHigh,
+                              ),
+                              SizedBox(height: tokens.spaceSm),
+                              DesignText(
+                                _error!,
+                                style: DesignTextStyle.body,
+                                color: tokens.textLow,
+                              ),
+                              SizedBox(height: tokens.spaceLg),
+                              DesignButton(
+                                label: 'Erneut versuchen',
+                                variant: DesignButtonVariant.filled,
+                                icon: Icons.refresh_rounded,
+                                onPressed: _refresh,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (_loadingPast &&
+                      _loadingFuture &&
+                      _getAllSortedEvents().isEmpty)
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 300,
+                        child: Center(
+                          child: CircularProgressIndicator(color: tokens.primary),
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.zero,
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final events = _getAllSortedEvents();
+                          return SizedBox(
+                            height: 400,
+                            child: AgendaList(
+                              events: events,
+                              onEventTap: _onEventTap,
+                              scrollController: null,
+                            ),
+                          );
+                        }, childCount: 1),
+                      ),
+                    ),
+                  if (_loadingFuture || _loadingPast)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: tokens.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Positioned(
+          right: tokens.spaceLg,
+          bottom: tokens.spaceLg,
+          child: DesignIconButton(
+            icon: Icons.add_rounded,
+            onPressed: () => _createEvent(initialDate: _selectedDay),
           ),
-          if (_error != null && _getAllSortedEvents().isEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopLayout(DesignTokens tokens) {
+    final events = _getAllSortedEvents();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 360,
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    tokens.spaceMd, tokens.spaceSm, tokens.spaceXs, 0,
+                  ),
+                  child: Row(
                     children: [
-                      Icon(
-                        Icons.error_outline_rounded,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.error,
+                      const Spacer(),
+                      DesignButton(
+                        label: 'Heute',
+                        variant: DesignButtonVariant.text,
+                        icon: Icons.today_rounded,
+                        onPressed: () => setState(() {
+                          _focusedDay = DateTime.now();
+                          _selectedDay = DateTime.now();
+                        }),
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Fehler beim Laden der Termine',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _error!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
+                      DesignIconButton(
+                        icon: Icons.refresh_rounded,
                         onPressed: _refresh,
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: const Text('Erneut versuchen'),
                       ),
                     ],
                   ),
                 ),
-              ),
-            )
-          else if (_loadingPast &&
-              _loadingFuture &&
-              _getAllSortedEvents().isEmpty)
-            const SliverToBoxAdapter(
-              child: SizedBox(
-                height: 300,
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: EdgeInsets.zero,
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final events = _getAllSortedEvents();
-                  return SizedBox(
-                    height: 400,
-                    child: AgendaList(
-                      events: events,
-                      onEventTap: _onEventTap,
-                      scrollController: null,
+                _buildDesktopCalendar(tokens),
+                SizedBox(height: tokens.spaceSm),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: tokens.spaceMd),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: DesignButton(
+                      label: 'Neuer Termin',
+                      variant: DesignButtonVariant.filled,
+                      icon: Icons.add_rounded,
+                      onPressed: () => _createEvent(),
                     ),
-                  );
-                }, childCount: 1),
-              ),
-            ),
-          if (_loadingFuture || _loadingPast)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-              ),
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'add',
-        onPressed: () => _createEvent(initialDate: _selectedDay),
-        child: const Icon(Icons.add_rounded),
-      ),
-    );
-  }
-
-  Widget _buildDesktopLayout() {
-    final events = _getAllSortedEvents();
-
-    return Scaffold(
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 360,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
-                    child: Row(
-                      children: [
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: () => setState(() {
-                            _focusedDay = DateTime.now();
-                            _selectedDay = DateTime.now();
-                          }),
-                          icon: const Icon(Icons.today_rounded, size: 18),
-                          label: const Text('Heute'),
-                        ),
-                        IconButton(
-                          onPressed: _refresh,
-                          icon: const Icon(Icons.refresh_rounded),
-                          tooltip: 'Aktualisieren',
-                        ),
-                      ],
-                    ),
-                  ),
-                  _buildDesktopCalendar(),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => _createEvent(),
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Neuer Termin'),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(
-            child: AgendaList(
-              events: events,
-              onEventTap: _onEventTap,
-              scrollController: _agendaScrollController,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesktopCalendar() {
-    return TableCalendar(
-      firstDay: DateTime(2020),
-      lastDay: DateTime(2035),
-      focusedDay: _focusedDay,
-      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-      onDaySelected: _onDaySelected,
-      calendarFormat: CalendarFormat.month,
-      availableCalendarFormats: const {CalendarFormat.month: 'Monat'},
-      locale: 'de',
-      eventLoader: _getEventsForDay,
-      calendarStyle: CalendarStyle(
-        todayDecoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          shape: BoxShape.circle,
-        ),
-        selectedDecoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
-          shape: BoxShape.circle,
-        ),
-        markerDecoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
-          shape: BoxShape.circle,
-        ),
-      ),
-      headerStyle: const HeaderStyle(
-        formatButtonVisible: false,
-        titleCentered: true,
-      ),
-    );
-  }
-}
-
-class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final DateTime focusedDay;
-  final DateTime? selectedDay;
-  final Map<DateTime, List<CalendarEvent>> eventsByDay;
-  final void Function(DateTime, DateTime) onDaySelected;
-  final void Function(DateTime) onFormatChanged;
-
-  _CalendarHeaderDelegate({
-    required this.focusedDay,
-    required this.selectedDay,
-    required this.eventsByDay,
-    required this.onDaySelected,
-    required this.onFormatChanged,
-  });
-
-  @override
-  double get maxExtent {
-    final weeks = _weeksInMonth(focusedDay);
-    return 80 + (weeks * 52);
-  }
-
-  @override
-  double get minExtent => 68;
-
-  static int _weeksInMonth(DateTime date) {
-    final first = DateTime(date.year, date.month, 1);
-    final last = DateTime(date.year, date.month + 1, 0);
-    return ((first.weekday - 1) + last.day + 6) ~/ 7;
-  }
-
-  List<CalendarEvent> _getEventsForDay(DateTime day) {
-    return eventsByDay[DateTime(day.year, day.month, day.day)] ?? [];
-  }
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    final collapseRatio = (shrinkOffset / (maxExtent - minExtent)).clamp(
-      0.0,
-      1.0,
-    );
-    final theme = Theme.of(context);
-
-    return Container(
-      color: theme.colorScheme.surface,
-      child: Stack(
-        children: [
-          Opacity(
-            opacity: 1.0 - collapseRatio,
-            child: IgnorePointer(
-              ignoring: collapseRatio > 0.5,
-              child: SizedBox(
-                height: maxExtent,
-                child: TableCalendar(
-                  firstDay: DateTime(2020),
-                  lastDay: DateTime(2035),
-                  focusedDay: focusedDay,
-                  selectedDayPredicate: (day) => isSameDay(selectedDay, day),
-                  onDaySelected: onDaySelected,
-                  onPageChanged: onFormatChanged,
-                  calendarFormat: CalendarFormat.month,
-                  availableCalendarFormats: const {
-                    CalendarFormat.month: 'Monat',
-                  },
-                  locale: 'de',
-                  eventLoader: _getEventsForDay,
-                  calendarStyle: CalendarStyle(
-                    todayDecoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    selectedDecoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    markerDecoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  headerStyle: const HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
                   ),
                 ),
-              ),
+                SizedBox(height: tokens.spaceSm),
+              ],
             ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Opacity(
-              opacity: collapseRatio,
-              child: _WeekStrip(
-                focusedDay: focusedDay,
-                selectedDay: selectedDay,
-                eventsByDay: eventsByDay,
-                onDaySelected: (day) => onDaySelected(day, day),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(_CalendarHeaderDelegate oldDelegate) {
-    return focusedDay != oldDelegate.focusedDay ||
-        selectedDay != oldDelegate.selectedDay ||
-        eventsByDay != oldDelegate.eventsByDay;
-  }
-}
-
-class _WeekStrip extends StatelessWidget {
-  final DateTime focusedDay;
-  final DateTime? selectedDay;
-  final Map<DateTime, List<CalendarEvent>> eventsByDay;
-  final ValueChanged<DateTime> onDaySelected;
-
-  const _WeekStrip({
-    required this.focusedDay,
-    required this.selectedDay,
-    required this.eventsByDay,
-    required this.onDaySelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final weekStart = _weekStart(focusedDay);
-
-    return Container(
-      height: 68,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant,
-            width: 0.5,
           ),
         ),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(
-              DateFormat('MMMM yyyy', 'de').format(focusedDay),
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: tokens.border.withValues(alpha: 0.6),
+        ),
+        Expanded(
+          child: AgendaList(
+            events: events,
+            onEventTap: _onEventTap,
+            scrollController: _agendaScrollController,
           ),
-          Expanded(
-            child: Row(
-              children: List.generate(7, (i) {
-                final day = weekStart.add(Duration(days: i));
-                final isSelected =
-                    selectedDay != null && isSameDay(day, selectedDay!);
-                final isToday = isSameDay(day, DateTime.now());
-                final hasEvents = _getEventsForDay(day).isNotEmpty;
-
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => onDaySelected(day),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      decoration: BoxDecoration(
-                        color: isSelected ? theme.colorScheme.primary : null,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            DateFormat('E', 'de').format(day).substring(0, 2),
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isSelected
-                                  ? theme.colorScheme.onPrimary
-                                  : theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            day.day.toString(),
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isToday
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              color: isSelected
-                                  ? theme.colorScheme.onPrimary
-                                  : isToday
-                                  ? theme.colorScheme.primary
-                                  : theme.colorScheme.onSurface,
-                            ),
-                          ),
-                          if (hasEvents)
-                            Container(
-                              width: 4,
-                              height: 4,
-                              margin: const EdgeInsets.only(top: 2),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? theme.colorScheme.onPrimary
-                                    : theme.colorScheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  DateTime _weekStart(DateTime date) {
-    final weekday = date.weekday;
-    return DateTime(date.year, date.month, date.day - (weekday - 1));
-  }
-
-  List<CalendarEvent> _getEventsForDay(DateTime day) {
-    return eventsByDay[DateTime(day.year, day.month, day.day)] ?? [];
+  Widget _buildDesktopCalendar(DesignTokens tokens) {
+    return Material(
+      type: MaterialType.transparency,
+      child: TableCalendar(
+        firstDay: DateTime(2020),
+        lastDay: DateTime(2035),
+        focusedDay: _focusedDay,
+        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+        onDaySelected: _onDaySelected,
+        calendarFormat: CalendarFormat.month,
+        availableCalendarFormats: const {CalendarFormat.month: 'Monat'},
+        locale: 'de',
+        eventLoader: _getEventsForDay,
+        calendarStyle: CalendarStyle(
+          todayDecoration: BoxDecoration(
+            color: tokens.primary.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+          selectedDecoration: BoxDecoration(
+            color: tokens.primary,
+            shape: BoxShape.circle,
+          ),
+          markerDecoration: BoxDecoration(
+            color: tokens.primary,
+            shape: BoxShape.circle,
+          ),
+        ),
+        headerStyle: const HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+        ),
+      ),
+    );
   }
 }
+
+

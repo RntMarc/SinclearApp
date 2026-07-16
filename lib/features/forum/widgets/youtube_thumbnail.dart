@@ -1,8 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../../core/utils/youtube_helper.dart';
 
-/// Static YouTube thumbnail shown in feed lists. Tapping opens the video.
+import '../../../core/utils/youtube_helper.dart';
+import '../../../design/theme/design_theme.dart';
+
 class YouTubeThumbnail extends StatelessWidget {
   final String videoId;
   final double? width;
@@ -17,11 +18,11 @@ class YouTubeThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final thumbnailUrl = YoutubeHelper.thumbnailUrl(videoId);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(tokens.radiusSm),
       child: SizedBox(
         width: width ?? double.infinity,
         height: height ?? 180,
@@ -34,15 +35,16 @@ class YouTubeThumbnail extends StatelessWidget {
               height: double.infinity,
               fit: BoxFit.cover,
               placeholder: (_, _) => Container(
-                color: theme.colorScheme.surfaceContainerHighest,
-                child: const Center(child: CircularProgressIndicator()),
+                color: tokens.surfaceVariant,
+                child: Center(
+                  child: CircularProgressIndicator(color: tokens.primary),
+                ),
               ),
               errorWidget: (_, _, _) => Container(
-                color: theme.colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.error_outline, size: 32),
+                color: tokens.surfaceVariant,
+                child: Icon(Icons.error_outline, size: 32, color: tokens.textLow),
               ),
             ),
-            // Play button overlay
             Container(
               width: 48,
               height: 48,
@@ -56,7 +58,6 @@ class YouTubeThumbnail extends StatelessWidget {
                 size: 32,
               ),
             ),
-            // YouTube badge
             Positioned(
               top: 8,
               right: 8,
@@ -72,6 +73,7 @@ class YouTubeThumbnail extends StatelessWidget {
                     color: Colors.white,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),

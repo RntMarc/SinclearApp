@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_divider.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 import '../models/explore_models.dart';
 
 class CreatePlaceScreen extends StatefulWidget {
@@ -66,9 +75,7 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
         osmType: result.osmType,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${place.name} wurde hinzugefügt!')),
-      );
+      setState(() => _submitting = false);
       context.go('/entdecken/${place.id}');
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -91,93 +98,91 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    final tokens = DesignTheme.of(context);
+    return DesignSurface(
       child: Column(
         children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Name oder Ort suchen…',
-              prefixIcon: const Icon(Icons.search_rounded),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            textInputAction: TextInputAction.search,
-            onSubmitted: (_) => _search(),
+          const DesignAppBar(
+            title: 'Ort hinzufügen',
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _searching ? null : _search,
-              icon: _searching
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.search_rounded),
-              label: Text(_searching ? 'Suche läuft…' : 'Suchen'),
-            ),
+          Expanded(child: _buildBody(tokens)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(DesignTokens tokens) {
+    return Padding(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        children: [
+          DesignTextField(
+            controller: _searchController,
+            hint: 'Name oder Ort suchen…',
+            prefixIcon: Icons.search_rounded,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          DesignButton(
+            variant: DesignButtonVariant.filled,
+            icon: Icons.search_rounded,
+            label: _searching ? 'Suche läuft…' : 'Suchen',
+            fullWidth: true,
+            loading: _searching,
+            onPressed: _searching ? null : _search,
           ),
           if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
               _error!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.error,
-              ),
+              style: DesignTextStyle.body,
+              color: tokens.danger,
             ),
           ],
-          const SizedBox(height: 16),
+          SizedBox(height: tokens.spaceLg),
           Expanded(
             child: _results.isEmpty
                 ? Center(
-                    child: Text(
+                    child: DesignText(
                       'Gib einen Namen oder Ort ein, um nach Einträgen zu suchen.',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: DesignTextStyle.body,
+                      color: tokens.textLow,
                     ),
                   )
                 : ListView.separated(
                     itemCount: _results.length,
-                    separatorBuilder: (_, _) => const Divider(),
+                    separatorBuilder: (_, _) => DesignDivider(),
                     itemBuilder: (context, index) {
                       final result = _results[index];
-                      return ListTile(
-                        leading: Icon(
-                          result.osmType == 'N'
-                              ? Icons.location_on_rounded
-                              : result.osmType == 'W'
-                              ? Icons.route_rounded
-                              : Icons.layers_rounded,
-                          color: theme.colorScheme.primary,
-                        ),
-                        title: Text(
-                          result.displayName,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text('OSM-ID: ${result.osmId}'),
-                        trailing: _submitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                      return DesignCard(
+                        margin: EdgeInsets.zero,
+                        padding: EdgeInsets.zero,
+                        child: DesignListTile(
+                          leading: Icon(
+                            result.osmType == 'N'
+                                ? Icons.location_on_rounded
+                                : result.osmType == 'W'
+                                ? Icons.route_rounded
+                                : Icons.layers_rounded,
+                            color: tokens.primary,
+                          ),
+                          title: result.displayName,
+                          subtitle: 'OSM-ID: ${result.osmId}',
+                          trailing: _submitting
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: tokens.primary,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.add_circle_outline,
+                                  color: tokens.primary,
                                 ),
-                              )
-                            : const Icon(Icons.add_circle_outline),
-                        onTap: _submitting ? null : () => _submit(result),
+                          onTap: _submitting ? null : () => _submit(result),
+                        ),
                       );
                     },
                   ),

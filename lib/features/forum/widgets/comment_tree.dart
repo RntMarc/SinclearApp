@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
-import '../../../core/widgets/user_avatar.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../models/forum_models.dart';
 
 class CommentTreeTile extends StatelessWidget {
@@ -24,93 +29,100 @@ class CommentTreeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOwner = comment.userId == currentUserId;
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
+    final userName = resolveUserName(comment.userId);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  UserAvatar(
+                  DesignAvatar(
                     imageUrl: comment.userImage,
-                    displayName: resolveUserName(comment.userId),
-                    radius: 10,
+                    name: userName,
+                    size: 20,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    resolveUserName(comment.userId),
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                  SizedBox(width: 6),
+                  DesignText(
+                    userName,
+                    style: DesignTextStyle.label,
+                    color: tokens.textHigh,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
+                  SizedBox(width: tokens.spaceSm),
+                  DesignText(
                     app_date.formatRelativeDate(comment.createdAt),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
-                      ),
-                    ),
+                    style: DesignTextStyle.label,
+                    color: tokens.textLow.withValues(alpha: 0.6),
                   ),
                   const Spacer(),
                   if (isOwner || isAdmin)
-                    PopupMenuButton<String>(
-                      itemBuilder: (context) => [
-                        if (isOwner)
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.delete_outline_rounded,
-                                  size: 18,
-                                  color: Colors.red,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Löschen',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ],
-                            ),
+                    DesignIconButton(
+                      icon: Icons.more_vert_rounded,
+                      onPressed: () {
+                        showDesignSheet<bool>(
+                          context: context,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              DesignText(
+                                'Kommentar löschen',
+                                style: DesignTextStyle.subtitle,
+                                color: tokens.textHigh,
+                              ),
+                              SizedBox(height: tokens.spaceMd),
+                              DesignText(
+                                'Kommentar wirklich löschen?',
+                                style: DesignTextStyle.body,
+                                color: tokens.textHigh,
+                              ),
+                              SizedBox(height: tokens.spaceXl),
+                              DesignButton(
+                                variant: DesignButtonVariant.filled,
+                                label: 'Löschen',
+                                fullWidth: true,
+                                onPressed: () => Navigator.pop(context, true),
+                              ),
+                              SizedBox(height: tokens.spaceSm),
+                              DesignButton(
+                                variant: DesignButtonVariant.outlined,
+                                label: 'Abbrechen',
+                                fullWidth: true,
+                                onPressed: () => Navigator.pop(context, false),
+                              ),
+                            ],
                           ),
-                      ],
-                      onSelected: (value) {
-                        if (value == 'delete') onDelete(comment.id);
+                        ).then((confirmed) {
+                          if (confirmed == true) onDelete(comment.id);
+                        });
                       },
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: tokens.spaceXs),
               if (comment.isDeleted)
-                Text(
+                DesignText(
                   'Kommentar gelöscht',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.5,
-                    ),
-                  ),
+                  style: DesignTextStyle.body,
+                  color: tokens.textLow.withValues(alpha: 0.5),
                 )
               else ...[
-                Text(
+                DesignText(
                   comment.text!,
-                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: tokens.spaceXs),
                 GestureDetector(
                   onTap: () => onReply(comment.id),
-                  child: Text(
+                  child: DesignText(
                     'Antworten',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
                   ),
                 ),
               ],
@@ -119,7 +131,7 @@ class CommentTreeTile extends StatelessWidget {
         ),
         if (comment.children.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(left: 24),
+            padding: EdgeInsets.only(left: tokens.spaceXl),
             child: Column(
               children: comment.children
                   .map(
@@ -196,51 +208,54 @@ class _CommentInputState extends State<CommentInput> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(24),
+        color: tokens.surfaceVariant.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(tokens.radiusPill),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg, vertical: tokens.spaceXs),
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: null,
-              decoration: InputDecoration(
-                hintText: widget.hintText,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            child: Material(
+              type: MaterialType.transparency,
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: null,
+                style: TextStyle(
+                  color: tokens.textHigh,
+                  fontSize: 15,
+                  fontFamily: tokens.fontFamily,
+                ),
+                decoration: InputDecoration(
+                  hintText: widget.hintText,
+                  hintStyle: TextStyle(
+                    color: tokens.textLow,
+                    fontSize: 15,
+                    fontFamily: tokens.fontFamily,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: tokens.spaceMd),
+                ),
+                onSubmitted: (_) => _submit(),
               ),
-              onSubmitted: (_) => _submit(),
             ),
           ),
           if (widget.onCancel != null)
-            IconButton(
+            DesignIconButton(
+              icon: Icons.close_rounded,
               onPressed: () {
                 _controller.clear();
                 widget.onCancel?.call();
               },
-              icon: const Icon(Icons.close_rounded, size: 20),
             ),
-          IconButton(
+          DesignIconButton(
+            icon: Icons.send_rounded,
             onPressed: _submitting ? null : _submit,
-            icon: _submitting
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    Icons.send_rounded,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
           ),
         ],
       ),

@@ -3,11 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart';
-import '../../../core/widgets/user_avatar.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../user/models/user_models.dart';
 import '../models/explore_models.dart';
 import '../utils/cuisine_translations.dart';
@@ -35,11 +42,6 @@ class _DetailScreenState extends State<DetailScreen> {
   final Map<String, UserBasePublic> _reviewUsers = {};
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_hasLoaded) {
@@ -53,18 +55,18 @@ class _DetailScreenState extends State<DetailScreen> {
     try {
       final scope = AppScope.of(context);
       await scope.auth.getAccessToken();
-      final results = await Future.wait([
+      final (place, bookmarked, reviewsResponse) = await (
         scope.explore.get(widget.id),
         scope.explore.bookmarkStatus(widget.id),
         scope.explore.getReviews(widget.id),
-      ]);
+      ).wait;
       if (!mounted) return;
-      final reviews = (results[2] as ReviewListResponse).data;
+      final reviews = reviewsResponse.data;
       await _loadReviewUsers(reviews);
       if (!mounted) return;
       setState(() {
-        _place = results[0] as ExplorePlace;
-        _bookmarked = results[1] as bool;
+        _place = place;
+        _bookmarked = bookmarked;
         _reviews = reviews;
         _loading = false;
         _loadingReviews = false;
@@ -127,21 +129,50 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
+    final tokens = DesignTheme.of(context);
+    final confirm = await showDesignSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Ort löschen'),
-        content: Text('${_place?.name} wirklich löschen?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Löschen'),
-          ),
-        ],
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DesignText(
+              'Ort löschen',
+              style: DesignTextStyle.title,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
+              '${_place?.name} wirklich löschen?',
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceLg),
+            Row(
+              children: [
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    label: 'Abbrechen',
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                ),
+                SizedBox(width: tokens.spaceSm),
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Löschen',
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
     if (confirm != true) return;
@@ -196,10 +227,7 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _showCreateReviewDialog() async {
-    final result = await showDialog<({int rating, String? comment})>(
-      context: context,
-      builder: (_) => const _ReviewDialog(),
-    );
+    final result = await _showReviewSheet(initialRating: null, initialComment: null);
     if (result == null || !mounted) return;
     try {
       await AppScope.of(context).explore.createReview(
@@ -220,12 +248,9 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _showEditReviewDialog(Review review) async {
-    final result = await showDialog<({int rating, String? comment})>(
-      context: context,
-      builder: (_) => _ReviewDialog(
-        initialRating: review.rating,
-        initialComment: review.comment,
-      ),
+    final result = await _showReviewSheet(
+      initialRating: review.rating,
+      initialComment: review.comment,
     );
     if (result == null || !mounted) return;
     try {
@@ -247,22 +272,64 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
-  Future<void> _confirmDeleteReview(Review review) async {
-    final confirm = await showDialog<bool>(
+  Future<({int rating, String? comment})?> _showReviewSheet({
+    int? initialRating,
+    String? initialComment,
+  }) {
+    return showDesignSheet<({int rating, String? comment})>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Bewertung löschen'),
-        content: const Text('Wirklich löschen?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Löschen'),
-          ),
-        ],
+      child: _ReviewForm(
+        initialRating: initialRating,
+        initialComment: initialComment,
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteReview(Review review) async {
+    final tokens = DesignTheme.of(context);
+    final confirm = await showDesignSheet<bool>(
+      context: context,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DesignText(
+              'Bewertung löschen',
+              style: DesignTextStyle.title,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
+              'Wirklich löschen?',
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceLg),
+            Row(
+              children: [
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    label: 'Abbrechen',
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                ),
+                SizedBox(width: tokens.spaceSm),
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Löschen',
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
     if (confirm != true || !mounted) return;
@@ -282,8 +349,27 @@ class _DetailScreenState extends State<DetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            title: _place?.name ?? 'Details',
+          ),
+          Expanded(child: _buildBody(tokens)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(DesignTokens tokens) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
     if (_error != null || _place == null) {
@@ -291,17 +377,18 @@ class _DetailScreenState extends State<DetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
+            Icon(Icons.error_outline, size: 48, color: tokens.danger),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              _error ?? 'Unbekannter Fehler',
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
             ),
-            const SizedBox(height: 8),
-            Text(_error ?? 'Unbekannter Fehler'),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              label: 'Erneut versuchen',
               onPressed: _load,
-              child: const Text('Erneut versuchen'),
             ),
           ],
         ),
@@ -399,24 +486,24 @@ class _WideDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(tokens.spaceXl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const BackButton(),
-          const SizedBox(height: 8),
+          SizedBox(height: tokens.spaceSm),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(flex: 3, child: _InfoContent(place: place)),
-              const SizedBox(width: 24),
+              SizedBox(width: tokens.spaceXl),
               Expanded(
                 flex: 2,
                 child: Column(
                   children: [
-                    _MapCard(place: place),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 200, child: _MapCard(place: place)),
+                    SizedBox(height: tokens.spaceLg),
                     _ActionsCard(
                       canDelete: canDelete,
                       refreshing: refreshing,
@@ -426,7 +513,7 @@ class _WideDetail extends StatelessWidget {
                       onDelete: onDelete,
                       onToggleBookmark: onToggleBookmark,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: tokens.spaceLg),
                     _ReviewsSection(
                       reviews: reviews,
                       loading: loadingReviews,
@@ -490,34 +577,39 @@ class _NarrowDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return DefaultTabController(
       length: 2,
       child: Column(
         children: [
-          Row(
-            children: [
-              const BackButton(),
-              Expanded(
-                child: TabBar(
-                  tabs: const [
-                    Tab(text: 'Info'),
-                    Tab(text: 'Bewertungen'),
-                  ],
-                ),
-              ),
-            ],
+          Padding(
+            padding: EdgeInsets.only(right: tokens.spaceSm),
+            child: TabBar(
+              indicatorColor: tokens.primary,
+              labelColor: tokens.textHigh,
+              unselectedLabelColor: tokens.textLow,
+              labelStyle: tokens.bodyStyle(tokens.textHigh),
+              unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
+              tabs: const [
+                Tab(text: 'Info'),
+                Tab(text: 'Bewertungen'),
+              ],
+            ),
           ),
           Expanded(
             child: TabBarView(
               children: [
                 SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(tokens.spaceLg),
                   child: Column(
                     children: [
                       _InfoContent(place: place),
-                      const SizedBox(height: 16),
-                      SizedBox(height: 200, child: _MapCard(place: place)),
-                      const SizedBox(height: 16),
+                      SizedBox(height: tokens.spaceLg),
+                      SizedBox(
+                        height: 200,
+                        child: _MapCard(place: place),
+                      ),
+                      SizedBox(height: tokens.spaceLg),
                       _ActionsCard(
                         canDelete: canDelete,
                         refreshing: refreshing,
@@ -531,7 +623,7 @@ class _NarrowDetail extends StatelessWidget {
                   ),
                 ),
                 SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(tokens.spaceLg),
                   child: _ReviewsSection(
                     reviews: reviews,
                     loading: loadingReviews,
@@ -559,88 +651,93 @@ class _InfoContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(place.name, style: theme.textTheme.headlineSmall),
-        const SizedBox(height: 16),
+        DesignText(
+          place.name,
+          style: DesignTextStyle.title,
+          color: tokens.textHigh,
+        ),
+        SizedBox(height: tokens.spaceLg),
         if (place.address != null)
-          _InfoRow(Icons.location_on_rounded, place.address!),
-        if (place.phone != null) _InfoRow(Icons.phone_rounded, place.phone!),
+          _infoRow(Icons.location_on_rounded, place.address!, tokens),
+        if (place.phone != null)
+          _infoRow(Icons.phone_rounded, place.phone!, tokens),
         if (place.website != null)
-          _InfoRow(Icons.language_rounded, place.website!),
-        if (place.email != null) _InfoRow(Icons.email_rounded, place.email!),
+          _infoRow(Icons.language_rounded, place.website!, tokens),
+        if (place.email != null)
+          _infoRow(Icons.email_rounded, place.email!, tokens),
         if (place.cuisine != null)
-          _InfoRow(Icons.restaurant_rounded, translateCuisine(place.cuisine)),
+          _infoRow(
+            Icons.restaurant_rounded,
+            translateCuisine(place.cuisine),
+            tokens,
+          ),
         if (place.openingHours != null)
-          _InfoRow(Icons.schedule_rounded, place.openingHours!),
+          _infoRow(Icons.schedule_rounded, place.openingHours!, tokens),
         if (place.avgRating != null)
-          _InfoRow(
+          _infoRow(
             Icons.star_rounded,
             '${place.avgRating!.toStringAsFixed(1)} / 5',
+            tokens,
           ),
-        const SizedBox(height: 16),
-        _MetaRow(
-          'Kategorie',
-          place.category == 'gastronomy' ? 'Gastronomie' : 'Freizeit',
+        SizedBox(height: tokens.spaceLg),
+        _metaRow('Kategorie', place.category == 'gastronomy' ? 'Gastronomie' : 'Freizeit', tokens),
+        _metaRow('OSM-ID', '${place.osmType ?? "?"}/${place.osmId?.toString() ?? "?"}', tokens),
+        _metaRow('Erstellt', place.createdAt.substring(0, 10), tokens),
+        _metaRow(
+          'Letzte Aktualisierung',
+          place.lastUpdated.substring(0, 10),
+          tokens,
         ),
-        _MetaRow('OSM-ID', '${place.osmType ?? "?"}/${place.osmId ?? "?"}'),
-        _MetaRow('Erstellt', place.createdAt.substring(0, 10)),
-        _MetaRow('Letzte Aktualisierung', place.lastUpdated.substring(0, 10)),
       ],
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoRow(this.icon, this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: theme.colorScheme.primary),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
-        ],
-      ),
-    );
-  }
+Widget _infoRow(IconData icon, String text, DesignTokens tokens) {
+  return Padding(
+    padding: EdgeInsets.only(bottom: tokens.spaceSm),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: tokens.primary),
+        SizedBox(width: tokens.spaceSm),
+        Expanded(
+          child: DesignText(
+            text,
+            style: DesignTextStyle.body,
+            color: tokens.textHigh,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
-class _MetaRow extends StatelessWidget {
-  final String label;
-  final String value;
-  const _MetaRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 140,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+Widget _metaRow(String label, String value, DesignTokens tokens) {
+  return Padding(
+    padding: EdgeInsets.only(bottom: tokens.spaceXs),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 140,
+          child: DesignText(
+            label,
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
           ),
-          Text(value, style: theme.textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
+        ),
+        DesignText(
+          value,
+          style: DesignTextStyle.label,
+          color: tokens.textHigh,
+        ),
+      ],
+    ),
+  );
 }
 
 class _MapCard extends StatelessWidget {
@@ -649,51 +746,57 @@ class _MapCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     if (place.latitude == null || place.longitude == null) {
-      return const Card(
+      return DesignCard(
+        useGlass: false,
         child: SizedBox(
           height: 200,
-          child: Center(child: Text('Keine Koordinaten verfügbar')),
+          child: Center(
+            child: DesignText(
+              'Keine Koordinaten verfügbar',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ),
         ),
       );
     }
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        height: 200,
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: LatLng(place.latitude!, place.longitude!),
-            initialZoom: 15,
-            interactionOptions: InteractionOptions(
-              flags:
-                  InteractiveFlag.all & ~InteractiveFlag.rotate,
+    return DesignCard(
+      useGlass: false,
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.radiusLg),
+        child: SizedBox(
+          height: 200,
+          child: FlutterMap(
+            options: MapOptions(
+              initialCenter: LatLng(place.latitude!, place.longitude!),
+              initialZoom: 15,
+              interactionOptions: InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
             ),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: OsmConfig.tileUrlTemplate,
-              userAgentPackageName: OsmConfig.tileUserAgent,
-              tileProvider: osmTileProvider(),
-            ),
-            MarkerLayer(
-              markers: [
-                Marker(
-                  point: LatLng(place.latitude!, place.longitude!),
-                  child: const Icon(
-                    Icons.location_on,
-                    color: Colors.red,
-                    size: 36,
+            children: [
+              TileLayer(
+                urlTemplate: OsmConfig.tileUrlTemplate,
+                userAgentPackageName: OsmConfig.tileUserAgent,
+                tileProvider: osmTileProvider(),
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: LatLng(place.latitude!, place.longitude!),
+                    child: Icon(
+                      Icons.location_on,
+                      color: tokens.danger,
+                      size: 36,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            SimpleAttributionWidget(
-              source: const Text('OpenStreetMap contributors'),
-              onTap: () =>
-                  launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -721,61 +824,43 @@ class _ActionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            FilledButton.tonalIcon(
-              onPressed: bookmarkToggling ? null : onToggleBookmark,
-              icon: bookmarkToggling
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(
-                      bookmarked
-                          ? Icons.bookmark_rounded
-                          : Icons.bookmark_border_rounded,
-                    ),
-              label: Text(
-                bookmarkToggling
-                    ? '…'
-                    : bookmarked
-                    ? 'Lesezeichen entfernen'
-                    : 'Lesezeichen setzen',
-              ),
+    final tokens = DesignTheme.of(context);
+    return DesignCard(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesignButton(
+            variant: DesignButtonVariant.filled,
+            icon: bookmarked
+                ? Icons.bookmark_rounded
+                : Icons.bookmark_border_rounded,
+            label: bookmarkToggling
+                ? '…'
+                : bookmarked
+                ? 'Lesezeichen entfernen'
+                : 'Lesezeichen setzen',
+            loading: bookmarkToggling,
+            onPressed: bookmarkToggling ? null : onToggleBookmark,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          DesignButton(
+            variant: DesignButtonVariant.filled,
+            icon: Icons.refresh_rounded,
+            label: refreshing ? 'Aktualisiere…' : 'OSM-Daten aktualisieren',
+            loading: refreshing,
+            onPressed: refreshing ? null : onRefresh,
+          ),
+          if (canDelete) ...[
+            SizedBox(height: tokens.spaceSm),
+            DesignButton(
+              variant: DesignButtonVariant.outlined,
+              icon: Icons.delete_rounded,
+              label: 'Ort löschen',
+              onPressed: onDelete,
             ),
-            const SizedBox(height: 8),
-            FilledButton.tonalIcon(
-              onPressed: refreshing ? null : onRefresh,
-              icon: refreshing
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.refresh_rounded),
-              label: Text(
-                refreshing ? 'Aktualisiere…' : 'OSM-Daten aktualisieren',
-              ),
-            ),
-            if (canDelete) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_rounded),
-                label: const Text('Ort löschen'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
-                ),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -806,10 +891,10 @@ class _ReviewsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     if (loading && reviews == null) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
     if (error != null && reviews == null) {
@@ -817,13 +902,14 @@ class _ReviewsSection extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: 8),
-            Text(error!),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
+            Icon(Icons.error_outline, size: 48, color: tokens.danger),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(error!, style: DesignTextStyle.body, color: tokens.textHigh),
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              label: 'Erneut versuchen',
               onPressed: onLoadReviews,
-              child: const Text('Erneut versuchen'),
             ),
           ],
         ),
@@ -837,32 +923,36 @@ class _ReviewsSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Bewertungen', style: theme.textTheme.titleMedium),
+            DesignText(
+              'Bewertungen',
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
+            ),
             const Spacer(),
-            FilledButton.tonalIcon(
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              icon: Icons.add_rounded,
+              label: 'Schreiben',
               onPressed: onCreateReview,
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Schreiben'),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.spaceMd),
         if (items.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
+            padding: EdgeInsets.symmetric(vertical: tokens.spaceXl),
             child: Center(
-              child: Text(
+              child: DesignText(
                 'Noch keine Bewertungen.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: DesignTextStyle.body,
+                color: tokens.textLow,
               ),
             ),
           )
         else
           ...items.map(
             (review) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.only(bottom: tokens.spaceMd),
               child: _ReviewCard(
                 review: review,
                 isOwn: review.userId == currentUserId,
@@ -894,75 +984,66 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (reviewUser != null) ...[
-              InkWell(
-                onTap: () => context.go('/kontakte/${review.userId}'),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      UserAvatar(
-                        imageUrl: reviewUser!.image,
-                        displayName: reviewUser!.displayName,
-                        radius: 14,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        reviewUser!.displayName,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            Row(
-              children: [
-                _StarRating(rating: review.rating, size: 16),
-                const Spacer(),
-                if (isOwn) ...[
-                  IconButton(
-                    icon: const Icon(Icons.edit_rounded, size: 18),
-                    onPressed: onEdit,
-                    visualDensity: VisualDensity.compact,
-                    tooltip: 'Bearbeiten',
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete_rounded,
-                      size: 18,
-                      color: theme.colorScheme.error,
+    final tokens = DesignTheme.of(context);
+    return DesignCard(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (reviewUser != null) ...[
+            GestureDetector(
+              onTap: () => context.go('/kontakte/${review.userId}'),
+              child: Padding(
+                padding: EdgeInsets.only(bottom: tokens.spaceSm),
+                child: Row(
+                  children: [
+                    DesignAvatar(
+                      imageUrl: reviewUser!.image,
+                      name: reviewUser!.displayName,
+                      size: 28,
                     ),
-                    onPressed: onDelete,
-                    visualDensity: VisualDensity.compact,
-                    tooltip: 'Löschen',
-                  ),
-                ],
-              ],
-            ),
-            if (review.comment != null && review.comment!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(review.comment!, style: theme.textTheme.bodyMedium),
-            ],
-            const SizedBox(height: 4),
-            Text(
-              _formatDate(review.createdAt),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                    SizedBox(width: tokens.spaceSm),
+                    DesignText(
+                      reviewUser!.displayName,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
-        ),
+          Row(
+            children: [
+              _StarRating(rating: review.rating, size: 16),
+              const Spacer(),
+              if (isOwn) ...[
+                DesignIconButton(
+                  icon: Icons.edit_rounded,
+                  onPressed: onEdit,
+                ),
+                DesignIconButton(
+                  icon: Icons.delete_rounded,
+                  onPressed: onDelete,
+                ),
+              ],
+            ],
+          ),
+          if (review.comment != null && review.comment!.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              review.comment!,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+          ],
+          SizedBox(height: tokens.spaceXs),
+          DesignText(
+            _formatDate(review.createdAt),
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+        ],
       ),
     );
   }
@@ -985,7 +1066,7 @@ class _StarRating extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
+    final tokens = DesignTheme.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(
@@ -993,24 +1074,24 @@ class _StarRating extends StatelessWidget {
         (i) => Icon(
           i < rating ? Icons.star_rounded : Icons.star_border_rounded,
           size: size,
-          color: color,
+          color: tokens.primary,
         ),
       ),
     );
   }
 }
 
-class _ReviewDialog extends StatefulWidget {
+class _ReviewForm extends StatefulWidget {
   final int? initialRating;
   final String? initialComment;
 
-  const _ReviewDialog({this.initialRating, this.initialComment});
+  const _ReviewForm({this.initialRating, this.initialComment});
 
   @override
-  State<_ReviewDialog> createState() => _ReviewDialogState();
+  State<_ReviewForm> createState() => _ReviewFormState();
 }
 
-class _ReviewDialogState extends State<_ReviewDialog> {
+class _ReviewFormState extends State<_ReviewForm> {
   int _rating = 0;
   late final TextEditingController _commentController;
 
@@ -1031,56 +1112,88 @@ class _ReviewDialogState extends State<_ReviewDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final isEditing = widget.initialRating != null;
-    return AlertDialog(
-      title: Text(isEditing ? 'Bewertung bearbeiten' : 'Bewertung schreiben'),
-      content: Column(
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: DesignText(
+                  isEditing ? 'Bewertung bearbeiten' : 'Bewertung schreiben',
+                  style: DesignTextStyle.title,
+                  color: tokens.textHigh,
+                ),
+              ),
+              DesignIconButton(
+                icon: Icons.close_rounded,
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          SizedBox(height: tokens.spaceLg),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(5, (i) {
               final filled = i < _rating;
-              return IconButton(
-                icon: Icon(
-                  filled ? Icons.star_rounded : Icons.star_border_rounded,
-                  color: filled
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
+              return DesignIconButton(
+                icon: filled ? Icons.star_rounded : Icons.star_border_rounded,
                 onPressed: () => setState(() => _rating = i + 1),
               );
             }),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _commentController,
-            decoration: const InputDecoration(
-              labelText: 'Kommentar (optional)',
-              border: OutlineInputBorder(),
+          SizedBox(height: tokens.spaceMd),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: tokens.spaceMd,
+              vertical: tokens.spaceSm,
             ),
-            maxLines: 3,
+            decoration: BoxDecoration(
+              color: tokens.surface,
+              borderRadius: BorderRadius.circular(tokens.radiusMd),
+              border: Border.all(
+                color: tokens.border.withValues(alpha: 0.8),
+                width: 1.5,
+              ),
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: TextField(
+                controller: _commentController,
+                decoration: InputDecoration(
+                  labelText: 'Kommentar (optional)',
+                  labelStyle: TextStyle(color: tokens.textLow, fontSize: 15),
+                  border: InputBorder.none,
+                  isCollapsed: true,
+                ),
+                style: TextStyle(color: tokens.textHigh, fontSize: 15),
+                cursorColor: tokens.primary,
+                maxLines: 3,
+              ),
+            ),
+          ),
+          SizedBox(height: tokens.spaceLg),
+          DesignButton(
+            variant: DesignButtonVariant.filled,
+            label: 'Speichern',
+            fullWidth: true,
+            onPressed: _rating == 0
+                ? null
+                : () => Navigator.pop(context, (
+                    rating: _rating,
+                    comment: _commentController.text.trim().isEmpty
+                        ? null
+                        : _commentController.text.trim(),
+                  )),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Abbrechen'),
-        ),
-        FilledButton(
-          onPressed: _rating == 0
-              ? null
-              : () => Navigator.pop(context, (
-                  rating: _rating,
-                  comment: _commentController.text.trim().isEmpty
-                      ? null
-                      : _commentController.text.trim(),
-                )),
-          child: const Text('Speichern'),
-        ),
-      ],
     );
   }
 }

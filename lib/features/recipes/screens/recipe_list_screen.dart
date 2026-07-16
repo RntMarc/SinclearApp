@@ -1,9 +1,17 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_card_chip_group.dart';
 import '../models/recipes_models.dart';
-import '../widgets/recipe_card.dart';
 
 class RecipeListScreen extends StatefulWidget {
   const RecipeListScreen({super.key});
@@ -13,7 +21,6 @@ class RecipeListScreen extends StatefulWidget {
 }
 
 class _RecipeListScreenState extends State<RecipeListScreen> {
-  final _searchController = TextEditingController();
   List<RecipeListItem> _recentRecipes = [];
   List<RecipeListItem> _bookmarks = [];
   bool _loadingRecent = true;
@@ -34,7 +41,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -84,283 +90,294 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     }
   }
 
-  void _onSearch() {
-    final query = _searchController.text.trim();
-    if (query.isEmpty) return;
-    context.go('/rezepte/suche?q=${Uri.encodeComponent(query)}');
+  Widget _recipeThumb(RecipeListItem recipe, DesignTokens tokens, double size) {
+    final icon = recipeCategoryIcons[recipe.category] ?? '🍴';
+    final fallback = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: tokens.surfaceVariant,
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+      ),
+      child: Center(
+        child: Text(
+          icon,
+          style: TextStyle(
+            fontSize: size * 0.42,
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ),
+    );
+    final image = recipe.image;
+    if (image == null) return fallback;
+    if (image.startsWith('http')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        child: Image.network(
+          image,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => fallback,
+        ),
+      );
+    }
+    try {
+      final bytes = image.startsWith('data:')
+          ? base64Decode(image.split(',').last)
+          : base64Decode(image);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        child: Image.memory(
+          bytes,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => fallback,
+        ),
+      );
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  Widget _recipeTile(RecipeListItem recipe, DesignTokens tokens) {
+    return DesignCard(
+      margin: EdgeInsets.only(bottom: tokens.spaceMd),
+      useGlass: false,
+      onTap: () => context.go('/rezepte/${recipe.id}'),
+      child: Padding(
+        padding: EdgeInsets.all(tokens.spaceSm),
+        child: Row(
+          children: [
+            _recipeThumb(recipe, tokens, 64),
+            SizedBox(width: tokens.spaceSm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignText(
+                    recipe.title,
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: tokens.spaceXs),
+                  DesignText(
+                    recipe.categoryLabel,
+                    style: DesignTextStyle.label,
+                    color: tokens.textLow,
+                  ),
+                  if (recipe.avgRating != null) ...[
+                    SizedBox(height: tokens.spaceXs),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: tokens.primary,
+                        ),
+                        SizedBox(width: tokens.spaceXs),
+                        DesignText(
+                          recipe.avgRating!.toStringAsFixed(1),
+                          style: DesignTextStyle.label,
+                          color: tokens.textHigh,
+                        ),
+                        SizedBox(width: tokens.spaceXs),
+                        DesignText(
+                          '(${recipe.ratingCount})',
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionError(
+    String message,
+    VoidCallback onRetry,
+    DesignTokens tokens,
+  ) {
+    return DesignCard(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: EdgeInsets.all(tokens.spaceLg),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, size: 24, color: tokens.danger),
+              SizedBox(height: tokens.spaceMd),
+              DesignText(message),
+              SizedBox(height: tokens.spaceSm),
+              DesignButton(
+                label: 'Erneut versuchen',
+                variant: DesignButtonVariant.outlined,
+                onPressed: onRetry,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 600;
-    final crossAxisCount = isWide ? (width >= 900 ? 3 : 2) : 2;
+    final tokens = DesignTheme.of(context);
 
-    return Stack(
-      children: [
-        SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Rezepte suchen…',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {});
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (_) => _onSearch(),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: Text(
-                  'Kategorien',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.8,
-                  ),
-                  itemCount: recipeCategories.length,
-                  itemBuilder: (context, index) {
-                    final entry = recipeCategories.entries.elementAt(index);
-                    final icon = recipeCategoryIcons[entry.key] ?? '🍴';
-                    return _CategoryTile(
-                      icon: icon,
-                      label: entry.value,
-                      onTap: () =>
-                          context.go('/rezepte/kategorie/${entry.key}'),
-                    );
-                  },
-                ),
-              ),
-              if (_loadingBookmarks)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_bookmarksError != null)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 24,
-                              color: theme.colorScheme.error,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _bookmarksError!,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _loadBookmarks,
-                              child: const Text('Erneut versuchen'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              else if (_bookmarks.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                  child: Text(
-                    'Lesezeichen',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: 200,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _bookmarks.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) => SizedBox(
-                      width: 260,
-                      child: RecipeCard(recipe: _bookmarks[index]),
-                    ),
-                  ),
-                ),
-              ],
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 4),
-                child: Row(
-                  children: [
-                    Text(
-                      'Neueste Rezepte',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (_recentRecipes.isNotEmpty)
-                      TextButton(
-                        onPressed: () => context.go('/rezepte/alle'),
-                        child: const Text('Alle'),
+    return DesignSurface(
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: tokens.spaceXxl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DesignCardChipGroup(
+                  items: [
+                    for (final key in recipeCategories.keys)
+                      DesignCardChipItem(
+                        icon: recipeCategoryIcons[key] ?? '🍴',
+                        label: recipeCategories[key]!,
+                        onTap: () => context.go('/rezepte/kategorie/$key'),
                       ),
                   ],
                 ),
-              ),
-              if (_loadingRecent)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_recentError != null)
                 Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 24,
-                              color: theme.colorScheme.error,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _recentError!,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.error,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _loadRecent,
-                              child: const Text('Erneut versuchen'),
-                            ),
-                          ],
+                  padding: EdgeInsets.fromLTRB(
+                    tokens.spaceLg,
+                    tokens.spaceXl,
+                    tokens.spaceLg,
+                    tokens.spaceSm,
+                  ),
+                  child: Row(
+                    children: [
+                      DesignText(
+                        'Neueste Rezepte',
+                        style: DesignTextStyle.title,
+                      ),
+                      const Spacer(),
+                      if (_recentRecipes.isNotEmpty)
+                        DesignButton(
+                          label: 'Alle',
+                          variant: DesignButtonVariant.text,
+                          onPressed: () => context.go('/rezepte/alle'),
                         ),
+                    ],
+                  ),
+                ),
+                if (_loadingRecent)
+                  Padding(
+                    padding: EdgeInsets.all(tokens.spaceLg),
+                    child: Center(
+                      child: CircularProgressIndicator(color: tokens.primary),
+                    ),
+                  )
+                else if (_recentError != null)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+                    child: _sectionError(_recentError!, _loadRecent, tokens),
+                  )
+                else if (_recentRecipes.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.all(tokens.spaceLg),
+                    child: Center(
+                      child: DesignText(
+                        'Noch keine Rezepte vorhanden.',
+                        color: tokens.textLow,
                       ),
                     ),
+                  )
+                else
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+                    child: Column(
+                      children: [
+                        for (final recipe in _recentRecipes)
+                          _recipeTile(recipe, tokens),
+                      ],
+                    ),
                   ),
-                )
-              else if (_recentRecipes.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.only(top: tokens.spaceLg),
                   child: Center(
-                    child: Text(
-                      'Noch keine Rezepte vorhanden.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    child: DesignButton(
+                      label: 'In allen Rezepten stöbern',
+                      variant: DesignButtonVariant.text,
+                      onPressed: () => context.go('/rezepte/alle'),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    tokens.spaceLg,
+                    tokens.spaceXl,
+                    tokens.spaceLg,
+                    tokens.spaceSm,
+                  ),
+                  child: DesignText(
+                    'Lesezeichen',
+                    style: DesignTextStyle.title,
+                  ),
+                ),
+                if (_loadingBookmarks)
+                  Padding(
+                    padding: EdgeInsets.all(tokens.spaceLg),
+                    child: Center(
+                      child: CircularProgressIndicator(color: tokens.primary),
+                    ),
+                  )
+                else if (_bookmarksError != null)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+                    child: _sectionError(
+                      _bookmarksError!,
+                      _loadBookmarks,
+                      tokens,
+                    ),
+                  )
+                else if (_bookmarks.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.all(tokens.spaceLg),
+                    child: Center(
+                      child: DesignText(
+                        'Noch keine Lesezeichen vorhanden.',
+                        color: tokens.textLow,
                       ),
                     ),
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: isWide ? (width >= 900 ? 3 : 2) : 1,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      childAspectRatio: isWide ? 1.5 : 2.5,
-                    ),
-                    itemCount: _recentRecipes.length,
-                    itemBuilder: (context, index) => RecipeCard(
-                      recipe: _recentRecipes[index],
+                  )
+                else
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+                    child: Column(
+                      children: [
+                        for (final recipe in _bookmarks)
+                          _recipeTile(recipe, tokens),
+                      ],
                     ),
                   ),
-                ),
-              const SizedBox(height: 16),
-            ],
+              ],
+            ),
           ),
-        ),
-        Positioned(
-          bottom: 16,
-          right: 16,
-          child: FloatingActionButton(
-            onPressed: () => context.go('/rezepte/neu'),
-            child: const Icon(Icons.add_rounded),
+          Positioned(
+            bottom: tokens.spaceLg,
+            right: tokens.spaceLg,
+            child: DesignIconButton(
+              icon: Icons.add_rounded,
+              onPressed: () => context.go('/rezepte/neu'),
+            ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CategoryTile extends StatelessWidget {
-  final String icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _CategoryTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 24)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

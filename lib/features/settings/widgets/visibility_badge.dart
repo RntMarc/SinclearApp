@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
 
 const _labels = <int, String>{0: 'Nur ich', 1: 'Alle', 2: 'Freunde'};
 const _icons = <int, IconData>{
@@ -19,64 +21,66 @@ class VisibilityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final label = _labels[value] ?? 'Unbekannt';
     final icon = _icons[value] ?? Icons.help_outline;
 
-    return PopupMenuButton<int>(
-      onSelected: onChanged,
-      offset: const Offset(0, 32),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: theme.colorScheme.primary),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.primary,
+    return Material(
+      type: MaterialType.transparency,
+      child: PopupMenuButton<int>(
+        onSelected: onChanged,
+        offset: const Offset(0, 32),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: tokens.surfaceVariant,
+            borderRadius: BorderRadius.circular(tokens.radiusSm),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: tokens.primary),
+              const SizedBox(width: 4),
+              DesignText(
+                label,
+                style: DesignTextStyle.label,
+                color: tokens.primary,
               ),
-            ),
-            Icon(
-              Icons.arrow_drop_down_rounded,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-          ],
+              Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 16,
+                color: tokens.primary,
+              ),
+            ],
+          ),
         ),
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 0,
+            child: _Item(
+              label: 'Nur ich',
+              subtitle: 'Niemand außer dir',
+              icon: _icons[0]!,
+            ),
+          ),
+          PopupMenuItem(
+            value: 1,
+            child: _Item(
+              label: 'Alle',
+              subtitle: 'Jeder eingeloggte Nutzer',
+              icon: _icons[1]!,
+            ),
+          ),
+          PopupMenuItem(
+            value: 2,
+            child: _Item(
+              label: 'Enge Freunde',
+              subtitle: 'Nur von dir hinzugefügte',
+              icon: _icons[2]!,
+            ),
+          ),
+        ],
       ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 0,
-          child: _Item(
-            label: 'Nur ich',
-            subtitle: 'Niemand außer dir',
-            icon: _icons[0]!,
-          ),
-        ),
-        PopupMenuItem(
-          value: 1,
-          child: _Item(
-            label: 'Alle',
-            subtitle: 'Jeder eingeloggte Nutzer',
-            icon: _icons[1]!,
-          ),
-        ),
-        PopupMenuItem(
-          value: 2,
-          child: _Item(
-            label: 'Enge Freunde',
-            subtitle: 'Nur von dir hinzugefügte',
-            icon: _icons[2]!,
-          ),
-        ),
-      ],
     );
   }
 }
@@ -94,19 +98,19 @@ class _Item extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return Row(
       children: [
-        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+        Icon(icon, size: 18, color: tokens.primary),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-            Text(
+            DesignText(label, style: DesignTextStyle.body),
+            DesignText(
               subtitle,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
             ),
           ],
         ),
