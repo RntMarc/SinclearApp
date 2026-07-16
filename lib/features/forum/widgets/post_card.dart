@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../core/utils/spotify_helper.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/forum_models.dart';
@@ -76,27 +78,53 @@ class PostCard extends StatelessWidget {
                 DesignIconButton(
                   icon: Icons.more_vert_rounded,
                   onPressed: () {
-                    showDialog(
+                    showDesignSheet(
                       context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Post löschen'),
-                        content: const Text(
-                          'Möchtest du diesen Post wirklich löschen?',
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).viewInsets.bottom,
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Abbrechen'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              onDelete!();
-                            },
-                            child: const Text('Löschen',
-                                style: TextStyle(color: Colors.red)),
-                          ),
-                        ],
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            DesignText(
+                              'Post löschen',
+                              style: DesignTextStyle.title,
+                              color: tokens.textHigh,
+                            ),
+                            SizedBox(height: tokens.spaceMd),
+                            DesignText(
+                              'Möchtest du diesen Post wirklich löschen?',
+                              style: DesignTextStyle.body,
+                              color: tokens.textHigh,
+                            ),
+                            SizedBox(height: tokens.spaceLg),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: DesignButton(
+                                    variant: DesignButtonVariant.outlined,
+                                    label: 'Abbrechen',
+                                    onPressed: () =>
+                                        Navigator.pop(context),
+                                  ),
+                                ),
+                                SizedBox(width: tokens.spaceSm),
+                                Expanded(
+                                  child: DesignButton(
+                                    variant: DesignButtonVariant.filled,
+                                    label: 'Löschen',
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      onDelete!();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

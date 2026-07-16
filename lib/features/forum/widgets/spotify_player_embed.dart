@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/utils/spotify_helper.dart';
 
-/// Full Spotify embed for the detail screen. Shows album art + info and
-/// an "Open in Spotify" button. A real iframe embed would require WebView.
+import '../../../core/utils/spotify_helper.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+
 class SpotifyPlayerEmbed extends StatelessWidget {
   final SpotifyItem item;
   final String originalUrl;
@@ -16,21 +18,20 @@ class SpotifyPlayerEmbed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1DB954).withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
         border: Border.all(
           color: const Color(0xFF1DB954).withValues(alpha: 0.3),
         ),
       ),
       child: Column(
         children: [
-          // Header with Spotify branding
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(tokens.spaceLg),
             child: Row(
               children: [
                 Container(
@@ -46,23 +47,20 @@ class SpotifyPlayerEmbed extends StatelessWidget {
                     size: 28,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: tokens.spaceSm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      DesignText(
                         item.label,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: const Color(0xFF1DB954),
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: DesignTextStyle.label,
+                        color: tokens.primary,
                       ),
-                      Text(
+                      DesignText(
                         Uri.tryParse(originalUrl)?.host ?? 'Spotify',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                        style: DesignTextStyle.label,
+                        color: tokens.textLow,
                       ),
                     ],
                   ),
@@ -70,30 +68,32 @@ class SpotifyPlayerEmbed extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1),
-          // Action buttons
+          Divider(height: 1, color: tokens.border.withValues(alpha: 0.3)),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: tokens.spaceLg,
+              vertical: tokens.spaceSm,
+            ),
             child: Row(
               children: [
                 Expanded(
-                  child: FilledButton.icon(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    icon: Icons.open_in_new_rounded,
+                    label: 'In Spotify öffnen',
                     onPressed: () => launchUrl(Uri.parse(originalUrl)),
-                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                    label: const Text('In Spotify öffnen'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF1DB954),
-                      foregroundColor: Colors.white,
-                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: () => launchUrl(
-                    Uri.parse(SpotifyHelper.embedUrl(item.type, item.id)),
+                SizedBox(width: tokens.spaceSm),
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    icon: Icons.language_rounded,
+                    label: 'Embed',
+                    onPressed: () => launchUrl(
+                      Uri.parse(SpotifyHelper.embedUrl(item.type, item.id)),
+                    ),
                   ),
-                  icon: const Icon(Icons.language_rounded, size: 18),
-                  label: const Text('Embed'),
                 ),
               ],
             ),
