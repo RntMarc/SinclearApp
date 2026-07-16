@@ -216,20 +216,19 @@ Aktuell: Jeder Screen nutzt rohes `setState` in `StatefulWidget`, was bei jedem 
 *Hier können Ideen für neue Funktionen gesammelt werden – von Platzhaltern
 bis zu komplett neuen Features. Format:*
 
-### G1. Platzhalter aus `migration_plan.md` umsetzen
+### G1. Platzhalter umsetzen
 | Screen | Status | Beschreibung |
 |---|---|---|
 | Admin | `[ ]` | Dashboard für Benutzer- und Inhalt-Moderation |
-| Changelog | `[ ]` | Versionshistorie der App anzeigen |
-| Kritik | `[ ]` | Kritik/Feedback einreichen (ähnlich Feedback, aber losgelöst von Suggestion-System) |
-| Fotos | `[ ]` | Gemeinsame Foto-Galerie/Foto-Alben |
-| Umfrage | `[ ]` | Umfragen erstellen und abstimmen |
-| Abos | `[ ]` | Mitgliedschaften/Abos verwalten |
+| Changelog | `[ ]` | Manuell vom Admin gepflegte Changelogs |
+| Fotos | `[ ]` | Gemeinsame Foto-Galerie/Foto-Alben von Unsplash |
+| Umfrage | `[ ]` | 1. Umfragen erstellen und abstimmen, 2. Gemeinsame Termine finden (ähnlich Doodle, FramaDate) |
+| Abos | `[ ]` | Mitgliedschaften/Abos externer Dienste verwalten (z.B. Spotify, Netflix, Nintendo Familenabonnements unter Freunden) |
 
 ### G2. Bestehende Features erweitern
 - `[ ]` Rezepte: Volltext-Suche, Favoriten-Filter, eigene Rezepte erstellen/bearbeiten
 - `[ ]` Kalender: Wiederkehrende Events (Serien), Erinnerungen
-- `[ ]` Travel: Checklisten-Packvorlagen, Reise-Kosten-Tracker
+- `[ ]` Travel: Checklisten-Packvorlagen, ÖPNV-Fahrten
 - `[ ]` Entdecken: Offline-Karten, Filter nach Entfernung/Bewertung
 - `[ ]` Forum: Push-Benachrichtigungen pro Thread, Mention-Auto-Vervollständigung
 - `[ ]` Direktnachrichten / Chat-System
