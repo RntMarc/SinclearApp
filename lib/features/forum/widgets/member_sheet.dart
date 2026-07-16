@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/widgets/user_avatar.dart';
+
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 import '../models/forum_models.dart';
 
 class MemberSheet extends StatelessWidget {
@@ -9,19 +15,15 @@ class MemberSheet extends StatelessWidget {
   const MemberSheet({super.key, required this.members});
 
   static void show(BuildContext context, {required List<ForumMember> members}) {
-    showModalBottomSheet(
+    showDesignSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => MemberSheet(members: members),
+      child: MemberSheet(members: members),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final maxheight = MediaQuery.of(context).size.height * 0.5;
 
     return ConstrainedBox(
@@ -29,49 +31,31 @@ class MemberSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.onSurfaceVariant.withValues(
-                alpha: 0.4,
-              ),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
+          DesignText(
             'Mitglieder (${members.length})',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: DesignTextStyle.title,
+            color: tokens.textHigh,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: tokens.spaceMd),
           Flexible(
             child: ListView.builder(
               shrinkWrap: true,
               itemCount: members.length,
               itemBuilder: (context, index) {
                 final member = members[index];
-                return ListTile(
-                  leading: UserAvatar(
+                return DesignListTile(
+                  leading: DesignAvatar(
                     imageUrl: member.image,
-                    displayName: member.displayName ?? '?',
-                    radius: 20,
+                    name: member.displayName ?? '?',
+                    size: 36,
                   ),
-                  title: Text(member.displayName ?? 'Unbekannt'),
-                  trailing: member.notificationsEnabled
-                      ? const Icon(
-                          Icons.notifications_active_rounded,
-                          size: 18,
-                        )
-                      : Icon(
-                          Icons.notifications_off_rounded,
-                          size: 18,
-                          color: theme.colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.4),
-                        ),
+                  title: member.displayName ?? 'Unbekannt',
+                  trailing: DesignIconButton(
+                    icon: member.notificationsEnabled
+                        ? Icons.notifications_active_rounded
+                        : Icons.notifications_off_rounded,
+                    onPressed: null,
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/kontakte/${member.userId}');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/osm_config.dart';
+import '../../../design/theme/design_theme.dart';
 import '../models/explore_models.dart';
 
 class ExploreMap extends StatelessWidget {
@@ -16,25 +17,22 @@ class ExploreMap extends StatelessWidget {
     this.zoom = 13,
   });
 
-  List<Marker> _buildMarkers() {
-    return places
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final markers = places
         .where((p) => p.latitude != null && p.longitude != null)
         .map(
           (p) => Marker(
             point: LatLng(p.latitude!, p.longitude!),
             child: Icon(
               p.category == 'gastronomy' ? Icons.restaurant : Icons.park,
-              color: Colors.red,
+              color: tokens.danger,
               size: 30,
             ),
           ),
         )
         .toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final markers = _buildMarkers();
     final initialCenter =
         center ??
         (markers.isNotEmpty

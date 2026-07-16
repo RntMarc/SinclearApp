@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/models/app_update_info.dart';
+import '../../design/theme/design_theme.dart';
+import '../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../design/widgets/foundation/design_text.dart';
+import '../../design/widgets/primitives/design_button.dart';
 
 class UpdateDialog extends StatefulWidget {
   final AppUpdateInfo updateInfo;
@@ -17,10 +21,9 @@ class UpdateDialog extends StatefulWidget {
     required AppUpdateInfo updateInfo,
     required Future<void> Function(UpdateDialogState dialog) onDownload,
   }) {
-    return showDialog<bool>(
+    return showDesignSheet<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => UpdateDialog(
+      child: UpdateDialog(
         updateInfo: updateInfo,
         onDownload: onDownload,
       ),
@@ -49,84 +52,110 @@ class UpdateDialogState extends State<UpdateDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
-    return AlertDialog(
-      title: const Text('Update verfügbar'),
-      content: SizedBox(
-        width: 300,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Version ${widget.updateInfo.version}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Was ist neu:',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...widget.updateInfo.changelog.map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('• '),
-                    Expanded(child: Text(entry)),
-                  ],
-                ),
-              ),
-            ),
-            if (_downloading) ...[
-              const SizedBox(height: 16),
-              if (_progress != null)
-                Column(
-                  children: [
-                    LinearProgressIndicator(value: _progress),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${(_progress! * 100).toInt()}%',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                )
-              else
-                const LinearProgressIndicator(),
-            ],
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-            ],
-          ],
-        ),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      actions: [
-        if (!_downloading)
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Später'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesignText(
+            'Update verfügbar',
+            style: DesignTextStyle.title,
+            color: tokens.textHigh,
           ),
-        if (!_downloading)
-          FilledButton(
-            onPressed: () async {
-              setState(() => _downloading = true);
-              await widget.onDownload(this);
-            },
-            child: const Text('Herunterladen'),
+          SizedBox(height: tokens.spaceMd),
+          DesignText(
+            'Version ${widget.updateInfo.version}',
+            style: DesignTextStyle.body,
+            color: tokens.primary,
           ),
-      ],
+          SizedBox(height: tokens.spaceMd),
+          DesignText(
+            'Was ist neu:',
+            style: DesignTextStyle.body,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          ...widget.updateInfo.changelog.map(
+            (entry) => Padding(
+              padding: EdgeInsets.only(bottom: tokens.spaceXs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignText('• ', style: DesignTextStyle.body, color: tokens.textHigh),
+                  Expanded(
+                    child: DesignText(
+                      entry,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_downloading) ...[
+            SizedBox(height: tokens.spaceMd),
+            if (_progress != null)
+              Column(
+                children: [
+                  LinearProgressIndicator(
+                    value: _progress,
+                    color: tokens.primary,
+                    backgroundColor: tokens.surfaceVariant,
+                  ),
+                  SizedBox(height: tokens.spaceSm),
+                  DesignText(
+                    '${(_progress! * 100).toInt()}%',
+                    style: DesignTextStyle.label,
+                    color: tokens.textLow,
+                  ),
+                ],
+              )
+            else
+              LinearProgressIndicator(
+                color: tokens.primary,
+                backgroundColor: tokens.surfaceVariant,
+              ),
+          ],
+          if (_error != null) ...[
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
+              _error!,
+              style: DesignTextStyle.body,
+              color: tokens.danger,
+            ),
+          ],
+          SizedBox(height: tokens.spaceLg),
+          if (!_downloading)
+            Row(
+              children: [
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    label: 'Später',
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                ),
+                SizedBox(width: tokens.spaceSm),
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Herunterladen',
+                    onPressed: () async {
+                      setState(() => _downloading = true);
+                      await widget.onDownload(this);
+                    },
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }
