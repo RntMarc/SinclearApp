@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 
+/// Multi-line comment composer with token-styled surface and send/cancel
+/// actions built from catalog primitives.
 class CommentInput extends StatefulWidget {
   final String hintText;
   final bool autofocus;
@@ -56,15 +60,15 @@ class _CommentInputState extends State<CommentInput> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
+    final tokens = DesignTheme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(24),
+        color: tokens.surfaceVariant.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(tokens.radiusLg),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: EdgeInsets.all(tokens.spaceMd),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: TextField(
@@ -72,36 +76,41 @@ class _CommentInputState extends State<CommentInput> {
               focusNode: _focusNode,
               textCapitalization: TextCapitalization.sentences,
               maxLines: null,
+              style: tokens.bodyStyle(tokens.textHigh),
               decoration: InputDecoration(
                 hintText: widget.hintText,
+                hintStyle: tokens.bodyStyle(tokens.textLow),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                isCollapsed: true,
               ),
               onSubmitted: (_) => _submit(),
             ),
           ),
-          if (widget.onCancel != null)
-            IconButton(
+          if (widget.onCancel != null) ...[
+            SizedBox(width: tokens.spaceSm),
+            DesignIconButton(
+              icon: Icons.close_rounded,
               onPressed: () {
                 _controller.clear();
                 widget.onCancel?.call();
               },
-              icon: const Icon(Icons.close_rounded, size: 20),
             ),
-          IconButton(
-            onPressed: _submitting ? null : _submit,
-            icon: _submitting
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    Icons.send_rounded,
-                    size: 20,
-                    color: theme.colorScheme.primary,
+          ],
+          SizedBox(width: tokens.spaceSm),
+          _submitting
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: tokens.primary,
                   ),
-          ),
+                )
+              : DesignIconButton(
+                  icon: Icons.send_rounded,
+                  tinted: true,
+                  onPressed: _submit,
+                ),
         ],
       ),
     );

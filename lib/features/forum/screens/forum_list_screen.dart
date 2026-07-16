@@ -2,6 +2,10 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
 import '../models/forum_models.dart';
 import '../widgets/forum_card.dart';
 
@@ -50,34 +54,54 @@ class _ForumListScreenState extends State<ForumListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final myForums = _allForums.where((f) {
       return f.memberCount > 0;
     }).toList();
 
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Meine Foren'),
-              Tab(text: 'Alle Foren'),
-            ],
-          ),
-          Expanded(child: _buildBody(context, myForums)),
-        ],
+    return DesignSurface(
+      child: DefaultTabController(
+        length: 2,
+        child: Column(
+          children: [
+            TabBar(
+              labelColor: tokens.primary,
+              unselectedLabelColor: tokens.textLow,
+              indicatorColor: tokens.primary,
+              labelStyle: TextStyle(
+                fontFamily: tokens.fontFamily,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: TextStyle(
+                fontFamily: tokens.fontFamily,
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+              ),
+              tabs: const [
+                Tab(text: 'Meine Foren'),
+                Tab(text: 'Alle Foren'),
+              ],
+            ),
+            Expanded(child: _buildBody(context, myForums, tokens)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, List<Forum> myForums) {
+  Widget _buildBody(
+    BuildContext context,
+    List<Forum> myForums,
+    DesignTokens tokens,
+  ) {
     if (_loading) {
       return RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          children: const [
+          children: [
             SizedBox(height: 120),
-            Center(child: CircularProgressIndicator()),
+            Center(child: CircularProgressIndicator(color: tokens.primary)),
           ],
         ),
       );
@@ -92,17 +116,14 @@ class _ForumListScreenState extends State<ForumListScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(_error!),
-                  const SizedBox(height: 16),
-                  FilledButton.tonal(
+                  Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                  SizedBox(height: tokens.spaceSm),
+                  DesignText(_error!, style: DesignTextStyle.body, color: tokens.textHigh),
+                  SizedBox(height: tokens.spaceLg),
+                  DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Erneut versuchen',
                     onPressed: _load,
-                    child: const Text('Erneut versuchen'),
                   ),
                 ],
               ),
@@ -146,6 +167,7 @@ class _ForumList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: forums.isEmpty
@@ -155,25 +177,30 @@ class _ForumList extends StatelessWidget {
                   height: MediaQuery.of(context).size.height * 0.3,
                 ),
                 Center(
-                  child: Text(
+                  child: DesignText(
                     emptyText,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    style: DesignTextStyle.body,
+                    color: tokens.textLow,
                   ),
                 ),
               ],
             )
           : ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
               itemCount: forums.length,
               itemBuilder: (context, index) {
                 final forum = forums[index];
-                return ForumCard(
-                  key: ValueKey(forum.id),
-                  forum: forum,
-                  onTap: () => onForumTap(forum),
+                return Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: tokens.spaceLg,
+                    vertical: tokens.spaceXs,
+                  ),
+                  child: ForumCard(
+                    key: ValueKey(forum.id),
+                    forum: forum,
+                    onTap: () => onForumTap(forum),
+                  ),
                 );
               },
             ),

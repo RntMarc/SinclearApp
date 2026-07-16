@@ -4,7 +4,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../core/utils/spotify_helper.dart';
-import '../../../core/widgets/user_avatar.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_divider.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/forum_models.dart';
 import '../widgets/comment_tree.dart';
 import '../widgets/youtube_player_embed.dart';
@@ -157,19 +166,35 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _deleteComment(String commentId) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showDesignSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Kommentar löschen'),
-        content: const Text('Kommentar wirklich löschen?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Abbrechen'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Kommentar löschen',
+            style: DesignTextStyle.subtitle,
+            color: DesignTheme.of(context).textHigh,
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Löschen'),
+          SizedBox(height: DesignTheme.of(context).spaceMd),
+          DesignText(
+            'Kommentar wirklich löschen?',
+            style: DesignTextStyle.body,
+            color: DesignTheme.of(context).textHigh,
+          ),
+          SizedBox(height: DesignTheme.of(context).spaceXl),
+          DesignButton(
+            variant: DesignButtonVariant.filled,
+            label: 'Löschen',
+            fullWidth: true,
+            onPressed: () => Navigator.pop(context, true),
+          ),
+          SizedBox(height: DesignTheme.of(context).spaceSm),
+          DesignButton(
+            variant: DesignButtonVariant.outlined,
+            label: 'Abbrechen',
+            fullWidth: true,
+            onPressed: () => Navigator.pop(context, false),
           ),
         ],
       ),
@@ -197,30 +222,40 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final auth = AppScope.of(context).auth;
     final isAdmin = auth.isAdmin;
     final currentUserId = auth.userId ?? '';
-    final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _post?.title ?? 'Beitrag',
-          style: theme.textTheme.titleMedium,
-        ),
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: _post?.title ?? 'Beitrag',
+          ),
+          Expanded(child: _buildBody(context, tokens, currentUserId, isAdmin)),
+        ],
       ),
-      body: _buildBody(context, currentUserId, isAdmin),
     );
   }
 
-  Widget _buildBody(BuildContext context, String currentUserId, bool isAdmin) {
+  Widget _buildBody(
+    BuildContext context,
+    DesignTokens tokens,
+    String currentUserId,
+    bool isAdmin,
+  ) {
     if (_loading) {
       return RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          children: const [
+          children: [
             SizedBox(height: 120),
-            Center(child: CircularProgressIndicator()),
+            Center(child: CircularProgressIndicator(color: tokens.primary)),
           ],
         ),
       );
@@ -231,24 +266,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         onRefresh: _load,
         child: ListView(
           children: [
-            SizedBox(
-              height: MediaQuery.of(context).size.height * 0.3,
-            ),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(_error!),
-                  const SizedBox(height: 16),
-                  FilledButton.tonal(
+                  Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                  SizedBox(height: tokens.spaceSm),
+                  DesignText(_error!, style: DesignTextStyle.body, color: tokens.textHigh),
+                  SizedBox(height: tokens.spaceLg),
+                  DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Erneut versuchen',
                     onPressed: _load,
-                    child: const Text('Erneut versuchen'),
                   ),
                 ],
               ),
@@ -259,90 +289,77 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
 
     final post = _post!;
-    final theme = Theme.of(context);
 
     return RefreshIndicator(
       onRefresh: _load,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
+        padding: EdgeInsets.all(tokens.spaceLg),
         children: [
           Row(
             children: [
-              UserAvatar(
+              DesignAvatar(
                 imageUrl: post.userImage,
-                displayName: post.userName ?? post.userId,
-                radius: 16,
+                name: post.userName ?? post.userId,
+                size: 32,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: tokens.spaceSm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    DesignText(
                       post.userName ?? 'Benutzer',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: DesignTextStyle.label,
+                      color: tokens.textHigh,
                     ),
-                    Text(
+                    DesignText(
                       app_date.formatRelativeDate(post.createdAt),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant
-                            .withValues(alpha: 0.6),
-                      ),
+                      style: DesignTextStyle.label,
+                      color: tokens.textLow.withValues(alpha: 0.6),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                _typeIcon(post.type),
-                size: 16,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 4),
-              Text(
+              Icon(_typeIcon(post.type), size: 16, color: tokens.primary),
+              SizedBox(width: tokens.spaceXs),
+              DesignText(
                 _typeLabel(post.type),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: DesignTextStyle.label,
+                color: tokens.primary,
               ),
             ],
           ),
           if (post.title != null && post.title!.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
+            SizedBox(height: tokens.spaceLg),
+            DesignText(
               post.title!,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
             ),
           ],
           if (post.text != null && post.text!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
               post.text!,
-              style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
             ),
           ],
-          // --- Native embeds for web posts ---
           if (post.type == 'web') ...[
             if (post.youtubeIds.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              SizedBox(height: tokens.spaceLg),
               ...post.youtubeIds.map(
                 (id) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: EdgeInsets.only(bottom: tokens.spaceMd),
                   child: YouTubePlayerEmbed(videoId: id),
                 ),
               ),
             ],
             if (post.spotifyItems.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              SizedBox(height: tokens.spaceLg),
               ...post.spotifyItems.map(
                 (SpotifyItem item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: EdgeInsets.only(bottom: tokens.spaceMd),
                   child: SpotifyThumbnail(
                     item: item,
                     originalUrl: post.webUrls.firstWhere(
@@ -354,31 +371,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ],
             if (post.genericUrls.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              SizedBox(height: tokens.spaceLg),
               ...post.genericUrls.map(
                 (url) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: EdgeInsets.only(bottom: tokens.spaceMd),
                   child: OgPreviewCard(url: url),
                 ),
               ),
             ],
           ],
-          // --- Native embeds for video posts ---
           if (post.type == 'video' && post.youtubeVideoIds.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: tokens.spaceLg),
             ...post.youtubeVideoIds.map(
               (id) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: EdgeInsets.only(bottom: tokens.spaceMd),
                 child: YouTubePlayerEmbed(videoId: id),
               ),
             ),
           ],
-          // --- Native embeds for music posts (same style as forum feed) ---
           if (post.type == 'music' && post.spotifyMusicItems.isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: tokens.spaceLg),
             ...post.spotifyMusicItems.map(
               (SpotifyItem item) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: EdgeInsets.only(bottom: tokens.spaceMd),
                 child: SpotifyThumbnail(
                   item: item,
                   originalUrl: post.urls
@@ -390,9 +405,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           ],
-          // --- Link list for remaining (non-embed) URLs ---
-          ..._linkDetailEntries(theme, post),
-          const SizedBox(height: 20),
+          ..._linkDetailEntries(tokens, post),
+          SizedBox(height: tokens.spaceXl),
           Row(
             children: [
               GestureDetector(
@@ -438,38 +452,34 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           : Icons.thumb_up_outlined,
                       size: 20,
                       color: post.hasVoted
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurfaceVariant,
+                          ? tokens.primary
+                          : tokens.textLow,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
+                    SizedBox(width: 6),
+                    DesignText(
                       '${post.upvoteCount}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: post.hasVoted
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: DesignTextStyle.label,
+                      color: post.hasVoted
+                          ? tokens.primary
+                          : tokens.textLow,
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 12),
-          Text(
+          SizedBox(height: tokens.spaceXl),
+          const DesignDivider(),
+          SizedBox(height: tokens.spaceMd),
+          DesignText(
             'Kommentare ($_commentTotal)',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.primary,
-            ),
+            style: DesignTextStyle.subtitle,
+            color: tokens.primary,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: tokens.spaceMd),
           if (_replyToId == null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.only(bottom: tokens.spaceLg),
               child: CommentInput(
                 hintText: 'Kommentar hinzufügen...',
                 onSubmit: (text) => _addComment(text),
@@ -477,7 +487,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           if (_replyToId != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: EdgeInsets.only(bottom: tokens.spaceLg),
               child: CommentInput(
                 hintText: 'Antworten...',
                 autofocus: true,
@@ -486,16 +496,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           if (_commentsLoading)
-            const Center(child: CircularProgressIndicator())
+            Center(child: CircularProgressIndicator(color: tokens.primary))
           else if (_comments.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceLg),
               child: Center(
-                child: Text(
+                child: DesignText(
                   'Noch keine Kommentare.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: DesignTextStyle.body,
+                  color: tokens.textLow,
                 ),
               ),
             )
@@ -510,8 +519,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 onDelete: _deleteComment,
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -542,8 +550,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
-  /// Returns link list widgets for URLs that are not shown as native embeds.
-  List<Widget> _linkDetailEntries(ThemeData theme, FeedPost post) {
+  List<Widget> _linkDetailEntries(DesignTokens tokens, FeedPost post) {
     final links = post.type == 'video' || post.type == 'music'
         ? post.genericMusicUrls
         : post.type != 'web' && post.type != 'text'
@@ -551,45 +558,38 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             : const <MusicUrl>[];
     if (links.isEmpty) return const [];
     return [
-      const SizedBox(height: 16),
+      SizedBox(height: tokens.spaceLg),
       ...links.map(
         (url) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: InkWell(
+          padding: EdgeInsets.only(bottom: tokens.spaceSm),
+          child: GestureDetector(
             onTap: () => launchUrl(Uri.parse(url.url)),
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.5,
-                ),
-                borderRadius: BorderRadius.circular(8),
-              ),
+            child: DesignCard(
+              margin: EdgeInsets.zero,
+              padding: EdgeInsets.all(tokens.spaceMd),
               child: Row(
                 children: [
                   Icon(
                     Icons.open_in_new_rounded,
                     size: 18,
-                    color: theme.colorScheme.primary,
+                    color: tokens.primary,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: tokens.spaceSm),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        DesignText(
                           url.platform.toUpperCase(),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: DesignTextStyle.label,
+                          color: tokens.primary,
                         ),
-                        Text(
+                        DesignText(
                           Uri.tryParse(url.url)?.host ?? url.url,
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall,
                         ),
                       ],
                     ),

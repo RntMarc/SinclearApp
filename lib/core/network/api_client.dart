@@ -55,6 +55,9 @@ class ApiClient {
     String? token,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
+    if (kDebugMode) {
+      debugPrint('[api_client] POST $uri body=${body != null ? _truncateJson(body) : 'null'}');
+    }
     final response = await _client
         .post(
           uri,
@@ -62,6 +65,9 @@ class ApiClient {
           body: body != null ? jsonEncode(body) : null,
         )
         .timeout(timeout);
+    if (kDebugMode) {
+      _logResponse('POST', response);
+    }
     return _handleResponse(response);
   }
 
@@ -74,17 +80,29 @@ class ApiClient {
     if (queryParams != null) {
       uri = uri.replace(queryParameters: queryParams);
     }
+    if (kDebugMode) {
+      debugPrint('[api_client] GET $uri');
+    }
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
       try {
         final response = await _client
             .get(uri, headers: _headers(token: token))
             .timeout(timeout);
+        if (kDebugMode) {
+          _logResponse('GET', response);
+        }
         if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
       } on TimeoutException {
+        if (kDebugMode) {
+          debugPrint('[api_client] GET $uri timed out (attempt $attempt/$maxGetAttempts)');
+        }
         if (attempt == maxGetAttempts) rethrow;
       } on http.ClientException {
+        if (kDebugMode) {
+          debugPrint('[api_client] GET $uri client error (attempt $attempt/$maxGetAttempts)');
+        }
         if (attempt == maxGetAttempts) rethrow;
       }
 
@@ -171,6 +189,9 @@ class ApiClient {
     bool parseResponse = false,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
+    if (kDebugMode) {
+      debugPrint('[api_client] DELETE $uri');
+    }
     final request = http.Request('DELETE', uri);
     request.headers.addAll(_headers(token: token));
     if (body != null) {
@@ -178,8 +199,18 @@ class ApiClient {
     }
     final streamed = await _client.send(request).timeout(timeout);
     final response = await http.Response.fromStream(streamed);
+    if (kDebugMode) {
+      _logResponse('DELETE', response);
+    }
     if (response.statusCode == 204) return <String, dynamic>{};
     return _handleResponse(response);
+  }
+
+  void _logResponse(String method, http.Response response) {
+    final bodyPreview = response.body.length > 500
+        ? '${response.body.substring(0, 500)}...'
+        : response.body;
+    debugPrint('[api_client] $method ${response.statusCode} body=$bodyPreview');
   }
 
   bool _shouldRetry(int statusCode) {

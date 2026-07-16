@@ -1,11 +1,19 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/widgets/user_avatar.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_badge.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../widgets/user_tile.dart';
@@ -76,8 +84,26 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            title: _trip?.name ?? 'Reise',
+          ),
+          Expanded(child: _buildBody()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    final tokens = DesignTheme.of(context);
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
     if (_error != null) {
@@ -85,11 +111,16 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Fehler beim Laden der Reisedetails'),
-            const SizedBox(height: 8),
-            ElevatedButton(
+            DesignText(
+              'Fehler beim Laden der Reisedetails',
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceMd),
+            DesignButton(
+              variant: DesignButtonVariant.outlined,
+              label: 'Erneut versuchen',
               onPressed: _load,
-              child: const Text('Erneut versuchen'),
             ),
           ],
         ),
@@ -98,7 +129,13 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
     final trip = _trip;
     if (trip == null) {
-      return const Center(child: Text('Reise nicht gefunden'));
+      return Center(
+        child: DesignText(
+          'Reise nicht gefunden',
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
+        ),
+      );
     }
 
     final auth = AppScope.of(context).auth;
@@ -108,8 +145,13 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       length: 3,
       child: Column(
         children: [
-          const TabBar(
-            tabs: [
+          TabBar(
+            indicatorColor: tokens.primary,
+            labelColor: tokens.textHigh,
+            unselectedLabelColor: tokens.textLow,
+            labelStyle: tokens.bodyStyle(tokens.textHigh),
+            unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
+            tabs: const [
               Tab(text: 'Übersicht'),
               Tab(text: 'Events'),
               Tab(text: 'Karte'),
@@ -159,27 +201,32 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(tokens.spaceLg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(trip.name, style: Theme.of(context).textTheme.headlineSmall),
+          DesignText(
+            trip.name,
+            style: DesignTextStyle.title,
+            color: tokens.textHigh,
+          ),
           if (trip.description != null) ...[
-            const SizedBox(height: 8),
-            Text(
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
               trip.description!,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
             ),
           ],
-          const SizedBox(height: 8),
-          Text(
-            '${_formatDate(trip.start)} – ${_formatDate(trip.end)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
+            '${_formatDate(trip.start)} \u2013 ${_formatDate(trip.end)}',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: tokens.spaceLg),
           if (accommodations.isNotEmpty) ...[
             SizedBox(
               height: 200,
@@ -188,14 +235,13 @@ class _OverviewTab extends StatelessWidget {
                 currentUserId: currentUserId,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
+            SizedBox(height: tokens.spaceLg),
+            DesignText(
               'Unterkünfte',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: tokens.spaceSm),
             ...accommodations.map(
               (a) => _AccommodationCard(
                 accommodation: a,
@@ -206,17 +252,16 @@ class _OverviewTab extends StatelessWidget {
             ),
           ],
           if (participants.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text(
+            SizedBox(height: tokens.spaceXl),
+            DesignText(
               'Teilnehmer',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: tokens.spaceSm),
             ...participants.map(
               (p) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: EdgeInsets.only(bottom: tokens.spaceSm),
                 child: UserTile(displayName: p.displayName, imageUrl: p.image),
               ),
             ),
@@ -235,18 +280,22 @@ class _AccommodationMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final coords = accommodations
         .where((a) => a.latitude != null && a.longitude != null)
         .toList();
 
     if (coords.isEmpty) {
-      return Card(
+      return DesignCard(
+        useGlass: false,
+        margin: EdgeInsets.zero,
         child: SizedBox(
           height: 200,
           child: Center(
-            child: Text(
+            child: DesignText(
               'Keine Koordinaten verfügbar',
-              style: Theme.of(context).textTheme.bodySmall,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
             ),
           ),
         ),
@@ -256,48 +305,47 @@ class _AccommodationMap extends StatelessWidget {
     final first = coords.first;
     final center = LatLng(first.latitude!, first.longitude!);
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        height: 200,
-        child: GestureDetector(
-          onTap: () =>
-              DefaultTabController.of(context).animateTo(2),
-          child: FlutterMap(
-            options: MapOptions(
-              initialCenter: center,
-              initialZoom: 13,
-              interactionOptions: InteractionOptions(
-                flags: InteractiveFlag.none,
+    return DesignCard(
+      useGlass: false,
+      margin: EdgeInsets.zero,
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.radiusLg),
+        child: SizedBox(
+          height: 200,
+          child: GestureDetector(
+            onTap: () => DefaultTabController.of(context).animateTo(2),
+            child: FlutterMap(
+              options: MapOptions(
+                initialCenter: center,
+                initialZoom: 13,
+                interactionOptions: InteractionOptions(
+                  flags: InteractiveFlag.none,
+                ),
               ),
+              children: [
+                TileLayer(
+                  urlTemplate: OsmConfig.tileUrlTemplate,
+                  userAgentPackageName: OsmConfig.tileUserAgent,
+                  tileProvider: osmTileProvider(),
+                ),
+                MarkerLayer(
+                  markers: coords.map((a) {
+                    final isMine =
+                        currentUserId != null &&
+                        a.users.any((u) => u.id == currentUserId);
+                    return Marker(
+                      point: LatLng(a.latitude!, a.longitude!),
+                      child: Icon(
+                        Icons.location_on,
+                        color: isMine ? tokens.primary : tokens.danger,
+                        size: 36,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-            children: [
-              TileLayer(
-                urlTemplate: OsmConfig.tileUrlTemplate,
-                userAgentPackageName: OsmConfig.tileUserAgent,
-                tileProvider: osmTileProvider(),
-              ),
-              MarkerLayer(
-                markers: coords.map((a) {
-                  final isMine =
-                      currentUserId != null &&
-                      a.users.any((u) => u.id == currentUserId);
-                  return Marker(
-                    point: LatLng(a.latitude!, a.longitude!),
-                    child: Icon(
-                      Icons.location_on,
-                      color: isMine ? Colors.blue : Colors.red,
-                      size: 36,
-                    ),
-                  );
-                }).toList(),
-              ),
-              SimpleAttributionWidget(
-                source: const Text('OpenStreetMap contributors'),
-                onTap: () =>
-                    launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
-              ),
-            ],
           ),
         ),
       ),
@@ -313,64 +361,55 @@ class _AccommodationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  accommodation.ishotel == 1
-                      ? Icons.hotel_rounded
-                      : Icons.home_rounded,
-                  color: isMine ? Colors.blue : theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    accommodation.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: isMine ? Colors.blue : null,
-                    ),
-                  ),
-                ),
-                if (isMine)
-                  Chip(
-                    label: const Text(
-                      'Meine Unterkunft',
-                      style: TextStyle(fontSize: 11),
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                  ),
-              ],
-            ),
-            if (accommodation.address != null) ...[
-              const SizedBox(height: 4),
-              Text(accommodation.address!, style: theme.textTheme.bodySmall),
-            ],
-            if (accommodation.users.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: accommodation.users.map((u) {
-                  return UserAvatar(
-                    imageUrl: u.image,
-                    displayName: u.displayName,
-                    radius: 14,
-                  );
-                }).toList(),
+    final tokens = DesignTheme.of(context);
+    return DesignCard(
+      margin: EdgeInsets.only(bottom: tokens.spaceSm),
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                accommodation.ishotel == 1
+                    ? Icons.hotel_rounded
+                    : Icons.home_rounded,
+                color: isMine ? tokens.primary : tokens.textHigh,
               ),
+              SizedBox(width: tokens.spaceSm),
+              Expanded(
+                child: DesignText(
+                  accommodation.name,
+                  style: DesignTextStyle.body,
+                  color: isMine ? tokens.primary : tokens.textHigh,
+                ),
+              ),
+              if (isMine) DesignBadge(label: 'Meine Unterkunft'),
             ],
+          ),
+          if (accommodation.address != null) ...[
+            SizedBox(height: tokens.spaceXs),
+            DesignText(
+              accommodation.address!,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
           ],
-        ),
+          if (accommodation.users.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceSm),
+            Wrap(
+              spacing: tokens.spaceXs,
+              runSpacing: tokens.spaceXs,
+              children: accommodation.users.map((u) {
+                return DesignAvatar(
+                  imageUrl: u.image,
+                  name: u.displayName,
+                  size: 28,
+                );
+              }).toList(),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -384,11 +423,13 @@ class _EventsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     if (events.isEmpty) {
       return Center(
-        child: Text(
+        child: DesignText(
           'Keine Events für diese Reise',
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
         ),
       );
     }
@@ -412,46 +453,37 @@ class _EventsTab extends StatelessWidget {
     future.sort((a, b) => a.start.compareTo(b.start));
     past.sort((a, b) => b.end.compareTo(a.end));
 
+    Widget section(String title, List<TravelEvent> items) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              tokens.spaceLg,
+              tokens.spaceLg,
+              tokens.spaceLg,
+              tokens.spaceSm,
+            ),
+            child: DesignText(
+              title,
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
+            ),
+          ),
+          ...items.map(
+            (e) => _EventCard(event: e, currentUserId: currentUserId),
+          ),
+        ],
+      );
+    }
+
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(bottom: tokens.spaceXl),
       children: [
-        if (current.isNotEmpty) ...[
-          _SectionHeader('Aktuelle Events'),
-          ...current.map(
-            (e) => _EventCard(event: e, currentUserId: currentUserId),
-          ),
-        ],
-        if (future.isNotEmpty) ...[
-          _SectionHeader('Kommende Events'),
-          ...future.map(
-            (e) => _EventCard(event: e, currentUserId: currentUserId),
-          ),
-        ],
-        if (past.isNotEmpty) ...[
-          _SectionHeader('Vergangene Events'),
-          ...past.map(
-            (e) => _EventCard(event: e, currentUserId: currentUserId),
-          ),
-        ],
+        if (current.isNotEmpty) section('Aktuelle Events', current),
+        if (future.isNotEmpty) section('Kommende Events', future),
+        if (past.isNotEmpty) section('Vergangene Events', past),
       ],
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
-      child: Text(
-        title,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-      ),
     );
   }
 }
@@ -477,85 +509,81 @@ class _EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final participating = _isParticipating;
 
     return Opacity(
       opacity: participating ? 1.0 : 0.5,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: DesignCard(
+        margin: EdgeInsets.fromLTRB(
+          tokens.spaceLg,
+          0,
+          tokens.spaceLg,
+          tokens.spaceSm,
+        ),
+        padding: EdgeInsets.all(tokens.spaceMd),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.event_rounded,
+                  color: tokens.primary,
+                  size: 20,
+                ),
+                SizedBox(width: tokens.spaceSm),
+                Expanded(
+                  child: DesignText(
+                    event.name,
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                  ),
+                ),
+                if (!participating) DesignBadge(label: 'Nicht dabei'),
+              ],
+            ),
+            SizedBox(height: tokens.spaceXs),
+            DesignText(
+              '${_formatDateTime(event.start)} \u2013 ${_formatDateTime(event.end)}',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+            if (event.address != null) ...[
+              SizedBox(height: tokens.spaceXs),
               Row(
                 children: [
                   Icon(
-                    Icons.event_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 20,
+                    Icons.location_on_rounded,
+                    size: 16,
+                    color: tokens.textLow,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: tokens.spaceXs),
                   Expanded(
-                    child: Text(
-                      event.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    child: DesignText(
+                      event.address!,
+                      style: DesignTextStyle.label,
+                      color: tokens.textLow,
                     ),
                   ),
-                  if (!participating)
-                    Chip(
-                      label: const Text(
-                        'Nicht dabei',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                    ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${_formatDateTime(event.start)} – ${_formatDateTime(event.end)}',
-                style: theme.textTheme.bodySmall,
-              ),
-              if (event.address != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on_rounded,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        event.address!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              if (event.participants.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: event.participants.map((p) {
-                    return UserAvatar(
-                      imageUrl: p.image,
-                      displayName: p.displayName,
-                      radius: 12,
-                    );
-                  }).toList(),
-                ),
-              ],
             ],
-          ),
+            if (event.participants.isNotEmpty) ...[
+              SizedBox(height: tokens.spaceSm),
+              Wrap(
+                spacing: tokens.spaceXs,
+                runSpacing: tokens.spaceXs,
+                children: event.participants.map((p) {
+                  return DesignAvatar(
+                    imageUrl: p.image,
+                    name: p.displayName,
+                    size: 24,
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -575,6 +603,7 @@ class _MapTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final markers = <Marker>[];
 
     for (final a in accommodations) {
@@ -586,7 +615,7 @@ class _MapTab extends StatelessWidget {
           point: LatLng(a.latitude!, a.longitude!),
           child: Icon(
             Icons.hotel_rounded,
-            color: isMine ? Colors.blue : Colors.green,
+            color: isMine ? tokens.primary : tokens.success,
             size: 30,
           ),
         ),
@@ -598,9 +627,9 @@ class _MapTab extends StatelessWidget {
       markers.add(
         Marker(
           point: LatLng(e.latitude!, e.longitude!),
-          child: const Icon(
+          child: Icon(
             Icons.event_rounded,
-            color: Colors.orange,
+            color: tokens.warning,
             size: 30,
           ),
         ),
@@ -609,40 +638,39 @@ class _MapTab extends StatelessWidget {
 
     if (markers.isEmpty) {
       return Center(
-        child: Text(
+        child: DesignText(
           'Keine Orte mit Koordinaten verfügbar',
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
         ),
       );
     }
 
     final first = markers.first.point;
 
-    return Card(
-      margin: const EdgeInsets.all(16),
-      clipBehavior: Clip.antiAlias,
-      child: FlutterMap(
-        options: MapOptions(
-          initialCenter: first,
-          initialZoom: 12,
-          interactionOptions: InteractionOptions(
-            flags:
-                InteractiveFlag.all & ~InteractiveFlag.rotate,
+    return DesignCard(
+      useGlass: false,
+      margin: EdgeInsets.all(tokens.spaceLg),
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.radiusLg),
+        child: FlutterMap(
+          options: MapOptions(
+            initialCenter: first,
+            initialZoom: 12,
+            interactionOptions: InteractionOptions(
+              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+            ),
           ),
+          children: [
+            TileLayer(
+              urlTemplate: OsmConfig.tileUrlTemplate,
+              userAgentPackageName: OsmConfig.tileUserAgent,
+              tileProvider: osmTileProvider(),
+            ),
+            MarkerLayer(markers: markers),
+          ],
         ),
-        children: [
-          TileLayer(
-            urlTemplate: OsmConfig.tileUrlTemplate,
-            userAgentPackageName: OsmConfig.tileUserAgent,
-            tileProvider: osmTileProvider(),
-          ),
-          MarkerLayer(markers: markers),
-          SimpleAttributionWidget(
-            source: const Text('OpenStreetMap contributors'),
-            onTap: () =>
-                launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
-          ),
-        ],
       ),
     );
   }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'design/design_variant.dart';
+import 'design/theme/design_preferences.dart';
+import 'design/theme/design_theme.dart';
 import 'core/di/app_scope.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
@@ -35,8 +38,15 @@ class SinclearApp extends StatelessWidget {
   final WebUpdateService webUpdate;
   final GoRouter router;
 
-  const SinclearApp({
+  /// Initial, locally persisted design variant (survives logout/login).
+  final DesignVariant initialDesignVariant;
+
+  /// Active design selection; changes are persisted via [DesignController].
+  final ValueNotifier<DesignVariant> designVariant;
+
+  SinclearApp({
     super.key,
+    required this.initialDesignVariant,
     required this.auth,
     required this.explore,
     required this.nominatim,
@@ -52,7 +62,7 @@ class SinclearApp extends StatelessWidget {
     required this.androidUpdate,
     required this.webUpdate,
     required this.router,
-  });
+  }) : designVariant = DesignController(initialDesignVariant);
 
   @override
   Widget build(BuildContext context) {
@@ -73,13 +83,16 @@ class SinclearApp extends StatelessWidget {
       webUpdate: webUpdate,
       child: WebUpdateBanner(
         service: webUpdate,
-        child: MaterialApp.router(
-          title: 'Sinclear Beyond',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: ThemeMode.system,
-          routerConfig: router,
+        child: DesignScope(
+          variant: designVariant,
+          child: MaterialApp.router(
+            title: 'Sinclear Beyond',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
+            themeMode: ThemeMode.system,
+            routerConfig: router,
+          ),
         ),
       ),
     );

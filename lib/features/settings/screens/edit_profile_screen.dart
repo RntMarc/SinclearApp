@@ -1,11 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_compressor.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/network/api_client.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../user/models/user_models.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -157,56 +166,68 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _showImagePicker() async {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final hasImage =
         _imageBytes != null || (_existingImage != null && !_removeImage);
 
-    final source = await showModalBottomSheet<ImageSource>(
+    final source = await showDesignSheet<ImageSource>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Text(
-                'Profilbild ändern',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DesignText('Profilbild ändern', style: DesignTextStyle.title),
+          SizedBox(height: tokens.spaceMd),
+          GestureDetector(
+            onTap: () => Navigator.pop(context, ImageSource.camera),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+              child: Row(
+                children: [
+                  const Icon(Icons.camera_alt_rounded, size: 20),
+                  const SizedBox(width: 12),
+                  const DesignText('Foto aufnehmen'),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: tokens.spaceSm),
+          GestureDetector(
+            onTap: () => Navigator.pop(context, ImageSource.gallery),
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+              child: Row(
+                children: [
+                  const Icon(Icons.photo_library_rounded, size: 20),
+                  const SizedBox(width: 12),
+                  const DesignText('Aus Gallery wählen'),
+                ],
+              ),
+            ),
+          ),
+          if (hasImage) ...[
+            SizedBox(height: tokens.spaceSm),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  _imageBytes = null;
+                  _removeImage = true;
+                });
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_rounded, size: 20, color: tokens.danger),
+                    const SizedBox(width: 12),
+                    DesignText('Profilbild entfernen', color: tokens.danger),
+                  ],
                 ),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_rounded),
-              title: const Text('Foto aufnehmen'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded),
-              title: const Text('Aus Gallery wählen'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            if (hasImage)
-              ListTile(
-                leading: Icon(
-                  Icons.delete_rounded,
-                  color: theme.colorScheme.error,
-                ),
-                title: Text(
-                  'Profilbild entfernen',
-                  style: TextStyle(color: theme.colorScheme.error),
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  setState(() {
-                    _imageBytes = null;
-                    _removeImage = true;
-                  });
-                },
-              ),
-            const SizedBox(height: 8),
           ],
-        ),
+        ],
       ),
     );
 
@@ -245,148 +266,157 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return DesignSurface(
+        child: Center(
+          child: CircularProgressIndicator(color: tokens.primary),
+        ),
+      );
     }
 
     final preview = _resolvePreview();
     final hasImage =
         _imageBytes != null || (_existingImage != null && !_removeImage);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil bearbeiten'),
-        titleTextStyle: theme.textTheme.titleMedium,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 56,
-                      backgroundImage: preview,
-                      child: preview == null
-                          ? Text(
-                              _displayNameController.text.isNotEmpty
-                                  ? _displayNameController.text[0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onPrimaryContainer,
-                              ),
-                            )
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          shape: BoxShape.circle,
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            title: 'Profil bearbeiten',
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(tokens.spaceMd),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 56,
+                          backgroundImage: preview,
+                          child: preview == null
+                              ? DesignText(
+                                  _displayNameController.text.isNotEmpty
+                                      ? _displayNameController.text[0].toUpperCase()
+                                      : '?',
+                                  style: DesignTextStyle.display,
+                                )
+                              : null,
                         ),
-                        child: Icon(
-                          Icons.camera_alt_rounded,
-                          size: 20,
-                          color: theme.colorScheme.onPrimary,
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: tokens.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.camera_alt_rounded,
+                              size: 20,
+                              color: tokens.textOnPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: tokens.spaceSm),
+                  Center(
+                    child: DesignButton(
+                      label: hasImage
+                          ? 'Profilbild ändern'
+                          : 'Profilbild hinzufügen',
+                      variant: DesignButtonVariant.text,
+                      icon: Icons.edit_rounded,
+                      onPressed: _showImagePicker,
+                    ),
+                  ),
+                  SizedBox(height: tokens.spaceLg),
+                  DesignTextField(
+                    controller: _displayNameController,
+                    hint: 'Anzeigename',
+                    prefixIcon: Icons.person_rounded,
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  Material(
+                    type: MaterialType.transparency,
+                    child: GestureDetector(
+                      onTap: _pickDate,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.spaceMd,
+                          vertical: tokens.spaceSm,
+                        ),
+                        decoration: BoxDecoration(
+                          color: tokens.surface,
+                          borderRadius: BorderRadius.circular(tokens.radiusMd),
+                          border: Border.all(
+                            color: tokens.border.withValues(alpha: 0.8),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.cake_rounded, color: tokens.textLow, size: 20),
+                            SizedBox(width: tokens.spaceSm),
+                            Expanded(
+                              child: DesignText(
+                                _birthday != null ? _birthday! : 'Nicht angegeben',
+                                color: _birthday != null
+                                    ? tokens.textHigh
+                                    : tokens.textLow,
+                              ),
+                            ),
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              color: tokens.textLow,
+                              size: 20,
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                  ),
+                  if (_birthday != null) ...[
+                    SizedBox(height: tokens.spaceXs),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: DesignButton(
+                        label: 'Geburtstag entfernen',
+                        variant: DesignButtonVariant.text,
+                        icon: Icons.close_rounded,
+                        onPressed: () => setState(() => _birthday = null),
+                      ),
+                    ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: TextButton.icon(
-                  onPressed: _showImagePicker,
-                  icon: const Icon(Icons.edit_rounded, size: 16),
-                  label: Text(
-                    hasImage ? 'Profilbild ändern' : 'Profilbild hinzufügen',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _displayNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Anzeigename',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person_rounded),
-                ),
-                textCapitalization: TextCapitalization.words,
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: _pickDate,
-                borderRadius: BorderRadius.circular(12),
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Geburtstag',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.cake_rounded),
-                    suffixIcon: Icon(Icons.calendar_today_rounded),
-                  ),
-                  child: Text(
-                    _birthday != null ? _birthday! : 'Nicht angegeben',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: _birthday != null
-                          ? null
-                          : theme.colorScheme.onSurfaceVariant,
+                  SizedBox(height: tokens.spaceLg),
+                  if (_error != null)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                      child: DesignText(_error!, color: tokens.danger),
                     ),
+                  DesignButton(
+                    label: _saving ? 'Wird gespeichert…' : 'Speichern',
+                    icon: Icons.save_rounded,
+                    loading: _saving,
+                    onPressed: _saving ? null : _save,
+                    fullWidth: true,
                   ),
-                ),
+                ],
               ),
-              if (_birthday != null) ...[
-                const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => setState(() => _birthday = null),
-                    icon: const Icon(Icons.close_rounded, size: 16),
-                    label: const Text('Geburtstag entfernen'),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _error!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ),
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.save_rounded),
-                label: Text(_saving ? 'Wird gespeichert…' : 'Speichern'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

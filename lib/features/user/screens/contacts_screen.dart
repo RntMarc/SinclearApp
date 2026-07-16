@@ -1,7 +1,11 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
 import '../models/user_models.dart';
 import '../widgets/user_card.dart';
 
@@ -13,9 +17,10 @@ class ContactsScreen extends StatefulWidget {
 }
 
 class _ContactsScreenState extends State<ContactsScreen> {
-  List<UserBasePublic>? _users;
-  bool _loading = true;
-  String? _error;
+  final List<UserBasePublic> users = [];
+  bool isLoading = true;
+  String? error;
+  String? currentUserId;
   bool _hasLoaded = false;
 
   @override
@@ -28,78 +33,91 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      isLoading = true;
+      error = null;
+    });
     try {
       final scope = AppScope.of(context);
-      final userId = scope.auth.userId;
-      await scope.auth.getAccessToken();
-      final users = await scope.user.listAll();
-      users.sort((a, b) {
-        if (a.id == userId) return -1;
-        if (b.id == userId) return 1;
-        return a.displayName.compareTo(b.displayName);
-      });
+      final loaded = await scope.user.listAll();
       if (!mounted) return;
       setState(() {
-        _users = users;
-        _loading = false;
-        _error = null;
+        users
+          ..clear()
+          ..addAll(loaded);
+        currentUserId = scope.auth.userId;
+        isLoading = false;
       });
-    } catch (e, st) {
-      developer.log('Failed to load users', error: e, stackTrace: st);
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _loading = false;
-        _error = 'Benutzer konnten nicht geladen werden.';
+        error = 'Kontakte konnten nicht geladen werden.';
+        isLoading = false;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null || _users == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 8),
-            Text(_error ?? 'Unbekannter Fehler'),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: _load,
-              child: const Text('Erneut versuchen'),
-            ),
-          ],
+    if (isLoading) {
+      return DesignSurface(
+        child: Center(
+          child: CircularProgressIndicator(color: DesignTheme.of(context).primary),
         ),
       );
     }
 
-    final userId = AppScope.of(context).auth.userId;
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _users!.length,
-      itemBuilder: (context, index) {
-        final user = _users![index];
-        final isSelf = user.id == userId;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: UserCard(
-            user: user,
-            isSelf: isSelf,
-            onTap: () => context.go('/kontakte/${user.id}'),
+    if (error != null) {
+      return DesignSurface(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                DesignText(error!, style: DesignTextStyle.body),
+                const SizedBox(height: 16),
+                DesignButton(
+                  label: 'Erneut versuchen',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: _load,
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    if (users.isEmpty) {
+      return DesignSurface(
+        child: Center(
+          child: DesignText(
+            'Keine Kontakte gefunden.',
+            style: DesignTextStyle.body,
+          ),
+        ),
+      );
+    }
+
+    return DesignSurface(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: users.length,
+        itemBuilder: (context, index) {
+          final user = users[index];
+          final isSelf = user.id == currentUserId;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: UserCard(
+              user: user,
+              isSelf: isSelf,
+              onTap: () => context.push('/kontakte/${user.id}'),
+            ),
+          );
+        },
+      ),
     );
   }
 }

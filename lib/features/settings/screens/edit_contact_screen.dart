@@ -1,7 +1,15 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../user/models/user_models.dart';
 import '../widgets/visibility_badge.dart';
 
@@ -168,216 +176,164 @@ class _EditContactScreenState extends State<EditContactScreen> {
     }
   }
 
-  String? _emptyToNull(TextEditingController c) {
-    final v = c.text.trim();
-    return v.isEmpty ? null : v;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return DesignSurface(
+        child: Center(
+          child: CircularProgressIndicator(color: tokens.primary),
+        ),
+      );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kontaktmöglichkeiten'),
-        titleTextStyle: theme.textTheme.titleMedium,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildSimpleField(
-                icon: Icons.chat_rounded,
-                label: 'Discord',
-                controller: _discordController,
-                hint: 'Benutzername',
-                visibility: _discordVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _discordVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _buildSimpleField(
-                icon: Icons.alternate_email_rounded,
-                label: 'Fluxer',
-                controller: _fluxerController,
-                hint: 'Benutzername',
-                visibility: _fluxerVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _fluxerVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _buildSimpleField(
-                icon: Icons.phone_rounded,
-                label: 'Signal',
-                controller: _signalController,
-                hint: 'username.00',
-                visibility: _signalVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _signalVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _buildSimpleField(
-                icon: Icons.phone_android_rounded,
-                label: 'WhatsApp',
-                controller: _whatsappController,
-                hint: '+49123456789',
-                visibility: _whatsappVisibility,
-                onVisibilityChanged: (v) =>
-                    setState(() => _whatsappVisibility = v),
-              ),
-              const SizedBox(height: 16),
-              _buildMatrixField(),
-              const SizedBox(height: 24),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _error!,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ),
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.save_rounded),
-                label: Text(_saving ? 'Wird gespeichert…' : 'Speichern'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
-              ),
-            ],
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            title: 'Kontaktmöglichkeiten',
           ),
-        ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(tokens.spaceMd),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _contactField(
+                    tokens: tokens,
+                    prefixIcon: Icons.chat_rounded,
+                    label: 'Discord',
+                    controller: _discordController,
+                    hint: 'Benutzername',
+                    visibility: _discordVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _discordVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _contactField(
+                    tokens: tokens,
+                    prefixIcon: Icons.alternate_email_rounded,
+                    label: 'Fluxer',
+                    controller: _fluxerController,
+                    hint: 'Benutzername',
+                    visibility: _fluxerVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _fluxerVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _contactField(
+                    tokens: tokens,
+                    prefixIcon: Icons.phone_rounded,
+                    label: 'Signal',
+                    controller: _signalController,
+                    hint: 'username.00',
+                    visibility: _signalVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _signalVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _contactField(
+                    tokens: tokens,
+                    prefixIcon: Icons.phone_android_rounded,
+                    label: 'WhatsApp',
+                    controller: _whatsappController,
+                    hint: '+49123456789',
+                    visibility: _whatsappVisibility,
+                    onVisibilityChanged: (v) =>
+                        setState(() => _whatsappVisibility = v),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  _matrixField(tokens),
+                  SizedBox(height: tokens.spaceLg),
+                  if (_error != null)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                      child: DesignText(_error!, color: tokens.danger),
+                    ),
+                  DesignButton(
+                    label: _saving ? 'Wird gespeichert…' : 'Speichern',
+                    icon: Icons.save_rounded,
+                    loading: _saving,
+                    onPressed: _saving ? null : _save,
+                    fullWidth: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSimpleField({
-    required IconData icon,
-    required String label,
-    required TextEditingController controller,
-    required String hint,
-    required int visibility,
-    required ValueChanged<int> onVisibilityChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                decoration: InputDecoration(
-                  hintText: hint,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-                textCapitalization: TextCapitalization.none,
-              ),
-            ),
-            const SizedBox(width: 8),
-            VisibilityBadge(value: visibility, onChanged: onVisibilityChanged),
-          ],
-        ),
-      ],
-    );
-  }
+Widget _contactField({
+  required DesignTokens tokens,
+  required IconData prefixIcon,
+  required String label,
+  required TextEditingController controller,
+  required String hint,
+  required int visibility,
+  required ValueChanged<int> onVisibilityChanged,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: EdgeInsets.only(left: tokens.spaceXs),
+        child: DesignText(label, style: DesignTextStyle.label),
+      ),
+      SizedBox(height: tokens.spaceXs),
+      DesignTextField(
+        controller: controller,
+        hint: hint,
+        prefixIcon: prefixIcon,
+        suffix: VisibilityBadge(value: visibility, onChanged: onVisibilityChanged),
+      ),
+    ],
+  );
+}
 
-  Widget _buildMatrixField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              Icons.forum_rounded,
-              size: 18,
-              color: Theme.of(context).colorScheme.primary,
+Widget _matrixField(DesignTokens tokens) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Icon(Icons.forum_rounded, size: 18, color: tokens.primary),
+          SizedBox(width: tokens.spaceSm),
+          DesignText('Matrix', style: DesignTextStyle.label),
+        ],
+      ),
+      SizedBox(height: tokens.spaceSm),
+      Row(
+        children: [
+          const SizedBox(width: 26),
+          Expanded(
+            child: DesignTextField(
+              controller: _matrixUserController,
+              hint: 'Benutzername',
             ),
-            const SizedBox(width: 8),
-            Text(
-              'Matrix',
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: DesignTextField(
+              controller: _matrixServerController,
+              hint: 'matrix.org',
             ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const SizedBox(width: 26),
-            Expanded(
-              child: TextField(
-                controller: _matrixUserController,
-                decoration: const InputDecoration(
-                  labelText: 'Benutzername',
-                  hintText: 'Benutzername',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-                textCapitalization: TextCapitalization.none,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _matrixServerController,
-                decoration: const InputDecoration(
-                  labelText: 'Homeserver',
-                  hintText: 'matrix.org',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-                textCapitalization: TextCapitalization.none,
-              ),
-            ),
-            const SizedBox(width: 8),
-            VisibilityBadge(
-              value: _matrixVisibility,
-              onChanged: (v) => setState(() => _matrixVisibility = v),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+          ),
+          SizedBox(width: tokens.spaceSm),
+          VisibilityBadge(
+            value: _matrixVisibility,
+            onChanged: (v) => setState(() => _matrixVisibility = v),
+          ),
+        ],
+      ),
+    ],
+  );
+}
 }

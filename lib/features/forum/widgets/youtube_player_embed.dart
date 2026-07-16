@@ -1,11 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/utils/youtube_helper.dart';
 
-/// Full YouTube player embed for the detail screen. Uses an iframe URL
-/// opened via url_launcher (works on mobile + web). A future enhancement
-/// could swap this for youtube_player_iframe for inline playback.
+import '../../../core/utils/youtube_helper.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+
 class YouTubePlayerEmbed extends StatelessWidget {
   final String videoId;
 
@@ -13,18 +13,17 @@ class YouTubePlayerEmbed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final thumbnailUrl = YoutubeHelper.thumbnailUrl(videoId);
     final embedUrl = YoutubeHelper.embedUrl(videoId);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Thumbnail with play button
         GestureDetector(
           onTap: () => launchUrl(Uri.parse(embedUrl)),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(tokens.radiusMd),
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -36,14 +35,16 @@ class YouTubePlayerEmbed extends StatelessWidget {
                   placeholder: (_, _) => Container(
                     width: double.infinity,
                     height: 220,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: const Center(child: CircularProgressIndicator()),
+                    color: tokens.surfaceVariant,
+                    child: Center(
+                      child: CircularProgressIndicator(color: tokens.primary),
+                    ),
                   ),
                   errorWidget: (_, _, _) => Container(
                     width: double.infinity,
                     height: 220,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.error_outline, size: 48),
+                    color: tokens.surfaceVariant,
+                    child: Icon(Icons.error_outline, size: 48, color: tokens.textLow),
                   ),
                 ),
                 Container(
@@ -63,14 +64,14 @@ class YouTubePlayerEmbed extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        // Link to open in browser
+        SizedBox(height: tokens.spaceSm),
         Align(
           alignment: Alignment.centerRight,
-          child: TextButton.icon(
+          child: DesignButton(
+            variant: DesignButtonVariant.text,
+            icon: Icons.open_in_new_rounded,
+            label: 'Im Browser öffnen',
             onPressed: () => launchUrl(Uri.parse(embedUrl)),
-            icon: const Icon(Icons.open_in_new_rounded, size: 16),
-            label: const Text('Im Browser öffnen'),
           ),
         ),
       ],
