@@ -153,29 +153,9 @@ Aktuell: Jeder Screen nutzt rohes `setState` in `StatefulWidget`, was bei jedem 
 
 ---
 
-## E. location_sharing migrieren (letzte Material-Bastion)
+## E. location_sharing vorerst entfernen
 
-**8 Screens** in `lib/features/location_sharing/` nutzen noch rohes Material. Systematisch auf Design-System umstellen.
-
-| Screen | Status |
-|---|---|
-| `active_shares_screen.dart` | `[ ]` |
-| `all_locations_map_screen.dart` | `[ ]` |
-| `create_share_screen.dart` | `[ ]` |
-| `integration_setup_screen.dart` | `[ ]` |
-| `location_sharing_screen.dart` | `[ ]` |
-| `session_map_screen.dart` | `[ ]` |
-| `shared_locations_screen.dart` | `[ ]` |
-| *(evtl. weitere in `widgets/`)* | `[ ]` |
-
-- [ ] Alle `Scaffold` + `AppBar` → `DesignSurface` + `DesignAppBar`
-- [ ] Alle `Text` → `DesignText`
-- [ ] Alle `Card` → `DesignCard`
-- [ ] `TextButton`/`FilledButton`/`OutlinedButton` → `DesignButton`
-- [ ] `UserAvatar` → `DesignAvatar`
-- [ ] `Theme.of(context)` → `DesignTheme.of(context)`
-- [ ] `desiredAccuracy` deprecation fixen (siehe B3)
-- [ ] `ListView` ohne `.builder()` fixen (siehe C2)
+Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktioniert, ist eine komplette Neuimplementation in der Zukunft besser, als ein halb-kaputtes System irgendwie aufrecht zu erhalten. Daher ist auch eine Anpassung an die neue UI unnötig und alle Funktionen zum Standort Teilen werden erst einmal aus dem Code der App entfernt.
 
 ---
 
@@ -248,7 +228,7 @@ bis zu komplett neuen Features. Format:*
 
 1. **(sofort)** **B** – Dead Code entfernen (risikolos)
 2. **(sofort)** **A3** – analysis_options.yaml verschärfen + Fixes (verhindert neue Probleme)
-3. **(dringend)** **E** – location_sharing migrieren (letzte Material-Bastion, danach vollständig Design-System)
+3. **(dringend)** **E** – location_sharing entfernen
 4. **(dringend)** **F2** – `mounted`-Checks absichern (potenzielle Runtime-Crashes)
 5. **(parallel)** **C2** – ListView.builder-Fixes (einfache, isolierte Änderungen)
 6. **(parallel)** **C3** – Image.network → CachedNetworkImage (einfach)
