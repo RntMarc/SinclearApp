@@ -1,6 +1,15 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_chip.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+
 import '../models/explore_models.dart';
 
 class ExploreSearchOverlay extends StatefulWidget {
@@ -59,163 +68,162 @@ class _ExploreSearchOverlayState extends State<ExploreSearchOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('SUCHEN'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _queryController,
-              focusNode: _focusNode,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: _searchMode == 'name'
-                    ? 'Orte, Kategorien…'
-                    : 'Stadt, Stadtteil…',
-                prefixIcon: const Icon(Icons.search_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _search(),
+    final tokens = DesignTheme.of(context);
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => Navigator.pop(context),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(
-                    value: 'name',
-                    label: Text('Name'),
-                    icon: Icon(Icons.search_rounded),
-                  ),
-                  ButtonSegment(
-                    value: 'location',
-                    label: Text('Ort/Region'),
-                    icon: Icon(Icons.location_on_rounded),
-                  ),
-                ],
-                selected: {_searchMode},
-                onSelectionChanged: (v) {
-                  setState(() => _searchMode = v.first);
-                  _focusNode.requestFocus();
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Kategorie',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                FilterChip(
-                  label: const Text('Alle'),
-                  selected: _selectedCategory == null,
-                  onSelected: (_) => setState(() => _selectedCategory = null),
-                ),
-                FilterChip(
-                  label: const Text('Gastronomie'),
-                  selected: _selectedCategory == 'gastronomy',
-                  onSelected: (_) =>
-                      setState(() => _selectedCategory = 'gastronomy'),
-                ),
-                FilterChip(
-                  label: const Text('Freizeit'),
-                  selected: _selectedCategory == 'leisure',
-                  onSelected: (_) =>
-                      setState(() => _selectedCategory = 'leisure'),
-                ),
-              ],
-            ),
-            if (_searchMode == 'location') ...[
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            title: 'Suchen',
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(tokens.spaceLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Umkreis',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  DesignTextField(
+                    controller: _queryController,
+                    hint: _searchMode == 'name'
+                        ? 'Orte, Kategorien…'
+                        : 'Stadt, Stadtteil…',
+                    prefixIcon: Icons.search_rounded,
                   ),
-                  Text(
-                    '${(_radius / 1000).round()} km',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              Slider(
-                value: _radius,
-                min: 1000,
-                max: 50000,
-                divisions: 49,
-                label: '${(_radius / 1000).round()} km',
-                onChanged: (v) => setState(() => _radius = v),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '1 km',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  Text(
-                    '50 km',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 32),
-            FilledButton.icon(
-              onPressed: _searching ? null : _search,
-              icon: _searching
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: colorScheme.onPrimary,
+                  SizedBox(height: tokens.spaceXl),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DesignButton(
+                          variant: _searchMode == 'name'
+                              ? DesignButtonVariant.filled
+                              : DesignButtonVariant.outlined,
+                          label: 'Name',
+                          icon: Icons.search_rounded,
+                          onPressed: () {
+                            setState(() => _searchMode = 'name');
+                            _focusNode.requestFocus();
+                          },
+                        ),
                       ),
-                    )
-                  : const Icon(Icons.search_rounded),
-              label: Text(_searching ? 'Suche läuft…' : 'Suchen'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                      SizedBox(width: tokens.spaceSm),
+                      Expanded(
+                        child: DesignButton(
+                          variant: _searchMode == 'location'
+                              ? DesignButtonVariant.filled
+                              : DesignButtonVariant.outlined,
+                          label: 'Ort/Region',
+                          icon: Icons.location_on_rounded,
+                          onPressed: () {
+                            setState(() => _searchMode = 'location');
+                            _focusNode.requestFocus();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: tokens.spaceXl),
+                  DesignText(
+                    'Kategorie',
+                    style: DesignTextStyle.subtitle,
+                    color: tokens.textLow,
+                  ),
+                  SizedBox(height: tokens.spaceSm),
+                  Wrap(
+                    spacing: tokens.spaceSm,
+                    children: [
+                      DesignChip(
+                        label: 'Alle',
+                        selected: _selectedCategory == null,
+                        onTap: () => setState(() => _selectedCategory = null),
+                      ),
+                      DesignChip(
+                        label: 'Gastronomie',
+                        selected: _selectedCategory == 'gastronomy',
+                        onTap: () =>
+                            setState(() => _selectedCategory = 'gastronomy'),
+                      ),
+                      DesignChip(
+                        label: 'Freizeit',
+                        selected: _selectedCategory == 'leisure',
+                        onTap: () =>
+                            setState(() => _selectedCategory = 'leisure'),
+                      ),
+                    ],
+                  ),
+                  if (_searchMode == 'location') ...[
+                    SizedBox(height: tokens.spaceXl),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        DesignText(
+                          'Umkreis',
+                          style: DesignTextStyle.subtitle,
+                          color: tokens.textLow,
+                        ),
+                        DesignText(
+                          '${(_radius / 1000).round()} km',
+                          style: DesignTextStyle.title,
+                          color: tokens.textHigh,
+                        ),
+                      ],
+                    ),
+                    Material(
+                      type: MaterialType.transparency,
+                      child: SliderTheme(
+                        data: SliderThemeData(
+                          activeTrackColor: tokens.primary,
+                          inactiveTrackColor: tokens.border,
+                          thumbColor: tokens.primary,
+                          overlayColor: tokens.primary.withValues(alpha: 0.12),
+                          valueIndicatorColor: tokens.primary,
+                          valueIndicatorTextStyle: TextStyle(
+                            color: tokens.surface,
+                            fontSize: 15,
+                          ),
+                        ),
+                        child: Slider(
+                          value: _radius,
+                          min: 1000,
+                          max: 50000,
+                          divisions: 49,
+                          label: '${(_radius / 1000).round()} km',
+                          onChanged: (v) => setState(() => _radius = v),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        DesignText(
+                          '1 km',
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
+                        ),
+                        DesignText(
+                          '50 km',
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
+                        ),
+                      ],
+                    ),
+                  ],
+                  SizedBox(height: tokens.spaceXxl),
+                  DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    icon: Icons.search_rounded,
+                    label: _searching ? 'Suche läuft…' : 'Suchen',
+                    fullWidth: true,
+                    loading: _searching,
+                    onPressed: _searching ? null : _search,
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

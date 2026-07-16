@@ -2,6 +2,11 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 
@@ -100,10 +105,21 @@ class _TravelScreenState extends State<TravelScreen> {
     }
   }
 
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    return DesignSurface(child: _buildBody());
+  }
+
+  Widget _buildBody() {
+    final tokens = DesignTheme.of(context);
+
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
     if (_error != null) {
@@ -111,11 +127,16 @@ class _TravelScreenState extends State<TravelScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Fehler beim Laden der Reisen'),
-            const SizedBox(height: 8),
-            ElevatedButton(
+            DesignText(
+              'Fehler beim Laden der Reisen',
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceMd),
+            DesignButton(
+              variant: DesignButtonVariant.outlined,
+              label: 'Erneut versuchen',
               onPressed: _load,
-              child: const Text('Erneut versuchen'),
             ),
           ],
         ),
@@ -126,98 +147,108 @@ class _TravelScreenState extends State<TravelScreen> {
         _current.isNotEmpty || _future.isNotEmpty || _past.isNotEmpty;
 
     if (!hasEntries) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.event_rounded, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
+            Icon(Icons.event_rounded, size: 64, color: tokens.textLow),
+            SizedBox(height: tokens.spaceLg),
+            DesignText(
               'Keine Reisen oder Events gefunden',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
             ),
           ],
         ),
       );
     }
 
-    return CustomScrollView(
-      slivers: [
-        if (_current.isNotEmpty) ..._buildSection('Aktuelle Reisen', _current),
-        if (_future.isNotEmpty) ..._buildSection('Kommende Reisen', _future),
-        if (_past.isNotEmpty) ..._buildSection('Vergangene Reisen', _past),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_current.isNotEmpty)
+            ..._buildSection('Aktuelle Reisen', _current),
+          if (_future.isNotEmpty)
+            ..._buildSection('Kommende Reisen', _future),
+          if (_past.isNotEmpty) ..._buildSection('Vergangene Reisen', _past),
+          SizedBox(height: tokens.spaceXl),
+        ],
+      ),
     );
   }
 
   List<Widget> _buildSection(String title, List<TimelineEntry> entries) {
+    final tokens = DesignTheme.of(context);
     return [
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-          child: Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
+      Padding(
+        padding: EdgeInsets.fromLTRB(
+          tokens.spaceLg,
+          tokens.spaceXl,
+          tokens.spaceLg,
+          tokens.spaceXs,
+        ),
+        child: DesignText(
+          title,
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
         ),
       ),
-      SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => _TimelineCard(
-            entry: entries[index],
-            onTap: entries[index].isTrip
-                ? () => context.go('/reisen/${entries[index].id}')
-                : null,
+      ...entries.map((entry) {
+        return DesignCard(
+          margin: EdgeInsets.fromLTRB(
+            tokens.spaceLg,
+            0,
+            tokens.spaceLg,
+            tokens.spaceXs,
           ),
-          childCount: entries.length,
-        ),
-      ),
+          padding: EdgeInsets.all(tokens.spaceMd),
+          onTap: entry.isTrip
+              ? () => context.go('/reisen/${entry.id}')
+              : null,
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: tokens.surfaceVariant,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  entry.isTrip ? Icons.flight_rounded : Icons.event_rounded,
+                  color: tokens.primary,
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: tokens.spaceMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DesignText(
+                      entry.name,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceXs),
+                    DesignText(
+                      '${_formatDate(entry.start)} \u2013 ${_formatDate(entry.end)}',
+                      style: DesignTextStyle.label,
+                      color: tokens.textLow,
+                    ),
+                  ],
+                ),
+              ),
+              if (entry.isTrip)
+                Padding(
+                  padding: EdgeInsets.only(left: tokens.spaceMd),
+                  child: Icon(Icons.chevron_right_rounded, color: tokens.textLow),
+                ),
+            ],
+          ),
+        );
+      }),
     ];
-  }
-}
-
-class _TimelineCard extends StatelessWidget {
-  final TimelineEntry entry;
-  final VoidCallback? onTap;
-
-  const _TimelineCard({required this.entry, this.onTap});
-
-  String _formatDate(DateTime date) {
-    final local = date.toLocal();
-    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: entry.isTrip
-              ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.secondaryContainer,
-          child: Icon(
-            entry.isTrip ? Icons.flight_rounded : Icons.event_rounded,
-            color: entry.isTrip
-                ? theme.colorScheme.onPrimaryContainer
-                : theme.colorScheme.onSecondaryContainer,
-          ),
-        ),
-        title: Text(
-          entry.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          '${_formatDate(entry.start)} – ${_formatDate(entry.end)}',
-          style: theme.textTheme.bodySmall,
-        ),
-        trailing: entry.isTrip ? const Icon(Icons.chevron_right_rounded) : null,
-        onTap: onTap,
-      ),
-    );
   }
 }

@@ -2,6 +2,12 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final String forumId;
@@ -18,6 +24,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _textController = TextEditingController();
   final List<_UrlEntry> _urls = [];
   bool _submitting = false;
+
+  static const _types = [
+    ('text', 'Text', Icons.text_fields_rounded),
+    ('music', 'Musik', Icons.music_note_rounded),
+    ('video', 'Video', Icons.videocam_rounded),
+    ('web', 'Web', Icons.language_rounded),
+  ];
 
   @override
   void dispose() {
@@ -109,123 +122,174 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Neuer Beitrag', style: theme.textTheme.titleMedium),
-        actions: [
-          FilledButton(
-            onPressed: _submitting ? null : _submit,
-            child: _submitting
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Senden'),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Beitragstyp',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => Navigator.pop(context),
             ),
-            const SizedBox(height: 12),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(
-                  value: 'text',
-                  label: Text('Text'),
-                  icon: Icon(Icons.text_fields_rounded, size: 18),
-                ),
-                ButtonSegment(
-                  value: 'music',
-                  label: Text('Musik'),
-                  icon: Icon(Icons.music_note_rounded, size: 18),
-                ),
-                ButtonSegment(
-                  value: 'video',
-                  label: Text('Video'),
-                  icon: Icon(Icons.videocam_rounded, size: 18),
-                ),
-                ButtonSegment(
-                  value: 'web',
-                  label: Text('Web'),
-                  icon: Icon(Icons.language_rounded, size: 18),
-                ),
-              ],
-              selected: {_selectedType},
-              onSelectionChanged: (selection) {
-                setState(() {
-                  _selectedType = selection.first;
-                  _urls.clear();
-                });
-              },
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _titleController,
-              textCapitalization: TextCapitalization.words,
-              maxLines: 1,
-              decoration: const InputDecoration(
-                hintText: 'Titel (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _textController,
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: null,
-              minLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Was möchtest du teilen?',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            if (_selectedType != 'text') ...[
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Text(
-                    _selectedType == 'music'
-                        ? 'Streaming-Links'
-                        : _selectedType == 'video'
-                            ? 'Video-Links'
-                            : 'Links',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: _addUrl,
-                    icon: const Icon(Icons.add_circle_outline_rounded),
-                    tooltip: 'Link hinzufügen',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ..._urls.asMap().entries.map(
-                (entry) => _UrlField(
-                  key: ValueKey(entry.key),
-                  entry: entry.value,
-                  type: _selectedType,
-                  onRemove: () => _removeUrl(entry.key),
+            title: 'Neuer Beitrag',
+            actions: [
+              Padding(
+                padding: EdgeInsets.only(right: tokens.spaceSm),
+                child: DesignButton(
+                  variant: DesignButtonVariant.filled,
+                  label: 'Senden',
+                  loading: _submitting,
+                  onPressed: _submitting ? null : _submit,
                 ),
               ),
             ],
-          ],
-        ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(tokens.spaceLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignText(
+                    'Beitragstyp',
+                    style: DesignTextStyle.subtitle,
+                    color: tokens.textHigh,
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  Row(
+                    children: _types.map((t) {
+                      final isSelected = _selectedType == t.$1;
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(right: tokens.spaceSm),
+                          child: DesignButton(
+                            variant: isSelected
+                                ? DesignButtonVariant.filled
+                                : DesignButtonVariant.outlined,
+                            icon: t.$3,
+                            label: t.$2,
+                            onPressed: () {
+                              setState(() {
+                                _selectedType = t.$1;
+                                _urls.clear();
+                              });
+                            },
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  SizedBox(height: tokens.spaceXl),
+                  Material(
+                    type: MaterialType.transparency,
+                    child: TextField(
+                      controller: _titleController,
+                      textCapitalization: TextCapitalization.words,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: tokens.textHigh,
+                        fontSize: 15,
+                        fontFamily: tokens.fontFamily,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Titel (optional)',
+                        hintStyle: TextStyle(
+                          color: tokens.textLow,
+                          fontSize: 15,
+                          fontFamily: tokens.fontFamily,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(tokens.radiusMd),
+                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(tokens.radiusMd),
+                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(tokens.radiusMd),
+                          borderSide: BorderSide(color: tokens.primary, width: 1.5),
+                        ),
+                        contentPadding: EdgeInsets.all(tokens.spaceMd),
+                        filled: true,
+                        fillColor: tokens.surface,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  Material(
+                    type: MaterialType.transparency,
+                    child: TextField(
+                      controller: _textController,
+                      textCapitalization: TextCapitalization.sentences,
+                      maxLines: null,
+                      minLines: 3,
+                      style: TextStyle(
+                        color: tokens.textHigh,
+                        fontSize: 15,
+                        fontFamily: tokens.fontFamily,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Was möchtest du teilen?',
+                        hintStyle: TextStyle(
+                          color: tokens.textLow,
+                          fontSize: 15,
+                          fontFamily: tokens.fontFamily,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(tokens.radiusMd),
+                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(tokens.radiusMd),
+                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(tokens.radiusMd),
+                          borderSide: BorderSide(color: tokens.primary, width: 1.5),
+                        ),
+                        contentPadding: EdgeInsets.all(tokens.spaceMd),
+                        filled: true,
+                        fillColor: tokens.surface,
+                      ),
+                    ),
+                  ),
+                  if (_selectedType != 'text') ...[
+                    SizedBox(height: tokens.spaceXl),
+                    Row(
+                      children: [
+                        DesignText(
+                          _selectedType == 'music'
+                              ? 'Streaming-Links'
+                              : _selectedType == 'video'
+                                  ? 'Video-Links'
+                                  : 'Links',
+                          style: DesignTextStyle.subtitle,
+                          color: tokens.textHigh,
+                        ),
+                        const Spacer(),
+                        DesignIconButton(
+                          icon: Icons.add_circle_outline_rounded,
+                          onPressed: _addUrl,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    ..._urls.asMap().entries.map(
+                      (entry) => _UrlField(
+                        key: ValueKey(entry.key),
+                        entry: entry.value,
+                        type: _selectedType,
+                        onRemove: () => _removeUrl(entry.key),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -268,84 +332,151 @@ class _UrlFieldState extends State<_UrlField> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: tokens.spaceMd),
       child: Row(
         children: [
           if (widget.type == 'music')
             SizedBox(
               width: 140,
-              child: DropdownButtonFormField<String>(
-                initialValue: widget.entry.selectedPlatform,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
+              child: Material(
+                type: MaterialType.transparency,
+                child: DropdownButtonFormField<String>(
+                  initialValue: widget.entry.selectedPlatform,
+                  isExpanded: true,
+                  style: TextStyle(
+                    color: tokens.textHigh,
+                    fontSize: 15,
+                    fontFamily: tokens.fontFamily,
                   ),
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'spotify', child: Text('Spotify')),
-                  DropdownMenuItem(
-                    value: 'apple_music',
-                    child: Text('Apple Music'),
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: tokens.spaceMd,
+                      vertical: tokens.spaceMd,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(tokens.radiusMd),
+                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(tokens.radiusMd),
+                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(tokens.radiusMd),
+                      borderSide: BorderSide(color: tokens.primary, width: 1.5),
+                    ),
+                    filled: true,
+                    fillColor: tokens.surface,
                   ),
-                  DropdownMenuItem(
-                    value: 'youtube_music',
-                    child: Text('YouTube Music'),
+                  items: const [
+                    DropdownMenuItem(value: 'spotify', child: Text('Spotify')),
+                    DropdownMenuItem(
+                      value: 'apple_music',
+                      child: Text('Apple Music'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'youtube_music',
+                      child: Text('YouTube Music'),
+                    ),
+                    DropdownMenuItem(value: 'youtube', child: Text('YouTube')),
+                    DropdownMenuItem(value: 'other', child: Text('Sonstige')),
+                  ],
+                  onChanged: (v) => setState(
+                    () => widget.entry.selectedPlatform = v,
                   ),
-                  DropdownMenuItem(value: 'youtube', child: Text('YouTube')),
-                  DropdownMenuItem(value: 'other', child: Text('Sonstige')),
-                ],
-                onChanged: (v) => setState(
-                  () => widget.entry.selectedPlatform = v,
                 ),
               ),
             )
           else if (widget.type == 'video')
             SizedBox(
               width: 140,
-              child: DropdownButtonFormField<String>(
-                initialValue: widget.entry.selectedPlatform,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
+              child: Material(
+                type: MaterialType.transparency,
+                child: DropdownButtonFormField<String>(
+                  initialValue: widget.entry.selectedPlatform,
+                  isExpanded: true,
+                  style: TextStyle(
+                    color: tokens.textHigh,
+                    fontSize: 15,
+                    fontFamily: tokens.fontFamily,
                   ),
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: 'youtube', child: Text('YouTube')),
-                  DropdownMenuItem(value: 'peertube', child: Text('PeerTube')),
-                  DropdownMenuItem(value: 'odysee', child: Text('Odysee')),
-                  DropdownMenuItem(
-                    value: 'tv_mediathek',
-                    child: Text('TV Mediathek'),
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: tokens.spaceMd,
+                      vertical: tokens.spaceMd,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(tokens.radiusMd),
+                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(tokens.radiusMd),
+                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(tokens.radiusMd),
+                      borderSide: BorderSide(color: tokens.primary, width: 1.5),
+                    ),
+                    filled: true,
+                    fillColor: tokens.surface,
                   ),
-                  DropdownMenuItem(value: 'other', child: Text('Sonstige')),
-                ],
-                onChanged: (v) => setState(
-                  () => widget.entry.selectedPlatform = v,
+                  items: const [
+                    DropdownMenuItem(value: 'youtube', child: Text('YouTube')),
+                    DropdownMenuItem(value: 'peertube', child: Text('PeerTube')),
+                    DropdownMenuItem(value: 'odysee', child: Text('Odysee')),
+                    DropdownMenuItem(
+                      value: 'tv_mediathek',
+                      child: Text('TV Mediathek'),
+                    ),
+                    DropdownMenuItem(value: 'other', child: Text('Sonstige')),
+                  ],
+                  onChanged: (v) => setState(
+                    () => widget.entry.selectedPlatform = v,
+                  ),
                 ),
               ),
             ),
-          if (widget.type != 'text')
-            SizedBox(
-              width: widget.type == 'text' ? double.infinity : null,
-            ),
-          if (widget.type != 'text') const SizedBox(width: 8),
+          SizedBox(width: tokens.spaceSm),
           Expanded(
-            child: TextField(
-              controller: widget.entry.urlController,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                hintText: 'https://...',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  onPressed: widget.onRemove,
-                  icon: const Icon(Icons.remove_circle_outline_rounded),
+            child: Material(
+              type: MaterialType.transparency,
+              child: TextField(
+                controller: widget.entry.urlController,
+                keyboardType: TextInputType.url,
+                style: TextStyle(
+                  color: tokens.textHigh,
+                  fontSize: 15,
+                  fontFamily: tokens.fontFamily,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'https://...',
+                  hintStyle: TextStyle(
+                    color: tokens.textLow,
+                    fontSize: 15,
+                    fontFamily: tokens.fontFamily,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(tokens.radiusMd),
+                    borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(tokens.radiusMd),
+                    borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(tokens.radiusMd),
+                    borderSide: BorderSide(color: tokens.primary, width: 1.5),
+                  ),
+                  suffixIcon: DesignIconButton(
+                    icon: Icons.remove_circle_outline_rounded,
+                    onPressed: widget.onRemove,
+                  ),
+                  filled: true,
+                  fillColor: tokens.surface,
+                  contentPadding: EdgeInsets.all(tokens.spaceMd),
                 ),
               ),
             ),

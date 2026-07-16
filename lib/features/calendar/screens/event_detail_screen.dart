@@ -1,7 +1,16 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 import '../models/calendar_models.dart';
 import '../services/calendar_service.dart';
 import '../widgets/event_form_sheet.dart';
@@ -65,10 +74,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Future<void> _edit() async {
     if (_event == null) return;
 
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
+    final result = await showDesignSheet<Map<String, dynamic>>(
       context: context,
-      isScrollControlled: true,
-      builder: (_) => EventFormSheet(event: _event),
+      child: EventFormSheet(event: _event),
     );
 
     if (result == null || !mounted) return;
@@ -96,22 +104,41 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Future<void> _delete() async {
     if (_event == null) return;
 
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showDesignSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Termin löschen'),
-        content: Text('"${_event!.title}" wirklich löschen?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Abbrechen'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Termin löschen',
+            style: DesignTextStyle.subtitle,
+            color: DesignTheme.of(context).textHigh,
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            child: const Text('Löschen'),
+          SizedBox(height: DesignTheme.of(context).spaceMd),
+          DesignText(
+            '"${_event!.title}" wirklich löschen?',
+            style: DesignTextStyle.body,
+            color: DesignTheme.of(context).textLow,
+          ),
+          SizedBox(height: DesignTheme.of(context).spaceLg),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  label: 'Abbrechen',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              SizedBox(width: DesignTheme.of(context).spaceMd),
+              Expanded(
+                child: DesignButton(
+                  label: 'Löschen',
+                  variant: DesignButtonVariant.filled,
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -147,141 +174,180 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     if (_loading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('TERMIN')),
-        body: const Center(child: CircularProgressIndicator()),
+      return DesignSurface(
+        child: Column(
+          children: [
+            DesignAppBar(
+              leading: DesignIconButton(
+                icon: Icons.arrow_back_rounded,
+                onPressed: () => context.pop(),
+              ),
+              title: 'Termin',
+            ),
+            Expanded(
+              child: Center(child: CircularProgressIndicator(color: tokens.primary)),
+            ),
+          ],
+        ),
       );
     }
 
     if (_error != null || _event == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('TERMIN')),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Fehler beim Laden des Termins'),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: _load,
-                child: const Text('Erneut versuchen'),
+      return DesignSurface(
+        child: Column(
+          children: [
+            DesignAppBar(
+              leading: DesignIconButton(
+                icon: Icons.arrow_back_rounded,
+                onPressed: () => context.pop(),
               ),
-            ],
-          ),
+              title: 'Termin',
+            ),
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DesignText(
+                      'Fehler beim Laden des Termins',
+                      style: DesignTextStyle.body,
+                      color: tokens.textLow,
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    DesignButton(
+                      label: 'Erneut versuchen',
+                      variant: DesignButtonVariant.filled,
+                      onPressed: _load,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
     final event = _event!;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(event.title.toUpperCase()),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_rounded),
-            onPressed: _edit,
-            tooltip: 'Bearbeiten',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_rounded),
-            onPressed: _delete,
-            tooltip: 'Löschen',
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    return DesignSurface(
+      child: Column(
         children: [
-          Text(
-            event.title,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
             ),
-          ),
-          if (event.description != null && event.description!.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(event.description!, style: theme.textTheme.bodyLarge),
-          ],
-          const SizedBox(height: 24),
-          _InfoRow(
-            icon: Icons.access_time_rounded,
-            label: 'Zeitraum',
-            value: formatDateRange(event.startTime, event.endTime),
-          ),
-          const SizedBox(height: 8),
-          _InfoRow(
-            icon: Icons.visibility_rounded,
-            label: 'Sichtbarkeit',
-            value: _visibilityLabel(event.visibility),
-          ),
-          const SizedBox(height: 8),
-          _InfoRow(
-            icon: Icons.person_rounded,
-            label: 'Erstellt von',
-            value: event.creatorId,
-          ),
-          if (event.participants.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              'Teilnehmer (${event.participants.length})',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+            title: event.title,
+            actions: [
+              DesignIconButton(
+                icon: Icons.edit_rounded,
+                onPressed: _edit,
               ),
-            ),
-            const SizedBox(height: 8),
-            ...event.participants.map(
-              (p) => ListTile(
-                leading: CircleAvatar(
-                  child: Text(p.displayName[0].toUpperCase()),
+              DesignIconButton(
+                icon: Icons.delete_rounded,
+                onPressed: _delete,
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.all(tokens.spaceLg),
+              children: [
+                DesignText(
+                  event.title,
+                  style: DesignTextStyle.subtitle,
+                  color: tokens.textHigh,
                 ),
-                title: Text(p.displayName),
-                contentPadding: EdgeInsets.zero,
-              ),
+                if (event.description != null && event.description!.isNotEmpty) ...[
+                  SizedBox(height: tokens.spaceMd),
+                  DesignText(
+                    event.description!,
+                    style: DesignTextStyle.body,
+                    color: tokens.textLow,
+                  ),
+                ],
+                SizedBox(height: tokens.spaceLg),
+                _infoRow(
+                  tokens: tokens,
+                  icon: Icons.access_time_rounded,
+                  label: 'Zeitraum',
+                  value: formatDateRange(event.startTime, event.endTime),
+                ),
+                SizedBox(height: tokens.spaceSm),
+                _infoRow(
+                  tokens: tokens,
+                  icon: Icons.visibility_rounded,
+                  label: 'Sichtbarkeit',
+                  value: _visibilityLabel(event.visibility),
+                ),
+                SizedBox(height: tokens.spaceSm),
+                _infoRow(
+                  tokens: tokens,
+                  icon: Icons.person_rounded,
+                  label: 'Erstellt von',
+                  value: event.creatorId,
+                ),
+                if (event.participants.isNotEmpty) ...[
+                  SizedBox(height: tokens.spaceLg),
+                  DesignText(
+                    'Teilnehmer (${event.participants.length})',
+                    style: DesignTextStyle.label,
+                    color: tokens.textHigh,
+                  ),
+                  SizedBox(height: tokens.spaceSm),
+                  ...event.participants.map(
+                    (p) => DesignListTile(
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: tokens.primary,
+                          borderRadius: BorderRadius.circular(tokens.radiusPill),
+                        ),
+                        child: Center(
+                          child: DesignText(
+                            p.displayName[0].toUpperCase(),
+                            style: DesignTextStyle.body,
+                            color: tokens.textHigh,
+                          ),
+                        ),
+                      ),
+                      title: p.displayName,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            Text(value, style: theme.textTheme.bodyMedium),
-          ],
-        ),
-      ],
-    );
-  }
+Widget _infoRow({
+  required DesignTokens tokens,
+  required IconData icon,
+  required String label,
+  required String value,
+}) {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 20, color: tokens.textLow),
+      SizedBox(width: tokens.spaceMd),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DesignText(label, style: DesignTextStyle.label, color: tokens.textLow),
+          DesignText(value, style: DesignTextStyle.body, color: tokens.textHigh),
+        ],
+      ),
+    ],
+  );
 }
