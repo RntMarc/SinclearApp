@@ -228,7 +228,7 @@ class NominatimResult {
 
   factory NominatimResult.fromJson(Map<String, dynamic> json) {
     return NominatimResult(
-      osmId: int.parse(json['osm_id'] as String),
+      osmId: (json['osm_id'] as num).toInt(),
       osmType: json['osm_type'] as String,
       displayName: json['display_name'] as String,
       lat: double.parse(json['lat'] as String),

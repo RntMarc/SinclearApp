@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../../../core/utils/spotify_helper.dart';
 
-/// Compact Spotify thumbnail for feed cards. Fetches album art via the
-/// oEmbed API and displays it with track/album info.
+import '../../../core/utils/spotify_helper.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+
 class SpotifyThumbnail extends StatefulWidget {
   final SpotifyItem item;
   final String originalUrl;
@@ -50,7 +51,6 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
       );
       final res = await http.get(uri).timeout(const Duration(seconds: 5));
       if (res.statusCode == 200 && mounted) {
-        // oEmbed returns JSON with thumbnail_url, title, provider_name
         final json = _parseJson(res.body);
         final data = SpotifyOEmbedData(
           thumbnailUrl: json['thumbnail_url'] ?? '',
@@ -80,20 +80,20 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     if (_loading) {
       return Container(
         height: 80,
         decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          color: tokens.surfaceVariant,
+          borderRadius: BorderRadius.circular(tokens.radiusSm),
         ),
-        child: const Center(
+        child: Center(
           child: SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: CircularProgressIndicator(strokeWidth: 2, color: tokens.primary),
           ),
         ),
       );
@@ -103,19 +103,18 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
       height: 80,
       decoration: BoxDecoration(
         color: const Color(0xFF1DB954).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(tokens.radiusSm),
         border: Border.all(
           color: const Color(0xFF1DB954).withValues(alpha: 0.3),
         ),
       ),
       child: Row(
         children: [
-          // Album art thumbnail
           if (_data != null && _data!.thumbnailUrl.isNotEmpty)
             ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                bottomLeft: Radius.circular(8),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(tokens.radiusSm),
+                bottomLeft: Radius.circular(tokens.radiusSm),
               ),
               child: CachedNetworkImage(
                 imageUrl: _data!.thumbnailUrl,
@@ -147,10 +146,9 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
                 size: 32,
               ),
             ),
-          // Track info
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: EdgeInsets.symmetric(horizontal: tokens.spaceSm),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,10 +156,7 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1DB954),
                           borderRadius: BorderRadius.circular(4),
@@ -172,6 +167,7 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.none,
                           ),
                         ),
                       ),
@@ -182,45 +178,41 @@ class _SpotifyThumbnailState extends State<SpotifyThumbnail> {
                           fontSize: 10,
                           color: Color(0xFF1DB954),
                           fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.none,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: tokens.spaceXs),
                   if (_data != null) ...[
-                    Text(
+                    DesignText(
                       _data!.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: DesignTextStyle.label,
+                      color: tokens.textHigh,
                     ),
-                    Text(
+                    DesignText(
                       _data!.artistName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: DesignTextStyle.label,
+                      color: tokens.textLow,
                     ),
                   ] else
-                    Text(
+                    DesignText(
                       Uri.tryParse(widget.originalUrl)?.host ?? 'Spotify',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
+                      style: DesignTextStyle.label,
+                      color: tokens.textHigh,
                     ),
                 ],
               ),
             ),
           ),
-          Icon(
-            Icons.open_in_new_rounded,
-            size: 16,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 12),
+          Icon(Icons.open_in_new_rounded, size: 16, color: tokens.textLow),
+          SizedBox(width: tokens.spaceSm),
         ],
       ),
     );

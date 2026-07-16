@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_card.dart';
 import '../models/calendar_models.dart';
 
 class AgendaList extends StatelessWidget {
@@ -17,6 +20,7 @@ class AgendaList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final grouped = _groupByDay(events);
 
     if (grouped.isEmpty) {
@@ -27,16 +31,13 @@ class AgendaList extends StatelessWidget {
             Icon(
               Icons.event_rounded,
               size: 64,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+              color: tokens.textLow.withValues(alpha: 0.4),
             ),
-            const SizedBox(height: 16),
-            Text(
+            SizedBox(height: tokens.spaceLg),
+            DesignText(
               'Keine Termine',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              style: DesignTextStyle.subtitle,
+              color: tokens.textLow,
             ),
           ],
         ),
@@ -94,7 +95,7 @@ class _DaySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final isToday = date == today;
@@ -110,23 +111,17 @@ class _DaySection extends StatelessWidget {
                 width: 4,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: isToday
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.outlineVariant,
+                  color: isToday ? tokens.primary : tokens.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
+              SizedBox(width: tokens.spaceSm),
+              DesignText(
                 isToday
                     ? 'Heute'
                     : DateFormat('EEEE, d. MMMM yyyy', 'de').format(date),
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isToday
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface,
-                ),
+                style: DesignTextStyle.label,
+                color: isToday ? tokens.primary : tokens.textHigh,
               ),
             ],
           ),
@@ -150,121 +145,112 @@ class _EventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
-    return Card(
+    return DesignCard(
+      onTap: onTap,
       margin: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 56,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      formatTime(event.startTime),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    Text(
-                      formatTime(event.endTime),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 56,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignText(
+                    formatTime(event.startTime),
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                  DesignText(
+                    formatTime(event.endTime),
+                    style: DesignTextStyle.body,
+                    color: tokens.textLow,
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Container(
-                width: 2,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _eventColor(event, theme),
-                  borderRadius: BorderRadius.circular(1),
-                ),
+            ),
+            SizedBox(width: tokens.spaceMd),
+            Container(
+              width: 2,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _eventColor(event, tokens),
+                borderRadius: BorderRadius.circular(1),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+            ),
+            SizedBox(width: tokens.spaceMd),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignText(
+                    event.title,
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                  ),
+                  if (event.description != null &&
+                      event.description!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: DesignText(
+                        event.description!,
+                        style: DesignTextStyle.body,
+                        color: tokens.textLow,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (event.description != null &&
-                        event.description!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          event.description!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                  if (event.participants.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.people_rounded,
+                            size: 14,
+                            color: tokens.textLow,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          SizedBox(width: tokens.spaceXs),
+                          DesignText(
+                            event.participants
+                                .map((p) => p.displayName)
+                                .join(', '),
+                            style: DesignTextStyle.label,
+                            color: tokens.textLow,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                    if (event.participants.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.people_rounded,
-                              size: 14,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              event.participants
-                                  .map((p) => p.displayName)
-                                  .join(', '),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: tokens.textLow,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Color _eventColor(CalendarEvent event, ThemeData theme) {
+  Color _eventColor(CalendarEvent event, DesignTokens tokens) {
     switch (event.visibility) {
       case 0:
-        return theme.colorScheme.primary;
+        return tokens.primary;
       case 1:
-        return theme.colorScheme.tertiary;
+        return tokens.accentA;
       case 2:
-        return theme.colorScheme.secondary;
+        return tokens.secondary;
       default:
-        return theme.colorScheme.primary;
+        return tokens.primary;
     }
   }
 }

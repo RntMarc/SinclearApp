@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/widgets/user_avatar.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
 
 class UserTile extends StatelessWidget {
   final String displayName;
@@ -16,16 +18,24 @@ class UserTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        UserAvatar(
+        DesignAvatar(
           imageUrl: imageUrl,
-          displayName: displayName,
-          radius: avatarSize / 2,
+          name: displayName,
+          size: avatarSize,
         ),
-        const SizedBox(width: 8),
-        Flexible(child: Text(displayName, overflow: TextOverflow.ellipsis)),
+        SizedBox(width: tokens.spaceSm),
+        Flexible(
+          child: DesignText(
+            displayName,
+            style: DesignTextStyle.body,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

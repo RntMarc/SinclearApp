@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_badge.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/press_scale.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 import '../models/feedback_models.dart';
 
+/// A single feedback suggestion rendered as a tappable catalog card.
 class SuggestionCard extends StatelessWidget {
   final FeedbackSuggestion suggestion;
   final bool isOwner;
@@ -20,107 +29,10 @@ class SuggestionCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final statusColor = _statusColor(suggestion.status, theme);
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      suggestion.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  _StatusBadge(label: suggestion.status.label, color: statusColor),
-                ],
-              ),
-              if (suggestion.description != null &&
-                  suggestion.description!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  suggestion.description!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _VoteButton(
-                    count: suggestion.upvoteCount,
-                    hasVoted: suggestion.hasVoted,
-                    onTap: onVote,
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(
-                    Icons.schedule_rounded,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.6,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    app_date.formatRelativeDate(suggestion.createdAt),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  if (isOwner || isAdmin)
-                    PopupMenuButton<String>(
-                      icon: Icon(
-                        Icons.more_vert_rounded,
-                        size: 20,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      itemBuilder: (context) => [
-                        if (isOwner || isAdmin)
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: _MenuAction(
-                              icon: Icons.delete_outline_rounded,
-                              label: 'Löschen',
-                              color: Colors.red,
-                            ),
-                          ),
-                      ],
-                      onSelected: (value) {
-                        if (value == 'delete') onDelete();
-                      },
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color _statusColor(FeedbackStatus status, ThemeData theme) {
+  Color _statusColor(DesignTokens tokens, FeedbackStatus status) {
     switch (status) {
       case FeedbackStatus.submitted:
-        return theme.colorScheme.onSurfaceVariant;
+        return tokens.textLow;
       case FeedbackStatus.planned:
         return Colors.blue;
       case FeedbackStatus.next:
@@ -128,111 +40,125 @@ class SuggestionCard extends StatelessWidget {
       case FeedbackStatus.inProgress:
         return Colors.amber.shade700;
       case FeedbackStatus.done:
-        return Colors.green;
+        return tokens.success;
       case FeedbackStatus.cancelled:
-        return theme.colorScheme.error;
       case FeedbackStatus.rejected:
-        return theme.colorScheme.error;
+        return tokens.danger;
       case FeedbackStatus.later:
         return Colors.purple;
     }
   }
-}
 
-class _StatusBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _StatusBadge({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: color,
+  void _openMenu(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    showDesignSheet(
+      context: context,
+      child: DesignListTile(
+        leading: Icon(
+          Icons.delete_outline_rounded,
+          color: tokens.danger,
+          size: 20,
         ),
+        title: 'Löschen',
+        onTap: () {
+          Navigator.of(context).pop();
+          onDelete();
+        },
       ),
     );
   }
-}
-
-class _VoteButton extends StatelessWidget {
-  final int count;
-  final bool hasVoted;
-  final VoidCallback onTap;
-
-  const _VoteButton({
-    required this.count,
-    required this.hasVoted,
-    required this.onTap,
-  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = hasVoted
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurfaceVariant;
+    final tokens = DesignTheme.of(context);
+    final statusColor = _statusColor(tokens, suggestion.status);
 
-    return InkWell(
+    final vote = PressScale(
+      onTap: onVote,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            suggestion.hasVoted
+                ? Icons.thumb_up_rounded
+                : Icons.thumb_up_outlined,
+            size: 18,
+            color: suggestion.hasVoted ? tokens.primary : tokens.textLow,
+          ),
+          SizedBox(width: tokens.spaceXs),
+          DesignText(
+            '${suggestion.upvoteCount}',
+            style: DesignTextStyle.label,
+            color: suggestion.hasVoted ? tokens.primary : tokens.textHigh,
+          ),
+        ],
+      ),
+    );
+
+    return DesignCard(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasVoted
-                  ? Icons.thumb_up_rounded
-                  : Icons.thumb_up_outlined,
-              size: 18,
-              color: color,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '$count',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: color,
+      margin: EdgeInsets.symmetric(
+        horizontal: tokens.spaceLg,
+        vertical: tokens.spaceXs,
+      ),
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: DesignText(
+                  suggestion.title,
+                  style: DesignTextStyle.subtitle,
+                  color: tokens.textHigh,
+                ),
               ),
+              SizedBox(width: tokens.spaceSm),
+              DesignBadge(
+                label: suggestion.status.label,
+                color: statusColor,
+              ),
+            ],
+          ),
+          if (suggestion.description != null &&
+              suggestion.description!.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              suggestion.description!,
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
-        ),
+          SizedBox(height: tokens.spaceMd),
+          Row(
+            children: [
+              vote,
+              SizedBox(width: tokens.spaceLg),
+              Icon(
+                Icons.schedule_rounded,
+                size: 14,
+                color: tokens.textLow.withValues(alpha: 0.6),
+              ),
+              SizedBox(width: tokens.spaceXs),
+              DesignText(
+                app_date.formatRelativeDate(suggestion.createdAt),
+                style: DesignTextStyle.label,
+                color: tokens.textLow.withValues(alpha: 0.7),
+              ),
+              const Spacer(),
+              if (isOwner || isAdmin)
+                DesignIconButton(
+                  icon: Icons.more_vert_rounded,
+                  onPressed: () => _openMenu(context),
+                ),
+            ],
+          ),
+        ],
       ),
-    );
-  }
-}
-
-class _MenuAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _MenuAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(width: 8),
-        Text(label, style: TextStyle(color: color)),
-      ],
     );
   }
 }

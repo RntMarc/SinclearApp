@@ -5,6 +5,11 @@ import '../services/notification_service.dart';
 import '../../../core/config/notification_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_divider.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 
 class NotificationSheet extends StatefulWidget {
   const NotificationSheet({super.key});
@@ -36,6 +41,7 @@ class _NotificationSheetState extends State<NotificationSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     final notif = AppScope.of(context).notification;
     final notifications = notif.notifications;
 
@@ -45,57 +51,69 @@ class _NotificationSheetState extends State<NotificationSheet> {
       maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) {
-        return Column(
-          children: [
-            _handle(context),
-            _header(context, notif),
-            const Divider(height: 1),
-            Expanded(
-              child: notifications.isEmpty
-                  ? _emptyState(context)
-                  : _list(context, notifications, scrollController),
+        return Container(
+          decoration: BoxDecoration(
+            color: tokens.surface,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(tokens.radiusXl),
             ),
-          ],
+            boxShadow: tokens.surfaceShadow,
+          ),
+          child: Column(
+            children: [
+              _handle(tokens),
+              _header(tokens, notif),
+              const DesignDivider(),
+              Expanded(
+                child: notifications.isEmpty
+                    ? _emptyState(tokens)
+                    : _list(context, notifications, scrollController),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _handle(BuildContext context) => Padding(
+  Widget _handle(DesignTokens tokens) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Container(
       width: 40,
       height: 4,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(80),
+        color: tokens.textLow.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(2),
       ),
     ),
   );
 
-  Widget _header(BuildContext context, NotificationService notif) {
-    final theme = Theme.of(context);
+  Widget _header(DesignTokens tokens, NotificationService notif) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       child: Row(
         children: [
-          Text('Benachrichtigungen', style: theme.textTheme.titleMedium),
+          DesignText(
+            'Benachrichtigungen',
+            style: DesignTextStyle.title,
+            color: tokens.textHigh,
+          ),
           const Spacer(),
           if (notif.unreadCount > 0)
-            TextButton.icon(
+            DesignButton(
+              variant: DesignButtonVariant.text,
+              icon: Icons.done_all_rounded,
+              label: 'Alle gelesen',
               onPressed: () async {
                 await notif.markAllAsRead();
               },
-              icon: const Icon(Icons.done_all_rounded, size: 18),
-              label: const Text('Alle gelesen'),
             ),
         ],
       ),
     );
   }
 
-  Widget _emptyState(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _emptyState(DesignTokens tokens) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -103,14 +121,13 @@ class _NotificationSheetState extends State<NotificationSheet> {
           Icon(
             Icons.notifications_off_rounded,
             size: 64,
-            color: theme.colorScheme.onSurfaceVariant.withAlpha(100),
+            color: tokens.textLow.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
-          Text(
+          DesignText(
             'Keine Benachrichtigungen',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
           ),
         ],
       ),
@@ -178,7 +195,7 @@ class _NotificationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     return Dismissible(
       key: ValueKey(notification.id),
@@ -187,39 +204,37 @@ class _NotificationItem extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        color: theme.colorScheme.primaryContainer,
+        color: tokens.surfaceVariant,
         child: Icon(
           Icons.done_rounded,
-          color: theme.colorScheme.onPrimaryContainer,
+          color: tokens.primary,
         ),
       ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
-          child: Icon(
-            NotificationTypeLabel.icon(notification.code, notification.payload),
-            color: theme.colorScheme.onPrimaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: DesignListTile(
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: tokens.surfaceVariant,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              NotificationTypeLabel.icon(notification.code, notification.payload),
+              color: tokens.primary,
+              size: 20,
+            ),
           ),
-        ),
-        title: Text(
-          NotificationTypeLabel.title(notification.code, notification.payload),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+          title: NotificationTypeLabel.title(notification.code, notification.payload),
+          subtitle: NotificationTypeLabel.body(notification.code, notification.payload),
+          trailing: DesignText(
+            _timeAgo(notification.createdAt),
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
           ),
+          onTap: onTap,
         ),
-        subtitle: Text(
-          NotificationTypeLabel.body(notification.code, notification.payload),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: Text(
-          _timeAgo(notification.createdAt),
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        onTap: onTap,
       ),
     );
   }

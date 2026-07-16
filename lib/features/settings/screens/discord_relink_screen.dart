@@ -1,8 +1,16 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../user/models/user_models.dart';
 
 class DiscordRelinkScreen extends StatefulWidget {
@@ -122,143 +130,116 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return DesignSurface(
+        child: Center(
+          child: CircularProgressIndicator(color: tokens.primary),
+        ),
+      );
     }
 
     final hasDiscord = _user?.base.discordId != null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Discord-Verknüpfung'),
-        titleTextStyle: theme.textTheme.titleMedium,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(
-                  Icons.headset_mic_rounded,
-                  size: 56,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  hasDiscord ? 'Discord verbunden' : 'Kein Discord verknüpft',
-                   style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  hasDiscord
-                      ? 'Dein Account ist mit Discord-ID ${_user!.base.discordId} verknüpft.'
-                      : 'Verknüpfe deinen Discord-Account, um dich schneller anmelden zu können.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                if (!_showCodeInput) ...[
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _startRelink,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.open_in_browser_rounded),
-                    label: Text(
-                      _saving
-                          ? 'Wird gestartet…'
-                          : 'Discord-Verknüpfung ändern',
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignAppBar(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            title: 'Discord-Verknüpfung',
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(tokens.spaceLg),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Icon(
+                      Icons.headset_mic_rounded,
+                      size: 56,
+                      color: tokens.primary,
                     ),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
+                    SizedBox(height: tokens.spaceLg),
+                    DesignText(
+                      hasDiscord ? 'Discord verbunden' : 'Kein Discord verknüpft',
+                      style: DesignTextStyle.title,
                     ),
-                  ),
-                ] else ...[
-                  Text(
-                    'Gib den 6-stelligen Code aus dem Discord-Browser-Tab ein.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    SizedBox(height: tokens.spaceSm),
+                    DesignText(
+                      hasDiscord
+                          ? 'Dein Account ist mit Discord-ID ${_user!.base.discordId} verknüpft.'
+                          : 'Verknüpfe deinen Discord-Account, um dich schneller anmelden zu können.',
+                      color: tokens.textLow,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _codeController,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    maxLength: 6,
-                    decoration: const InputDecoration(
-                      labelText: 'Pairing-Code',
-                      counterText: '',
-                      prefixIcon: Icon(Icons.vpn_key_rounded),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text(
-                        _error!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.error,
+                    SizedBox(height: tokens.spaceXl),
+                    if (!_showCodeInput) ...[
+                      DesignButton(
+                        label: _saving
+                            ? 'Wird gestartet…'
+                            : 'Discord-Verknüpfung ändern',
+                        icon: Icons.open_in_browser_rounded,
+                        loading: _saving,
+                        onPressed: _saving ? null : _startRelink,
+                        fullWidth: true,
+                      ),
+                    ] else ...[
+                      DesignText(
+                        'Gib den 6-stelligen Code aus dem Discord-Browser-Tab ein.',
+                        color: tokens.textLow,
+                      ),
+                      SizedBox(height: tokens.spaceMd),
+                      DesignTextField(
+                        controller: _codeController,
+                        hint: 'Pairing-Code',
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        maxLength: 6,
+                        prefixIcon: Icons.vpn_key_rounded,
+                      ),
+                      SizedBox(height: tokens.spaceMd),
+                      if (_error != null)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                          child: DesignText(_error!, color: tokens.danger),
                         ),
+                      DesignButton(
+                        label: _saving ? 'Wird geprüft…' : 'Bestätigen',
+                        icon: Icons.check_rounded,
+                        loading: _saving,
+                        onPressed: _saving ? null : _verifyCode,
+                        fullWidth: true,
                       ),
-                    ),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _verifyCode,
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.check_rounded),
-                    label: Text(_saving ? 'Wird geprüft…' : 'Bestätigen'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _showCodeInput = false;
-                        _error = null;
-                        _codeController.clear();
-                      });
-                    },
-                    child: const Text('Abbrechen'),
-                  ),
-                ],
-                if (_error != null && !_showCodeInput)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _error!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error,
+                      SizedBox(height: tokens.spaceSm),
+                      DesignButton(
+                        label: 'Abbrechen',
+                        variant: DesignButtonVariant.text,
+                        onPressed: () {
+                          setState(() {
+                            _showCodeInput = false;
+                            _error = null;
+                            _codeController.clear();
+                          });
+                        },
+                        fullWidth: true,
                       ),
-                    ),
-                  ),
-              ],
+                    ],
+                    if (_error != null && !_showCodeInput)
+                      Padding(
+                        padding: EdgeInsets.only(top: tokens.spaceMd),
+                        child: DesignText(_error!, color: tokens.danger),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

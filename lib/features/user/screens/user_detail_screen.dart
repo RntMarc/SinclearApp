@@ -1,8 +1,18 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../../core/di/app_scope.dart';
-import '../../../core/widgets/user_avatar.dart';
+import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
+import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/foundation/design_surface.dart';
+import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_badge.dart';
+import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/user_models.dart';
 
 class UserDetailScreen extends StatefulWidget {
@@ -56,267 +66,163 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_error != null || _user == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            const SizedBox(height: 8),
-            Text(_error ?? 'Unbekannter Fehler'),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: _load,
-              child: const Text('Erneut versuchen'),
-            ),
-          ],
+      return DesignSurface(
+        child: Center(
+          child: CircularProgressIndicator(color: DesignTheme.of(context).primary),
         ),
       );
     }
 
-    final theme = Theme.of(context);
+    if (_error != null || _user == null) {
+      return DesignSurface(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.error_outline_rounded,
+                  size: 48,
+                  color: DesignTheme.of(context).danger,
+                ),
+                const SizedBox(height: 8),
+                DesignText(_error ?? 'Unbekannter Fehler', style: DesignTextStyle.body),
+                const SizedBox(height: 16),
+                DesignButton(
+                  label: 'Erneut versuchen',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: _load,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final tokens = DesignTheme.of(context);
     final user = _user!;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const BackButton(),
-          const SizedBox(height: 8),
-          Center(
-            child: UserAvatar(
-              imageUrl: user.base.image,
-              displayName: user.base.displayName,
-              radius: 48,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              user.base.displayName,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          if (_isSelf)
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Das bist du',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          const SizedBox(height: 24),
-          if (user.base.email != null)
-            _InfoTile(
-              icon: Icons.email_rounded,
-              label: 'E-Mail',
-              value: user.base.email!,
-            ),
-          if (user.base.birthday != null)
-            _InfoTile(
-              icon: Icons.cake_rounded,
-              label: 'Geburtstag',
-              value: user.base.birthday!,
-            ),
-          _InfoTile(
-            icon: Icons.calendar_today_rounded,
-            label: 'Dabei seit',
-            value: user.base.createdAt.substring(0, 10),
-          ),
-          if (user.social.toList().isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Social Media',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...user.social.toList().map(
-              (entry) => _SocialTile(
-                platform: entry.platform,
-                handle: entry.handle,
-                url: entry.url,
-              ),
-            ),
-          ],
-          if (user.contact.discordHandle != null ||
-              user.contact.fluxerHandle != null ||
-              user.contact.signalNumber != null ||
-              user.contact.whatsappNumber != null ||
-              user.contact.matrixUser != null) ...[
-            const SizedBox(height: 24),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Kontakt',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (user.contact.discordHandle != null)
-              _InfoTile(
-                icon: Icons.chat_rounded,
-                label: 'Discord',
-                value: user.contact.discordHandle!,
-              ),
-            if (user.contact.fluxerHandle != null)
-              _InfoTile(
-                icon: Icons.alternate_email_rounded,
-                label: 'Fluxer',
-                value: user.contact.fluxerHandle!,
-              ),
-            if (user.contact.signalNumber != null)
-              _InfoTile(
-                icon: Icons.phone_rounded,
-                label: 'Signal',
-                value: user.contact.signalNumber!,
-              ),
-            if (user.contact.whatsappNumber != null)
-              _InfoTile(
-                icon: Icons.phone_android_rounded,
-                label: 'WhatsApp',
-                value: user.contact.whatsappNumber!,
-              ),
-            if (user.contact.matrixUser != null)
-              _InfoTile(
-                icon: Icons.forum_rounded,
-                label: 'Matrix',
-                value: user.contact.matrixHomeserver != null
-                    ? '@${user.contact.matrixUser}:${user.contact.matrixHomeserver}'
-                    : user.contact.matrixUser!,
-              ),
-          ],
-        ],
+    final infoTiles = <Widget>[
+      if (user.base.email != null)
+        _infoTile(tokens, Icons.email_rounded, 'E-Mail', user.base.email!),
+      if (user.base.birthday != null)
+        _infoTile(tokens, Icons.cake_rounded, 'Geburtstag', user.base.birthday!),
+      _infoTile(
+        tokens,
+        Icons.calendar_today_rounded,
+        'Dabei seit',
+        user.base.createdAt.substring(0, 10),
       ),
+    ];
+
+    final socialTiles = user.social.toList().map(
+      (entry) => _socialTile(tokens, entry),
     );
-  }
-}
 
-class _InfoTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
+    final contactTiles = <Widget>[
+      if (user.contact.discordHandle != null)
+        _infoTile(tokens, Icons.chat_rounded, 'Discord', user.contact.discordHandle!),
+      if (user.contact.fluxerHandle != null)
+        _infoTile(
+          tokens,
+          Icons.alternate_email_rounded,
+          'Fluxer',
+          user.contact.fluxerHandle!,
+        ),
+      if (user.contact.signalNumber != null)
+        _infoTile(tokens, Icons.phone_rounded, 'Signal', user.contact.signalNumber!),
+      if (user.contact.whatsappNumber != null)
+        _infoTile(
+          tokens,
+          Icons.phone_android_rounded,
+          'WhatsApp',
+          user.contact.whatsappNumber!,
+        ),
+      if (user.contact.matrixUser != null)
+        _infoTile(
+          tokens,
+          Icons.forum_rounded,
+          'Matrix',
+          user.contact.matrixHomeserver != null
+              ? '@${user.contact.matrixUser}:${user.contact.matrixHomeserver}'
+              : user.contact.matrixUser!,
+        ),
+    ];
 
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: theme.colorScheme.primary),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+    return DesignSurface(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(tokens.spaceLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            SizedBox(height: tokens.spaceSm),
+            Center(
+              child: DesignAvatar(
+                imageUrl: user.base.image,
+                name: user.base.displayName,
+                size: 96,
               ),
-              Text(value, style: theme.textTheme.bodyMedium),
+            ),
+            SizedBox(height: tokens.spaceMd),
+            Center(
+              child: DesignText(
+                user.base.displayName,
+                style: DesignTextStyle.title,
+              ),
+            ),
+            if (_isSelf)
+              Padding(
+                padding: EdgeInsets.only(top: tokens.spaceXs),
+                child: const Center(child: DesignBadge(label: 'Das bist du')),
+              ),
+            SizedBox(height: tokens.spaceXl),
+            DesignCard.list(children: infoTiles),
+            if (socialTiles.isNotEmpty) ...<Widget>[
+              SizedBox(height: tokens.spaceXl),
+              DesignText('Social Media', style: DesignTextStyle.subtitle),
+              SizedBox(height: tokens.spaceSm),
+              DesignCard.list(children: socialTiles.toList()),
             ],
-          ),
-        ],
+            if (contactTiles.isNotEmpty) ...<Widget>[
+              SizedBox(height: tokens.spaceXl),
+              DesignText('Kontakt', style: DesignTextStyle.subtitle),
+              SizedBox(height: tokens.spaceSm),
+              DesignCard.list(children: contactTiles),
+            ],
+          ],
+        ),
       ),
     );
   }
-}
 
-class _SocialTile extends StatelessWidget {
-  final String platform;
-  final String handle;
-  final String? url;
-
-  const _SocialTile({required this.platform, required this.handle, this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: url != null
-          ? InkWell(
-              onTap: () => launchUrl(Uri.parse(url!)),
-              borderRadius: BorderRadius.circular(8),
-              child: _SocialRow(
-                platform: platform,
-                handle: handle,
-                theme: theme,
-              ),
-            )
-          : _SocialRow(platform: platform, handle: handle, theme: theme),
+  Widget _infoTile(
+    DesignTokens tokens,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    return DesignListTile(
+      leading: Icon(icon, color: tokens.primary, size: 20),
+      title: value,
+      subtitle: label,
     );
   }
-}
 
-class _SocialRow extends StatelessWidget {
-  final String platform;
-  final String handle;
-  final ThemeData theme;
-
-  const _SocialRow({
-    required this.platform,
-    required this.handle,
-    required this.theme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              platform,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              handle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
+  Widget _socialTile(DesignTokens tokens, SocialEntry entry) {
+    return DesignListTile(
+      leading: Icon(Icons.open_in_new_rounded, color: tokens.primary, size: 20),
+      title: entry.handle,
+      subtitle: entry.platform,
+      onTap: entry.url != null
+          ? () => launchUrl(Uri.parse(entry.url!))
+          : null,
     );
   }
+
 }
