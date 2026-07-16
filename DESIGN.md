@@ -246,6 +246,21 @@ Stattdessen gilt:
 - Beide bauen ausschließlich auf Katalog-Primitives auf; keine lokalen
   Widget-Definitionen in Screens.
 
+### Konsistenzregel: Keine AppBars in Screens
+
+**Innerhalb eines Screens wird nie eine `DesignAppBar` (oder Material `AppBar`)
+eingebaut.** Die einzige AppBar der Seite ist die globale `DesignAppBar`, die
+von der Shell (`MainShell` → `_titleForLocation`) oberhalb des Screens
+gerendert wird. Bei Sub-Seiten (z.B. `/einstellungen/profil`) zeigt die Shell
+weiterhin den Hauptseiten-Titel; der Screen selbst startet ohne AppBar mit
+seinem ersten Inhalt.
+
+- Hauptseiten (z.B. Rezepte, Forum) → Shell-AppBar zeigt den Titel aus
+  `_titleForLocation`, kein eigener AppBar im Screen.
+- Sub-Seiten (z.B. Profil bearbeiten) → eigener `DesignAppBar` als erstes
+  Widget im Screen (mit Zurück-Button, `titleMedium`-Titel).
+- Ein Verstoß führt zu doppelten AppBars übereinander und falschen Abständen.
+
 ### Konsistenzregel: Eingabefelder
 
 **Jedes Texteingabefeld** in einem migrierten Screen verwendet `DesignTextField`

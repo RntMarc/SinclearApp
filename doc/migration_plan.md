@@ -214,17 +214,25 @@ Die Liste ist nach **Position im mobilen Menü** sortiert (Bottom-Nav Index:
 ### Kritik — *Platzhalter (kein Screen)* `- [ ]`
 - Noch nicht gebaut → direkt im Katalog-Stil neu erstellen.
 
-### Rezepte — `lib/features/recipes/screens/recipe_list_screen.dart` `- [ ]`
-- **Material:** Stack, SingleChildScrollView, Column, TextField
-  (OutlineInputBorder), GridView.builder, ListView.separated, Card,
-  TextButton, FloatingActionButton, CircularProgressIndicator, Padding
-- **Eigene Widgets:** `RecipeCard` → lokal `_FallbackImage`; lokal
-  `_CategoryTile`
-- **Katalog-Arbeit:**
-  - [ ] `RecipeCard` → `DesignCard` (+ `DesignAvatar`/`DesignImage`,
-        `DesignChip` für Tags)
-  - [ ] `TextField` (Suche) → `DesignTextField`
-  - [ ] `_CategoryTile` → `DesignListTile`/`DesignChip`
+### Rezepte — `lib/features/recipes/screens/recipe_list_screen.dart` `- [x]`
+- Komplett neu geschrieben gemäß API-Dokumentation (readme.md + openapi.yaml):
+  scrollbare Kategorie-Button-Gruppe (alle Kategorien), Liste der neuesten
+  Rezepte (`RecipesService.list(sort:'created_desc', limit:10)`), Lesezeichen
+  (`getBookmarks`), "In allen Rezepten stöbern"-Button → `/rezepte/alle`,
+  FAB → `/rezepte/neu`.
+- **Katalog:** `DesignSurface`, `DesignText`, `DesignCard`, `DesignChip`,
+  `DesignButton`, `DesignIconButton`, `DesignCardChipGroup`; keine lokalen
+  Widgets. Keine `DesignAppBar` im Screen (globale Shell-AppBar).
+
+### Rezepte-Katalog — `lib/features/recipes/screens/recipe_catalog_screen.dart` `- [x]`
+- Neu erstellter Katalog-Screen: durchstöberbare Liste aller Rezepte mit
+  Kategorie-Filter (horizontale Chip-Leiste). Wird von `/rezepte/alle` und
+  `/rezepte/kategorie/:key` angebunden.
+- **Filter:** Client-seitig via `_selectedCategory` auf `RecipeListItem.category`;
+  initiale Filterung durch `initialCategory`-Constructor-Parameter.
+- **Pagination:** `list(page, limit: 20)`, "Mehr laden"-Button.
+- **Katalog:** `DesignSurface`, `DesignText`, `DesignCard`, `DesignChip`,
+  `DesignButton`; keine lokalen Widgets. Keine AppBar im Screen.
 
 ### Fotos — *Platzhalter (kein Screen)* `- [ ]`
 - Noch nicht gebaut → direkt im Katalog-Stil neu erstellen.

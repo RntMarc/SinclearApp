@@ -25,14 +25,13 @@ import '../features/settings/screens/email_change_screen.dart';
 import '../features/settings/screens/discord_relink_screen.dart';
 import '../features/feedback/screens/feedback_screen.dart';
 import '../features/feedback/screens/feedback_detail_screen.dart';
+import '../features/recipes/screens/recipe_list_screen.dart';
+import '../features/recipes/screens/recipe_catalog_screen.dart';
+import '../features/recipes/screens/recipe_detail_screen.dart';
 import '../features/forum/screens/forum_list_screen.dart';
 import '../features/forum/screens/forum_detail_screen.dart';
 import '../features/forum/screens/post_detail_screen.dart';
 import '../features/forum/screens/create_post_screen.dart';
-import '../features/recipes/screens/recipe_list_screen.dart';
-import '../features/recipes/screens/category_recipes_screen.dart';
-import '../features/recipes/screens/recipe_detail_screen.dart';
-import '../features/recipes/screens/create_recipe_screen.dart';
 import '../features/location_sharing/screens/create_share_screen.dart';
 import '../features/location_sharing/screens/integration_setup_screen.dart';
 import '../features/location_sharing/screens/location_sharing_screen.dart';
@@ -61,12 +60,10 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/standort-teilen') ||
           location.startsWith('/design-showcase');
 
-      if (loggedIn && !auth.onboardingCompleted &&
-          location != '/onboarding') {
+      if (loggedIn && !auth.onboardingCompleted && location != '/onboarding') {
         return '/onboarding';
       }
-      if (loggedIn && auth.onboardingCompleted &&
-          location == '/onboarding') {
+      if (loggedIn && auth.onboardingCompleted && location == '/onboarding') {
         return '/home';
       }
       if (loggedIn && location == '/') return '/home';
@@ -186,6 +183,29 @@ GoRouter createRouter(AuthService auth) {
             ],
           ),
           GoRoute(
+            path: '/rezepte',
+            builder: (context, state) => const RecipeListScreen(),
+            routes: [
+              GoRoute(
+                path: 'alle',
+                builder: (context, state) =>
+                    const RecipeCatalogScreen(),
+              ),
+              GoRoute(
+                path: 'kategorie/:key',
+                builder: (context, state) => RecipeCatalogScreen(
+                  initialCategory: state.pathParameters['key'],
+                ),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) => RecipeDetailScreen(
+                  id: state.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
             path: '/einstellungen',
             builder: (context, state) => const SettingsScreen(),
             routes: [
@@ -216,50 +236,6 @@ GoRouter createRouter(AuthService auth) {
             builder: (context, state) => const DesignShowcaseScreen(),
           ),
           GoRoute(
-            path: '/rezepte',
-            builder: (context, state) => const RecipeListScreen(),
-            routes: [
-              GoRoute(
-                path: 'alle',
-                builder: (context, state) =>
-                    const CategoryRecipesScreen(category: 'alle'),
-              ),
-              GoRoute(
-                path: 'suche',
-                builder: (context, state) {
-                  final q = state.uri.queryParameters['q'] ?? '';
-                  return CategoryRecipesScreen(
-                    category: 'suche',
-                    initialQuery: q,
-                  );
-                },
-              ),
-              GoRoute(
-                path: 'neu',
-                builder: (context, state) => const CreateRecipeScreen(),
-              ),
-              GoRoute(
-                path: 'kategorie/:kategorie',
-                builder: (context, state) => CategoryRecipesScreen(
-                  category: state.pathParameters['kategorie']!,
-                ),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (context, state) =>
-                    RecipeDetailScreen(id: state.pathParameters['id']!),
-                routes: [
-                  GoRoute(
-                    path: 'bearbeiten',
-                    builder: (context, state) => CreateRecipeScreen(
-                      recipeId: state.pathParameters['id']!,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          GoRoute(
             path: '/standort-teilen',
             builder: (context, state) => const LocationSharingScreen(),
             routes: [
@@ -275,9 +251,8 @@ GoRouter createRouter(AuthService auth) {
               ),
               GoRoute(
                 path: ':id',
-                builder: (context, state) => SessionMapScreen(
-                  sessionId: state.pathParameters['id']!,
-                ),
+                builder: (context, state) =>
+                    SessionMapScreen(sessionId: state.pathParameters['id']!),
               ),
             ],
           ),
