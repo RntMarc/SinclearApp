@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../design/theme/design_theme.dart';
-import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../theme/design_theme.dart';
+import '../primitives/design_icon_button.dart';
 
-/// Multi-line comment composer with token-styled surface and send/cancel
-/// actions built from catalog primitives.
 class CommentInput extends StatefulWidget {
   final String hintText;
   final bool autofocus;
