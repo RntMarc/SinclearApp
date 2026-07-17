@@ -6,8 +6,6 @@ gelöschte `migration_plan.md`) geht es jetzt um grundlegende Verbesserungen.
 
 Status-Legende: `- [ ]` = offen · `- [x]` = erledigt · `- [~]` = in Arbeit / teilweise.
 
-Schreibe immer am Ende eines fertig bearbeiteten Prompts des Nutzers eine Commit-Nachricht für Git, welche die hier ausgeführten Schritte kompakt zusammenfasst.
-
 ---
 
 ## A. Projekt-Gesundheit (Foundation)
@@ -91,7 +89,7 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 | ~~`lib/features/shell/main_shell.dart`~~ | ~~707~~ | ✅ → 100 Z. (`shell_widgets.dart` +593 Z.) |
 | `lib/features/feedback/screens/feedback_detail_screen.dart` | 715 | – |
 | `lib/features/forum/screens/post_detail_screen.dart` | 611 | – |
-| `lib/features/user/models/user_models.dart` | 597 | Model-Klassen pro Feature aufteilen |
+| ~~`lib/features/user/models/user_models.dart`~~ | ~~597~~ | ✅ → Barrel + 3 Files |
 | `lib/features/notifications/services/notification_service.dart` | 573 | – |
 | `lib/features/explore/screens/explore_screen.dart` | 555 | – |
 | `lib/features/calendar/screens/calendar_screen.dart` | 542 | – |
@@ -102,6 +100,8 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 - [x] `recipe_detail_screen.dart` aufgeteilt (1029 → 361 Z.)
 - [x] `onboarding_screen.dart` aufgeteilt (765 → 366 Z.)
 - [x] `main_shell.dart` aufgeteilt (707 → 100 Z.)
+- [x] `post_detail_screen.dart` aufgeteilt (612 → 466 Z.)
+- [x] `user_models.dart` aufgeteilt (597 → Barrel + 3 Dateien)
 - [ ] ~ `feedback_detail_screen.dart` (715 Z.) – kein Widget-Extraction-Pattern (nur State-Klasse)
 - [ ] Weitere große Dateien bei Gelegenheit aufteilen
 
