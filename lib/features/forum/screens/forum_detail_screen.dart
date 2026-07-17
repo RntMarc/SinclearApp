@@ -2,19 +2,17 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/utils/base64_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_app_bar.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
-import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/forum_models.dart';
+import '../widgets/forum_detail_widgets.dart';
 import '../widgets/member_sheet.dart';
-import '../widgets/post_card.dart';
 
 class ForumDetailScreen extends StatefulWidget {
   final String id;
@@ -374,133 +372,23 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
         ),
         child: Column(
           children: [
-          // Forum header card
-          DesignCard(
-            padding: EdgeInsets.zero,
-            margin: EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (forum.image != null)
-                  Material(
-                    type: MaterialType.transparency,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(tokens.radiusLg),
-                      ),
-                      child: Image.memory(
-                        decodeBase64Image(forum.image!),
-                        width: double.infinity,
-                        height: 120,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
-                          height: 120,
-                          color: tokens.primary.withValues(alpha: 0.15),
-                          child: Center(
-                            child: Icon(Icons.forum_rounded, size: 48, color: tokens.primary),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: tokens.primary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(tokens.radiusLg),
-                      ),
-                    ),
-                    child: Center(
-                      child: Icon(Icons.forum_rounded, size: 48, color: tokens.primary),
-                    ),
-                  ),
-                Padding(
-                  padding: EdgeInsets.all(tokens.spaceLg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DesignText(
-                        forum.name,
-                        style: DesignTextStyle.subtitle,
-                        color: tokens.textHigh,
-                      ),
-                      if (forum.description != null &&
-                          forum.description!.isNotEmpty) ...[
-                        SizedBox(height: tokens.spaceSm),
-                        DesignText(
-                          forum.description!,
-                          style: DesignTextStyle.body,
-                          color: tokens.textLow,
-                        ),
-                      ],
-                      SizedBox(height: tokens.spaceLg),
-                      DesignButton(
-                        variant: forum.isMember
-                            ? DesignButtonVariant.outlined
-                            : DesignButtonVariant.filled,
-                        icon: forum.isMember
-                            ? Icons.exit_to_app_rounded
-                            : Icons.add_rounded,
-                        label: forum.isMember
-                            ? 'Forum verlassen'
-                            : 'Forum beitreten',
-                        onPressed: _toggleJoin,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            ForumHeaderCard(forum: forum, onToggleJoin: _toggleJoin),
+            SizedBox(height: tokens.spaceMd),
+            const DesignDivider(),
+            SizedBox(height: tokens.spaceMd),
+            ForumPostList(
+              postsLoading: _postsLoading,
+              posts: _posts,
+              isMember: forum.isMember,
+              hasMorePosts: _hasMorePosts,
+              currentUserId: auth.userId ?? '',
+              isAdmin: auth.isAdmin,
+              forumId: widget.id,
+              onVote: _votePost,
+              onDelete: _deletePost,
             ),
-          ),
-          SizedBox(height: tokens.spaceMd),
-          const DesignDivider(),
-          SizedBox(height: tokens.spaceMd),
-          if (_postsLoading && _posts.isEmpty)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(tokens.spaceXl),
-                child: CircularProgressIndicator(color: tokens.primary),
-              ),
-            )
-          else if (_posts.isEmpty)
-            Center(
-              child: DesignText(
-                forum.isMember
-                    ? 'Noch keine Posts. Erstelle den ersten Beitrag!'
-                    : 'Tritt dem Forum bei, um Posts zu sehen.',
-                style: DesignTextStyle.body,
-                color: tokens.textLow,
-              ),
-            )
-          else ...[
-            ...List.generate(_posts.length, (index) {
-              final post = _posts[index];
-              return Padding(
-                padding: EdgeInsets.only(bottom: tokens.spaceSm),
-                child: PostCard(
-                  key: ValueKey(post.id),
-                  post: post,
-                  currentUserId: auth.userId ?? '',
-                  onTap: () => context.go('/forum/${widget.id}/beitrag/${post.id}'),
-                  onVote: () => _votePost(post),
-                  onDelete: (post.userId == auth.userId || auth.isAdmin)
-                      ? () => _deletePost(post)
-                      : null,
-                ),
-              );
-            }),
-            if (_hasMorePosts && _postsLoading)
-              Padding(
-                padding: EdgeInsets.all(tokens.spaceLg),
-                child: Center(
-                  child: CircularProgressIndicator(color: tokens.primary),
-                ),
-              ),
           ],
-        ],
-      ),
+        ),
       ),
     );
   }

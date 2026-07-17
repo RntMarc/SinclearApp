@@ -12,7 +12,8 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/explore_models.dart';
 import '../widgets/explore_map.dart';
 import '../widgets/explore_search_overlay.dart';
-import '../widgets/place_card.dart';
+import '../widgets/category_widgets.dart';
+import '../widgets/explore_widgets.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -380,135 +381,36 @@ class _CategoryScreenState extends State<CategoryScreen> {
             ),
           ),
           if (_searchResults != null && _searchResults!.isNotEmpty)
-            Expanded(child: _buildSearchResults(tokens, crossAxisCount))
+            Expanded(
+              child: ExploreSearchResults(
+                results: _searchResults!,
+                crossAxisCount: crossAxisCount,
+                loadingMore: _loadingMoreSearch,
+                scrollController: _searchScrollController,
+                onClear: _clearSearch,
+              ),
+            )
           else if (_searchResults != null)
-            Expanded(child: _buildSearchEmpty(tokens))
+            Expanded(
+              child: ExploreSearchEmpty(onBack: _clearSearch),
+            )
           else if (_showMap)
             Expanded(child: ExploreMap(places: _places))
           else
-            Expanded(child: _buildList(tokens, crossAxisCount)),
+            Expanded(
+              child: CategoryPlaceList(
+                loading: _loading,
+                places: _places,
+                crossAxisCount: crossAxisCount,
+                error: _error,
+                loadingMore: _loadingMore,
+                scrollController: _scrollController,
+                onRetry: _load,
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchResults(DesignTokens tokens, int crossAxisCount) {
-    return CustomScrollView(
-      controller: _searchScrollController,
-      slivers: [
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(
-            tokens.spaceLg,
-            tokens.spaceSm,
-            tokens.spaceLg,
-            tokens.spaceLg,
-          ),
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if (index >= _searchResults!.length) {
-                  return Center(
-                    child: CircularProgressIndicator(color: tokens.primary),
-                  );
-                }
-                return PlaceCard(place: _searchResults![index]);
-              },
-              childCount: _searchResults!.length + (_loadingMoreSearch ? 1 : 0),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchEmpty(DesignTokens tokens) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 48,
-            color: tokens.textLow,
-          ),
-          SizedBox(height: tokens.spaceSm),
-          DesignText(
-            'Keine Ergebnisse gefunden.',
-            style: DesignTextStyle.body,
-            color: tokens.textLow,
-          ),
-          SizedBox(height: tokens.spaceLg),
-          DesignButton(
-            variant: DesignButtonVariant.filled,
-            label: 'Zurück',
-            onPressed: _clearSearch,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildList(DesignTokens tokens, int crossAxisCount) {
-    if (_loading) {
-      return Center(child: CircularProgressIndicator(color: tokens.primary));
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: tokens.danger),
-            SizedBox(height: tokens.spaceSm),
-            DesignText(_error!, style: DesignTextStyle.body, color: tokens.textHigh),
-            SizedBox(height: tokens.spaceLg),
-            DesignButton(
-              variant: DesignButtonVariant.filled,
-              label: 'Erneut versuchen',
-              onPressed: _load,
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_places.isEmpty) {
-      return Center(
-        child: DesignText(
-          'Keine Einträge in dieser Kategorie.',
-          style: DesignTextStyle.body,
-          color: tokens.textLow,
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: GridView.builder(
-        controller: _scrollController,
-        padding: EdgeInsets.all(tokens.spaceLg),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
-        ),
-        itemCount: _places.length + (_loadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= _places.length) {
-            return Center(
-              child: CircularProgressIndicator(color: tokens.primary),
-            );
-          }
-          return PlaceCard(place: _places[index]);
-        },
-      ),
-    );
-  }
 }

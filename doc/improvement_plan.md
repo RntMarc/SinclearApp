@@ -88,13 +88,13 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 | ~~`lib/features/travel/screens/trip_detail_screen.dart`~~ | ~~679~~ | ✅ → 176 Z. (`trip_detail_widgets.dart` +496 Z.) |
 | ~~`lib/features/shell/main_shell.dart`~~ | ~~707~~ | ✅ → 100 Z. (`shell_widgets.dart` +593 Z.) |
 | `lib/features/feedback/screens/feedback_detail_screen.dart` | 715 | – |
-| `lib/features/forum/screens/post_detail_screen.dart` | 611 | – |
+| ~~`lib/features/forum/screens/post_detail_screen.dart`~~ | ~~612~~ | ✅ → 466 Z. (`post_detail_widgets.dart` +219 Z.) |
 | ~~`lib/features/user/models/user_models.dart`~~ | ~~597~~ | ✅ → Barrel + 3 Files |
 | `lib/features/notifications/services/notification_service.dart` | 573 | – |
-| `lib/features/explore/screens/explore_screen.dart` | 555 | – |
-| `lib/features/calendar/screens/calendar_screen.dart` | 542 | – |
-| `lib/features/explore/screens/category_screen.dart` | 514 | – |
-| `lib/features/forum/screens/forum_detail_screen.dart` | 507 | – |
+| ~~`lib/features/explore/screens/explore_screen.dart`~~ | ~~555~~ | ✅ → 351 Z. (`explore_widgets.dart` +285 Z.) |
+| ~~`lib/features/calendar/screens/calendar_screen.dart`~~ | ~~542~~ | ✅ → 454 Z. (`calendar_widgets.dart` +157 Z.) |
+| ~~`lib/features/explore/screens/category_screen.dart`~~ | ~~514~~ | ✅ → 416 Z. (`category_widgets.dart` +88 Z.) |
+| ~~`lib/features/forum/screens/forum_detail_screen.dart`~~ | ~~507~~ | ✅ → 395 Z. (`forum_detail_widgets.dart` +183 Z.) |
 
 - [x] `detail_screen.dart` aufgeteilt (1199 → 439 Z.)
 - [x] `recipe_detail_screen.dart` aufgeteilt (1029 → 361 Z.)
@@ -102,8 +102,12 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 - [x] `main_shell.dart` aufgeteilt (707 → 100 Z.)
 - [x] `post_detail_screen.dart` aufgeteilt (612 → 466 Z.)
 - [x] `user_models.dart` aufgeteilt (597 → Barrel + 3 Dateien)
+- [x] `explore_screen.dart` aufgeteilt (555 → 351 Z.)
+- [x] `calendar_screen.dart` aufgeteilt (542 → 454 Z.)
+- [x] `category_screen.dart` aufgeteilt (514 → 416 Z.)
+- [x] `forum_detail_screen.dart` aufgeteilt (507 → 395 Z.)
 - [ ] ~ `feedback_detail_screen.dart` (715 Z.) – kein Widget-Extraction-Pattern (nur State-Klasse)
-- [ ] Weitere große Dateien bei Gelegenheit aufteilen
+- [ ] ~ `notification_service.dart` (573 Z.) – Service, kein UI-Extraction-Pattern
 
 ### C2. `ListView` ohne `.builder()` ersetzen `[x]`
 Erzeugt alle Kinder eager – bei langen Listen Performance-Problem.
