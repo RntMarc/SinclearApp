@@ -524,22 +524,36 @@ class VisibilityUpdateRequest {
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
     if (emailVisibility != null) map['emailVisibility'] = emailVisibility;
-    if (birthdayVisibility != null)
+    if (birthdayVisibility != null) {
       map['birthdayVisibility'] = birthdayVisibility;
-    if (discordVisibility != null) map['discordVisibility'] = discordVisibility;
-    if (fluxerVisibility != null) map['fluxerVisibility'] = fluxerVisibility;
-    if (matrixVisibility != null) map['matrixVisibility'] = matrixVisibility;
-    if (signalVisibility != null) map['signalVisibility'] = signalVisibility;
-    if (whatsappVisibility != null)
+    }
+    if (discordVisibility != null) {
+      map['discordVisibility'] = discordVisibility;
+    }
+    if (fluxerVisibility != null) {
+      map['fluxerVisibility'] = fluxerVisibility;
+    }
+    if (matrixVisibility != null) {
+      map['matrixVisibility'] = matrixVisibility;
+    }
+    if (signalVisibility != null) {
+      map['signalVisibility'] = signalVisibility;
+    }
+    if (whatsappVisibility != null) {
       map['whatsappVisibility'] = whatsappVisibility;
-    if (unsplashVisibility != null)
+    }
+    if (unsplashVisibility != null) {
       map['unsplashVisibility'] = unsplashVisibility;
-    if (instagramVisibility != null)
+    }
+    if (instagramVisibility != null) {
       map['instagramVisibility'] = instagramVisibility;
-    if (mastodonVisibility != null)
+    }
+    if (mastodonVisibility != null) {
       map['mastodonVisibility'] = mastodonVisibility;
-    if (pixelfedVisibility != null)
+    }
+    if (pixelfedVisibility != null) {
       map['pixelfedVisibility'] = pixelfedVisibility;
+    }
     if (blueskyVisibility != null) map['blueskyVisibility'] = blueskyVisibility;
     if (youtubeVisibility != null) map['youtubeVisibility'] = youtubeVisibility;
     if (twitchVisibility != null) map['twitchVisibility'] = twitchVisibility;

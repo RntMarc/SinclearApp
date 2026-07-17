@@ -127,26 +127,34 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
 
   String? _validate() {
     final unsplash = _unsplashController.text.trim();
-    if (unsplash.isNotEmpty && unsplash.contains('@'))
+    if (unsplash.isNotEmpty && unsplash.contains('@')) {
       return 'Unsplash: Kein @ erlaubt.';
+    }
     final instagram = _instagramController.text.trim();
-    if (instagram.isNotEmpty && instagram.contains('@'))
+    if (instagram.isNotEmpty && instagram.contains('@')) {
       return 'Instagram: Kein @ erlaubt.';
-    if (_hasInvalidMastodon())
+    }
+    if (_hasInvalidMastodon()) {
       return 'Mastodon: Ungültiges Format (User ohne @, Server als Domain).';
-    if (_hasInvalidPixelfed())
+    }
+    if (_hasInvalidPixelfed()) {
       return 'Pixelfed: Ungültiges Format (User ohne @, Server als Domain).';
+    }
     final bluesky = _blueskyController.text.trim();
-    if (bluesky.isNotEmpty && bluesky.contains('@'))
+    if (bluesky.isNotEmpty && bluesky.contains('@')) {
       return 'Bluesky: Kein @ erlaubt (Domain-Format).';
-    if (bluesky.isNotEmpty && !_isDomain(bluesky))
+    }
+    if (bluesky.isNotEmpty && !_isDomain(bluesky)) {
       return 'Bluesky: Muss eine Domain sein (z.B. user.bsky.social).';
+    }
     final youtube = _youtubeController.text.trim();
-    if (youtube.isNotEmpty && youtube.contains('@'))
+    if (youtube.isNotEmpty && youtube.contains('@')) {
       return 'YouTube: Kein @ erlaubt.';
+    }
     final twitch = _twitchController.text.trim();
-    if (twitch.isNotEmpty && twitch.contains('@'))
+    if (twitch.isNotEmpty && twitch.contains('@')) {
       return 'Twitch: Kein @ erlaubt.';
+    }
     return null;
   }
 
