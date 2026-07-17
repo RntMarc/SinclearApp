@@ -1,6 +1,5 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../core/utils/spotify_helper.dart';
@@ -11,12 +10,9 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
-import '../../../design/widgets/primitives/design_card.dart';
-import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/forum_models.dart';
-import '../widgets/comment_tree.dart';
-import '../../../design/widgets/composite/comment_input.dart';
+import '../widgets/post_detail_widgets.dart';
 import '../widgets/youtube_player_embed.dart';
 import '../widgets/spotify_thumbnail.dart';
 import '../widgets/og_preview_card.dart';
@@ -326,10 +322,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ],
                 ),
               ),
-              Icon(_typeIcon(post.type), size: 16, color: tokens.primary),
+              Icon(postTypeIcon(post.type), size: 16, color: tokens.primary),
               SizedBox(width: tokens.spaceXs),
               DesignText(
-                _typeLabel(post.type),
+                postTypeLabel(post.type),
                 style: DesignTextStyle.label,
                 color: tokens.primary,
               ),
@@ -411,202 +407,60 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           ],
-          ..._linkDetailEntries(tokens, post),
-          SizedBox(height: tokens.spaceXl),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () async {
-                  try {
-                    final forumService = AppScope.of(context).forum;
-                    if (post.hasVoted) {
-                      await forumService.removeVotePost(
-                        widget.forumId,
-                        post.id,
-                      );
-                    } else {
-                      await forumService.votePost(widget.forumId, post.id);
-                    }
-                    if (!mounted) return;
-                    setState(() {
-                      _post = FeedPost(
-                        id: post.id,
-                        forumId: post.forumId,
-                        userId: post.userId,
-                        userName: post.userName,
-                        userImage: post.userImage,
-                        type: post.type,
-                        content: post.content,
-                        upvoteCount:
-                            post.hasVoted ? post.upvoteCount - 1 : post.upvoteCount + 1,
-                        commentCount: post.commentCount,
-                        hasVoted: !post.hasVoted,
-                        createdAt: post.createdAt,
-                        updatedAt: post.updatedAt,
-                      );
-                    });
-                  } catch (e) {
-                    developer.log('Vote failed', error: e);
-                  }
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      post.hasVoted
-                          ? Icons.thumb_up_rounded
-                          : Icons.thumb_up_outlined,
-                      size: 20,
-                      color: post.hasVoted
-                          ? tokens.primary
-                          : tokens.textLow,
-                    ),
-                    SizedBox(width: 6),
-                    DesignText(
-                      '${post.upvoteCount}',
-                      style: DesignTextStyle.label,
-                      color: post.hasVoted
-                          ? tokens.primary
-                          : tokens.textLow,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          ...postLinkDetailEntries(tokens, post),
+          PostVoteSection(
+            hasVoted: post.hasVoted,
+            upvoteCount: post.upvoteCount,
+            onVote: () => _handleVote(post),
           ),
-          SizedBox(height: tokens.spaceXl),
-          const DesignDivider(),
-          SizedBox(height: tokens.spaceMd),
-          DesignText(
-            'Kommentare ($_commentTotal)',
-            style: DesignTextStyle.subtitle,
-            color: tokens.primary,
+          PostCommentsSection(
+            commentTotal: _commentTotal,
+            replyToId: _replyToId,
+            commentsLoading: _commentsLoading,
+            comments: _comments,
+            currentUserId: currentUserId,
+            isAdmin: isAdmin,
+            onReply: (id) => setState(() {
+              _replyToId = id.isEmpty ? null : id;
+            }),
+            onAddComment: (text, {parentId}) => _addComment(text, parentId: parentId ?? _replyToId),
+            onDeleteComment: _deleteComment,
+            resolveUserName: _resolveUserName,
           ),
-          SizedBox(height: tokens.spaceMd),
-          if (_replyToId == null)
-            Padding(
-              padding: EdgeInsets.only(bottom: tokens.spaceLg),
-              child: CommentInput(
-                hintText: 'Kommentar hinzufügen...',
-                onSubmit: (text) => _addComment(text),
-              ),
-            ),
-          if (_replyToId != null)
-            Padding(
-              padding: EdgeInsets.only(bottom: tokens.spaceLg),
-              child: CommentInput(
-                hintText: 'Antworten...',
-                autofocus: true,
-                onSubmit: (text) => _addComment(text, parentId: _replyToId),
-                onCancel: () => setState(() => _replyToId = null),
-              ),
-            ),
-          if (_commentsLoading)
-            Center(child: CircularProgressIndicator(color: tokens.primary))
-          else if (_comments.isEmpty)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: tokens.spaceLg),
-              child: Center(
-                child: DesignText(
-                  'Noch keine Kommentare.',
-                  style: DesignTextStyle.body,
-                  color: tokens.textLow,
-                ),
-              ),
-            )
-          else
-            ..._comments.map(
-              (comment) => CommentTreeTile(
-                comment: comment,
-                currentUserId: currentUserId,
-                isAdmin: isAdmin,
-                resolveUserName: _resolveUserName,
-                onReply: (id) => setState(() => _replyToId = id),
-                onDelete: _deleteComment,
-              ),
-            ),
         ],
       ),
       ),
     );
   }
 
-  IconData _typeIcon(String type) {
-    switch (type) {
-      case 'music':
-        return Icons.music_note_rounded;
-      case 'video':
-        return Icons.videocam_rounded;
-      case 'web':
-        return Icons.language_rounded;
-      default:
-        return Icons.text_fields_rounded;
+  Future<void> _handleVote(FeedPost post) async {
+    try {
+      final forumService = AppScope.of(context).forum;
+      if (post.hasVoted) {
+        await forumService.removeVotePost(widget.forumId, post.id);
+      } else {
+        await forumService.votePost(widget.forumId, post.id);
+      }
+      if (!mounted) return;
+      setState(() {
+        _post = FeedPost(
+          id: post.id,
+          forumId: post.forumId,
+          userId: post.userId,
+          userName: post.userName,
+          userImage: post.userImage,
+          type: post.type,
+          content: post.content,
+          upvoteCount:
+              post.hasVoted ? post.upvoteCount - 1 : post.upvoteCount + 1,
+          commentCount: post.commentCount,
+          hasVoted: !post.hasVoted,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+        );
+      });
+    } catch (e) {
+      developer.log('Vote failed', error: e);
     }
-  }
-
-  String _typeLabel(String type) {
-    switch (type) {
-      case 'music':
-        return 'Musik';
-      case 'video':
-        return 'Video';
-      case 'web':
-        return 'Web';
-      default:
-        return 'Text';
-    }
-  }
-
-  List<Widget> _linkDetailEntries(DesignTokens tokens, FeedPost post) {
-    final links = post.type == 'video' || post.type == 'music'
-        ? post.genericMusicUrls
-        : post.type != 'web' && post.type != 'text'
-            ? post.urls
-            : const <MusicUrl>[];
-    if (links.isEmpty) return const [];
-    return [
-      SizedBox(height: tokens.spaceLg),
-      ...links.map(
-        (url) => Padding(
-          padding: EdgeInsets.only(bottom: tokens.spaceSm),
-          child: GestureDetector(
-            onTap: () => launchUrl(Uri.parse(url.url)),
-            child: DesignCard(
-              margin: EdgeInsets.zero,
-              padding: EdgeInsets.all(tokens.spaceMd),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.open_in_new_rounded,
-                    size: 18,
-                    color: tokens.primary,
-                  ),
-                  SizedBox(width: tokens.spaceSm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DesignText(
-                          url.platform.toUpperCase(),
-                          style: DesignTextStyle.label,
-                          color: tokens.primary,
-                        ),
-                        DesignText(
-                          Uri.tryParse(url.url)?.host ?? url.url,
-                          style: DesignTextStyle.label,
-                          color: tokens.textLow,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    ];
   }
 }
