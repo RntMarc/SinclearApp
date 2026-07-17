@@ -32,11 +32,6 @@ import '../features/forum/screens/forum_list_screen.dart';
 import '../features/forum/screens/forum_detail_screen.dart';
 import '../features/forum/screens/post_detail_screen.dart';
 import '../features/forum/screens/create_post_screen.dart';
-import '../features/location_sharing/screens/create_share_screen.dart';
-import '../features/location_sharing/screens/integration_setup_screen.dart';
-import '../features/location_sharing/screens/location_sharing_screen.dart';
-import '../features/location_sharing/screens/session_map_screen.dart';
-import '../features/location_sharing/models/location_sharing_models.dart';
 import '../features/showcase/screens/design_showcase_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
@@ -57,7 +52,6 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/feedback') ||
           location.startsWith('/forum') ||
           location.startsWith('/rezepte') ||
-          location.startsWith('/standort-teilen') ||
           location.startsWith('/design-showcase');
 
       if (loggedIn && !auth.onboardingCompleted && location != '/onboarding') {
@@ -234,27 +228,6 @@ GoRouter createRouter(AuthService auth) {
           GoRoute(
             path: '/design-showcase',
             builder: (context, state) => const DesignShowcaseScreen(),
-          ),
-          GoRoute(
-            path: '/standort-teilen',
-            builder: (context, state) => const LocationSharingScreen(),
-            routes: [
-              GoRoute(
-                path: 'erstellen',
-                builder: (context, state) => const CreateShareScreen(),
-              ),
-              GoRoute(
-                path: 'einrichten',
-                builder: (context, state) => IntegrationSetupScreen(
-                  session: state.extra as LocationSharingSessionDetail,
-                ),
-              ),
-              GoRoute(
-                path: ':id',
-                builder: (context, state) =>
-                    SessionMapScreen(sessionId: state.pathParameters['id']!),
-              ),
-            ],
           ),
         ],
       ),

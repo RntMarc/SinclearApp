@@ -60,18 +60,21 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 ## B. Dead Code entfernen
 
 ### B1. Orphaned Widgets
-- [ ] `lib/features/recipes/widgets/recipe_card.dart` löschen (durch `DesignCard` ersetzt, nirgends importiert)
+- [x] `lib/features/recipes/widgets/recipe_card.dart` gelöscht (durch `DesignCard` ersetzt, nirgends importiert)
+- [x] Leeres `widgets/`-Verzeichnis unter recipes entfernt
 
 ### B2. Veraltete Importe und Codepfade
-- [ ] `lib/core/theme/app_theme.dart` prüfen: Wird in `app.dart` nur noch als Material-Fallback genutzt – kein visueller Einfluss mehr. Prüfen ob komplett entfernbar (dann `app.dart` direkt `ColorScheme.fromSeed`)
+- [x] `lib/core/theme/app_theme.dart` entfernt – Theme in `app.dart` inline via `ColorScheme.fromSeed`
+- [x] `google_fonts`-Abhängigkeit aus `pubspec.yaml` entfernt (nur noch von `app_theme.dart` genutzt)
+- [x] Leeres `lib/core/theme/`-Verzeichnis entfernt (inkl. leerem `noise/`-Unterordner)
 
 ### B3. Tote `null`-Checks (dart analyze Warnings)
-- [ ] `lib/features/location_sharing/screens/active_shares_screen.dart:54` – `unnecessary_null_comparison` + `dead_code`
-- [ ] `lib/features/location_sharing/screens/session_map_screen.dart:235` – `unnecessary_null_comparison` + `dead_code`
-- [ ] `lib/features/location_sharing/screens/shared_locations_screen.dart:32` – `unnecessary_null_comparison` + `dead_code`
+- [x] `active_shares_screen.dart:54` – entfernt (parseApiDate gibt non-nullable DateTime zurück)
+- [x] `session_map_screen.dart:235` – entfernt
+- [x] `shared_locations_screen.dart:32` – entfernt
 
 ### B4. Unnötige Imports
-- [ ] `lib/features/location_sharing/services/location_sender.dart:4` – `import 'package:flutter/material.dart'` → `foundation.dart` reicht
+- [x] `location_sender.dart:4` – `import 'package:flutter/material.dart'` durch `foundation.dart` ersetzt
 
 ---
 
@@ -153,9 +156,19 @@ Aktuell: Jeder Screen nutzt rohes `setState` in `StatefulWidget`, was bei jedem 
 
 ---
 
-## E. location_sharing vorerst entfernen
+## E. location_sharing vorerst entfernen `[x]`
 
 Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktioniert, ist eine komplette Neuimplementation in der Zukunft besser, als ein halb-kaputtes System irgendwie aufrecht zu erhalten. Daher ist auch eine Anpassung an die neue UI unnötig und alle Funktionen zum Standort Teilen werden erst einmal aus dem Code der App entfernt.
+
+**Erledigt:**
+- [x] Alle 12 Dateien in `lib/features/location_sharing/` gelöscht
+- [x] `lib/main.dart`: imports, Instanziierung, Constructor-Args entfernt
+- [x] `lib/app.dart`: imports, Felder, Constructor-Args, AppScope-Args entfernt
+- [x] `lib/router/router.dart`: imports, Route `/standort-teilen` + Subroutes entfernt, auth redirect bereinigt
+- [x] `lib/core/di/app_scope.dart`: imports, Felder, Constructor-Args entfernt
+- [x] `lib/features/shell/main_shell.dart`: `_standortWarningShown` + SnackBar entfernt, `_titleForLocation` bereinigt, `_categoryForLocation` bereinigt, mobile Kategorie-Sheet Eintrag entfernt, Desktop-Sidebar Eintrag entfernt; `_SheetItem.comingSoon` aufgeräumt
+- [x] `lib/core/config/notification_config.dart`: `location_sharing.started` cases aus allen 3 Switch-Statements entfernt
+- [x] `lib/features/notifications/widgets/notification_sheet.dart`: `location_sharing.started` Navigation entfernt
 
 ---
 
@@ -228,7 +241,7 @@ bis zu komplett neuen Features. Format:*
 
 1. **(sofort)** **B** – Dead Code entfernen (risikolos)
 2. **(sofort)** **A3** – analysis_options.yaml verschärfen + Fixes (verhindert neue Probleme)
-3. **(dringend)** **E** – location_sharing entfernen
+3. **(dringend)** **E** – location_sharing migrieren (letzte Material-Bastion, danach vollständig Design-System)
 4. **(dringend)** **F2** – `mounted`-Checks absichern (potenzielle Runtime-Crashes)
 5. **(parallel)** **C2** – ListView.builder-Fixes (einfache, isolierte Änderungen)
 6. **(parallel)** **C3** – Image.network → CachedNetworkImage (einfach)
