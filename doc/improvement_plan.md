@@ -80,25 +80,27 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 ### C1. Große Dateien aufteilen (> 500 Zeilen)
 | Datei | Zeilen | Aktion |
 |---|---|---|
-| `lib/features/explore/screens/detail_screen.dart` | 1199 | Tab-Composites in eigene Dateien auslagern |
-| `lib/features/recipes/screens/recipe_detail_screen.dart` | 1027 | `_ReviewsSection` etc. in separates File |
-| `lib/features/onboarding/screens/onboarding_screen.dart` | 764 | Pages einzeln, OnboardingService auslagern |
-| `lib/features/shell/main_shell.dart` | 750 | Desktop/Mobile-Layouts trennen |
+| Datei | Zeilen | Aktion |
+|---|---|---|---|
+| ~~`lib/features/explore/screens/detail_screen.dart`~~ | ~~1199~~ | ✅ → 439 Z. (`detail_widgets.dart` +733 Z.) |
+| ~~`lib/features/recipes/screens/recipe_detail_screen.dart`~~ | ~~1027~~ | ✅ → 361 Z. (`recipe_detail_widgets.dart` +664 Z.) |
+| ~~`lib/features/onboarding/screens/onboarding_screen.dart`~~ | ~~764~~ | ✅ → 366 Z. (`onboarding_widgets.dart` +398 Z.) |
+| ~~`lib/features/travel/screens/trip_detail_screen.dart`~~ | ~~679~~ | ✅ → 176 Z. (`trip_detail_widgets.dart` +496 Z.) |
+| ~~`lib/features/shell/main_shell.dart`~~ | ~~707~~ | ✅ → 100 Z. (`shell_widgets.dart` +593 Z.) |
 | `lib/features/feedback/screens/feedback_detail_screen.dart` | 715 | – |
-| `lib/features/travel/screens/trip_detail_screen.dart` | 677 | Tab-Content in separate Widgets |
-| `lib/features/forum/screens/post_detail_screen.dart` | 605 | – |
-| `lib/features/user/models/user_models.dart` | 583 | Model-Klassen pro Feature aufteilen |
+| `lib/features/forum/screens/post_detail_screen.dart` | 611 | – |
+| `lib/features/user/models/user_models.dart` | 597 | Model-Klassen pro Feature aufteilen |
 | `lib/features/notifications/services/notification_service.dart` | 573 | – |
 | `lib/features/explore/screens/explore_screen.dart` | 555 | – |
 | `lib/features/calendar/screens/calendar_screen.dart` | 542 | – |
-| `lib/features/location_sharing/screens/integration_setup_screen.dart` | 531 | (wird in E1 migriert) |
 | `lib/features/explore/screens/category_screen.dart` | 514 | – |
-| `lib/features/forum/screens/forum_detail_screen.dart` | 505 | – |
+| `lib/features/forum/screens/forum_detail_screen.dart` | 507 | – |
 
-- [ ] `detail_screen.dart` aufteilen (1199 Zeilen – höchste Priorität)
-- [ ] `recipe_detail_screen.dart` aufteilen (Reviews in eigene Datei)
-- [ ] `main_shell.dart` Desktop/Mobile-Logik trennen
-- [ ] `onboarding_screen.dart` Pages auslagern
+- [x] `detail_screen.dart` aufgeteilt (1199 → 439 Z.)
+- [x] `recipe_detail_screen.dart` aufgeteilt (1029 → 361 Z.)
+- [x] `onboarding_screen.dart` aufgeteilt (765 → 366 Z.)
+- [x] `main_shell.dart` aufgeteilt (707 → 100 Z.)
+- [ ] ~ `feedback_detail_screen.dart` (715 Z.) – kein Widget-Extraction-Pattern (nur State-Klasse)
 - [ ] Weitere große Dateien bei Gelegenheit aufteilen
 
 ### C2. `ListView` ohne `.builder()` ersetzen `[x]`
