@@ -21,8 +21,6 @@ import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
-import 'features/location_sharing/services/location_sharing_service.dart';
-import 'features/location_sharing/services/location_sharing_manager.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/travel/services/travel_service.dart';
@@ -88,10 +86,6 @@ void main() async {
   final webUpdate = WebUpdateService(
     currentBuildNumber: packageInfo.buildNumber,
   );
-  final locationSharing =
-      LocationSharingService(api: api, auth: auth);
-  final locationSharingManager =
-      LocationSharingManager(service: locationSharing);
   try {
     await notification.init();
     if (auth.isLoggedIn) notification.onLoggedIn();
@@ -141,8 +135,6 @@ void main() async {
       feedback: feedback,
       forum: forum,
       recipes: recipes,
-      locationSharing: locationSharing,
-      locationSharingManager: locationSharingManager,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       initialDesignVariant: initialDesign,

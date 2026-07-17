@@ -10,7 +10,6 @@ class NotificationTypeLabel {
       'admin.maintenance' => 'Wartung',
       'admin.welcome' => 'Willkommen',
       'admin.test' => 'Test',
-      'location_sharing.started' => 'Standort wird geteilt',
       _ => 'Benachrichtigung',
     };
   }
@@ -24,7 +23,6 @@ class NotificationTypeLabel {
       'admin.maintenance' => 'Wartungsarbeiten wurden durchgeführt.',
       'admin.welcome' => 'Willkommen bei Sinclear!',
       'admin.test' => 'Dies ist eine Test-Benachrichtigung.',
-      'location_sharing.started' => '${payload['ownerDisplayName']} teilt jetzt seinen Standort mit dir.',
       _ => 'Du hast eine neue Benachrichtigung.',
     };
   }
@@ -36,7 +34,6 @@ class NotificationTypeLabel {
       'admin.maintenance' => Icons.build_rounded,
       'admin.welcome' => Icons.waving_hand_rounded,
       'admin.test' => Icons.science_rounded,
-      'location_sharing.started' => Icons.location_on_rounded,
       _ => Icons.notifications_rounded,
     };
   }

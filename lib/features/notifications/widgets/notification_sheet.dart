@@ -170,11 +170,6 @@ class _NotificationSheetState extends State<NotificationSheet> {
 
     Navigator.pop(context);
 
-    if (notification.code == 'location_sharing.started') {
-      context.go('/standort-teilen');
-      return;
-    }
-
     final deepLink = notification.payload['deepLink'] as String?;
     if (deepLink != null) {
       context.go(deepLink);

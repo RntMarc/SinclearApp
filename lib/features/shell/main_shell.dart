@@ -29,7 +29,6 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   bool _updateChecked = false;
-  bool _standortWarningShown = false;
 
   @override
   void didChangeDependencies() {
@@ -37,26 +36,6 @@ class _MainShellState extends State<MainShell> {
     if (!_updateChecked) {
       _updateChecked = true;
       _checkForUpdate();
-    }
-    if (!_standortWarningShown) {
-      final location = GoRouterState.of(context).matchedLocation;
-      if (location.startsWith('/standort-teilen')) {
-        _standortWarningShown = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text(
-                  'Hinweis: Standort-Teilen befindet sich noch in der '
-                  'Entwicklung. Die Funktion ist noch nicht vollständig '
-                  'funktionsfähig.',
-                ),
-                duration: const Duration(seconds: 10),
-              ),
-            );
-          }
-        });
-      }
     }
   }
 
@@ -201,7 +180,6 @@ String _titleForLocation(String location) {
   if (location.startsWith('/forum')) return 'FORUM';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
   if (location.startsWith('/design-showcase')) return 'DESIGN SHOWCASE';
-  if (location.startsWith('/standort-teilen')) return 'STANDORT TEILEN ∝';
   return 'HOME';
 }
 
@@ -222,8 +200,7 @@ _NavCategory _categoryForLocation(String location) {
     return _NavCategory.gemeinschaft;
   }
   if (location.startsWith('/entdecken') ||
-      location.startsWith('/reisen') ||
-      location.startsWith('/standort-teilen')) {
+      location.startsWith('/reisen')) {
     return _NavCategory.unterwegs;
   }
   if (location.startsWith('/kalender')) return _NavCategory.organisation;
@@ -357,12 +334,6 @@ class _MobileBottomNav extends StatelessWidget {
           items: [
             _SheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
             _SheetItem('Reisen', Icons.flight_rounded, '/reisen'),
-            _SheetItem(
-              'Standort teilen',
-              Icons.share_location_rounded,
-              '/standort-teilen',
-              comingSoon: true,
-            ),
           ],
         );
       case _NavCategory.organisation:
@@ -407,14 +378,8 @@ class _SheetItem {
   final String label;
   final IconData icon;
   final String? route;
-  final bool comingSoon;
 
-  const _SheetItem(
-    this.label,
-    this.icon,
-    this.route, {
-    this.comingSoon = false,
-  });
+  const _SheetItem(this.label, this.icon, this.route);
 }
 
 class _CategorySheet extends StatelessWidget {
@@ -447,7 +412,7 @@ class _CategorySheet extends StatelessWidget {
             final isActive =
                 item.route != null && currentLocation.startsWith(item.route!);
             final isPlaceholder = item.route == null;
-            final showBadge = isPlaceholder || item.comingSoon;
+            final showBadge = isPlaceholder;
 
             return Opacity(
               opacity: isPlaceholder ? 0.45 : 1.0,
@@ -593,14 +558,6 @@ class _NavContent extends StatelessWidget {
               label: 'Reisen & Events',
               active: _isActive('/reisen'),
               onTap: () => onNavigate('/reisen'),
-            ),
-            _tile(
-              context,
-              icon: Icons.share_location_rounded,
-              label: 'Standort teilen',
-              active: _isActive('/standort-teilen'),
-              onTap: () => onNavigate('/standort-teilen'),
-              trailing: DesignBadge(label: 'Bald'),
             ),
             _header(context, 'ORGANISATION'),
             _tile(
