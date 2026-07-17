@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/web_update_service.dart';
+import '../../design/theme/design_theme.dart';
+import '../../design/widgets/foundation/design_text.dart';
+import '../../design/widgets/primitives/design_button.dart';
 
 class WebUpdateBanner extends StatefulWidget {
   final WebUpdateService service;
@@ -68,11 +71,11 @@ class _UpdateBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tokens = DesignTheme.of(context);
     final version = service.latestVersion;
 
-    return Material(
-      color: theme.colorScheme.primaryContainer,
+    return Container(
+      color: tokens.primary.withValues(alpha: 0.15),
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -81,28 +84,28 @@ class _UpdateBanner extends StatelessWidget {
             children: [
               Icon(
                 Icons.system_update_rounded,
-                color: theme.colorScheme.onPrimaryContainer,
+                color: tokens.primary,
                 size: 20,
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
+                child: DesignText(
                   version != null
                       ? 'Update verfügbar (v$version)'
                       : 'Update verfügbar',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: DesignTextStyle.body,
+                  color: tokens.primary,
                 ),
               ),
-              TextButton(
+              DesignButton(
+                variant: DesignButtonVariant.text,
+                label: 'Später',
                 onPressed: () => service.dismiss(),
-                child: const Text('Später'),
               ),
-              FilledButton.tonal(
+              DesignButton(
+                variant: DesignButtonVariant.filled,
+                label: 'Aktualisieren',
                 onPressed: () => service.reload(),
-                child: const Text('Aktualisieren'),
               ),
             ],
           ),

@@ -16,6 +16,7 @@ import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/forum_models.dart';
 import '../widgets/comment_tree.dart';
+import '../../../design/widgets/composite/comment_input.dart';
 import '../widgets/youtube_player_embed.dart';
 import '../widgets/spotify_thumbnail.dart';
 import '../widgets/og_preview_card.dart';

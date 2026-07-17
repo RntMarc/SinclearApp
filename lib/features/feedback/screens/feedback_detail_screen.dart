@@ -13,7 +13,7 @@ import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/feedback_models.dart';
-import '../widgets/comment_input.dart';
+import '../../../design/widgets/composite/comment_input.dart';
 import '../widgets/comment_tile.dart';
 
 class FeedbackDetailScreen extends StatefulWidget {

@@ -6,6 +6,8 @@ gelöschte `migration_plan.md`) geht es jetzt um grundlegende Verbesserungen.
 
 Status-Legende: `- [ ]` = offen · `- [x]` = erledigt · `- [~]` = in Arbeit / teilweise.
 
+Schreibe immer am Ende eines fertig bearbeiteten Prompts des Nutzers eine Commit-Nachricht für Git, welche die hier ausgeführten Schritte kompakt zusammenfasst.
+
 ---
 
 ## A. Projekt-Gesundheit (Foundation)
@@ -138,18 +140,18 @@ Aktuell: Jeder Screen nutzt rohes `setState` in `StatefulWidget`, was bei jedem 
 ## D. UI-Konsistenz
 
 ### D1. `core/widgets/user_avatar.dart` (letzter Material-Nutzer außer location_sharing)
-- [ ] Nutzt `Theme.of(context)` → auf `DesignTheme.of` umstellen oder komplett durch `DesignAvatar` ersetzen
+- [x] Datei gelöscht (dead code, nirgends importiert)
 
 ### D2. `core/widgets/web_update_banner.dart` (web-only)
-- [ ] `TextButton` → `DesignButton`(text)
-- [ ] `FilledButton.tonal` → `DesignButton`(filled)
-- [ ] `Theme.of(context)` → `DesignTheme.of(context)`
+- [x] `TextButton` → `DesignButton`(text)
+- [x] `FilledButton.tonal` → `DesignButton`(filled)
+- [x] `Theme.of(context)` → `DesignTheme.of(context)`
 
 ### D3. Bekannte Inkonsistenzen aus der Migration normalisieren
-- [ ] `CommentInput`-Duplikat vereinheitlichen (`feedback` + `forum` → eine Definition im Katalog)
-- [ ] `DesignTextField` um `maxLines`-Support erweitern (für `CommentInput`, `EventFormSheet`)
-- [ ] `VisibilityBadge`: `PopupMenuButton` beibehalten oder Katalog um Dropdown ergänzen
-- [ ] `ExploreSearchOverlay.slider`: `Slider` beibehalten oder Katalog um Slider-Komponente ergänzen
+- [x] `CommentInput`-Duplikat vereinheitlichen (`feedback` + `forum` → eine Definition im Katalog)
+- [x] `DesignTextField` um `maxLines`-Support erweitern (für `CommentInput`, `EventFormSheet`)
+- [x] `VisibilityBadge`: `PopupMenuButton` beibehalten – bereits Design-tokens-konform
+- [x] `ExploreSearchOverlay.slider`: `Slider` beibehalten – bereits via `SliderTheme` eingefärbt
 
 ---
 
@@ -206,31 +208,7 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 *Hier können Ideen für neue Funktionen gesammelt werden – von Platzhaltern
 bis zu komplett neuen Features. Format:*
 
-### G1. Platzhalter umsetzen
-| Screen | Status | Beschreibung |
-|---|---|---|
-| Admin | `[ ]` | Dashboard für Benutzer- und Inhalt-Moderation |
-| Changelog | `[ ]` | Manuell vom Admin gepflegte Changelogs |
-| Fotos | `[ ]` | Gemeinsame Foto-Galerie/Foto-Alben von Unsplash |
-| Umfrage | `[ ]` | 1. Umfragen erstellen und abstimmen, 2. Gemeinsame Termine finden (ähnlich Doodle, FramaDate) |
-| Abos | `[ ]` | Mitgliedschaften/Abos externer Dienste verwalten (z.B. Spotify, Netflix, Nintendo Familenabonnements unter Freunden) |
-
-### G2. Bestehende Features erweitern
-- `[ ]` Rezepte: Volltext-Suche, Favoriten-Filter, eigene Rezepte erstellen/bearbeiten
-- `[ ]` Kalender: Wiederkehrende Events (Serien), Erinnerungen
-- `[ ]` Travel: Checklisten-Packvorlagen, ÖPNV-Fahrten
-- `[ ]` Entdecken: Offline-Karten, Filter nach Entfernung/Bewertung
-- `[ ]` Forum: Push-Benachrichtigungen pro Thread, Mention-Auto-Vervollständigung
-- `[ ]` Direktnachrichten / Chat-System
-
-### G3. Querschnitts-Features
-- `[ ]` **Offline-Modus**: Caching-Strategie für alle listenbasierten Screens
-- `[ ]` **Dark/Light-Umschalter**: Fertigstellen und in den Einstellungen prominent platzieren
-- `[ ]` **Benachrichtigungs-Einstellungen**: Pro Kategorie (neuer Post, neues Rezept, Event-Erinnerung)
-- `[ ]` **Suche**: Globale Suche über alle Features
-- `[ ]` **Onboarding**: Nach erstmaliger Einrichtung nicht mehr anzeigen (aktuell jedes Mal)
-- `[ ]` **Barrierefreiheit**: Semantik-Labels, Screen-Reader-Support, dynamische Schriftgrößen testen
-- `[ ]` **i18n**: Mehrsprachigkeit vorbereiten (mindestens Deutsch/Englisch)
+- [ ] Implementieren der neuen ÖPNV-Funktionen aus der API. Documentation prüfen und Umsetzung gemeinsam mit dem Nutzer planen. Es gibt Fahrten, die mit Reisen verknüpft sind und Fahrten, die eigenständig sind.
 
 ---
 
@@ -243,7 +221,7 @@ bis zu komplett neuen Features. Format:*
 5. ✅ **(parallel)** **C2** – ListView.builder-Fixes
 6. ✅ **(parallel)** **C3** – Image.network → CachedNetworkImage
 7. **(mittel)** **C1** – Große Dateien aufteilen (aufwändig, hoher Wert für Wartbarkeit)
-8. **(mittel)** **D1-D3** – UI-Konsistenz (restliche Inkonsistenzen)
+8. **(mittel)** **D** – UI-Konsistenz ✅
 9. **(mittel)** **F1, F3, F4** – Logging + Error-Handling
 10. **(mittel)** **C5, C6** – State Management + const (Performance)
 11. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
