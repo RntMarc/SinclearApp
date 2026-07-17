@@ -98,19 +98,22 @@ class _ForumListScreenState extends State<ForumListScreen> {
     if (_loading) {
       return RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-          children: [
-            SizedBox(height: 120),
-            Center(child: CircularProgressIndicator(color: tokens.primary)),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(height: 120),
+              Center(child: CircularProgressIndicator(color: tokens.primary)),
+            ],
+          ),
         ),
       );
     }
     if (_error != null) {
       return RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
             SizedBox(height: MediaQuery.of(context).size.height * 0.3),
             Center(
               child: Column(
@@ -129,6 +132,7 @@ class _ForumListScreenState extends State<ForumListScreen> {
               ),
             ),
           ],
+        ),
         ),
       );
     }
@@ -171,19 +175,21 @@ class _ForumList extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: forums.isEmpty
-          ? ListView(
-              children: [
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.3,
-                ),
-                Center(
-                  child: DesignText(
-                    emptyText,
-                    style: DesignTextStyle.body,
-                    color: tokens.textLow,
+          ? SingleChildScrollView(
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.3,
                   ),
-                ),
-              ],
+                  Center(
+                    child: DesignText(
+                      emptyText,
+                      style: DesignTextStyle.body,
+                      color: tokens.textLow,
+                    ),
+                  ),
+                ],
+              ),
             )
           : ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),

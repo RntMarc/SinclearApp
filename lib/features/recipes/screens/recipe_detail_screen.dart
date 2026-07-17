@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -597,12 +598,13 @@ class _RecipeImage extends StatelessWidget {
         return _imagePlaceholder;
       }
     }
-    return Image.network(
-      image,
+    return CachedNetworkImage(
+      imageUrl: image,
       width: double.infinity,
       height: 220,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => _imagePlaceholder,
+      placeholder: (_, _) => _imagePlaceholder,
+      errorWidget: (_, _, _) => _imagePlaceholder,
     );
   }
 

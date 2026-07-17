@@ -364,7 +364,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
 
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: ListView(
+      child: SingleChildScrollView(
         controller: _scrollController,
         padding: EdgeInsets.only(
           left: tokens.spaceLg,
@@ -372,7 +372,8 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
           top: tokens.spaceSm,
           bottom: tokens.spaceXxl,
         ),
-        children: [
+        child: Column(
+          children: [
           // Forum header card
           DesignCard(
             padding: EdgeInsets.zero,
@@ -499,6 +500,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
               ),
           ],
         ],
+      ),
       ),
     );
   }

@@ -254,9 +254,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ],
           ),
           Expanded(
-            child: ListView(
+            child: SingleChildScrollView(
               padding: EdgeInsets.all(tokens.spaceLg),
-              children: [
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 DesignText(
                   event.title,
                   style: DesignTextStyle.subtitle,
@@ -322,10 +324,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   ),
                 ],
               ],
-            ),
           ),
-        ],
+        ),
       ),
+      ],
+    ),
     );
   }
 }

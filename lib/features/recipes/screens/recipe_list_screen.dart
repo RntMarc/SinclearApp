@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -114,12 +115,13 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     if (image.startsWith('http')) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(tokens.radiusMd),
-        child: Image.network(
-          image,
+        child: CachedNetworkImage(
+          imageUrl: image,
           width: size,
           height: size,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => fallback,
+          placeholder: (_, _) => fallback,
+          errorWidget: (_, _, _) => fallback,
         ),
       );
     }

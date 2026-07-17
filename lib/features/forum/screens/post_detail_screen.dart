@@ -252,11 +252,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (_loading) {
       return RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-          children: [
-            SizedBox(height: 120),
-            Center(child: CircularProgressIndicator(color: tokens.primary)),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              SizedBox(height: 120),
+              Center(child: CircularProgressIndicator(color: tokens.primary)),
+            ],
+          ),
         ),
       );
     }
@@ -264,8 +266,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (_error != null) {
       return RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
             SizedBox(height: MediaQuery.of(context).size.height * 0.3),
             Center(
               child: Column(
@@ -285,6 +288,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ],
         ),
+        ),
       );
     }
 
@@ -292,9 +296,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
     return RefreshIndicator(
       onRefresh: _load,
-      child: ListView(
+      child: SingleChildScrollView(
         padding: EdgeInsets.all(tokens.spaceLg),
-        children: [
+        child: Column(
+          children: [
           Row(
             children: [
               DesignAvatar(
@@ -520,6 +525,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
         ],
+      ),
       ),
     );
   }

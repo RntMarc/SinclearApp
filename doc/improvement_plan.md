@@ -101,23 +101,21 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 - [ ] `onboarding_screen.dart` Pages auslagern
 - [ ] Weitere große Dateien bei Gelegenheit aufteilen
 
-### C2. `ListView` ohne `.builder()` ersetzen
+### C2. `ListView` ohne `.builder()` ersetzen `[x]`
 Erzeugt alle Kinder eager – bei langen Listen Performance-Problem.
 
-- [ ] `lib/features/travel/screens/trip_detail_screen.dart:480`
-- [ ] `lib/features/settings/screens/settings_screen.dart:112`
-- [ ] `lib/features/calendar/screens/event_detail_screen.dart:257`
-- [ ] `lib/features/forum/screens/forum_detail_screen.dart:367`
-- [ ] `lib/features/forum/screens/forum_list_screen.dart:101,112,174`
-- [ ] `lib/features/forum/screens/post_detail_screen.dart:255,267,295`
-- [ ] `lib/features/location_sharing/screens/create_share_screen.dart:92` (wird in E1 migriert)
-- [ ] `lib/features/location_sharing/screens/integration_setup_screen.dart:67` (wird in E1 migriert)
+- [x] `trip_detail_screen.dart:480` → `SingleChildScrollView` + `Column` (3 section children)
+- [x] `settings_screen.dart:112` → `SingleChildScrollView` + `Column` (statische Seite)
+- [x] `event_detail_screen.dart:257` → `SingleChildScrollView` + `Column` (statische Detailseite)
+- [x] `forum_detail_screen.dart:367` → `SingleChildScrollView` + `Column`
+- [x] `forum_list_screen.dart:101,112,174` → Loading/Error/Empty → `SingleChildScrollView` + `Column`
+- [x] `post_detail_screen.dart:255,267,295` → Loading/Error/Main → `SingleChildScrollView` + `Column`
 
-### C3. `Image.network` ohne Caching konsolidieren
-Forum nutzt `CachedNetworkImage`, Rezepte-Screens nutzen rohes `Image.network`.
+*location_sharing-Stellen entfallen (Feature entfernt).*
 
-- [ ] `lib/features/recipes/screens/recipe_list_screen.dart:117` → `CachedNetworkImage`
-- [ ] `lib/features/recipes/screens/recipe_detail_screen.dart:600` → `CachedNetworkImage`
+### C3. `Image.network` ohne Caching konsolidieren `[x]`
+- [x] `recipe_list_screen.dart:117` → `CachedNetworkImage` + Import
+- [x] `recipe_detail_screen.dart:600` → `CachedNetworkImage` + Import
 
 ### C4. `explore_map.dart` Marker-Memoization
 - [ ] Markers werden bei jedem Build neu durch `places.map(...)` erzeugt – in `initState` oder via `ValueNotifier` cachen
@@ -239,9 +237,9 @@ bis zu komplett neuen Features. Format:*
 1. ✅ **(sofort)** **B** – Dead Code entfernen
 2. ✅ **(sofort)** **A3** – analysis_options.yaml verschärfen
 3. ✅ **(dringend)** **E** – location_sharing entfernen
-4. **(dringend)** **F2** – `mounted`-Checks absichern (potenzielle Runtime-Crashes)
-5. **(parallel)** **C2** – ListView.builder-Fixes (einfache, isolierte Änderungen)
-6. **(parallel)** **C3** – Image.network → CachedNetworkImage (einfach)
+4. ✅ **(dringend)** **F2** – `mounted`-Checks absichern (erledigt in A3)
+5. ✅ **(parallel)** **C2** – ListView.builder-Fixes
+6. ✅ **(parallel)** **C3** – Image.network → CachedNetworkImage
 7. **(mittel)** **C1** – Große Dateien aufteilen (aufwändig, hoher Wert für Wartbarkeit)
 8. **(mittel)** **D1-D3** – UI-Konsistenz (restliche Inkonsistenzen)
 9. **(mittel)** **F1, F3, F4** – Logging + Error-Handling
