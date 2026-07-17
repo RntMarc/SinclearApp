@@ -7,9 +7,7 @@ class CalendarService {
   final ApiClient _api;
   final AuthService _auth;
 
-  CalendarService({required ApiClient api, required AuthService auth})
-    : _api = api,
-      _auth = auth;
+  CalendarService({required this._api, required this._auth});
 
   Future<String> _token() => _auth.getAccessToken();
 

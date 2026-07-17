@@ -23,30 +23,27 @@ Status-Legende: `- [ ]` = offen · `- [x]` = erledigt · `- [~]` = in Arbeit / t
   - `flutter_map` + `latlong2` (Map-Integration)
   - `firebase_*` (Breaking Changes bei Firebase)
 
-### A3. `analysis_options.yaml` verschärfen
-Aktuell: `include: package:flutter_lints/flutter.yaml` (nur 1 Zeile)
-
+### A3. `analysis_options.yaml` verschärfen `[x]`
 Vorschlag für aktivierte Regeln:
 ```yaml
 linter:
   rules:
-    - always_declare_return_types
     - avoid_print
     - curly_braces_in_flow_control_structures
-    - prefer_const_constructors
-    - prefer_const_declarations
-    - prefer_final_fields
-    - prefer_final_locals
     - prefer_initializing_formals
-    - require_trailing_commas
+    - prefer_final_fields
     - unnecessary_brace_in_string_interps
     - unnecessary_import
     - use_build_context_synchronously
-    - use_super_parameters
 ```
 
-- [ ] `analysis_options.yaml` erweitern
-- [ ] `dart analyze` nach Anpassung der Regeln durchlaufen und neue Issues fixen
+- [x] `analysis_options.yaml` erweitert (7 Regeln)
+- [x] `dart analyze` durchlaufen: 0 Issues (vorher 17 info)
+- [x] `edit_social_screen.dart` (8 Stellen): fehlende `{}` bei `if` ergänzt
+- [x] `user_models.dart` (6 Stellen): fehlende `{}` bei `if` ergänzt
+- [x] `onboarding_screen.dart:217`: `mounted`-Check vor async gap ergänzt
+- [x] `calendar_service.dart`: initializing formals verwendet (`this._api`, `this._auth`)
+- `require_trailing_commas`, `prefer_const_*`, `always_declare_return_types` etc. bewusst weggelassen (zu viele bestehende Verstöße – später mit `dart fix` nachrüstbar)
 
 ### A4. Testabdeckung aufbauen
 Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
@@ -239,9 +236,9 @@ bis zu komplett neuen Features. Format:*
 
 ## Reihenfolge / Abhängigkeiten
 
-1. **(sofort)** **B** – Dead Code entfernen (risikolos)
-2. **(sofort)** **A3** – analysis_options.yaml verschärfen + Fixes (verhindert neue Probleme)
-3. **(dringend)** **E** – location_sharing migrieren (letzte Material-Bastion, danach vollständig Design-System)
+1. ✅ **(sofort)** **B** – Dead Code entfernen
+2. ✅ **(sofort)** **A3** – analysis_options.yaml verschärfen
+3. ✅ **(dringend)** **E** – location_sharing entfernen
 4. **(dringend)** **F2** – `mounted`-Checks absichern (potenzielle Runtime-Crashes)
 5. **(parallel)** **C2** – ListView.builder-Fixes (einfache, isolierte Änderungen)
 6. **(parallel)** **C3** – Image.network → CachedNetworkImage (einfach)

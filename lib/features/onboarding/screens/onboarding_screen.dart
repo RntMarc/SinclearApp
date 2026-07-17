@@ -213,6 +213,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       return;
     }
 
+    if (!mounted) return;
     try {
       final scope = AppScope.of(context);
       await scope.auth.completeOnboarding();
