@@ -12,7 +12,7 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/explore_models.dart';
 import '../widgets/explore_map.dart';
 import '../widgets/explore_search_overlay.dart';
-import '../widgets/place_card.dart';
+import '../widgets/explore_widgets.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -314,242 +314,38 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
           if (_searchResults != null && _searchResults!.isNotEmpty)
-            Expanded(child: _buildSearchResults(tokens, crossAxisCount))
+            Expanded(
+              child: ExploreSearchResults(
+                results: _searchResults!,
+                crossAxisCount: crossAxisCount,
+                loadingMore: _loadingMoreSearch,
+                scrollController: _searchScrollController,
+                onClear: _clearSearch,
+              ),
+            )
           else if (_searchResults != null)
-            Expanded(child: _buildSearchEmpty(tokens))
+            Expanded(
+              child: ExploreSearchEmpty(onBack: _clearSearch),
+            )
           else if (_showMap)
             Expanded(child: ExploreMap(places: _suggestions, zoom: 6))
           else
-            Expanded(child: _buildSuggestionsList(tokens, crossAxisCount)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchResults(DesignTokens tokens, int crossAxisCount) {
-    return CustomScrollView(
-      controller: _searchScrollController,
-      slivers: [
-        SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-          sliver: SliverToBoxAdapter(
-            child: Row(
-              children: [
-                DesignText(
-                  'Suchergebnisse',
-                  style: DesignTextStyle.subtitle,
-                  color: tokens.textHigh,
-                ),
-                const Spacer(),
-                DesignButton(
-                  variant: DesignButtonVariant.text,
-                  icon: Icons.close_rounded,
-                  label: 'Schließen',
-                  onPressed: _clearSearch,
-                ),
-              ],
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(
-            tokens.spaceLg,
-            tokens.spaceSm,
-            tokens.spaceLg,
-            tokens.spaceLg,
-          ),
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if (index >= _searchResults!.length) {
-                  return Center(
-                    child: CircularProgressIndicator(color: tokens.primary),
-                  );
-                }
-                return PlaceCard(place: _searchResults![index]);
-              },
-              childCount: _searchResults!.length + (_loadingMoreSearch ? 1 : 0),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchEmpty(DesignTokens tokens) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 48,
-            color: tokens.textLow,
-          ),
-          SizedBox(height: tokens.spaceSm),
-          DesignText(
-            'Keine Ergebnisse gefunden.',
-            style: DesignTextStyle.body,
-            color: tokens.textLow,
-          ),
-          SizedBox(height: tokens.spaceLg),
-          DesignButton(
-            variant: DesignButtonVariant.filled,
-            label: 'Zurück',
-            onPressed: _clearSearch,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSuggestionsList(DesignTokens tokens, int crossAxisCount) {
-    if (_loading) {
-      return Center(child: CircularProgressIndicator(color: tokens.primary));
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: tokens.danger),
-            SizedBox(height: tokens.spaceSm),
-            DesignText(
-              _error!,
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
-            ),
-            SizedBox(height: tokens.spaceLg),
-            DesignButton(
-              variant: DesignButtonVariant.filled,
-              label: 'Erneut versuchen',
-              onPressed: _loadSuggestions,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-          sliver: SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: tokens.spaceSm),
-              child: DesignText(
-                'Vorschläge',
-                style: DesignTextStyle.subtitle,
-                color: tokens.textHigh,
+            Expanded(
+              child: ExploreSuggestionsList(
+                loading: _loading,
+                suggestions: _suggestions,
+                crossAxisCount: crossAxisCount,
+                error: _error,
+                loadingBookmarks: _loadingBookmarks,
+                bookmarksError: _bookmarksError,
+                bookmarks: _bookmarks,
+                onRetry: _loadSuggestions,
+                onRetryBookmarks: _loadBookmarks,
               ),
             ),
-          ),
-        ),
-        SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-          sliver: SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => PlaceCard(place: _suggestions[index]),
-              childCount: _suggestions.length,
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(
-            tokens.spaceLg,
-            tokens.spaceXl,
-            tokens.spaceLg,
-            tokens.spaceLg,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DesignText(
-                  'Lesezeichen',
-                  style: DesignTextStyle.subtitle,
-                  color: tokens.textHigh,
-                ),
-                SizedBox(height: tokens.spaceSm),
-                if (_loadingBookmarks)
-                  Padding(
-                    padding: EdgeInsets.all(tokens.spaceXl),
-                    child: Center(
-                      child: CircularProgressIndicator(color: tokens.primary),
-                    ),
-                  )
-                else if (_bookmarksError)
-                  DesignCard(
-                    padding: EdgeInsets.all(tokens.spaceXl),
-                    margin: EdgeInsets.zero,
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 24,
-                            color: tokens.danger,
-                          ),
-                          SizedBox(height: tokens.spaceSm),
-                          DesignText(
-                            'Lesezeichen konnten nicht geladen werden.',
-                            style: DesignTextStyle.body,
-                            color: tokens.danger,
-                          ),
-                          SizedBox(height: tokens.spaceSm),
-                          DesignButton(
-                            variant: DesignButtonVariant.text,
-                            label: 'Erneut versuchen',
-                            onPressed: _loadBookmarks,
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else if (_bookmarks.isEmpty)
-                  DesignCard(
-                    padding: EdgeInsets.all(tokens.spaceXl),
-                    margin: EdgeInsets.zero,
-                    child: Center(
-                      child: DesignText(
-                        'Keine Lesezeichen vorhanden.',
-                        style: DesignTextStyle.body,
-                        color: tokens.textLow,
-                      ),
-                    ),
-                  )
-                else
-                  SizedBox(
-                    height: 200,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: EdgeInsets.zero,
-                      itemCount: _bookmarks.length,
-                      separatorBuilder: (_, _) => SizedBox(width: tokens.spaceSm),
-                      itemBuilder: (context, index) => SizedBox(
-                        width: 260,
-                        child: PlaceCard(place: _bookmarks[index]),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+
 }

@@ -12,6 +12,7 @@ import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../models/calendar_models.dart';
 import '../services/calendar_service.dart';
 import '../widgets/agenda_list.dart';
+import '../widgets/calendar_widgets.dart';
 import '../widgets/event_form_sheet.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -263,7 +264,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     return DesignSurface(
       child: isDesktop
-          ? _buildDesktopLayout(tokens)
+          ? CalendarDesktopLayout(
+              events: _getAllSortedEvents(),
+              focusedDay: _focusedDay,
+              selectedDay: _selectedDay,
+              scrollController: _agendaScrollController,
+              onToday: () => setState(() {
+                _focusedDay = DateTime.now();
+                _selectedDay = DateTime.now();
+              }),
+              onRefresh: _refresh,
+              onDaySelected: _onDaySelected,
+              eventLoader: _getEventsForDay,
+              onEventTap: _onEventTap,
+              onCreateEvent: () => _createEvent(),
+            )
           : _buildMobileLayout(tokens),
     );
   }
@@ -434,109 +449,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildDesktopLayout(DesignTokens tokens) {
-    final events = _getAllSortedEvents();
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 360,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    tokens.spaceMd, tokens.spaceSm, tokens.spaceXs, 0,
-                  ),
-                  child: Row(
-                    children: [
-                      const Spacer(),
-                      DesignButton(
-                        label: 'Heute',
-                        variant: DesignButtonVariant.text,
-                        icon: Icons.today_rounded,
-                        onPressed: () => setState(() {
-                          _focusedDay = DateTime.now();
-                          _selectedDay = DateTime.now();
-                        }),
-                      ),
-                      DesignIconButton(
-                        icon: Icons.refresh_rounded,
-                        onPressed: _refresh,
-                      ),
-                    ],
-                  ),
-                ),
-                _buildDesktopCalendar(tokens),
-                SizedBox(height: tokens.spaceSm),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: tokens.spaceMd),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: DesignButton(
-                      label: 'Neuer Termin',
-                      variant: DesignButtonVariant.filled,
-                      icon: Icons.add_rounded,
-                      onPressed: () => _createEvent(),
-                    ),
-                  ),
-                ),
-                SizedBox(height: tokens.spaceSm),
-              ],
-            ),
-          ),
-        ),
-        VerticalDivider(
-          width: 1,
-          thickness: 1,
-          color: tokens.border.withValues(alpha: 0.6),
-        ),
-        Expanded(
-          child: AgendaList(
-            events: events,
-            onEventTap: _onEventTap,
-            scrollController: _agendaScrollController,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDesktopCalendar(DesignTokens tokens) {
-    return Material(
-      type: MaterialType.transparency,
-      child: TableCalendar(
-        firstDay: DateTime(2020),
-        lastDay: DateTime(2035),
-        focusedDay: _focusedDay,
-        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-        onDaySelected: _onDaySelected,
-        calendarFormat: CalendarFormat.month,
-        availableCalendarFormats: const {CalendarFormat.month: 'Monat'},
-        locale: 'de',
-        eventLoader: _getEventsForDay,
-        calendarStyle: CalendarStyle(
-          todayDecoration: BoxDecoration(
-            color: tokens.primary.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
-          ),
-          selectedDecoration: BoxDecoration(
-            color: tokens.primary,
-            shape: BoxShape.circle,
-          ),
-          markerDecoration: BoxDecoration(
-            color: tokens.primary,
-            shape: BoxShape.circle,
-          ),
-        ),
-        headerStyle: const HeaderStyle(
-          formatButtonVisible: false,
-          titleCentered: true,
-        ),
-      ),
-    );
-  }
 }
 
 
