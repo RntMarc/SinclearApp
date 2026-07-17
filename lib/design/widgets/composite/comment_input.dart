@@ -69,19 +69,22 @@ class _CommentInputState extends State<CommentInput> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: null,
-              style: tokens.bodyStyle(tokens.textHigh),
-              decoration: InputDecoration(
-                hintText: widget.hintText,
-                hintStyle: tokens.bodyStyle(tokens.textLow),
-                border: InputBorder.none,
-                isCollapsed: true,
+            child: Material(
+              type: MaterialType.transparency,
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: null,
+                style: tokens.bodyStyle(tokens.textHigh),
+                decoration: InputDecoration(
+                  hintText: widget.hintText,
+                  hintStyle: tokens.bodyStyle(tokens.textLow),
+                  border: InputBorder.none,
+                  isCollapsed: true,
+                ),
+                onSubmitted: (_) => _submit(),
               ),
-              onSubmitted: (_) => _submit(),
             ),
           ),
           if (widget.onCancel != null) ...[
