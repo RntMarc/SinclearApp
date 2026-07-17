@@ -477,13 +477,15 @@ class _EventsTab extends StatelessWidget {
       );
     }
 
-    return ListView(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(bottom: tokens.spaceXl),
-      children: [
-        if (current.isNotEmpty) section('Aktuelle Events', current),
-        if (future.isNotEmpty) section('Kommende Events', future),
-        if (past.isNotEmpty) section('Vergangene Events', past),
-      ],
+      child: Column(
+        children: [
+          if (current.isNotEmpty) section('Aktuelle Events', current),
+          if (future.isNotEmpty) section('Kommende Events', future),
+          if (past.isNotEmpty) section('Vergangene Events', past),
+        ],
+      ),
     );
   }
 }

@@ -109,9 +109,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final user = _user!;
 
     return DesignSurface(
-      child: ListView(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
+        child: Column(
+          children: [
           // Profile header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -318,6 +319,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
         ],
+      ),
       ),
     );
   }
