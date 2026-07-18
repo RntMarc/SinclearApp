@@ -136,7 +136,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                       color: tokens.primary,
                     ),
                     SizedBox(height: tokens.spaceXl),
-                    DesignText(
+                    const DesignText(
                       'Code bestätigen',
                       style: DesignTextStyle.subtitle,
                     ),

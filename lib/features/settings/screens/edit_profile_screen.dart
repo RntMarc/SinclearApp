@@ -182,11 +182,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             onTap: () => Navigator.pop(context, ImageSource.camera),
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.camera_alt_rounded, size: 20),
-                  const SizedBox(width: 12),
-                  const DesignText('Foto aufnehmen'),
+                  Icon(Icons.camera_alt_rounded, size: 20),
+                  SizedBox(width: 12),
+                  DesignText('Foto aufnehmen'),
                 ],
               ),
             ),
@@ -196,11 +196,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             onTap: () => Navigator.pop(context, ImageSource.gallery),
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.photo_library_rounded, size: 20),
-                  const SizedBox(width: 12),
-                  const DesignText('Aus Gallery wählen'),
+                  Icon(Icons.photo_library_rounded, size: 20),
+                  SizedBox(width: 12),
+                  DesignText('Aus Gallery wählen'),
                 ],
               ),
             ),

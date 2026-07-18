@@ -306,7 +306,7 @@ Widget _matrixField(DesignTokens tokens) {
         children: [
           Icon(Icons.forum_rounded, size: 18, color: tokens.primary),
           SizedBox(width: tokens.spaceSm),
-          DesignText('Matrix', style: DesignTextStyle.label),
+          const DesignText('Matrix', style: DesignTextStyle.label),
         ],
       ),
       SizedBox(height: tokens.spaceSm),

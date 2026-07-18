@@ -41,13 +41,13 @@ class DesignShowcaseScreen extends StatelessWidget {
                 SizedBox(height: tokens.spaceLg),
                 const DesignSegmentedSwitch(),
                 SizedBox(height: tokens.spaceXl),
-                DesignShowcaseSection(
+                const DesignShowcaseSection(
                   title: 'Farbschema',
                   description: 'Variablenbasiert, nie hart codiert.',
                   child: DesignColorSwatch(),
                 ),
                 SizedBox(height: tokens.spaceLg),
-                DesignShowcaseSection(
+                const DesignShowcaseSection(
                   title: 'Token-Spezifikation',
                   description: 'Maße aller Widgets für dieses Design.',
                   child: DesignTokenSpec(),
@@ -63,7 +63,7 @@ class DesignShowcaseScreen extends StatelessWidget {
                   title: 'Chips & Badges', child: _chipsBadges(),
                 ),
                 SizedBox(height: tokens.spaceLg),
-                DesignShowcaseSection(
+                const DesignShowcaseSection(
                   title: 'Eingabefeld',
                   child: DesignTextField(hint: 'Deine Nachricht …'),
                 ),
@@ -128,11 +128,11 @@ class DesignShowcaseScreen extends StatelessWidget {
   }
 
   Widget _chipsBadges() {
-    return Wrap(
+    return const Wrap(
       spacing: 12,
       runSpacing: 12,
       crossAxisAlignment: WrapCrossAlignment.center,
-      children: const <Widget>[
+      children: <Widget>[
         DesignChip(label: 'Aktiv', selected: true),
         DesignChip(label: 'Musik'),
         DesignChip(label: 'Reisen'),
@@ -223,10 +223,10 @@ class DesignShowcaseScreen extends StatelessWidget {
   }
 
   Widget _nav() {
-    return Wrap(
+    return const Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: const <Widget>[
+      children: <Widget>[
         DesignNavItem(icon: Icons.home_rounded, label: 'Start', active: true),
         DesignNavItem(icon: Icons.explore_rounded, label: 'Entdecken'),
         DesignNavItem(icon: Icons.people_rounded, label: 'Gemeinschaft'),

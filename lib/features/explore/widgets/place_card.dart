@@ -46,7 +46,7 @@ class PlaceCard extends StatelessWidget {
                   size: 16,
                   color: tokens.primary,
                 ),
-                SizedBox(width: 2),
+                const SizedBox(width: 2),
                 DesignText(
                   place.avgRating!.toStringAsFixed(1),
                   style: DesignTextStyle.label,

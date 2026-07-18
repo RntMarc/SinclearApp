@@ -264,7 +264,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                   ),
                   child: Row(
                     children: [
-                      DesignText(
+                      const DesignText(
                         'Neueste Rezepte',
                         style: DesignTextStyle.title,
                       ),
@@ -327,7 +327,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                     tokens.spaceLg,
                     tokens.spaceSm,
                   ),
-                  child: DesignText(
+                  child: const DesignText(
                     'Lesezeichen',
                     style: DesignTextStyle.title,
                   ),

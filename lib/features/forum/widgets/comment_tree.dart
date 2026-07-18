@@ -47,7 +47,7 @@ class CommentTreeTile extends StatelessWidget {
                     name: userName,
                     size: 20,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 6),
                   DesignText(
                     userName,
                     style: DesignTextStyle.label,

@@ -148,7 +148,7 @@ class TripAccommodationMap extends StatelessWidget {
               options: MapOptions(
                 initialCenter: center,
                 initialZoom: 13,
-                interactionOptions: InteractionOptions(
+                interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.none,
                 ),
               ),
@@ -213,7 +213,7 @@ class TripAccommodationCard extends StatelessWidget {
                   color: isMine ? tokens.primary : tokens.textHigh,
                 ),
               ),
-              if (isMine) DesignBadge(label: 'Meine Unterkunft'),
+              if (isMine) const DesignBadge(label: 'Meine Unterkunft'),
             ],
           ),
           if (accommodation.address != null) ...[
@@ -371,7 +371,7 @@ class TripEventCard extends StatelessWidget {
                     color: tokens.textHigh,
                   ),
                 ),
-                if (!participating) DesignBadge(label: 'Nicht dabei'),
+                if (!participating) const DesignBadge(label: 'Nicht dabei'),
               ],
             ),
             SizedBox(height: tokens.spaceXs),
@@ -489,7 +489,7 @@ class TripMapTab extends StatelessWidget {
           options: MapOptions(
             initialCenter: first,
             initialZoom: 12,
-            interactionOptions: InteractionOptions(
+            interactionOptions: const InteractionOptions(
               flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
             ),
           ),

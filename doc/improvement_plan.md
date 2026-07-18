@@ -87,10 +87,10 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 | ~~`lib/features/onboarding/screens/onboarding_screen.dart`~~ | ~~764~~ | ✅ → 366 Z. (`onboarding_widgets.dart` +398 Z.) |
 | ~~`lib/features/travel/screens/trip_detail_screen.dart`~~ | ~~679~~ | ✅ → 176 Z. (`trip_detail_widgets.dart` +496 Z.) |
 | ~~`lib/features/shell/main_shell.dart`~~ | ~~707~~ | ✅ → 100 Z. (`shell_widgets.dart` +593 Z.) |
-| `lib/features/feedback/screens/feedback_detail_screen.dart` | 715 | – |
+| ~~`lib/features/feedback/screens/feedback_detail_screen.dart`~~ | ~~715~~ | ✅ → 581 Z. (`feedback_detail_widgets.dart` +237 Z.) |
 | ~~`lib/features/forum/screens/post_detail_screen.dart`~~ | ~~612~~ | ✅ → 466 Z. (`post_detail_widgets.dart` +219 Z.) |
 | ~~`lib/features/user/models/user_models.dart`~~ | ~~597~~ | ✅ → Barrel + 3 Files |
-| `lib/features/notifications/services/notification_service.dart` | 573 | – |
+| ~~`lib/features/notifications/services/notification_service.dart`~~ | ~~573~~ | ✅ → 421 Z. (`notification_display.dart` +159 Z.) |
 | ~~`lib/features/explore/screens/explore_screen.dart`~~ | ~~555~~ | ✅ → 351 Z. (`explore_widgets.dart` +285 Z.) |
 | ~~`lib/features/calendar/screens/calendar_screen.dart`~~ | ~~542~~ | ✅ → 454 Z. (`calendar_widgets.dart` +157 Z.) |
 | ~~`lib/features/explore/screens/category_screen.dart`~~ | ~~514~~ | ✅ → 416 Z. (`category_widgets.dart` +88 Z.) |
@@ -106,8 +106,8 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 - [x] `calendar_screen.dart` aufgeteilt (542 → 454 Z.)
 - [x] `category_screen.dart` aufgeteilt (514 → 416 Z.)
 - [x] `forum_detail_screen.dart` aufgeteilt (507 → 395 Z.)
-- [ ] ~ `feedback_detail_screen.dart` (715 Z.) – kein Widget-Extraction-Pattern (nur State-Klasse)
-- [ ] ~ `notification_service.dart` (573 Z.) – Service, kein UI-Extraction-Pattern
+- [x] ~ `feedback_detail_screen.dart` (715 → 581 Z.) – Widgets extrahiert
+- [x] ~ `notification_service.dart` (573 → 421 Z.) – Display-Logik in `notification_display.dart`
 
 ### C2. `ListView` ohne `.builder()` ersetzen `[x]`
 Erzeugt alle Kinder eager – bei langen Listen Performance-Problem.
@@ -125,8 +125,8 @@ Erzeugt alle Kinder eager – bei langen Listen Performance-Problem.
 - [x] `recipe_list_screen.dart:117` → `CachedNetworkImage` + Import
 - [x] `recipe_detail_screen.dart:600` → `CachedNetworkImage` + Import
 
-### C4. `explore_map.dart` Marker-Memoization
-- [ ] Markers werden bei jedem Build neu durch `places.map(...)` erzeugt – in `initState` oder via `ValueNotifier` cachen
+### C4. `explore_map.dart` Marker-Memoization `[x]`
+- [x] `ExploreMap` in `StatefulWidget` umgewandelt, Marker in `_cachedMarkers` gecacht, nur bei `places`-Änderung neu berechnet
 
 ### C5. State Management evaluieren
 Aktuell: Jeder Screen nutzt rohes `setState` in `StatefulWidget`, was bei jedem Aufruf den gesamten Subtree rebuildet.
@@ -135,9 +135,10 @@ Aktuell: Jeder Screen nutzt rohes `setState` in `StatefulWidget`, was bei jedem 
 - [ ] Evtl. `provider` für Feature-übergreifenden State (z.B. Benutzerdaten, Bookmark-Status)
 - Siehe AGENTS.md: Built-in Lösungen bevorzugen, `provider` nur bei klarem Bedarf
 
-### C6. `const`-Konstruktoren nachrüsten
-- [ ] Sämtliche `StatelessWidget`-Klassen auf fehlende `const`-Konstruktoren prüfen und ergänzen
-- [ ] `const` in `build()`-Methoden fördern (reduce rebuilds)
+### C6. `const`-Konstruktoren nachrüsten `[x]`
+- [x] `prefer_const_constructors`, `prefer_const_literals_to_create_immutables` in `analysis_options.yaml` aktiviert
+- [x] `dart fix --apply`: 56 const-Fixes in 26 Dateien
+- [x] `dart analyze`: 0 Issues
 
 ---
 
@@ -224,9 +225,11 @@ bis zu komplett neuen Features. Format:*
 4. ✅ **(dringend)** **F2** – `mounted`-Checks absichern (erledigt in A3)
 5. ✅ **(parallel)** **C2** – ListView.builder-Fixes
 6. ✅ **(parallel)** **C3** – Image.network → CachedNetworkImage
-7. **(mittel)** **C1** – Große Dateien aufteilen (aufwändig, hoher Wert für Wartbarkeit)
-8. **(mittel)** **D** – UI-Konsistenz ✅
-9. **(mittel)** **F1, F3, F4** – Logging + Error-Handling
-10. **(mittel)** **C5, C6** – State Management + const (Performance)
-11. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
-12. **(später)** **G** – Neue Funktionen (nach den Fundament-Verbesserungen)
+7. ✅ **(mittel)** **C1** – Große Dateien aufteilen ✅
+8. ✅ **(mittel)** **C4** – Marker-Memoization ✅
+9. ✅ **(mittel)** **C6** – const-Konstruktoren nachrüsten ✅
+10. ✅ **(mittel)** **D** – UI-Konsistenz ✅
+11. **(mittel)** **F1, F3, F4** – Logging + Error-Handling
+12. **(mittel)** **C5** – State Management evaluieren
+13. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
+14. **(später)** **G** – Neue Funktionen (nach den Fundament-Verbesserungen)

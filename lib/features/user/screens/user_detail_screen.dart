@@ -185,13 +185,13 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             DesignCard.list(children: infoTiles),
             if (socialTiles.isNotEmpty) ...<Widget>[
               SizedBox(height: tokens.spaceXl),
-              DesignText('Social Media', style: DesignTextStyle.subtitle),
+              const DesignText('Social Media', style: DesignTextStyle.subtitle),
               SizedBox(height: tokens.spaceSm),
               DesignCard.list(children: socialTiles.toList()),
             ],
             if (contactTiles.isNotEmpty) ...<Widget>[
               SizedBox(height: tokens.spaceXl),
-              DesignText('Kontakt', style: DesignTextStyle.subtitle),
+              const DesignText('Kontakt', style: DesignTextStyle.subtitle),
               SizedBox(height: tokens.spaceSm),
               DesignCard.list(children: contactTiles),
             ],
