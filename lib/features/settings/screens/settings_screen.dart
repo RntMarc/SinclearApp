@@ -132,11 +132,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         user.base.displayName,
                         style: DesignTextStyle.subtitle,
                       ),
-                      DesignText(
-                        user.base.email,
-                        style: DesignTextStyle.label,
-                        color: tokens.textLow,
-                      ),
                     ],
                   ),
                 ),
@@ -209,7 +204,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               DesignListTile(
                 leading: const Icon(Icons.email_rounded),
                 title: 'E-Mail ändern',
-                subtitle: user.base.email,
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push('/einstellungen/email'),
               ),
