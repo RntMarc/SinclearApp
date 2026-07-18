@@ -210,10 +210,13 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 
 ## G. Neue Funktionen
 
-*Hier können Ideen für neue Funktionen gesammelt werden – von Platzhaltern
-bis zu komplett neuen Features. Format:*
+### G1. ÖPNV (Public Transport)
 
 - [ ] Implementieren der neuen ÖPNV-Funktionen aus der API. Documentation prüfen und Umsetzung gemeinsam mit dem Nutzer planen. Es gibt Fahrten, die mit Reisen verknüpft sind und Fahrten, die eigenständig sind.
+
+### G2. Abos (Subscriptions)
+
+- [ ] Der API wurden neue Endpunkte hinzugefügt mit Funktionen zum Verwalten geteilter Abos unter Freunden. Es soll passend dazu ein neuer Screen Abos gebaut werden, auf dem der Nutzer alle Abonnements sieht, bei denen er ein Mitglied ist. Lies dir die Dokumentation der API dazu genau durch und befolge auch die Regeln zum Design exakt.
 
 ---
 

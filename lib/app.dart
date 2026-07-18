@@ -15,6 +15,7 @@ import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/recipes/services/recipes_service.dart';
+import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/user/services/user_service.dart';
 
@@ -29,6 +30,7 @@ class SinclearApp extends StatelessWidget {
   final FeedbackService feedback;
   final ForumService forum;
   final RecipesService recipes;
+  final SubscriptionService subscription;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService webUpdate;
   final GoRouter router;
@@ -52,6 +54,7 @@ class SinclearApp extends StatelessWidget {
     required this.feedback,
     required this.forum,
     required this.recipes,
+    required this.subscription,
     required this.androidUpdate,
     required this.webUpdate,
     required this.router,
@@ -70,6 +73,7 @@ class SinclearApp extends StatelessWidget {
       feedback: feedback,
       forum: forum,
       recipes: recipes,
+      subscription: subscription,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       child: WebUpdateBanner(

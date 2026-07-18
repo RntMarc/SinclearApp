@@ -33,6 +33,7 @@ import '../features/forum/screens/forum_detail_screen.dart';
 import '../features/forum/screens/post_detail_screen.dart';
 import '../features/forum/screens/create_post_screen.dart';
 import '../features/showcase/screens/design_showcase_screen.dart';
+import '../features/subscription/screens/subscription_list_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
   return GoRouter(
@@ -52,6 +53,7 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/feedback') ||
           location.startsWith('/forum') ||
           location.startsWith('/rezepte') ||
+          location.startsWith('/abos') ||
           location.startsWith('/design-showcase');
 
       if (loggedIn && !auth.onboardingCompleted && location != '/onboarding') {
@@ -224,6 +226,10 @@ GoRouter createRouter(AuthService auth) {
                 builder: (context, state) => const DiscordRelinkScreen(),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/abos',
+            builder: (context, state) => const SubscriptionListScreen(),
           ),
           GoRoute(
             path: '/design-showcase',

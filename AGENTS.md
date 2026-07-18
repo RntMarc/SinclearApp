@@ -21,6 +21,10 @@ English only.
 * **Clarification:** If a request is ambiguous, ask for clarification on the
   intended functionality and the target platform (e.g., command-line, web,
   server).
+* **Git Subrepos:** Never pull subrepos recursively (`git submodule update
+  --recursive` or similar). The Flutter app (`SinclearApp`) and the API
+  (`SinclearAPI`) are mutual subrepos, creating a cycle that would nest them
+  infinitely. Always pull the top-level repo only.
 * **Dependencies:** When suggesting new dependencies from `pub.dev`, explain
   their benefits.
 * **Formatting:** Use the `dart_format` tool to ensure consistent code

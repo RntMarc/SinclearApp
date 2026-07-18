@@ -22,6 +22,7 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/forum')) return 'FORUM';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
+  if (location.startsWith('/abos')) return 'ABOS';
   if (location.startsWith('/design-showcase')) return 'DESIGN SHOWCASE';
   return 'HOME';
 }
@@ -46,7 +47,10 @@ ShellNavCategory shellCategoryForLocation(String location) {
       location.startsWith('/reisen')) {
     return ShellNavCategory.unterwegs;
   }
-  if (location.startsWith('/kalender')) return ShellNavCategory.organisation;
+  if (location.startsWith('/kalender') ||
+      location.startsWith('/abos')) {
+    return ShellNavCategory.organisation;
+  }
   return ShellNavCategory.home;
 }
 
@@ -244,6 +248,13 @@ class ShellNavContent extends StatelessWidget {
               label: 'Kalender',
               active: _isActive('/kalender'),
               onTap: () => onNavigate('/kalender'),
+            ),
+            _tile(
+              context,
+              icon: Icons.subscriptions_rounded,
+              label: 'Abos',
+              active: _isActive('/abos'),
+              onTap: () => onNavigate('/abos'),
             ),
             SizedBox(height: tokens.spaceMd),
           ],
@@ -535,7 +546,11 @@ class ShellMobileBottomNav extends StatelessWidget {
               '/kalender',
             ),
             const ShellSheetItem('Umfrage', Icons.poll_rounded, null),
-            const ShellSheetItem('Abos', Icons.subscriptions_rounded, null),
+            const ShellSheetItem(
+              'Abos',
+              Icons.subscriptions_rounded,
+              '/abos',
+            ),
           ],
         );
     }
