@@ -25,41 +25,38 @@ class DesignAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final topPadding = MediaQuery.paddingOf(context).top;
     return Container(
-      height: preferredSize.height,
+      height: 72 + topPadding,
       padding: EdgeInsets.fromLTRB(
-        tokens.spaceLg, 0, tokens.spaceLg, tokens.spaceXs,
+        tokens.spaceLg, topPadding, tokens.spaceLg, tokens.spaceXs,
       ),
-      child: SafeArea(
-        top: true,
-        bottom: false,
-        child: Row(
-          children: <Widget>[
-            if (leading != null)
-              Padding(
-                padding: EdgeInsets.only(right: tokens.spaceSm),
-                child: leading!,
+      child: Row(
+        children: <Widget>[
+          if (leading != null)
+            Padding(
+              padding: EdgeInsets.only(right: tokens.spaceSm),
+              child: leading!,
+            ),
+          if (title != null) ...<Widget>[
+            if (leading != null) SizedBox(width: tokens.spaceSm),
+            Expanded(
+              child: DesignText(
+                title!,
+                style: DesignTextStyle.title,
+                color: tokens.textHigh,
               ),
-            if (title != null) ...<Widget>[
-              if (leading != null) SizedBox(width: tokens.spaceSm),
-              Expanded(
-                child: DesignText(
-                  title!,
-                  style: DesignTextStyle.title,
-                  color: tokens.textHigh,
-                ),
+            ),
+          ] else
+            const Spacer(),
+          if (actions != null)
+            ...actions!.map(
+              (a) => Padding(
+                padding: EdgeInsets.only(left: tokens.spaceSm),
+                child: a,
               ),
-            ] else
-              const Spacer(),
-            if (actions != null)
-              ...actions!.map(
-                (a) => Padding(
-                  padding: EdgeInsets.only(left: tokens.spaceSm),
-                  child: a,
-                ),
-              ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
