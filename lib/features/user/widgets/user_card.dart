@@ -20,7 +20,6 @@ class UserCard extends StatelessWidget {
     return DesignUserCard(
       imageUrl: user.image,
       name: user.displayName,
-      subtitle: user.email,
       isSelf: isSelf,
       onTap: onTap,
     );
