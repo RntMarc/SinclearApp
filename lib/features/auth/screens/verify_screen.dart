@@ -1,6 +1,8 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
 import '../../../design/theme/design_theme.dart';
@@ -8,6 +10,7 @@ import '../../../design/widgets/composite/design_app_bar.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 
@@ -35,6 +38,10 @@ class _VerifyScreenState extends State<VerifyScreen> {
 
   String? get _email => GoRouterState.of(context).extra is Map
       ? (GoRouterState.of(context).extra as Map)['email'] as String?
+      : null;
+
+  String? get _discordUrl => GoRouterState.of(context).extra is Map
+      ? (GoRouterState.of(context).extra as Map)['discordUrl'] as String?
       : null;
 
   String get _descriptionText {
@@ -100,6 +107,84 @@ class _VerifyScreenState extends State<VerifyScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _copyDiscordUrl() {
+    final url = _discordUrl;
+    if (url == null) return;
+    Clipboard.setData(ClipboardData(text: url));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Link in die Zwischenablage kopiert')),
+    );
+  }
+
+  Future<void> _openDiscordUrl() async {
+    final url = _discordUrl;
+    if (url == null) return;
+    final uri = Uri.tryParse(url);
+    if (uri != null) {
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
+    }
+  }
+
+  Widget _buildDiscordFallback(DesignTokens tokens) {
+    final url = _discordUrl;
+    if (url == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: EdgeInsets.only(top: tokens.spaceXxl),
+      child: DesignCard(
+        margin: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DesignText(
+              'Discord-Link',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              'Wenn Discord sich nicht automatisch geöffnet hat, klicke auf den Link oder kopiere ihn in einen neuen Browser-Tab, um den Login fortzusetzen. Schließe diesen Tab nicht, du musst den Code später hier eingeben.',
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
+            ),
+            SizedBox(height: tokens.spaceMd),
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: tokens.spaceMd,
+                vertical: tokens.spaceXs,
+              ),
+              decoration: BoxDecoration(
+                color: tokens.surfaceVariant.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(tokens.radiusMd),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _openDiscordUrl,
+                      child: DesignText(
+                        url,
+                        style: DesignTextStyle.body,
+                        color: tokens.primary,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: tokens.spaceSm),
+                  DesignIconButton(
+                    icon: Icons.copy_rounded,
+                    onPressed: _copyDiscordUrl,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -172,6 +257,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                       fullWidth: true,
                       onPressed: _verify,
                     ),
+                    _buildDiscordFallback(tokens),
                   ],
                 ),
               ),

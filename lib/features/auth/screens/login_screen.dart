@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       if (!mounted) return;
-      context.go('/login/verify', extra: {'method': 'discord'});
+      context.go('/login/verify', extra: {'method': 'discord', 'discordUrl': response.url});
     } on ApiException catch (e) {
       developer.log(
         'Discord login failed: ${e.errorCode}',
@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       context.go(
         '/login/verify',
-        extra: {'method': 'discord_register'},
+        extra: {'method': 'discord_register', 'discordUrl': response.url},
       );
     } on ApiException catch (e) {
       developer.log(
