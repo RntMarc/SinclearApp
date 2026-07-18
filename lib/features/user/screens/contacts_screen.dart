@@ -90,7 +90,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
 
     if (users.isEmpty) {
-      return DesignSurface(
+      return const DesignSurface(
         child: Center(
           child: DesignText(
             'Keine Kontakte gefunden.',

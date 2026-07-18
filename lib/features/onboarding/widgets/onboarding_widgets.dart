@@ -329,16 +329,16 @@ class OnboardingPwaHintPage extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          DesignCard(
+          const DesignCard(
             margin: EdgeInsets.zero,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const DesignText(
+                DesignText(
                   'Als PWA verwenden',
                   style: DesignTextStyle.subtitle,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 DesignText(
                   'Öffne Beyond im Browser und füge ihn zur '
                   'Startseite hinzu. So hast du schnellen '
@@ -349,16 +349,16 @@ class OnboardingPwaHintPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          DesignCard(
+          const DesignCard(
             margin: EdgeInsets.zero,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const DesignText(
+                DesignText(
                   'Android-App',
                   style: DesignTextStyle.subtitle,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 DesignText(
                   'Für das beste Erlebnis steht dir eine '
                   'native Android-App zum Download bereit.',

@@ -186,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    DesignText(
+                    const DesignText(
                       'E-Mail-Login',
                       style: DesignTextStyle.subtitle,
                     ),

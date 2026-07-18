@@ -116,7 +116,7 @@ class PostVoteSection extends StatelessWidget {
                 size: 20,
                 color: hasVoted ? tokens.primary : tokens.textLow,
               ),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               DesignText(
                 '$upvoteCount',
                 style: DesignTextStyle.label,

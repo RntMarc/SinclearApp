@@ -275,7 +275,7 @@ class PostCard extends StatelessWidget {
           child: Row(
             children: [
               Icon(Icons.link_rounded, size: 16, color: tokens.textLow),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Expanded(
                 child: DesignText(
                   '${url.platform} – ${Uri.tryParse(url.url)?.host ?? url.url}',

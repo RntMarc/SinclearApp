@@ -342,7 +342,7 @@ class PlaceMapCard extends StatelessWidget {
             options: MapOptions(
               initialCenter: LatLng(place.latitude!, place.longitude!),
               initialZoom: 15,
-              interactionOptions: InteractionOptions(
+              interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
               ),
             ),

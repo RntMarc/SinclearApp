@@ -199,7 +199,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mitglieder konnten nicht geladen werden.')),
+        const SnackBar(content: Text('Mitglieder konnten nicht geladen werden.')),
       );
     }
   }

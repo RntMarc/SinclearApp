@@ -151,7 +151,7 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
                   )
                 : ListView.separated(
                     itemCount: _results.length,
-                    separatorBuilder: (_, _) => DesignDivider(),
+                    separatorBuilder: (_, _) => const DesignDivider(),
                     itemBuilder: (context, index) {
                       final result = _results[index];
                       return DesignCard(

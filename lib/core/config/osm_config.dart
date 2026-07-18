@@ -17,7 +17,7 @@ class OsmConfig {
 
   static MapCachingProvider get tileCachingProvider =>
       BuiltInMapCachingProvider.getOrCreateInstance(
-        overrideFreshAge: Duration(days: 7),
+        overrideFreshAge: const Duration(days: 7),
       );
 }
 

@@ -64,7 +64,7 @@ class ForumCard extends StatelessWidget {
           Column(
             children: [
               Icon(Icons.people_rounded, size: 18, color: tokens.textLow),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               DesignText(
                 '${forum.memberCount}',
                 style: DesignTextStyle.label,

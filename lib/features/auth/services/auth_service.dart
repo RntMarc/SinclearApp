@@ -131,7 +131,7 @@ class AuthService extends ChangeNotifier {
       if (kDebugMode) {
         developer.log('_doRefresh: no refresh token in storage', name: 'auth');
       }
-      throw ApiException(errorCode: 'not_logged_in', statusCode: 401);
+      throw const ApiException(errorCode: 'not_logged_in', statusCode: 401);
     }
     if (kDebugMode) {
       developer.log('_doRefresh: calling /auth/refresh', name: 'auth');

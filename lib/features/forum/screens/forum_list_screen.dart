@@ -101,7 +101,7 @@ class _ForumListScreenState extends State<ForumListScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              SizedBox(height: 120),
+              const SizedBox(height: 120),
               Center(child: CircularProgressIndicator(color: tokens.primary)),
             ],
           ),

@@ -209,7 +209,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _createEvent({DateTime? initialDate}) async {
     final result = await showDesignSheet<Map<String, dynamic>>(
       context: context,
-      child: EventFormSheet(),
+      child: const EventFormSheet(),
     );
 
     if (result == null || !mounted) return;

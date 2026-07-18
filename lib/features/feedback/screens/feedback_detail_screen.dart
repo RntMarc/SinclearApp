@@ -1,20 +1,15 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/composite/design_app_bar.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
-import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
-import '../../../design/widgets/primitives/design_card.dart';
-import '../../../design/widgets/primitives/design_chip.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/feedback_models.dart';
-import '../../../design/widgets/composite/comment_input.dart';
-import '../widgets/comment_tile.dart';
+import '../widgets/feedback_detail_widgets.dart';
 
 class FeedbackDetailScreen extends StatefulWidget {
   final String id;
@@ -531,170 +526,41 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          DesignCard(
-            padding: EdgeInsets.all(tokens.spaceLg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: DesignText(
-                        s.title,
-                        style: DesignTextStyle.title,
-                        color: tokens.textHigh,
-                      ),
-                    ),
-                    SizedBox(width: tokens.spaceMd),
-                    DesignBadge(
-                      label: s.status.label,
-                      color: _statusColor(s.status, tokens),
-                    ),
-                  ],
-                ),
-                SizedBox(height: tokens.spaceLg),
-                Row(
-                  children: [
-                    DesignButton(
-                      variant: s.hasVoted
-                          ? DesignButtonVariant.filled
-                          : DesignButtonVariant.outlined,
-                      icon: s.hasVoted
-                          ? Icons.thumb_up_rounded
-                          : Icons.thumb_up_outlined,
-                      label: '${s.upvoteCount}',
-                      onPressed: _toggleVote,
-                    ),
-                    SizedBox(width: tokens.spaceLg),
-                    Icon(
-                      Icons.schedule_rounded,
-                      size: 16,
-                      color: tokens.textLow.withValues(alpha: 0.6),
-                    ),
-                    SizedBox(width: tokens.spaceXs),
-                    DesignText(
-                      'Erstellt ${app_date.formatRelativeDate(s.createdAt)}',
-                      style: DesignTextStyle.label,
-                      color: tokens.textLow.withValues(alpha: 0.7),
-                    ),
-                  ],
-                ),
-                if (s.description != null &&
-                    s.description!.isNotEmpty) ...[
-                  SizedBox(height: tokens.spaceLg),
-                  DesignText(
-                    'Beschreibung',
-                    style: DesignTextStyle.subtitle,
-                    color: tokens.primary,
-                  ),
-                  SizedBox(height: tokens.spaceSm),
-                  DesignText(
-                    s.description!,
-                    style: DesignTextStyle.body,
-                  ),
-                ],
-              ],
-            ),
+          FeedbackSuggestionCard(
+            suggestion: s,
+            hasVoted: s.hasVoted,
+            upvoteCount: s.upvoteCount,
+            statusColor: _statusColor(s.status, tokens),
+            onVote: _toggleVote,
           ),
           SizedBox(height: tokens.spaceMd),
-
-          if (isAdmin)
-            DesignCard(
-              padding: EdgeInsets.all(tokens.spaceLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DesignText(
-                    'Admin-Aktionen',
-                    style: DesignTextStyle.subtitle,
-                    color: tokens.primary,
-                  ),
-                  SizedBox(height: tokens.spaceMd),
-                  Wrap(
-                    spacing: tokens.spaceSm,
-                    runSpacing: tokens.spaceSm,
-                    children: FeedbackStatus.values.map((status) {
-                      final isActive = status == s.status;
-                      return DesignChip(
-                        label: status.label,
-                        selected: isActive,
-                        onTap: isActive ? null : () => _updateStatus(status),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
+          if (isAdmin) ...[
+            FeedbackAdminActions(
+              currentStatus: s.status,
+              onStatusChanged: _updateStatus,
             ),
-          if (isAdmin) SizedBox(height: tokens.spaceMd),
-
-          DesignCard(
-            padding: EdgeInsets.all(tokens.spaceLg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    DesignText(
-                      'Kommentare',
-                      style: DesignTextStyle.subtitle,
-                      color: tokens.primary,
-                    ),
-                    SizedBox(width: tokens.spaceSm),
-                    DesignText(
-                      '${s.commentCount}',
-                      style: DesignTextStyle.label,
-                      color: tokens.textLow,
-                    ),
-                  ],
-                ),
-                SizedBox(height: tokens.spaceMd),
-                if (_replyToId == null)
-                  CommentInput(
-                    hintText: 'Kommentar hinzufügen...',
-                    onSubmit: (text) => _addComment(text),
-                  )
-                else
-                  CommentInput(
-                    hintText: 'Antworten...',
-                    autofocus: true,
-                    onSubmit: (text) => _addComment(text, parentId: _replyToId),
-                    onCancel: () => setState(() => _replyToId = null),
-                  ),
-                SizedBox(height: tokens.spaceMd),
-                if (_commentsLoading)
-                  const Center(child: CircularProgressIndicator())
-                else if (_comments.isEmpty)
-                  Center(
-                    child: DesignText(
-                      'Noch keine Kommentare.',
-                      style: DesignTextStyle.body,
-                      color: tokens.textLow,
-                    ),
-                  )
-                else
-                  ..._comments.map(
-                    (comment) => Padding(
-                      padding: EdgeInsets.only(bottom: tokens.spaceSm),
-                      child: CommentTile(
-                        comment: comment,
-                        currentUserId:
-                            AppScope.of(context).auth.userId ?? '',
-                        isAdmin: isAdmin,
-                        resolveUserName: _resolveUserName,
-                        onReply: (id) => setState(() => _replyToId = id),
-                        onEdit: (id) {
-                          final c = _findComment(_comments, id);
-                          if (c != null && c.text != null) {
-                            _showEditCommentDialog(id, c.text!);
-                          }
-                        },
-                        onDelete: _deleteComment,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            SizedBox(height: tokens.spaceMd),
+          ],
+          FeedbackCommentsCard(
+            replyToId: _replyToId,
+            commentsLoading: _commentsLoading,
+            comments: _comments,
+            currentUserId: AppScope.of(context).auth.userId ?? '',
+            isAdmin: isAdmin,
+            commentCount: s.commentCount,
+            onReply: (id) => setState(() {
+              _replyToId = id.isEmpty ? null : id;
+            }),
+            onAddComment: (text, {parentId}) =>
+                _addComment(text, parentId: parentId ?? _replyToId),
+            onEdit: (id) {
+              final c = _findComment(_comments, id);
+              if (c != null && c.text != null) {
+                _showEditCommentDialog(id, c.text!);
+              }
+            },
+            onDelete: _deleteComment,
+            resolveUserName: _resolveUserName,
           ),
           SizedBox(height: tokens.spaceLg),
         ],

@@ -106,7 +106,7 @@ class ShellCategorySheet extends StatelessWidget {
                         context.go(item.route!);
                       },
                 trailing: showBadge
-                    ? DesignBadge(label: 'Bald')
+                    ? const DesignBadge(label: 'Bald')
                     : isActive
                         ? DesignBadge(
                             label: 'Aktiv',
@@ -338,7 +338,7 @@ class ShellDesktop extends StatelessWidget {
         children: [
           DesignAppBar(
             title: shellTitleForLocation(location),
-            actions: [const ShellNotificationBell()],
+            actions: const [ShellNotificationBell()],
           ),
           Expanded(
             child: Row(
@@ -382,7 +382,7 @@ class ShellMobile extends StatelessWidget {
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(title: title, actions: [const ShellNotificationBell()]),
+          DesignAppBar(title: title, actions: const [ShellNotificationBell()]),
           Expanded(child: child),
           ShellMobileBottomNav(currentLocation: location),
         ],
@@ -461,7 +461,7 @@ class ShellMobileBottomNav extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(item.icon, color: fg, size: 24),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         item.label,
                         style: tokens.labelStyle(fg).copyWith(fontSize: 11),
@@ -488,19 +488,19 @@ class ShellMobileBottomNav extends StatelessWidget {
           context,
           category: 'System',
           items: [
-            ShellSheetItem(
+            const ShellSheetItem(
               'Design Showcase',
               Icons.palette_rounded,
               '/design-showcase',
             ),
-            ShellSheetItem(
+            const ShellSheetItem(
               'Einstellungen',
               Icons.settings_rounded,
               '/einstellungen',
             ),
-            ShellSheetItem('Admin', Icons.admin_panel_settings_rounded, null),
-            ShellSheetItem('Feedback', Icons.feedback_rounded, '/feedback'),
-            ShellSheetItem('Changelog', Icons.history_rounded, null),
+            const ShellSheetItem('Admin', Icons.admin_panel_settings_rounded, null),
+            const ShellSheetItem('Feedback', Icons.feedback_rounded, '/feedback'),
+            const ShellSheetItem('Changelog', Icons.history_rounded, null),
           ],
         );
       case ShellNavCategory.gemeinschaft:
@@ -508,11 +508,11 @@ class ShellMobileBottomNav extends StatelessWidget {
           context,
           category: 'Gemeinschaft',
           items: [
-            ShellSheetItem('Forum', Icons.forum_rounded, '/forum'),
-            ShellSheetItem('Kritik', Icons.rate_review_rounded, null),
-            ShellSheetItem('Rezepte', Icons.restaurant_rounded, '/rezepte'),
-            ShellSheetItem('Fotos', Icons.photo_library_rounded, null),
-            ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
+            const ShellSheetItem('Forum', Icons.forum_rounded, '/forum'),
+            const ShellSheetItem('Kritik', Icons.rate_review_rounded, null),
+            const ShellSheetItem('Rezepte', Icons.restaurant_rounded, '/rezepte'),
+            const ShellSheetItem('Fotos', Icons.photo_library_rounded, null),
+            const ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
           ],
         );
       case ShellNavCategory.unterwegs:
@@ -520,8 +520,8 @@ class ShellMobileBottomNav extends StatelessWidget {
           context,
           category: 'Unterwegs',
           items: [
-            ShellSheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
-            ShellSheetItem('Reisen', Icons.flight_rounded, '/reisen'),
+            const ShellSheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
+            const ShellSheetItem('Reisen', Icons.flight_rounded, '/reisen'),
           ],
         );
       case ShellNavCategory.organisation:
@@ -529,13 +529,13 @@ class ShellMobileBottomNav extends StatelessWidget {
           context,
           category: 'Organisation',
           items: [
-            ShellSheetItem(
+            const ShellSheetItem(
               'Kalender',
               Icons.calendar_month_rounded,
               '/kalender',
             ),
-            ShellSheetItem('Umfrage', Icons.poll_rounded, null),
-            ShellSheetItem('Abos', Icons.subscriptions_rounded, null),
+            const ShellSheetItem('Umfrage', Icons.poll_rounded, null),
+            const ShellSheetItem('Abos', Icons.subscriptions_rounded, null),
           ],
         );
     }
