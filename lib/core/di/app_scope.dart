@@ -9,6 +9,7 @@ import '../../features/feedback/services/feedback_service.dart';
 import '../../features/forum/services/forum_service.dart';
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
+import '../../features/subscription/services/subscription_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/user/services/user_service.dart';
 class AppScope extends InheritedWidget {
@@ -22,6 +23,7 @@ class AppScope extends InheritedWidget {
   final FeedbackService feedback;
   final ForumService forum;
   final RecipesService recipes;
+  final SubscriptionService subscription;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
   const AppScope({
@@ -36,6 +38,7 @@ class AppScope extends InheritedWidget {
     required this.feedback,
     required this.forum,
     required this.recipes,
+    required this.subscription,
     required this.androidUpdate,
     this.webUpdate,
     required super.child,
