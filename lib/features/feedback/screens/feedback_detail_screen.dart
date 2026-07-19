@@ -470,10 +470,7 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
       actions: [
         if (_suggestion != null &&
             (_suggestion!.userId == currentUserId || isAdmin))
-          DesignIconButton(
-            icon: Icons.more_vert_rounded,
-            onPressed: _delete,
-          ),
+          DesignIconButton(icon: Icons.more_vert_rounded, onPressed: _delete),
       ],
     );
 
@@ -495,75 +492,79 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: tokens.danger,
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                SizedBox(height: tokens.spaceSm),
+                DesignText(
+                  _error!,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+                SizedBox(height: tokens.spaceLg),
+                DesignButton(
+                  variant: DesignButtonVariant.outlined,
+                  label: 'Erneut versuchen',
+                  onPressed: _load,
+                ),
+              ],
             ),
-            SizedBox(height: tokens.spaceSm),
-            DesignText(
-              _error!,
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
-            ),
-            SizedBox(height: tokens.spaceLg),
-            DesignButton(
-              variant: DesignButtonVariant.outlined,
-              label: 'Erneut versuchen',
-              onPressed: _load,
-            ),
-          ],
+          ),
         ),
       );
     }
 
     final s = _suggestion!;
 
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          FeedbackSuggestionCard(
-            suggestion: s,
-            hasVoted: s.hasVoted,
-            upvoteCount: s.upvoteCount,
-            statusColor: _statusColor(s.status, tokens),
-            onVote: _toggleVote,
-          ),
-          SizedBox(height: tokens.spaceMd),
-          if (isAdmin) ...[
-            FeedbackAdminActions(
-              currentStatus: s.status,
-              onStatusChanged: _updateStatus,
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            FeedbackSuggestionCard(
+              suggestion: s,
+              hasVoted: s.hasVoted,
+              upvoteCount: s.upvoteCount,
+              statusColor: _statusColor(s.status, tokens),
+              onVote: _toggleVote,
             ),
             SizedBox(height: tokens.spaceMd),
+            if (isAdmin) ...[
+              FeedbackAdminActions(
+                currentStatus: s.status,
+                onStatusChanged: _updateStatus,
+              ),
+              SizedBox(height: tokens.spaceMd),
+            ],
+            FeedbackCommentsCard(
+              replyToId: _replyToId,
+              commentsLoading: _commentsLoading,
+              comments: _comments,
+              currentUserId: AppScope.of(context).auth.userId ?? '',
+              isAdmin: isAdmin,
+              commentCount: s.commentCount,
+              onReply: (id) => setState(() {
+                _replyToId = id.isEmpty ? null : id;
+              }),
+              onAddComment: (text, {parentId}) =>
+                  _addComment(text, parentId: parentId ?? _replyToId),
+              onEdit: (id) {
+                final c = _findComment(_comments, id);
+                if (c != null && c.text != null) {
+                  _showEditCommentDialog(id, c.text!);
+                }
+              },
+              onDelete: _deleteComment,
+              resolveUserName: _resolveUserName,
+            ),
+            SizedBox(height: tokens.spaceLg),
           ],
-          FeedbackCommentsCard(
-            replyToId: _replyToId,
-            commentsLoading: _commentsLoading,
-            comments: _comments,
-            currentUserId: AppScope.of(context).auth.userId ?? '',
-            isAdmin: isAdmin,
-            commentCount: s.commentCount,
-            onReply: (id) => setState(() {
-              _replyToId = id.isEmpty ? null : id;
-            }),
-            onAddComment: (text, {parentId}) =>
-                _addComment(text, parentId: parentId ?? _replyToId),
-            onEdit: (id) {
-              final c = _findComment(_comments, id);
-              if (c != null && c.text != null) {
-                _showEditCommentDialog(id, c.text!);
-              }
-            },
-            onDelete: _deleteComment,
-            resolveUserName: _resolveUserName,
-          ),
-          SizedBox(height: tokens.spaceLg),
-        ],
+        ),
       ),
     );
   }

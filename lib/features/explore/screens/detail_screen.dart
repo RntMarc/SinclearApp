@@ -367,24 +367,32 @@ class _DetailScreenState extends State<DetailScreen> {
     }
 
     if (_error != null || _place == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: tokens.danger),
-            SizedBox(height: tokens.spaceSm),
-            DesignText(
-              _error ?? 'Unbekannter Fehler',
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceXl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                  SizedBox(height: tokens.spaceSm),
+                  DesignText(
+                    _error ?? 'Unbekannter Fehler',
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                  ),
+                  SizedBox(height: tokens.spaceLg),
+                  DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Erneut versuchen',
+                    onPressed: _load,
+                  ),
+                ],
+              ),
             ),
-            SizedBox(height: tokens.spaceLg),
-            DesignButton(
-              variant: DesignButtonVariant.filled,
-              label: 'Erneut versuchen',
-              onPressed: _load,
-            ),
-          ],
+          ),
         ),
       );
     }
@@ -397,7 +405,32 @@ class _DetailScreenState extends State<DetailScreen> {
     final canDelete = isOwner || auth.isAdmin;
 
     if (isWide) {
-      return PlaceDetailWide(
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: PlaceDetailWide(
+          place: place,
+          canDelete: canDelete,
+          refreshing: _refreshing,
+          bookmarked: _bookmarked ?? false,
+          bookmarkToggling: _bookmarkToggling,
+          onRefresh: _refresh,
+          onDelete: _delete,
+          onToggleBookmark: _toggleBookmark,
+          reviews: _reviews,
+          loadingReviews: _loadingReviews,
+          reviewsError: _reviewsError,
+          currentUserId: currentUserId,
+          reviewUsers: _reviewUsers,
+          onLoadReviews: _loadReviewsIfNeeded,
+          onCreateReview: _showCreateReviewDialog,
+          onEditReview: _showEditReviewDialog,
+          onDeleteReview: _confirmDeleteReview,
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: PlaceDetailNarrow(
         place: place,
         canDelete: canDelete,
         refreshing: _refreshing,
@@ -415,26 +448,7 @@ class _DetailScreenState extends State<DetailScreen> {
         onCreateReview: _showCreateReviewDialog,
         onEditReview: _showEditReviewDialog,
         onDeleteReview: _confirmDeleteReview,
-      );
-    }
-    return PlaceDetailNarrow(
-      place: place,
-      canDelete: canDelete,
-      refreshing: _refreshing,
-      bookmarked: _bookmarked ?? false,
-      bookmarkToggling: _bookmarkToggling,
-      onRefresh: _refresh,
-      onDelete: _delete,
-      onToggleBookmark: _toggleBookmark,
-      reviews: _reviews,
-      loadingReviews: _loadingReviews,
-      reviewsError: _reviewsError,
-      currentUserId: currentUserId,
-      reviewUsers: _reviewUsers,
-      onLoadReviews: _loadReviewsIfNeeded,
-      onCreateReview: _showCreateReviewDialog,
-      onEditReview: _showEditReviewDialog,
-      onDeleteReview: _confirmDeleteReview,
+      ),
     );
   }
 }

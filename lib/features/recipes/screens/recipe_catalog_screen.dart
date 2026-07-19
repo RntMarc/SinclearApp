@@ -166,111 +166,118 @@ class _RecipeCatalogScreenState extends State<RecipeCatalogScreen> {
             title: 'Alle Rezepte',
           ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: tokens.spaceXxl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(top: tokens.spaceSm),
-                    child: DesignCardChipGroup(
-                      initialScrollIndex: initialScrollIndex,
-                      items: [
-                        for (final key in recipeCategories.keys)
-                          DesignCardChipItem(
-                            icon: recipeCategoryIcons[key] ?? '🍴',
-                            label: recipeCategories[key]!,
-                            selected: _selectedCategory == key,
-                            onTap: () => setState(() {
-                              _selectedCategory = _selectedCategory == key
-                                  ? null
-                                  : key;
-                            }),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      tokens.spaceLg,
-                      tokens.spaceXl,
-                      tokens.spaceLg,
-                      tokens.spaceSm,
-                    ),
-                    child: DesignText(
-                      _selectedCategory != null
-                          ? recipeCategories[_selectedCategory] ?? 'Rezepte'
-                          : 'Alle Rezepte',
-                      style: DesignTextStyle.title,
-                    ),
-                  ),
-                  if (_loading && _allRecipes.isEmpty)
+            child: RefreshIndicator(
+              onRefresh: _loadRecipes,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(bottom: tokens.spaceXxl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Padding(
-                      padding: EdgeInsets.all(tokens.spaceLg),
-                      child: Center(
-                        child: CircularProgressIndicator(color: tokens.primary),
-                      ),
-                    )
-                  else if (_error != null && _allRecipes.isEmpty)
-                    Padding(
-                      padding: EdgeInsets.all(tokens.spaceLg),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 24,
-                              color: tokens.danger,
-                            ),
-                            SizedBox(height: tokens.spaceMd),
-                            DesignText(_error!),
-                            SizedBox(height: tokens.spaceSm),
-                            DesignButton(
-                              label: 'Erneut versuchen',
-                              variant: DesignButtonVariant.outlined,
-                              onPressed: _loadRecipes,
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else if (filtered.isEmpty)
-                    Padding(
-                      padding: EdgeInsets.all(tokens.spaceLg),
-                      child: Center(
-                        child: DesignText(
-                          'Keine Rezepte in dieser Kategorie.',
-                          color: tokens.textLow,
-                        ),
-                      ),
-                    )
-                  else
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-                      child: Column(
-                        children: [
-                          for (final recipe in filtered)
-                            _recipeCard(recipe, tokens),
-                          if (_loading)
-                            Padding(
-                              padding: EdgeInsets.all(tokens.spaceMd),
-                              child: CircularProgressIndicator(
-                                color: tokens.primary,
-                              ),
-                            )
-                          else if (_hasMore)
-                            Padding(
-                              padding: EdgeInsets.only(top: tokens.spaceMd),
-                              child: DesignButton(
-                                label: 'Mehr laden',
-                                variant: DesignButtonVariant.text,
-                                onPressed: _loadRecipes,
-                              ),
+                      padding: EdgeInsets.only(top: tokens.spaceSm),
+                      child: DesignCardChipGroup(
+                        initialScrollIndex: initialScrollIndex,
+                        items: [
+                          for (final key in recipeCategories.keys)
+                            DesignCardChipItem(
+                              icon: recipeCategoryIcons[key] ?? '🍴',
+                              label: recipeCategories[key]!,
+                              selected: _selectedCategory == key,
+                              onTap: () => setState(() {
+                                _selectedCategory = _selectedCategory == key
+                                    ? null
+                                    : key;
+                              }),
                             ),
                         ],
                       ),
                     ),
-                ],
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        tokens.spaceLg,
+                        tokens.spaceXl,
+                        tokens.spaceLg,
+                        tokens.spaceSm,
+                      ),
+                      child: DesignText(
+                        _selectedCategory != null
+                            ? recipeCategories[_selectedCategory] ?? 'Rezepte'
+                            : 'Alle Rezepte',
+                        style: DesignTextStyle.title,
+                      ),
+                    ),
+                    if (_loading && _allRecipes.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.all(tokens.spaceLg),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: tokens.primary,
+                          ),
+                        ),
+                      )
+                    else if (_error != null && _allRecipes.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.all(tokens.spaceLg),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 24,
+                                color: tokens.danger,
+                              ),
+                              SizedBox(height: tokens.spaceMd),
+                              DesignText(_error!),
+                              SizedBox(height: tokens.spaceSm),
+                              DesignButton(
+                                label: 'Erneut versuchen',
+                                variant: DesignButtonVariant.outlined,
+                                onPressed: _loadRecipes,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (filtered.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.all(tokens.spaceLg),
+                        child: Center(
+                          child: DesignText(
+                            'Keine Rezepte in dieser Kategorie.',
+                            color: tokens.textLow,
+                          ),
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.spaceLg,
+                        ),
+                        child: Column(
+                          children: [
+                            for (final recipe in filtered)
+                              _recipeCard(recipe, tokens),
+                            if (_loading)
+                              Padding(
+                                padding: EdgeInsets.all(tokens.spaceMd),
+                                child: CircularProgressIndicator(
+                                  color: tokens.primary,
+                                ),
+                              )
+                            else if (_hasMore)
+                              Padding(
+                                padding: EdgeInsets.only(top: tokens.spaceMd),
+                                child: DesignButton(
+                                  label: 'Mehr laden',
+                                  variant: DesignButtonVariant.text,
+                                  onPressed: _loadRecipes,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

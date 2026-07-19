@@ -128,12 +128,12 @@ Erzeugt alle Kinder eager – bei langen Listen Performance-Problem.
 ### C4. `explore_map.dart` Marker-Memoization `[x]`
 - [x] `ExploreMap` in `StatefulWidget` umgewandelt, Marker in `_cachedMarkers` gecacht, nur bei `places`-Änderung neu berechnet
 
-### C5. State Management evaluieren
-Aktuell: Jeder Screen nutzt rohes `setState` in `StatefulWidget`, was bei jedem Aufruf den gesamten Subtree rebuildet.
+### C5. State Management evaluieren `[~]`
 
-- [ ] Prüfen ob `ValueNotifier` / `ChangeNotifier` für Screen-lokalen State sinnvoll ist
-- [ ] Evtl. `provider` für Feature-übergreifenden State (z.B. Benutzerdaten, Bookmark-Status)
-- Siehe AGENTS.md: Built-in Lösungen bevorzugen, `provider` nur bei klarem Bedarf
+- [x] **Analyse**: 32 Screens mit `setState`-Muster, 2 ChangeNotifier (Auth, Notification), 2 ValueNotifier (Design, WebUpdate)
+- [x] **A1 – ValueNotifier für UI-Toggles**: `_showMap` in `explore_screen.dart` + `category_screen.dart` auf `ValueNotifier` umgestellt → Full-Screen-Rebuild beim Kartenwechsel eliminiert
+- [x] **A2 – RefreshIndicator**: Auf 14 Screens nachgerüstet (Travel, TripDetail, Calendar, EventDetail, Settings, Feedback, FeedbackDetail, RecipeList, RecipeDetail, RecipeCatalog, Contacts, UserDetail, Onboarding, SubscriptionDetail)
+- [ ] Nach erneuter Analyse entscheiden, ob B (Auth-Reactivity) / C (Global Caching) zusätzlich nötig ist
 
 ### C6. `const`-Konstruktoren nachrüsten `[x]`
 - [x] `prefer_const_constructors`, `prefer_const_literals_to_create_immutables` in `analysis_options.yaml` aktiviert
@@ -233,6 +233,6 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 9. ✅ **(mittel)** **C6** – const-Konstruktoren nachrüsten ✅
 10. ✅ **(mittel)** **D** – UI-Konsistenz ✅
 11. **(mittel)** **F1, F3, F4** – Logging + Error-Handling
-12. **(mittel)** **C5** – State Management evaluieren
+12. ✅ **(mittel)** **C5** – Paket A (ValueNotifier Toggles + RefreshIndicator) ✅
 13. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
 14. **(später)** **G** – Neue Funktionen (nach den Fundament-Verbesserungen)

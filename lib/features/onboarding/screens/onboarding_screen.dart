@@ -191,9 +191,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         error: e,
       );
       if (!mounted) return;
-      setState(
-        () => _error = e.message ?? 'Profil speichern fehlgeschlagen.',
-      );
+      setState(() => _error = e.message ?? 'Profil speichern fehlgeschlagen.');
       return;
     } catch (e, st) {
       developer.log(
@@ -204,9 +202,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         stackTrace: st,
       );
       if (!mounted) return;
-      setState(
-        () => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.',
-      );
+      setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
       return;
     }
 
@@ -235,9 +231,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         stackTrace: st,
       );
       if (!mounted) return;
-      setState(
-        () => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.',
-      );
+      setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
       return;
     }
 
@@ -260,41 +254,51 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
 
     return Scaffold(
-      body: DesignSurface(
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (index) {
-                    setState(() => _currentPage = index);
-                  },
+      body: RefreshIndicator(
+        onRefresh: _loadProfile,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height,
+            child: DesignSurface(
+              child: SafeArea(
+                child: Column(
                   children: [
-                    const OnboardingWelcomePage(),
-                    OnboardingConsentPage(
-                      aiConsent: _aiConsent,
-                      dataConsent: _dataConsent,
-                      onAiChanged: (v) => setState(() => _aiConsent = v),
-                      onDataChanged: (v) => setState(() => _dataConsent = v),
+                    Expanded(
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        onPageChanged: (index) {
+                          setState(() => _currentPage = index);
+                        },
+                        children: [
+                          const OnboardingWelcomePage(),
+                          OnboardingConsentPage(
+                            aiConsent: _aiConsent,
+                            dataConsent: _dataConsent,
+                            onAiChanged: (v) => setState(() => _aiConsent = v),
+                            onDataChanged: (v) =>
+                                setState(() => _dataConsent = v),
+                          ),
+                          OnboardingProfilePage(
+                            nameController: _nameController,
+                            birthdayController: _birthdayController,
+                            imageBytes: _imageBytes,
+                            existingImageUrl: _existingImageUrl,
+                            onPickImage: _pickImage,
+                            onPickBirthday: _pickBirthday,
+                          ),
+                          const OnboardingSocialHintPage(),
+                          const OnboardingPwaHintPage(),
+                          const OnboardingDonePage(),
+                        ],
+                      ),
                     ),
-                    OnboardingProfilePage(
-                      nameController: _nameController,
-                      birthdayController: _birthdayController,
-                      imageBytes: _imageBytes,
-                      existingImageUrl: _existingImageUrl,
-                      onPickImage: _pickImage,
-                      onPickBirthday: _pickBirthday,
-                    ),
-                    const OnboardingSocialHintPage(),
-                    const OnboardingPwaHintPage(),
-                    const OnboardingDonePage(),
+                    _buildBottomBar(),
                   ],
                 ),
               ),
-              _buildBottomBar(),
-            ],
+            ),
           ),
         ),
       ),

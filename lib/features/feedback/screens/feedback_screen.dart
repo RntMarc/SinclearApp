@@ -101,12 +101,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     try {
       await _feedback.delete(id);
       if (!mounted) return;
-      setState(() => _suggestions = _suggestions.where((s) => s.id != id).toList());
+      setState(
+        () => _suggestions = _suggestions.where((s) => s.id != id).toList(),
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Löschen fehlgeschlagen: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Löschen fehlgeschlagen: $e')));
       }
     }
   }
@@ -143,7 +145,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     setState(() => _sendingBug = true);
     try {
       String? imageBase64;
-      if (_screenshotBytes != null) imageBase64 = base64Encode(_screenshotBytes!);
+      if (_screenshotBytes != null) {
+        imageBase64 = base64Encode(_screenshotBytes!);
+      }
       await _feedback.submitBugReport(text: text, image: imageBase64);
       if (!mounted) return;
       _bugText.clear();
@@ -187,9 +191,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId ?? '';
     final isAdmin = auth.isAdmin;
-    return DesignSurface(
-      child: _buildBody(currentUserId, isAdmin),
-    );
+    return DesignSurface(child: _buildBody(currentUserId, isAdmin));
   }
 
   Widget _buildBody(String currentUserId, bool isAdmin) {
@@ -198,26 +200,31 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: tokens.danger),
-              SizedBox(height: tokens.spaceMd),
-              DesignText(
-                _error!,
-                style: DesignTextStyle.body,
-                color: tokens.textHigh,
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                  SizedBox(height: tokens.spaceMd),
+                  DesignText(
+                    _error!,
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                  ),
+                  SizedBox(height: tokens.spaceLg),
+                  DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    label: 'Erneut versuchen',
+                    onPressed: _load,
+                  ),
+                ],
               ),
-              SizedBox(height: tokens.spaceLg),
-              DesignButton(
-                variant: DesignButtonVariant.outlined,
-                label: 'Erneut versuchen',
-                onPressed: _load,
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -225,49 +232,52 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
     return Stack(
       children: [
-        SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  tokens.spaceLg,
-                  tokens.spaceLg,
-                  tokens.spaceLg,
-                  0,
+        RefreshIndicator(
+          onRefresh: _load,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    tokens.spaceLg,
+                    tokens.spaceLg,
+                    tokens.spaceLg,
+                    0,
+                  ),
+                  child: DesignText(
+                    'Fehler melden',
+                    style: DesignTextStyle.title,
+                    color: tokens.textHigh,
+                  ),
                 ),
-                child: DesignText(
-                  'Fehler melden',
-                  style: DesignTextStyle.title,
-                  color: tokens.textHigh,
+                SizedBox(height: tokens.spaceSm),
+                _bugReportSection(),
+                SizedBox(height: tokens.spaceLg),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    tokens.spaceLg,
+                    0,
+                    tokens.spaceLg,
+                    0,
+                  ),
+                  child: DesignText(
+                    'Vorschläge',
+                    style: DesignTextStyle.title,
+                    color: tokens.textHigh,
+                  ),
                 ),
-              ),
-              SizedBox(height: tokens.spaceSm),
-              _bugReportSection(),
-              SizedBox(height: tokens.spaceLg),
-              Padding(
-                padding: EdgeInsets.fromLTRB(
-                  tokens.spaceLg,
-                  0,
-                  tokens.spaceLg,
-                  0,
+                SizedBox(height: tokens.spaceSm),
+                SuggestionList(
+                  suggestions: _suggestions,
+                  currentUserId: currentUserId,
+                  isAdmin: isAdmin,
+                  onVote: (s) => _vote(s.id),
+                  onDelete: (s) => _deleteSuggestion(s.id),
                 ),
-                child: DesignText(
-                  'Vorschläge',
-                  style: DesignTextStyle.title,
-                  color: tokens.textHigh,
-                ),
-              ),
-              SizedBox(height: tokens.spaceSm),
-              SuggestionList(
-                suggestions: _suggestions,
-                currentUserId: currentUserId,
-                isAdmin: isAdmin,
-                onVote: (s) => _vote(s.id),
-                onDelete: (s) => _deleteSuggestion(s.id),
-              ),
-              SizedBox(height: tokens.spaceXl + 44),
-            ],
+                SizedBox(height: tokens.spaceXl + 44),
+              ],
+            ),
           ),
         ),
         Positioned(
@@ -352,80 +362,77 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            DesignText(
-              'Ein Problem gefunden? Schicke uns einen Fehlerbericht – '
-              'gern mit Screenshot.',
-              style: DesignTextStyle.body,
-              color: tokens.textLow,
-            ),
-            SizedBox(height: tokens.spaceMd),
-            _styledField(
-              controller: _bugText,
-              hint: 'Beschreibe den Fehler...',
-              maxLines: 3,
-            ),
-            SizedBox(height: tokens.spaceMd),
-            Row(
-              children: [
-                DesignButton(
-                  icon: Icons.add_a_photo_outlined,
-                  label: 'Screenshot',
-                  variant: DesignButtonVariant.text,
-                  onPressed: _pickScreenshot,
+          DesignText(
+            'Ein Problem gefunden? Schicke uns einen Fehlerbericht – '
+            'gern mit Screenshot.',
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          _styledField(
+            controller: _bugText,
+            hint: 'Beschreibe den Fehler...',
+            maxLines: 3,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          Row(
+            children: [
+              DesignButton(
+                icon: Icons.add_a_photo_outlined,
+                label: 'Screenshot',
+                variant: DesignButtonVariant.text,
+                onPressed: _pickScreenshot,
+              ),
+              if (_screenshotBytes != null) ...[
+                SizedBox(width: tokens.spaceMd),
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(tokens.radiusMd),
+                      child: Image.memory(
+                        _screenshotBytes!,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _screenshotBytes = null),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: tokens.surface.withValues(alpha: 0.85),
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: Icon(
+                            Icons.close,
+                            size: 14,
+                            color: tokens.textHigh,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                if (_screenshotBytes != null) ...[
-                  SizedBox(width: tokens.spaceMd),
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(tokens.radiusMd),
-                        child: Image.memory(
-                          _screenshotBytes!,
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.cover,
+                SizedBox(width: tokens.spaceMd),
+                _sendingBug
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: tokens.primary,
                         ),
-                      ),
-                      Positioned(
-                        top: 2,
-                        right: 2,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _screenshotBytes = null),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: tokens.surface.withValues(alpha: 0.85),
-                              shape: BoxShape.circle,
-                            ),
-                            padding: const EdgeInsets.all(2),
-                            child: Icon(
-                              Icons.close,
-                              size: 14,
-                              color: tokens.textHigh,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(width: tokens.spaceMd),
-                  _sendingBug
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: tokens.primary,
-                          ),
-                        )
-                      : DesignButton(
-                          label: 'Senden',
-                          onPressed: _sendBugReport,
-                        ),
-                ],
+                      )
+                    : DesignButton(label: 'Senden', onPressed: _sendBugReport),
               ],
-            ),
-          ],
-        ),
-      );
-    }
+            ],
+          ),
+        ],
+      ),
+    );
   }
+}

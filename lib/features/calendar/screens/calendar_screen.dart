@@ -313,126 +313,135 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ),
             Expanded(
-              child: CustomScrollView(
-                controller: _agendaScrollController,
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: TableCalendar(
-                        firstDay: DateTime(2020),
-                        lastDay: DateTime(2035),
-                        focusedDay: _focusedDay,
-                        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                        onDaySelected: _onDaySelected,
-                        onPageChanged: (focused) {
-                          setState(() => _focusedDay = focused);
-                        },
-                        calendarFormat: CalendarFormat.month,
-                        availableCalendarFormats: const {
-                          CalendarFormat.month: 'Monat',
-                        },
-                        locale: 'de',
-                        eventLoader: _getEventsForDay,
-                        calendarStyle: CalendarStyle(
-                          todayDecoration: BoxDecoration(
-                            color: tokens.primary.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          selectedDecoration: BoxDecoration(
-                            color: tokens.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          markerDecoration: BoxDecoration(
-                            color: tokens.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        headerStyle: const HeaderStyle(
-                          formatButtonVisible: false,
-                          titleCentered: true,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (_error != null && _getAllSortedEvents().isEmpty)
+              child: RefreshIndicator(
+                onRefresh: _refresh,
+                child: CustomScrollView(
+                  controller: _agendaScrollController,
+                  slivers: [
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.error_outline_rounded,
-                                size: 48,
-                                color: tokens.danger,
-                              ),
-                              SizedBox(height: tokens.spaceLg),
-                              DesignText(
-                                'Fehler beim Laden der Termine',
-                                style: DesignTextStyle.subtitle,
-                                color: tokens.textHigh,
-                              ),
-                              SizedBox(height: tokens.spaceSm),
-                              DesignText(
-                                _error!,
-                                style: DesignTextStyle.body,
-                                color: tokens.textLow,
-                              ),
-                              SizedBox(height: tokens.spaceLg),
-                              DesignButton(
-                                label: 'Erneut versuchen',
-                                variant: DesignButtonVariant.filled,
-                                icon: Icons.refresh_rounded,
-                                onPressed: _refresh,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                  else if (_loadingPast &&
-                      _loadingFuture &&
-                      _getAllSortedEvents().isEmpty)
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: 300,
-                        child: Center(
-                          child: CircularProgressIndicator(color: tokens.primary),
-                        ),
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: EdgeInsets.zero,
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final events = _getAllSortedEvents();
-                          return SizedBox(
-                            height: 400,
-                            child: AgendaList(
-                              events: events,
-                              onEventTap: _onEventTap,
-                              scrollController: null,
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: TableCalendar(
+                          firstDay: DateTime(2020),
+                          lastDay: DateTime(2035),
+                          focusedDay: _focusedDay,
+                          selectedDayPredicate: (day) =>
+                              isSameDay(_selectedDay, day),
+                          onDaySelected: _onDaySelected,
+                          onPageChanged: (focused) {
+                            setState(() => _focusedDay = focused);
+                          },
+                          calendarFormat: CalendarFormat.month,
+                          availableCalendarFormats: const {
+                            CalendarFormat.month: 'Monat',
+                          },
+                          locale: 'de',
+                          eventLoader: _getEventsForDay,
+                          calendarStyle: CalendarStyle(
+                            todayDecoration: BoxDecoration(
+                              color: tokens.primary.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
                             ),
-                          );
-                        }, childCount: 1),
-                      ),
-                    ),
-                  if (_loadingFuture || _loadingPast)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: tokens.primary,
+                            selectedDecoration: BoxDecoration(
+                              color: tokens.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            markerDecoration: BoxDecoration(
+                              color: tokens.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          headerStyle: const HeaderStyle(
+                            formatButtonVisible: false,
+                            titleCentered: true,
                           ),
                         ),
                       ),
                     ),
-                ],
+                    if (_error != null && _getAllSortedEvents().isEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  size: 48,
+                                  color: tokens.danger,
+                                ),
+                                SizedBox(height: tokens.spaceLg),
+                                DesignText(
+                                  'Fehler beim Laden der Termine',
+                                  style: DesignTextStyle.subtitle,
+                                  color: tokens.textHigh,
+                                ),
+                                SizedBox(height: tokens.spaceSm),
+                                DesignText(
+                                  _error!,
+                                  style: DesignTextStyle.body,
+                                  color: tokens.textLow,
+                                ),
+                                SizedBox(height: tokens.spaceLg),
+                                DesignButton(
+                                  label: 'Erneut versuchen',
+                                  variant: DesignButtonVariant.filled,
+                                  icon: Icons.refresh_rounded,
+                                  onPressed: _refresh,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (_loadingPast &&
+                        _loadingFuture &&
+                        _getAllSortedEvents().isEmpty)
+                      SliverToBoxAdapter(
+                        child: SizedBox(
+                          height: 300,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: tokens.primary,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: EdgeInsets.zero,
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final events = _getAllSortedEvents();
+                            return SizedBox(
+                              height: 400,
+                              child: AgendaList(
+                                events: events,
+                                onEventTap: _onEventTap,
+                                scrollController: null,
+                              ),
+                            );
+                          }, childCount: 1),
+                        ),
+                      ),
+                    if (_loadingFuture || _loadingPast)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: tokens.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -448,7 +457,4 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ],
     );
   }
-
 }
-
-

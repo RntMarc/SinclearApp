@@ -62,27 +62,34 @@ class _ContactsScreenState extends State<ContactsScreen> {
     if (isLoading) {
       return DesignSurface(
         child: Center(
-          child: CircularProgressIndicator(color: DesignTheme.of(context).primary),
+          child: CircularProgressIndicator(
+            color: DesignTheme.of(context).primary,
+          ),
         ),
       );
     }
 
     if (error != null) {
       return DesignSurface(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                DesignText(error!, style: DesignTextStyle.body),
-                const SizedBox(height: 16),
-                DesignButton(
-                  label: 'Erneut versuchen',
-                  variant: DesignButtonVariant.outlined,
-                  onPressed: _load,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: SingleChildScrollView(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    DesignText(error!, style: DesignTextStyle.body),
+                    const SizedBox(height: 16),
+                    DesignButton(
+                      label: 'Erneut versuchen',
+                      variant: DesignButtonVariant.outlined,
+                      onPressed: _load,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -90,11 +97,16 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
 
     if (users.isEmpty) {
-      return const DesignSurface(
-        child: Center(
-          child: DesignText(
-            'Keine Kontakte gefunden.',
-            style: DesignTextStyle.body,
+      return DesignSurface(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: const SingleChildScrollView(
+            child: Center(
+              child: DesignText(
+                'Keine Kontakte gefunden.',
+                style: DesignTextStyle.body,
+              ),
+            ),
           ),
         ),
       );
@@ -102,21 +114,24 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
     return DesignSurface(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: users.length,
-        itemBuilder: (context, index) {
-          final user = users[index];
-          final isSelf = user.id == currentUserId;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: UserCard(
-              user: user,
-              isSelf: isSelf,
-              onTap: () => context.push('/kontakte/${user.id}'),
-            ),
-          );
-        },
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: users.length,
+          itemBuilder: (context, index) {
+            final user = users[index];
+            final isSelf = user.id == currentUserId;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: UserCard(
+                user: user,
+                isSelf: isSelf,
+                onTap: () => context.push('/kontakte/${user.id}'),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

@@ -188,7 +188,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               title: 'Termin',
             ),
             Expanded(
-              child: Center(child: CircularProgressIndicator(color: tokens.primary)),
+              child: Center(
+                child: CircularProgressIndicator(color: tokens.primary),
+              ),
             ),
           ],
         ),
@@ -207,22 +209,27 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               title: 'Termin',
             ),
             Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DesignText(
-                      'Fehler beim Laden des Termins',
-                      style: DesignTextStyle.body,
-                      color: tokens.textLow,
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: SingleChildScrollView(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DesignText(
+                          'Fehler beim Laden des Termins',
+                          style: DesignTextStyle.body,
+                          color: tokens.textLow,
+                        ),
+                        SizedBox(height: tokens.spaceMd),
+                        DesignButton(
+                          label: 'Erneut versuchen',
+                          variant: DesignButtonVariant.filled,
+                          onPressed: _load,
+                        ),
+                      ],
                     ),
-                    SizedBox(height: tokens.spaceMd),
-                    DesignButton(
-                      label: 'Erneut versuchen',
-                      variant: DesignButtonVariant.filled,
-                      onPressed: _load,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -243,92 +250,92 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ),
             title: event.title,
             actions: [
-              DesignIconButton(
-                icon: Icons.edit_rounded,
-                onPressed: _edit,
-              ),
-              DesignIconButton(
-                icon: Icons.delete_rounded,
-                onPressed: _delete,
-              ),
+              DesignIconButton(icon: Icons.edit_rounded, onPressed: _edit),
+              DesignIconButton(icon: Icons.delete_rounded, onPressed: _delete),
             ],
           ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(tokens.spaceLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                DesignText(
-                  event.title,
-                  style: DesignTextStyle.subtitle,
-                  color: tokens.textHigh,
-                ),
-                if (event.description != null && event.description!.isNotEmpty) ...[
-                  SizedBox(height: tokens.spaceMd),
-                  DesignText(
-                    event.description!,
-                    style: DesignTextStyle.body,
-                    color: tokens.textLow,
-                  ),
-                ],
-                SizedBox(height: tokens.spaceLg),
-                _infoRow(
-                  tokens: tokens,
-                  icon: Icons.access_time_rounded,
-                  label: 'Zeitraum',
-                  value: formatDateRange(event.startTime, event.endTime),
-                ),
-                SizedBox(height: tokens.spaceSm),
-                _infoRow(
-                  tokens: tokens,
-                  icon: Icons.visibility_rounded,
-                  label: 'Sichtbarkeit',
-                  value: _visibilityLabel(event.visibility),
-                ),
-                SizedBox(height: tokens.spaceSm),
-                _infoRow(
-                  tokens: tokens,
-                  icon: Icons.person_rounded,
-                  label: 'Erstellt von',
-                  value: event.creatorId,
-                ),
-                if (event.participants.isNotEmpty) ...[
-                  SizedBox(height: tokens.spaceLg),
-                  DesignText(
-                    'Teilnehmer (${event.participants.length})',
-                    style: DesignTextStyle.label,
-                    color: tokens.textHigh,
-                  ),
-                  SizedBox(height: tokens.spaceSm),
-                  ...event.participants.map(
-                    (p) => DesignListTile(
-                      leading: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: tokens.primary,
-                          borderRadius: BorderRadius.circular(tokens.radiusPill),
-                        ),
-                        child: Center(
-                          child: DesignText(
-                            p.displayName[0].toUpperCase(),
-                            style: DesignTextStyle.body,
-                            color: tokens.textHigh,
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(tokens.spaceLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DesignText(
+                      event.title,
+                      style: DesignTextStyle.subtitle,
+                      color: tokens.textHigh,
+                    ),
+                    if (event.description != null &&
+                        event.description!.isNotEmpty) ...[
+                      SizedBox(height: tokens.spaceMd),
+                      DesignText(
+                        event.description!,
+                        style: DesignTextStyle.body,
+                        color: tokens.textLow,
+                      ),
+                    ],
+                    SizedBox(height: tokens.spaceLg),
+                    _infoRow(
+                      tokens: tokens,
+                      icon: Icons.access_time_rounded,
+                      label: 'Zeitraum',
+                      value: formatDateRange(event.startTime, event.endTime),
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    _infoRow(
+                      tokens: tokens,
+                      icon: Icons.visibility_rounded,
+                      label: 'Sichtbarkeit',
+                      value: _visibilityLabel(event.visibility),
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    _infoRow(
+                      tokens: tokens,
+                      icon: Icons.person_rounded,
+                      label: 'Erstellt von',
+                      value: event.creatorId,
+                    ),
+                    if (event.participants.isNotEmpty) ...[
+                      SizedBox(height: tokens.spaceLg),
+                      DesignText(
+                        'Teilnehmer (${event.participants.length})',
+                        style: DesignTextStyle.label,
+                        color: tokens.textHigh,
+                      ),
+                      SizedBox(height: tokens.spaceSm),
+                      ...event.participants.map(
+                        (p) => DesignListTile(
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: tokens.primary,
+                              borderRadius: BorderRadius.circular(
+                                tokens.radiusPill,
+                              ),
+                            ),
+                            child: Center(
+                              child: DesignText(
+                                p.displayName[0].toUpperCase(),
+                                style: DesignTextStyle.body,
+                                color: tokens.textHigh,
+                              ),
+                            ),
                           ),
+                          title: p.displayName,
+                          padding: EdgeInsets.zero,
                         ),
                       ),
-                      title: p.displayName,
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-              ],
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
-      ],
-    ),
     );
   }
 }
@@ -347,8 +354,16 @@ Widget _infoRow({
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DesignText(label, style: DesignTextStyle.label, color: tokens.textLow),
-          DesignText(value, style: DesignTextStyle.body, color: tokens.textHigh),
+          DesignText(
+            label,
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+          DesignText(
+            value,
+            style: DesignTextStyle.body,
+            color: tokens.textHigh,
+          ),
         ],
       ),
     ],

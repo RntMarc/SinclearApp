@@ -147,9 +147,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     } catch (e, st) {
       developer.log('Failed to create review', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fehler beim Speichern.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern.')));
     }
   }
 
@@ -172,9 +172,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     } catch (e, st) {
       developer.log('Failed to update review', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fehler beim Speichern.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern.')));
     }
   }
 
@@ -247,9 +247,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     } catch (e, st) {
       developer.log('Failed to delete review', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Löschen fehlgeschlagen.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Löschen fehlgeschlagen.')));
     }
   }
 
@@ -275,9 +275,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               ),
             ],
           ),
-          Expanded(
-            child: _buildBody(tokens),
-          ),
+          Expanded(child: _buildBody(tokens)),
         ],
       ),
     );
@@ -289,70 +287,78 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
 
     if (_error != null || _recipe == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: tokens.danger),
-            SizedBox(height: tokens.spaceSm),
-            DesignText(
-              _error ?? 'Unbekannter Fehler',
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                SizedBox(height: tokens.spaceSm),
+                DesignText(
+                  _error ?? 'Unbekannter Fehler',
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+                SizedBox(height: tokens.spaceLg),
+                DesignButton(
+                  variant: DesignButtonVariant.filled,
+                  label: 'Erneut versuchen',
+                  onPressed: _load,
+                ),
+              ],
             ),
-            SizedBox(height: tokens.spaceLg),
-            DesignButton(
-              variant: DesignButtonVariant.filled,
-              label: 'Erneut versuchen',
-              onPressed: _load,
-            ),
-          ],
+          ),
         ),
       );
     }
 
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(right: tokens.spaceSm),
-            child: TabBar(
-              indicatorColor: tokens.primary,
-              labelColor: tokens.textHigh,
-              unselectedLabelColor: tokens.textLow,
-              labelStyle: tokens.bodyStyle(tokens.textHigh),
-              unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
-              tabs: const [
-                Tab(text: 'Rezept'),
-                Tab(text: 'Bewertungen'),
-              ],
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: DefaultTabController(
+        length: 2,
+        child: Column(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(right: tokens.spaceSm),
+              child: TabBar(
+                indicatorColor: tokens.primary,
+                labelColor: tokens.textHigh,
+                unselectedLabelColor: tokens.textLow,
+                labelStyle: tokens.bodyStyle(tokens.textHigh),
+                unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
+                tabs: const [
+                  Tab(text: 'Rezept'),
+                  Tab(text: 'Bewertungen'),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                RecipeContent(
-                  recipe: _recipe!,
-                  bookmarked: _bookmarked ?? false,
-                  bookmarkToggling: _bookmarkToggling,
-                  onToggleBookmark: _toggleBookmark,
-                ),
-                RecipeReviewsSection(
-                  reviews: _reviews,
-                  loading: _loadingReviews,
-                  error: _reviewsError,
-                  currentUserId: _currentUserId,
-                  reviewUsers: _reviewUsers,
-                  onLoadReviews: _loadReviews,
-                  onCreateReview: _showCreateReviewDialog,
-                  onEditReview: _showEditReviewDialog,
-                  onDeleteReview: _confirmDeleteReview,
-                ),
-              ],
+            Expanded(
+              child: TabBarView(
+                children: [
+                  RecipeContent(
+                    recipe: _recipe!,
+                    bookmarked: _bookmarked ?? false,
+                    bookmarkToggling: _bookmarkToggling,
+                    onToggleBookmark: _toggleBookmark,
+                  ),
+                  RecipeReviewsSection(
+                    reviews: _reviews,
+                    loading: _loadingReviews,
+                    error: _reviewsError,
+                    currentUserId: _currentUserId,
+                    reviewUsers: _reviewUsers,
+                    onLoadReviews: _loadReviews,
+                    onCreateReview: _showCreateReviewDialog,
+                    onEditReview: _showEditReviewDialog,
+                    onDeleteReview: _confirmDeleteReview,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
