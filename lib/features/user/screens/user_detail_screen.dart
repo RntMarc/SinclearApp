@@ -68,33 +68,43 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     if (_loading) {
       return DesignSurface(
         child: Center(
-          child: CircularProgressIndicator(color: DesignTheme.of(context).primary),
+          child: CircularProgressIndicator(
+            color: DesignTheme.of(context).primary,
+          ),
         ),
       );
     }
 
     if (_error != null || _user == null) {
       return DesignSurface(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(
-                  Icons.error_outline_rounded,
-                  size: 48,
-                  color: DesignTheme.of(context).danger,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: SingleChildScrollView(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 48,
+                      color: DesignTheme.of(context).danger,
+                    ),
+                    const SizedBox(height: 8),
+                    DesignText(
+                      _error ?? 'Unbekannter Fehler',
+                      style: DesignTextStyle.body,
+                    ),
+                    const SizedBox(height: 16),
+                    DesignButton(
+                      label: 'Erneut versuchen',
+                      variant: DesignButtonVariant.outlined,
+                      onPressed: _load,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                DesignText(_error ?? 'Unbekannter Fehler', style: DesignTextStyle.body),
-                const SizedBox(height: 16),
-                DesignButton(
-                  label: 'Erneut versuchen',
-                  variant: DesignButtonVariant.outlined,
-                  onPressed: _load,
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -108,7 +118,12 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       if (user.base.email != null)
         _infoTile(tokens, Icons.email_rounded, 'E-Mail', user.base.email!),
       if (user.base.birthday != null)
-        _infoTile(tokens, Icons.cake_rounded, 'Geburtstag', user.base.birthday!),
+        _infoTile(
+          tokens,
+          Icons.cake_rounded,
+          'Geburtstag',
+          user.base.birthday!,
+        ),
       _infoTile(
         tokens,
         Icons.calendar_today_rounded,
@@ -123,7 +138,12 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 
     final contactTiles = <Widget>[
       if (user.contact.discordHandle != null)
-        _infoTile(tokens, Icons.chat_rounded, 'Discord', user.contact.discordHandle!),
+        _infoTile(
+          tokens,
+          Icons.chat_rounded,
+          'Discord',
+          user.contact.discordHandle!,
+        ),
       if (user.contact.fluxerHandle != null)
         _infoTile(
           tokens,
@@ -132,7 +152,12 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           user.contact.fluxerHandle!,
         ),
       if (user.contact.signalNumber != null)
-        _infoTile(tokens, Icons.phone_rounded, 'Signal', user.contact.signalNumber!),
+        _infoTile(
+          tokens,
+          Icons.phone_rounded,
+          'Signal',
+          user.contact.signalNumber!,
+        ),
       if (user.contact.whatsappNumber != null)
         _infoTile(
           tokens,
@@ -152,50 +177,56 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     ];
 
     return DesignSurface(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(tokens.spaceLg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            DesignIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => context.pop(),
-            ),
-            SizedBox(height: tokens.spaceSm),
-            Center(
-              child: DesignAvatar(
-                imageUrl: user.base.image,
-                name: user.base.displayName,
-                size: 96,
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(tokens.spaceLg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              DesignIconButton(
+                icon: Icons.arrow_back_rounded,
+                onPressed: () => context.pop(),
               ),
-            ),
-            SizedBox(height: tokens.spaceMd),
-            Center(
-              child: DesignText(
-                user.base.displayName,
-                style: DesignTextStyle.title,
-              ),
-            ),
-            if (_isSelf)
-              Padding(
-                padding: EdgeInsets.only(top: tokens.spaceXs),
-                child: const Center(child: DesignBadge(label: 'Das bist du')),
-              ),
-            SizedBox(height: tokens.spaceXl),
-            DesignCard.list(children: infoTiles),
-            if (socialTiles.isNotEmpty) ...<Widget>[
-              SizedBox(height: tokens.spaceXl),
-              const DesignText('Social Media', style: DesignTextStyle.subtitle),
               SizedBox(height: tokens.spaceSm),
-              DesignCard.list(children: socialTiles.toList()),
-            ],
-            if (contactTiles.isNotEmpty) ...<Widget>[
+              Center(
+                child: DesignAvatar(
+                  imageUrl: user.base.image,
+                  name: user.base.displayName,
+                  size: 96,
+                ),
+              ),
+              SizedBox(height: tokens.spaceMd),
+              Center(
+                child: DesignText(
+                  user.base.displayName,
+                  style: DesignTextStyle.title,
+                ),
+              ),
+              if (_isSelf)
+                Padding(
+                  padding: EdgeInsets.only(top: tokens.spaceXs),
+                  child: const Center(child: DesignBadge(label: 'Das bist du')),
+                ),
               SizedBox(height: tokens.spaceXl),
-              const DesignText('Kontakt', style: DesignTextStyle.subtitle),
-              SizedBox(height: tokens.spaceSm),
-              DesignCard.list(children: contactTiles),
+              DesignCard.list(children: infoTiles),
+              if (socialTiles.isNotEmpty) ...<Widget>[
+                SizedBox(height: tokens.spaceXl),
+                const DesignText(
+                  'Social Media',
+                  style: DesignTextStyle.subtitle,
+                ),
+                SizedBox(height: tokens.spaceSm),
+                DesignCard.list(children: socialTiles.toList()),
+              ],
+              if (contactTiles.isNotEmpty) ...<Widget>[
+                SizedBox(height: tokens.spaceXl),
+                const DesignText('Kontakt', style: DesignTextStyle.subtitle),
+                SizedBox(height: tokens.spaceSm),
+                DesignCard.list(children: contactTiles),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -219,10 +250,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       leading: Icon(Icons.open_in_new_rounded, color: tokens.primary, size: 20),
       title: entry.handle,
       subtitle: entry.platform,
-      onTap: entry.url != null
-          ? () => launchUrl(Uri.parse(entry.url!))
-          : null,
+      onTap: entry.url != null ? () => launchUrl(Uri.parse(entry.url!)) : null,
     );
   }
-
 }

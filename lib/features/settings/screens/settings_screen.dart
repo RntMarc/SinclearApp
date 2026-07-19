@@ -75,32 +75,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (_loading) {
       return DesignSurface(
-        child: Center(
-          child: CircularProgressIndicator(color: tokens.primary),
-        ),
+        child: Center(child: CircularProgressIndicator(color: tokens.primary)),
       );
     }
 
     if (_error != null || _user == null) {
       return DesignSurface(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: tokens.danger,
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: SingleChildScrollView(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                  const SizedBox(height: 8),
+                  DesignText(_error ?? 'Unbekannter Fehler'),
+                  const SizedBox(height: 16),
+                  DesignButton(
+                    label: 'Erneut versuchen',
+                    variant: DesignButtonVariant.outlined,
+                    onPressed: _load,
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              DesignText(_error ?? 'Unbekannter Fehler'),
-              const SizedBox(height: 16),
-              DesignButton(
-                label: 'Erneut versuchen',
-                variant: DesignButtonVariant.outlined,
-                onPressed: _load,
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -109,211 +108,219 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final user = _user!;
 
     return DesignSurface(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          children: [
-          // Profile header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                DesignAvatar(
-                  imageUrl: user.base.image,
-                  name: user.base.displayName,
-                  size: 64,
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              // Profile header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DesignText(
-                        user.base.displayName,
-                        style: DesignTextStyle.subtitle,
+                child: Row(
+                  children: [
+                    DesignAvatar(
+                      imageUrl: user.base.image,
+                      name: user.base.displayName,
+                      size: 64,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DesignText(
+                            user.base.displayName,
+                            style: DesignTextStyle.subtitle,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-
-          const DesignDivider(),
-
-          // Profile section
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: DesignText(
-              'Profil',
-              style: DesignTextStyle.label,
-              color: tokens.primary,
-            ),
-          ),
-          DesignCard.list(
-            children: [
-              DesignListTile(
-                leading: const Icon(Icons.person_rounded),
-                title: 'Profil bearbeiten',
-                subtitle: 'Anzeigename, Geburtstag',
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/einstellungen/profil'),
               ),
-            ],
-          ),
 
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: DesignText(
-              'Vernetzungen',
-              style: DesignTextStyle.label,
-              color: tokens.primary,
-            ),
-          ),
-          DesignCard.list(
-            children: [
-              DesignListTile(
-                leading: const Icon(Icons.alternate_email_rounded),
-                title: 'Social Media',
-                subtitle: _socialSummary(user.social),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/einstellungen/social'),
-              ),
-              DesignListTile(
-                leading: const Icon(Icons.chat_rounded),
-                title: 'Kontaktmöglichkeiten',
-                subtitle: _contactSummary(user.contact),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/einstellungen/kontakt'),
-              ),
-            ],
-          ),
+              const DesignDivider(),
 
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: DesignText(
-              'Konto',
-              style: DesignTextStyle.label,
-              color: tokens.primary,
-            ),
-          ),
-          DesignCard.list(
-            children: [
-              DesignListTile(
-                leading: const Icon(Icons.email_rounded),
-                title: 'E-Mail ändern',
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/einstellungen/email'),
-              ),
-              DesignListTile(
-                leading: const Icon(Icons.headset_mic_rounded),
-                title: 'Discord-Verknüpfung',
-                subtitle: user.base.discordId != null
-                    ? 'Verbunden (${user.base.discordId})'
-                    : 'Nicht verbunden',
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push('/einstellungen/discord'),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: DesignText(
-              'Erscheinungsbild',
-              style: DesignTextStyle.label,
-              color: tokens.primary,
-            ),
-          ),
-          DesignCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                const DesignText(
-                  'Design',
-                  style: DesignTextStyle.title,
-                ),
-                const SizedBox(height: 4),
-                DesignText(
-                  'Wähle das Erscheinungsbild der App. Die Auswahl wird lokal '
-                  'auf dem Gerät gespeichert und überlebt Ab- und Anmeldung.',
+              // Profile section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: DesignText(
+                  'Profil',
                   style: DesignTextStyle.label,
-                  color: tokens.textLow,
+                  color: tokens.primary,
                 ),
-                const SizedBox(height: 12),
-                const DesignSegmentedSwitch(),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-          const DesignDivider(),
-
-          // App section
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: DesignText(
-              'App',
-              style: DesignTextStyle.label,
-              color: tokens.primary,
-            ),
-          ),
-          DesignCard.list(
-            children: [
-              DesignListTile(
-                leading: const Icon(Icons.info_outline_rounded),
-                title: 'Version',
-                subtitle: _packageInfo != null
-                    ? '${_packageInfo!.version} (${_packageInfo!.buildNumber})'
-                    : 'Wird geladen...',
               ),
-              if (!kIsWeb && kReleaseMode)
-                DesignListTile(
-                  leading: Icon(
-                    Icons.system_update_rounded,
-                    color: _checkingUpdate ? tokens.textLow : tokens.primary,
+              DesignCard.list(
+                children: [
+                  DesignListTile(
+                    leading: const Icon(Icons.person_rounded),
+                    title: 'Profil bearbeiten',
+                    subtitle: 'Anzeigename, Geburtstag',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/einstellungen/profil'),
                   ),
-                  title: 'Update prüfen',
-                  subtitle: _updateError != null
-                      ? _updateError!
-                      : _checkingUpdate
+                ],
+              ),
+
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: DesignText(
+                  'Vernetzungen',
+                  style: DesignTextStyle.label,
+                  color: tokens.primary,
+                ),
+              ),
+              DesignCard.list(
+                children: [
+                  DesignListTile(
+                    leading: const Icon(Icons.alternate_email_rounded),
+                    title: 'Social Media',
+                    subtitle: _socialSummary(user.social),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/einstellungen/social'),
+                  ),
+                  DesignListTile(
+                    leading: const Icon(Icons.chat_rounded),
+                    title: 'Kontaktmöglichkeiten',
+                    subtitle: _contactSummary(user.contact),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/einstellungen/kontakt'),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: DesignText(
+                  'Konto',
+                  style: DesignTextStyle.label,
+                  color: tokens.primary,
+                ),
+              ),
+              DesignCard.list(
+                children: [
+                  DesignListTile(
+                    leading: const Icon(Icons.email_rounded),
+                    title: 'E-Mail ändern',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/einstellungen/email'),
+                  ),
+                  DesignListTile(
+                    leading: const Icon(Icons.headset_mic_rounded),
+                    title: 'Discord-Verknüpfung',
+                    subtitle: user.base.discordId != null
+                        ? 'Verbunden (${user.base.discordId})'
+                        : 'Nicht verbunden',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/einstellungen/discord'),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: DesignText(
+                  'Erscheinungsbild',
+                  style: DesignTextStyle.label,
+                  color: tokens.primary,
+                ),
+              ),
+              DesignCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const DesignText('Design', style: DesignTextStyle.title),
+                    const SizedBox(height: 4),
+                    DesignText(
+                      'Wähle das Erscheinungsbild der App. Die Auswahl wird lokal '
+                      'auf dem Gerät gespeichert und überlebt Ab- und Anmeldung.',
+                      style: DesignTextStyle.label,
+                      color: tokens.textLow,
+                    ),
+                    const SizedBox(height: 12),
+                    const DesignSegmentedSwitch(),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              const DesignDivider(),
+
+              // App section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: DesignText(
+                  'App',
+                  style: DesignTextStyle.label,
+                  color: tokens.primary,
+                ),
+              ),
+              DesignCard.list(
+                children: [
+                  DesignListTile(
+                    leading: const Icon(Icons.info_outline_rounded),
+                    title: 'Version',
+                    subtitle: _packageInfo != null
+                        ? '${_packageInfo!.version} (${_packageInfo!.buildNumber})'
+                        : 'Wird geladen...',
+                  ),
+                  if (!kIsWeb && kReleaseMode)
+                    DesignListTile(
+                      leading: Icon(
+                        Icons.system_update_rounded,
+                        color: _checkingUpdate
+                            ? tokens.textLow
+                            : tokens.primary,
+                      ),
+                      title: 'Update prüfen',
+                      subtitle: _updateError != null
+                          ? _updateError!
+                          : _checkingUpdate
                           ? 'Wird geprüft...'
                           : 'Auf neuere Version prüfen',
-                  trailing: _checkingUpdate
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: tokens.primary,
-                          ),
-                        )
-                      : const Icon(Icons.chevron_right_rounded),
-                  onTap: _checkingUpdate ? null : _checkForUpdateManually,
+                      trailing: _checkingUpdate
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: tokens.primary,
+                              ),
+                            )
+                          : const Icon(Icons.chevron_right_rounded),
+                      onTap: _checkingUpdate ? null : _checkForUpdateManually,
+                    ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+              const DesignDivider(),
+
+              // Logout
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
+                child: DesignButton(
+                  label: 'Abmelden',
+                  variant: DesignButtonVariant.outlined,
+                  icon: Icons.logout_rounded,
+                  fullWidth: true,
+                  onPressed: _confirmLogout,
+                ),
+              ),
+              const SizedBox(height: 24),
             ],
           ),
-
-          const SizedBox(height: 16),
-          const DesignDivider(),
-
-          // Logout
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: DesignButton(
-              label: 'Abmelden',
-              variant: DesignButtonVariant.outlined,
-              icon: Icons.logout_rounded,
-              fullWidth: true,
-              onPressed: _confirmLogout,
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -352,10 +359,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const DesignText(
-              'Abmelden',
-              style: DesignTextStyle.title,
-            ),
+            const DesignText('Abmelden', style: DesignTextStyle.title),
             const SizedBox(height: 8),
             const DesignText(
               'Möchtest du dich wirklich abmelden?',

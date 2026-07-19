@@ -15,10 +15,7 @@ import '../widgets/subscription_member_row.dart';
 /// compact member list inside a single card. Designed as a sub-page with
 /// its own [DesignAppBar] including a back button.
 class SubscriptionDetailScreen extends StatefulWidget {
-  const SubscriptionDetailScreen({
-    super.key,
-    required this.subscription,
-  });
+  const SubscriptionDetailScreen({super.key, required this.subscription});
 
   final Subscription subscription;
 
@@ -91,23 +88,28 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
     }
 
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(tokens.spaceXl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DesignText(_error!, style: DesignTextStyle.body),
-              SizedBox(height: tokens.spaceMd),
-              GestureDetector(
-                onTap: _load,
-                child: DesignText(
-                  'Erneut versuchen',
-                  style: DesignTextStyle.label,
-                  color: tokens.primary,
-                ),
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(tokens.spaceXl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DesignText(_error!, style: DesignTextStyle.body),
+                  SizedBox(height: tokens.spaceMd),
+                  GestureDetector(
+                    onTap: _load,
+                    child: DesignText(
+                      'Erneut versuchen',
+                      style: DesignTextStyle.label,
+                      color: tokens.primary,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       );
@@ -116,72 +118,67 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
     final period =
         '${_formatDate(sub.billingPeriodStart)} – ${_formatDate(sub.billingPeriodEnd)}';
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        tokens.spaceLg,
-        tokens.spaceSm,
-        tokens.spaceLg,
-        tokens.spaceXxl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DesignCard(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: EdgeInsets.all(tokens.spaceLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DesignText(sub.name, style: DesignTextStyle.subtitle),
-                  SizedBox(height: tokens.spaceMd),
-                  _infoRow(
-                    tokens,
-                    'Zeitraum',
-                    period,
-                  ),
-                  SizedBox(height: tokens.spaceSm),
-                  _infoRow(
-                    tokens,
-                    'Gesamtpreis',
-                    '${sub.basePrice.toStringAsFixed(2)} €',
-                  ),
-                  SizedBox(height: tokens.spaceSm),
-                  _infoRow(
-                    tokens,
-                    'Mitglieder',
-                    '${_participants.length}',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: tokens.spaceXl),
-          const DesignText('Mitglieder', style: DesignTextStyle.subtitle),
-          SizedBox(height: tokens.spaceMd),
-          DesignCard(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: tokens.spaceLg,
-                vertical: tokens.spaceSm,
-              ),
-              child: Column(
-                children: [
-                  for (int i = 0; i < _participants.length; i++) ...[
-                    if (i > 0)
-                      Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: tokens.border.withValues(alpha: 0.3),
-                      ),
-                    SubscriptionMemberRow(participant: _participants[i]),
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          tokens.spaceLg,
+          tokens.spaceSm,
+          tokens.spaceLg,
+          tokens.spaceXxl,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DesignCard(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: EdgeInsets.all(tokens.spaceLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DesignText(sub.name, style: DesignTextStyle.subtitle),
+                    SizedBox(height: tokens.spaceMd),
+                    _infoRow(tokens, 'Zeitraum', period),
+                    SizedBox(height: tokens.spaceSm),
+                    _infoRow(
+                      tokens,
+                      'Gesamtpreis',
+                      '${sub.basePrice.toStringAsFixed(2)} €',
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    _infoRow(tokens, 'Mitglieder', '${_participants.length}'),
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+            SizedBox(height: tokens.spaceXl),
+            const DesignText('Mitglieder', style: DesignTextStyle.subtitle),
+            SizedBox(height: tokens.spaceMd),
+            DesignCard(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: tokens.spaceLg,
+                  vertical: tokens.spaceSm,
+                ),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < _participants.length; i++) ...[
+                      if (i > 0)
+                        Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: tokens.border.withValues(alpha: 0.3),
+                        ),
+                      SubscriptionMemberRow(participant: _participants[i]),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

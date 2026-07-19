@@ -101,22 +101,27 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DesignText(
-              'Fehler beim Laden der Reisedetails',
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DesignText(
+                  'Fehler beim Laden der Reisedetails',
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+                SizedBox(height: tokens.spaceMd),
+                DesignButton(
+                  variant: DesignButtonVariant.outlined,
+                  label: 'Erneut versuchen',
+                  onPressed: _load,
+                ),
+              ],
             ),
-            SizedBox(height: tokens.spaceMd),
-            DesignButton(
-              variant: DesignButtonVariant.outlined,
-              label: 'Erneut versuchen',
-              onPressed: _load,
-            ),
-          ],
+          ),
         ),
       );
     }
@@ -135,41 +140,44 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId;
 
-    return DefaultTabController(
-      length: 3,
-      child: Column(
-        children: [
-          TabBar(
-            indicatorColor: tokens.primary,
-            labelColor: tokens.textHigh,
-            unselectedLabelColor: tokens.textLow,
-            labelStyle: tokens.bodyStyle(tokens.textHigh),
-            unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
-            tabs: const [
-              Tab(text: 'Übersicht'),
-              Tab(text: 'Events'),
-              Tab(text: 'Karte'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-TripOverviewTab(
-                  trip: trip,
-                  accommodations: _accommodations,
-                  participants: _participants,
-                  currentUserId: currentUserId,
-                ),
-                TripEventsTab(events: _events, currentUserId: currentUserId),
-TripMapTab(
-                  accommodations: _accommodations,
-                  events: _events,
-                  currentUserId: currentUserId,
-                ),
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: DefaultTabController(
+        length: 3,
+        child: Column(
+          children: [
+            TabBar(
+              indicatorColor: tokens.primary,
+              labelColor: tokens.textHigh,
+              unselectedLabelColor: tokens.textLow,
+              labelStyle: tokens.bodyStyle(tokens.textHigh),
+              unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
+              tabs: const [
+                Tab(text: 'Übersicht'),
+                Tab(text: 'Events'),
+                Tab(text: 'Karte'),
               ],
             ),
-          ),
-        ],
+            Expanded(
+              child: TabBarView(
+                children: [
+                  TripOverviewTab(
+                    trip: trip,
+                    accommodations: _accommodations,
+                    participants: _participants,
+                    currentUserId: currentUserId,
+                  ),
+                  TripEventsTab(events: _events, currentUserId: currentUserId),
+                  TripMapTab(
+                    accommodations: _accommodations,
+                    events: _events,
+                    currentUserId: currentUserId,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -30,7 +30,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
   PaginationMeta? _meta;
   bool _loading = true;
   bool _loadingMore = false;
-  bool _showMap = false;
+  final ValueNotifier<bool> _showMap = ValueNotifier(false);
   String? _error;
   bool _hasLoaded = false;
   String? _sort;
@@ -335,10 +335,16 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       onPressed: _searchByLocation,
                     ),
                     SizedBox(width: tokens.spaceXs),
-                    DesignIconButton(
-                      icon: _showMap ? Icons.list_rounded : Icons.map_rounded,
-                      onPressed: () =>
-                          setState(() => _showMap = !_showMap),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _showMap,
+                      builder: (context, showMap, child) =>
+                          DesignIconButton(
+                        icon: showMap
+                            ? Icons.list_rounded
+                            : Icons.map_rounded,
+                        onPressed: () =>
+                            _showMap.value = !_showMap.value,
+                      ),
                     ),
                   ],
                 ),
@@ -380,34 +386,43 @@ class _CategoryScreenState extends State<CategoryScreen> {
               ],
             ),
           ),
-          if (_searchResults != null && _searchResults!.isNotEmpty)
-            Expanded(
-              child: ExploreSearchResults(
-                results: _searchResults!,
-                crossAxisCount: crossAxisCount,
-                loadingMore: _loadingMoreSearch,
-                scrollController: _searchScrollController,
-                onClear: _clearSearch,
-              ),
-            )
-          else if (_searchResults != null)
-            Expanded(
-              child: ExploreSearchEmpty(onBack: _clearSearch),
-            )
-          else if (_showMap)
-            Expanded(child: ExploreMap(places: _places))
-          else
-            Expanded(
-              child: CategoryPlaceList(
-                loading: _loading,
-                places: _places,
-                crossAxisCount: crossAxisCount,
-                error: _error,
-                loadingMore: _loadingMore,
-                scrollController: _scrollController,
-                onRetry: _load,
-              ),
-            ),
+          ValueListenableBuilder<bool>(
+            valueListenable: _showMap,
+            builder: (context, showMap, child) {
+              if (_searchResults != null && _searchResults!.isNotEmpty) {
+                return Expanded(
+                  child: ExploreSearchResults(
+                    results: _searchResults!,
+                    crossAxisCount: crossAxisCount,
+                    loadingMore: _loadingMoreSearch,
+                    scrollController: _searchScrollController,
+                    onClear: _clearSearch,
+                  ),
+                );
+              }
+              if (_searchResults != null) {
+                return Expanded(
+                  child: ExploreSearchEmpty(onBack: _clearSearch),
+                );
+              }
+              if (showMap) {
+                return Expanded(
+                  child: ExploreMap(places: _places),
+                );
+              }
+              return Expanded(
+                child: CategoryPlaceList(
+                  loading: _loading,
+                  places: _places,
+                  crossAxisCount: crossAxisCount,
+                  error: _error,
+                  loadingMore: _loadingMore,
+                  scrollController: _scrollController,
+                  onRetry: _load,
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

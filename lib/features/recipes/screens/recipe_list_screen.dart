@@ -68,6 +68,10 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    await Future.wait([_loadRecent(), _loadBookmarks()]);
+  }
+
   Future<void> _loadBookmarks() async {
     setState(() {
       _loadingBookmarks = true;
@@ -240,135 +244,138 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     return DesignSurface(
       child: Stack(
         children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.only(bottom: tokens.spaceXxl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DesignCardChipGroup(
-                  items: [
-                    for (final key in recipeCategories.keys)
-                      DesignCardChipItem(
-                        icon: recipeCategoryIcons[key] ?? '🍴',
-                        label: recipeCategories[key]!,
-                        onTap: () => context.go('/rezepte/kategorie/$key'),
-                      ),
-                  ],
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    tokens.spaceLg,
-                    tokens.spaceXl,
-                    tokens.spaceLg,
-                    tokens.spaceSm,
-                  ),
-                  child: Row(
-                    children: [
-                      const DesignText(
-                        'Neueste Rezepte',
-                        style: DesignTextStyle.title,
-                      ),
-                      const Spacer(),
-                      if (_recentRecipes.isNotEmpty)
-                        DesignButton(
-                          label: 'Alle',
-                          variant: DesignButtonVariant.text,
-                          onPressed: () => context.go('/rezepte/alle'),
+          RefreshIndicator(
+            onRefresh: _refresh,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: tokens.spaceXxl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignCardChipGroup(
+                    items: [
+                      for (final key in recipeCategories.keys)
+                        DesignCardChipItem(
+                          icon: recipeCategoryIcons[key] ?? '🍴',
+                          label: recipeCategories[key]!,
+                          onTap: () => context.go('/rezepte/kategorie/$key'),
                         ),
                     ],
                   ),
-                ),
-                if (_loadingRecent)
                   Padding(
-                    padding: EdgeInsets.all(tokens.spaceLg),
-                    child: Center(
-                      child: CircularProgressIndicator(color: tokens.primary),
+                    padding: EdgeInsets.fromLTRB(
+                      tokens.spaceLg,
+                      tokens.spaceXl,
+                      tokens.spaceLg,
+                      tokens.spaceSm,
                     ),
-                  )
-                else if (_recentError != null)
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-                    child: _sectionError(_recentError!, _loadRecent, tokens),
-                  )
-                else if (_recentRecipes.isEmpty)
-                  Padding(
-                    padding: EdgeInsets.all(tokens.spaceLg),
-                    child: Center(
-                      child: DesignText(
-                        'Noch keine Rezepte vorhanden.',
-                        color: tokens.textLow,
-                      ),
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-                    child: Column(
+                    child: Row(
                       children: [
-                        for (final recipe in _recentRecipes)
-                          _recipeTile(recipe, tokens),
+                        const DesignText(
+                          'Neueste Rezepte',
+                          style: DesignTextStyle.title,
+                        ),
+                        const Spacer(),
+                        if (_recentRecipes.isNotEmpty)
+                          DesignButton(
+                            label: 'Alle',
+                            variant: DesignButtonVariant.text,
+                            onPressed: () => context.go('/rezepte/alle'),
+                          ),
                       ],
                     ),
                   ),
-                Padding(
-                  padding: EdgeInsets.only(top: tokens.spaceLg),
-                  child: Center(
-                    child: DesignButton(
-                      label: 'In allen Rezepten stöbern',
-                      variant: DesignButtonVariant.text,
-                      onPressed: () => context.go('/rezepte/alle'),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    tokens.spaceLg,
-                    tokens.spaceXl,
-                    tokens.spaceLg,
-                    tokens.spaceSm,
-                  ),
-                  child: const DesignText(
-                    'Lesezeichen',
-                    style: DesignTextStyle.title,
-                  ),
-                ),
-                if (_loadingBookmarks)
-                  Padding(
-                    padding: EdgeInsets.all(tokens.spaceLg),
-                    child: Center(
-                      child: CircularProgressIndicator(color: tokens.primary),
-                    ),
-                  )
-                else if (_bookmarksError != null)
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-                    child: _sectionError(
-                      _bookmarksError!,
-                      _loadBookmarks,
-                      tokens,
-                    ),
-                  )
-                else if (_bookmarks.isEmpty)
-                  Padding(
-                    padding: EdgeInsets.all(tokens.spaceLg),
-                    child: Center(
-                      child: DesignText(
-                        'Noch keine Lesezeichen vorhanden.',
-                        color: tokens.textLow,
+                  if (_loadingRecent)
+                    Padding(
+                      padding: EdgeInsets.all(tokens.spaceLg),
+                      child: Center(
+                        child: CircularProgressIndicator(color: tokens.primary),
+                      ),
+                    )
+                  else if (_recentError != null)
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+                      child: _sectionError(_recentError!, _loadRecent, tokens),
+                    )
+                  else if (_recentRecipes.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.all(tokens.spaceLg),
+                      child: Center(
+                        child: DesignText(
+                          'Noch keine Rezepte vorhanden.',
+                          color: tokens.textLow,
+                        ),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+                      child: Column(
+                        children: [
+                          for (final recipe in _recentRecipes)
+                            _recipeTile(recipe, tokens),
+                        ],
                       ),
                     ),
-                  )
-                else
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-                    child: Column(
-                      children: [
-                        for (final recipe in _bookmarks)
-                          _recipeTile(recipe, tokens),
-                      ],
+                    padding: EdgeInsets.only(top: tokens.spaceLg),
+                    child: Center(
+                      child: DesignButton(
+                        label: 'In allen Rezepten stöbern',
+                        variant: DesignButtonVariant.text,
+                        onPressed: () => context.go('/rezepte/alle'),
+                      ),
                     ),
                   ),
-              ],
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      tokens.spaceLg,
+                      tokens.spaceXl,
+                      tokens.spaceLg,
+                      tokens.spaceSm,
+                    ),
+                    child: const DesignText(
+                      'Lesezeichen',
+                      style: DesignTextStyle.title,
+                    ),
+                  ),
+                  if (_loadingBookmarks)
+                    Padding(
+                      padding: EdgeInsets.all(tokens.spaceLg),
+                      child: Center(
+                        child: CircularProgressIndicator(color: tokens.primary),
+                      ),
+                    )
+                  else if (_bookmarksError != null)
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+                      child: _sectionError(
+                        _bookmarksError!,
+                        _loadBookmarks,
+                        tokens,
+                      ),
+                    )
+                  else if (_bookmarks.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.all(tokens.spaceLg),
+                      child: Center(
+                        child: DesignText(
+                          'Noch keine Lesezeichen vorhanden.',
+                          color: tokens.textLow,
+                        ),
+                      ),
+                    )
+                  else
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+                      child: Column(
+                        children: [
+                          for (final recipe in _bookmarks)
+                            _recipeTile(recipe, tokens),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           Positioned(

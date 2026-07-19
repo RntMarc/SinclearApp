@@ -123,22 +123,27 @@ class _TravelScreenState extends State<TravelScreen> {
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DesignText(
-              'Fehler beim Laden der Reisen',
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DesignText(
+                  'Fehler beim Laden der Reisen',
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+                SizedBox(height: tokens.spaceMd),
+                DesignButton(
+                  variant: DesignButtonVariant.outlined,
+                  label: 'Erneut versuchen',
+                  onPressed: _load,
+                ),
+              ],
             ),
-            SizedBox(height: tokens.spaceMd),
-            DesignButton(
-              variant: DesignButtonVariant.outlined,
-              label: 'Erneut versuchen',
-              onPressed: _load,
-            ),
-          ],
+          ),
         ),
       );
     }
@@ -163,17 +168,20 @@ class _TravelScreenState extends State<TravelScreen> {
       );
     }
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (_current.isNotEmpty)
-            ..._buildSection('Aktuelle Reisen', _current),
-          if (_future.isNotEmpty)
-            ..._buildSection('Kommende Reisen', _future),
-          if (_past.isNotEmpty) ..._buildSection('Vergangene Reisen', _past),
-          SizedBox(height: tokens.spaceXl),
-        ],
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_current.isNotEmpty)
+              ..._buildSection('Aktuelle Reisen', _current),
+            if (_future.isNotEmpty)
+              ..._buildSection('Kommende Reisen', _future),
+            if (_past.isNotEmpty) ..._buildSection('Vergangene Reisen', _past),
+            SizedBox(height: tokens.spaceXl),
+          ],
+        ),
       ),
     );
   }
@@ -203,9 +211,7 @@ class _TravelScreenState extends State<TravelScreen> {
             tokens.spaceXs,
           ),
           padding: EdgeInsets.all(tokens.spaceMd),
-          onTap: entry.isTrip
-              ? () => context.go('/reisen/${entry.id}')
-              : null,
+          onTap: entry.isTrip ? () => context.go('/reisen/${entry.id}') : null,
           child: Row(
             children: [
               Container(
@@ -243,7 +249,10 @@ class _TravelScreenState extends State<TravelScreen> {
               if (entry.isTrip)
                 Padding(
                   padding: EdgeInsets.only(left: tokens.spaceMd),
-                  child: Icon(Icons.chevron_right_rounded, color: tokens.textLow),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: tokens.textLow,
+                  ),
                 ),
             ],
           ),
