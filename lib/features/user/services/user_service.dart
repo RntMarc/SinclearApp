@@ -57,7 +57,9 @@ class UserService {
       final imagePreview = json['image'] is String
           ? 'len=${(json['image'] as String).length} preview=${(json['image'] as String).substring(0, 80)}...'
           : '${json['image']}';
-      debugPrint('[user_service] PUT /user/me/profile image=$imagePreview removeImage=${json['removeImage']} birthday=${json['birthday']}');
+      debugPrint(
+        '[user_service] PUT /user/me/profile image=$imagePreview removeImage=${json['removeImage']} birthday=${json['birthday']}',
+      );
     }
     final data = await _api.put(
       '/user/me/profile',
@@ -66,7 +68,9 @@ class UserService {
     );
     if (kDebugMode) {
       final responseImage = data['data']?['image'];
-      debugPrint('[user_service] Response received image=${responseImage is String ? 'len=${responseImage.length} preview=${responseImage.substring(0, 80)}...' : '$responseImage'}');
+      debugPrint(
+        '[user_service] Response received image=${responseImage is String ? 'len=${responseImage.length} preview=${responseImage.substring(0, 80)}...' : '$responseImage'}',
+      );
     }
     return UserMe.fromJson(data['data'] as Map<String, dynamic>);
   }
@@ -111,5 +115,19 @@ class UserService {
       body: body,
       token: await _token(),
     );
+  }
+
+  Future<UserPreferences> getPreferences() async {
+    final data = await _api.get('/user/me/preferences', token: await _token());
+    return UserPreferencesResponse.fromJson(data).data;
+  }
+
+  Future<UserPreferences> updatePreferences(Map<String, dynamic> body) async {
+    final data = await _api.put(
+      '/user/me/preferences',
+      body: body,
+      token: await _token(),
+    );
+    return UserPreferencesResponse.fromJson(data).data;
   }
 }
