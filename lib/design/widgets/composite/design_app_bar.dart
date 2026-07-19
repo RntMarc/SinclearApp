@@ -20,16 +20,16 @@ class DesignAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
 
   @override
-  Size get preferredSize => const Size.fromHeight(72);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final topPadding = MediaQuery.paddingOf(context).top;
+    final topInset = MediaQuery.paddingOf(context).top;
     return Container(
-      height: 72 + topPadding,
+      constraints: BoxConstraints(minHeight: kToolbarHeight + topInset),
       padding: EdgeInsets.fromLTRB(
-        tokens.spaceLg, topPadding, tokens.spaceLg, tokens.spaceXs,
+        tokens.spaceLg, topInset, tokens.spaceLg, tokens.spaceXs,
       ),
       child: Row(
         children: <Widget>[

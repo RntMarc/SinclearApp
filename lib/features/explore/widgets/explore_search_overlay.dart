@@ -8,7 +8,7 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
-import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 
 import '../models/explore_models.dart';
 
@@ -72,7 +72,7 @@ class _ExploreSearchOverlayState extends State<ExploreSearchOverlay> {
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(
+          DesignSubpageHeader(
             leading: DesignIconButton(
               icon: Icons.arrow_back_rounded,
               onPressed: () => Navigator.pop(context),

@@ -1,44 +1,49 @@
 # Design System – Beyond App
 
+Diese Datei beschreibt **ausschließlich** das eigenständige, nicht auf
+Material/Cupertino basierende Design-System der App. Alle Screens werden
+Screen für Screen in dieses System überführt (siehe
+[`doc/migration_plan.md`](doc/migration_plan.md)). Es gibt keine Material-`AppBar`,
+kein `AppBarTheme` und keine `app_theme.dart` mehr – alles läuft über den
+Widget-Katalog unter `lib/design/`.
+
 ## Typografie
 
 ### Schriftfamilie
 Alle Titel und Überschriften nutzen **Chivo** via `google_fonts`.
 
-### Textstile (definiert in `app_theme.dart`)
+### Textstile (Katalog)
+Texte werden ausschließlich über `DesignText` + `DesignTextStyle` gerendert,
+damit Font, Weight und Farbe aus den aktiven `DesignTokens` kommen:
 
 | Style | Font | Weight | Size | Italic | Einsatz |
 |---|---|---|---|---|---|
-| `titleLarge` | Chivo | w900 | 22px | Ja | Nur Seitentitel in der AppBarauptseite |
-| `titleMedium` | Chivo | w700 | 18px | Nein | Abschnittsüberschriften, Sub-Seiten-Titel, Formular-Header, Sheet-Titel |
+| `display` | Chivo | w900 | 30px | Nein | Große Hero-Überschriften |
+| `title` | Chivo | w700 | 22px | Nein | Seitentitel (globale AppBar) **und** Subpage-Header |
+| `subtitle` | Chivo | w700 | 18px | Nein | Abschnittsüberschriften, Formular-Header, Sheet-Titel |
+| `body` | Chivo | w400 | 15px | Nein | Fließtext |
+| `label` | Chivo | w600 | 13px | Nein | Labels, Badges, Kategorie-Tags |
 
 ### Regeln
-- `titleLarge` **ausschließlich** für den Haupttitel einer Seite in der AppBar
-  (z.B. "Einstellungen", "Kalender", "Anmelden")
-- `titleMedium` für alles andere: Abschnitts-Unterüberschriften, Content-Header,
-  Formular-Überschriften, Bottom-Sheet-Titel, Sub-Seiten-AppBars
-- **Nie** `titleLarge` in Body-Inhalten, Cards, Sheets oder Sub-Seiten verwenden
-- Sub-Seiten (z.B. "Profil bearbeiten" unter "Einstellungen") bekommen
-  `titleMedium` in der AppBar via `titleTextStyle: theme.textTheme.titleMedium`
-- NEVER use ALL CAPS for sub-page AppBar titles. Use normal case
-  (e.g. "Profil bearbeiten" not "PROFIL BEARBEITEN")
-- Hauptseiten-AppBars (vom Shell) nutzen den automatisch vererbten
-  `titleLarge`-Style aus `appBarTheme`
+- `title` für **beide** AppBar-Varianten (globale Shell-AppBar **und**
+  `DesignSubpageHeader`) – siehe [AppBar-Regeln](#appbar-regeln).
+- `subtitle` für alles andere: Abschnitts-Unterüberschriften, Content-Header,
+  Formular-Überschriften, Bottom-Sheet-Titel.
+- **Nie** `title`/`display` in Body-Inhalten oder Cards verwenden.
+- Subpage-Titel immer in **normal case** (z.B. "Profil bearbeiten", nicht
+  "PROFIL BEARBEITEN").
+- Keine hardcoded Farben in Text-Styles – Farbe kommt aus
+  `DesignTokens` (`tokens.textHigh` / `tokens.textLow`).
 
 ## Farben
 
 ### Strategie
-- **Keine** hardcoded Farben in Text-Styles
-- `onSurface` explizit in `ColorScheme` setzen für garantierten Kontrast:
-  - Light: `Color(0xFF1C1B1F)` (fast schwarz)
-  - Dark: `Color(0xFFE6E1E5)` (fast weiß)
-- `_titleStyle` und `_subTitleStyle` nehmen eine explizite `Color`-Farbe entgegen
-- `AppBarTheme` setzt zusätzlich `foregroundColor: onSurface`
-
-### Kontrast
-- Text muss immer mindestens 4.5:1 Kontrast zum Hintergrund haben
-- Nie `Colors.white` oder `Colors.black` für Text verwenden – immer
-  `theme.colorScheme.onSurface` oder `theme.colorScheme.onSurfaceVariant` nutzen
+- **Keine** hardcoded Farben in Widgets. Alle Werte kommen aus `DesignTokens`;
+  pro Design (`Materia Pop`, `Aurora Glass`, `Liquid Pulse`) gibt es Light- und
+  Dark-Instanzen.
+- Kontrast: Text muss immer mindestens 4.5:1 Kontrast zum Hintergrund haben.
+  Nie `Colors.white`/`Colors.black` für Text nutzen – immer
+  `tokens.textHigh` oder `tokens.textLow`.
 
 ## Navigation
 
@@ -53,19 +58,19 @@ Fest definierte Kategorien in fester Reihenfolge:
 | 3 | Unterwegs | `explore_rounded` | Entdecken, Reisen |
 | 4 | Organisation | `calendar_month_rounded` | Kalender, Umfrage, Abos |
 
-- Jeder Kategorie-Tap öffnet ein Bottom-Sheet mit den Untereinträgen
-- Der aktive Tab wird per `_categoryForLocation()` anhand der Route bestimmt
-- **Feedback** gehört zu **System** (nicht Start)
-- **Forum** und **Kontakte** gehören zu **Gemeinschaft**
+- Jeder Kategorie-Tap öffnet ein Bottom-Sheet mit den Untereinträgen.
+- Der aktive Tab wird per `_categoryForLocation()` anhand der Route bestimmt.
+- **Feedback** gehört zu **System** (nicht Start).
+- **Forum** und **Kontakte** gehören zu **Gemeinschaft**.
 
 ### Desktop (Seitenleiste)
-- Gleiche Kategorien wie Mobile, aber als Kategorie-Überschriften in der Sidebar
-- **Start** steht oben, vor den Kategorien (eigener Eintrag, ohne Kategorie)
-- Sidebar ist immer sichtbar (ausgeklappt)
-- Kategorie-Labels: `labelSmall` mit `colorScheme.primary`, `FontWeight.w600`,
-  `letterSpacing: 0.5`
-- Reihenfolge: Start → System → Gemeinschaft → Unterwegs → Organisation
-- Sub-Routes (z.B. `/einstellungen/profil`) heben die übergeordnete Seite hervor
+- Gleiche Kategorien wie Mobile, aber als Kategorie-Überschriften in der Sidebar.
+- **Start** steht oben, vor den Kategorien (eigener Eintrag, ohne Kategorie).
+- Sidebar ist immer sichtbar (ausgeklappt).
+- Kategorie-Labels: `label`-Style mit `tokens.primary`, `FontWeight.w600`,
+  `letterSpacing: 0.5`.
+- Reihenfolge: Start → System → Gemeinschaft → Unterwegs → Organisation.
+- Sub-Routes (z.B. `/einstellungen/profil`) heben die übergeordnete Seite hervor.
 
 ### Route-Zuordnung
 Sub-Seiten gehören immer zur Kategorie ihrer übergeordneten Seite:
@@ -79,47 +84,65 @@ Sub-Seiten gehören immer zur Kategorie ihrer übergeordneten Seite:
 
 ## AppBar-Regeln
 
-### Hauptseiten (vom Shell gerendert)
-- Shell-AppBar zeigt den **Seitentitel** in `titleLarge` (ALL CAPS für
-  Hauptseiten wie "KALENDER", "EINSTELLUNGEN")
-- Sub-Seiten haben eigene AppBars mit `titleMedium`-Titel in normal case
+Es gibt **zwei getrennte** Komponenten. Sie dürfen nie verwechselt werden.
 
-### Sub-Seiten (eigene Scaffold)
-- Eigener `AppBar` mit `titleTextStyle: theme.textTheme.titleMedium`
-- Titel in normal case (z.B. "Profil bearbeiten", "Social Media")
-- Kein `leading` nötig, wenn GoRouter Back-Button automatisch erscheint
+### 1. Globale AppBar – `DesignAppBar` (nur in der Shell)
+- Wird **ausschließlich** von der Shell (`MainShell` → `_titleForLocation`)
+  oberhalb des Screens gerendert.
+- Die **einzige** echte AppBar der Seite. Sie ist eine
+  `PreferredSizeWidget`, status-bar-sicher und rendert einen transparenten Strip;
+  der parent Screen wickelt die gesamte Seite (AppBar + Body) in ein einziges
+  `DesignSurface`, damit Gradient und Grain unterbrechungsfrei laufen.
+- Hauptseiten (z.B. Rezepte, Forum) → Shell-AppBar zeigt den Titel aus
+  `_titleForLocation`. **Kein** eigener Header im Screen nötig.
+
+### 2. Subpage-Header – `DesignSubpageHeader` (In-Page)
+- Sieht aus wie eine AppBar, ist aber **keine**: eine reine In-Page-Komponente
+  unterhalb der globalen AppBar.
+- Bewusst **ohne** `SafeArea`/Status-bar-Insets, damit kein doppelter
+  Abstand zur globalen AppBar entsteht.
+- Einsatz: Sub-Seiten, die einen lokalen Zurück-Button plus Titel und Aktionen
+  brauchen (z.B. "Profil bearbeiten", "Neuer Beitrag", "Termin").
+- Signatur: `leading` (zurück), `title` (`title`-Style, normal case),
+  `actions` (Liste). Wird direkt in die Screen-`Column` unter dem
+  `DesignSurface` gesetzt.
+
+### Verbot
+- **Nie** eine `DesignAppBar` (oder Material `AppBar`) **innerhalb** eines
+  Screens einbauen. Das führt zu doppelten AppBars übereinander und falschen
+  Abständen. Sub-Seiten nutzen `DesignSubpageHeader`.
+- Ausnahme: Screens **ohne** Shell-Kontext (z.B. Login-Flow) dürfen
+  `DesignAppBar` als einzige Top-Level-AppBar in einem eigenen `Scaffold`
+  nutzen.
 
 ## Layout
 
 ### Breakpoint
-- Desktop: `shortestSide >= 600` → Seitenleiste + Content
-- Mobile: Bottom Navigation Bar
+- Desktop: `shortestSide >= 600` → Seitenleiste + Content.
+- Mobile: Bottom Navigation Bar.
 
 ### Desktop-Sidebar
-- Breite: 288px
-- Enthält Logo + "Beyond" Branding, dann Navigation
-- `VerticalDivider` zwischen Sidebar und Content
+- Breite: 288px.
+- Enthält Logo + "Beyond" Branding, dann Navigation.
+- `VerticalDivider` zwischen Sidebar und Content.
 
 ### Kalender
-- Desktop: Kalender-Widget links (360px) + Agenda rechts (flexible)
-- Mobile: Kalender als `SliverPersistentHeader` (collapsible) + Agenda
-- **Keine** eigene "Kalender"-Überschrift im Body – der Shell-AppBar zeigt
-  den Titel bereits
+- Desktop: Kalender-Widget links (360px) + Agenda rechts (flexible).
+- Mobile: Kalender als `SliverPersistentHeader` (collapsible) + Agenda.
+- **Keine** eigene "Kalender"-Überschrift im Body – die globale AppBar zeigt
+  den Titel bereits.
 
 ---
 
 # Eigenes Design-System (Design Showcase)
 
-Neben dem ursprünglichen Material-3-Look der App existiert ein
-**eigenständiges, nicht auf Material/Cupertino basierendes Design-System**. Es
-wurde im **Design Showcase** (`/design-showcase`) als Referenz etabliert und
-wird seitdem Screen für Screen in die bestehende App überführt
-(siehe [`doc/migration_plan.md`](doc/migration_plan.md)).
+Nein, das ist **nicht** separat – das obige Design-System **ist** das
+Produktions-Design. Der **Design Showcase** (`/design-showcase`) dient als
+lebende Referenz und zum Umschalten der drei Design-Varianten.
 
 ## Grundprinzipien
-
-1. **Ein Widget-Katalog** – alle neuen Widgets leben unter `lib/design/` und
-   werden von Screens nur zusammengesetzt, nie lokal neu definiert.
+1. **Ein Widget-Katalog** – alle Widgets leben unter `lib/design/` und werden
+   von Screens nur zusammengesetzt, nie lokal neu definiert.
 2. **Hierarchie & Vererbung** – Widgets bauen aufeinander auf (Foundation →
    Primitive → Composite → Showcase). `DesignButton` erbt über eine
    `PressScale`-Basis; `DesignCard` nutzt `DesignGlass`/`DesignSurface`.
@@ -131,7 +154,6 @@ wird seitdem Screen für Screen in die bestehende App überführt
    über den ganzen Screen gestreckt.
 
 ## Die drei Designs
-
 | | Materia Pop | Aurora Glass | Liquid Pulse |
 |---|---|---|---|
 | Charakter | Verspielt, Squircle, federnd | Luftig, Frosted Glass, Mesh | Dunkel, Spotify-artig, Neon-Glow |
@@ -145,9 +167,8 @@ wird seitdem Screen für Screen in die bestehende App überführt
 | Primärfarbe (Dark) | `#A78BFA` | `#60A5FA` | `#1ED760` |
 | Font | Chivo | Chivo | Chivo |
 
-Jeder Screen-Wechsel zwischen den Designs ist **rein in-memory** innerhalb
-einer Session (`ValueNotifier<DesignVariant>` in `SinclearApp`, verwaltet
-durch `DesignScope`).
+Jeder Design-Wechsel ist **rein in-memory** innerhalb einer Session
+(`ValueNotifier<DesignVariant>` in `SinclearApp`, verwaltet durch `DesignScope`).
 
 **Persistenz:** Die gewählte Variante wird lokal auf dem Endgerät gespeichert
 (`DesignController` + `DesignPreferences` via `shared_preferences`, egal ob
@@ -159,11 +180,10 @@ wenn nichts gespeichert ist. Geladen wird in `main.dart`
 
 **Auswahl in den Einstellungen:** Unter *Einstellungen → Erscheinungsbild*
 kann der Nutzer die Variante über den Katalog-`DesignSegmentedSwitch` wählen;
-die Änderung wird sofort persistiert und wirkt auf den Showcase sowie künftig
-auf migrierte Screens.
+die Änderung wird sofort persistiert und wirkt auf den Showcase sowie auf
+migrierte Screens.
 
 ## Widget-Katalog (Struktur)
-
 ```
 lib/design/
   design_variant.dart            # enum + Label/Tagline der 3 Designs
@@ -180,20 +200,18 @@ lib/design/
   widgets/
     foundation/                  # Layer 0: DesignSurface, DesignText, DesignGlass
     primitives/                  # Layer 1: Button, Card, Chip, TextField,
-                                 #           IconButton, Avatar, Badge, Divider,
-                                 #           PressScale
-    composite/                   # Layer 2: AppBar, BottomSheet, NavItem,
-                                  #           SegmentedSwitch, ListTile,
-                                  #           UserCard
+                                 #          IconButton, Avatar, Badge, Divider,
+                                 #          PressScale
+    composite/                   # Layer 2: AppBar, SubpageHeader, BottomSheet,
+                                  #          NavItem, SegmentedSwitch, ListTile,
+                                  #          UserCard
     showcase/                    # Layer 3: ShowcaseSection, ColorSwatch,
-                                 #           TokenSpec
+                                 #          TokenSpec
 ```
 
 ## Token-Spezifikation (Beispiel Materia Pop, Light)
-
 Alle Werte sind in `DesignTokens` als benannte Getter definiert und werden
 pro Design/Modus neu belegt. Auszug:
-
 - Farben: `background`, `surface`, `primary`, `secondary`, `accentA`,
   `accentB`, `textHigh`, `textLow`, `glow`, `success`, `warning`, `danger`
 - Radien: `sm 14 · md 20 · lg 26 · xl 30 · pill 999` (px)
@@ -206,7 +224,6 @@ Die Showcase-Screens rendern die aktuelle Palette (`DesignColorSwatch`) und
 eine Mess-Tabelle (`DesignTokenSpec`) live für das gewählte Design.
 
 ## Zugriff in Widgets
-
 ```dart
 final tokens = DesignTheme.of(context);          // aktive DesignTokens
 final variant = DesignScope.variantOf(context);  // aktives Design
@@ -214,13 +231,11 @@ DesignScope.notifierOf(context).value = DesignVariant.auroraGlass; // umschalten
 ```
 
 ## Verknüpfung
-
 Der Showcase ist über das Hauptmenü erreichbar (Sidebar + System-Sheet,
 Eintrag **Design Showcase**, Icon `palette_rounded`) und unter der Route
 `/design-showcase` eingehängt.
 
 ## Governance & Migrationsregeln
-
 Ab der Migration der bestehenden Screens gilt zwingend:
 
 1. **Ein einziger Katalog** – alle Widgets (grundlegend *und* spezialisiert)
@@ -234,11 +249,9 @@ Ab der Migration der bestehenden Screens gilt zwingend:
    (bei abweichenden Specs) in `doc/migration_plan.md` erfasst.
 
 ### Spezialisierte Widgets & Feature-Adapter
-
 Ein *spezialisiertes* Widget, das ein Feature-Modell (z.B. `UserBasePublic`)
 kennt, darf nicht ins abhängigkeitsfreie `lib/design/`-Layer gezwungen werden.
 Stattdessen gilt:
-
 - Das eigentliche, modell-unabhängige Widget liegt als **Composite im Katalog**
   (z.B. `DesignUserCard` mit `imageUrl`/`name`/`subtitle`).
 - Die Feature-Ebene stellt einen **dünnen Adapter** bereit, der das Modell auf
@@ -246,27 +259,17 @@ Stattdessen gilt:
 - Beide bauen ausschließlich auf Katalog-Primitives auf; keine lokalen
   Widget-Definitionen in Screens.
 
-### Konsistenzregel: Keine AppBars in Screens
-
-**Innerhalb eines Screens wird nie eine `DesignAppBar` (oder Material `AppBar`)
-eingebaut.** Die einzige AppBar der Seite ist die globale `DesignAppBar`, die
-von der Shell (`MainShell` → `_titleForLocation`) oberhalb des Screens
-gerendert wird. Bei Sub-Seiten (z.B. `/einstellungen/profil`) zeigt die Shell
-weiterhin den Hauptseiten-Titel; der Screen selbst startet ohne AppBar mit
-seinem ersten Inhalt.
-
-- Hauptseiten (z.B. Rezepte, Forum) → Shell-AppBar zeigt den Titel aus
-  `_titleForLocation`, kein eigener AppBar im Screen.
-- Sub-Seiten (z.B. Profil bearbeiten) → eigener `DesignAppBar` als erstes
-  Widget im Screen (mit Zurück-Button, `titleMedium`-Titel).
-- Ein Verstoß führt zu doppelten AppBars übereinander und falschen Abständen.
+### Konsistenzregel: Keine AppBars doppelt
+**Innerhalb eines Screens wird nie eine `DesignAppBar` eingebaut.** Die einzige
+echte AppBar ist die globale `DesignAppBar` der Shell. Sub-Seiten, die einen
+eigenen Zurück-Button/Titel/Aktionen brauchen, nutzen `DesignSubpageHeader`
+(siehe [AppBar-Regeln](#appbar-regeln)). Ein Verstoß führt zu doppelten
+AppBars übereinander und falschen Abständen.
 
 ### Konsistenzregel: Eingabefelder
-
 **Jedes Texteingabefeld** in einem migrierten Screen verwendet `DesignTextField`
 aus dem Katalog. Es gibt keine ad-hoc `TextField`- mit `OutlineInputBorder`-
 oder `InputDecoration`-Kombinationen mehr auf Screen-Ebene.
-
 - Einfache Felder → `DesignTextField` mit den Katalog-Parametern.
 - Felder mit einer Sichtbarkeitsauswahl (wie `VisibilityBadge`) → `suffix`-
   Parameter am `DesignTextField`.
@@ -283,7 +286,6 @@ Border, dieselbe Hintergrundfarbe und dieselbe Schrift** aus den aktiven
 Design-Tokens bekommt.
 
 ### Bereits migrierte Katalog-Widgets
-
 - **`DesignAvatar`** (`primitives`) – Kreis-Avatar mit Bild oder Initialen.
   Unterstützt HTTP(S)-, `data:`- und rohe Base64-Bilder (via
   `resolveImageProvider`) und ist damit vollwertiger Ersatz für das alte
@@ -314,11 +316,18 @@ Design-Tokens bekommt.
   blendet den Button aus und zeigt einen `CircularProgressIndicator` an Stelle
   des `icon` (kein lokaler Spinner nötig). `fullWidth` spannt den Button über
   die gesamte Breite.
-- **`DesignAppBar`** (`composite`) – Nicht-Material AppBar aus `DesignText`
-  (kein eigenes `DesignSurface`). Rendert einen transparenten 72 px-Strip mit
-  `tokens.spaceXs` Boden-Padding; der parent Screen wickelt die gesamte Seite
-  (AppBar + Body) in ein einziges `DesignSurface`, damit Gradient und Grain
-  unterbrechungsfrei laufen. Status-bar-sicher (`SafeArea`).
+- **`DesignAppBar`** (`composite`) – Globale, nicht-Material AppBar aus
+  `DesignText`. Ist eine `PreferredSizeWidget`, status-bar-sicher und rendert
+  einen transparenten Strip mit `kToolbarHeight` + Status-bar-Inset als Höhe;
+  der parent Screen wickelt die gesamte Seite (AppBar + Body) in ein einziges
+  `DesignSurface`, damit Gradient und Grain unterbrechungsfrei laufen. Wird
+  **nur von der Shell** gerendert, nie innerhalb eines Screens.
+- **`DesignSubpageHeader`** (`composite`) – In-Page-Header, der wie eine
+  AppBar aussieht, aber **keine** ist. Reine Screen-Sektion unterhalb der
+  globalen AppBar, bewusst ohne `SafeArea`/Status-bar-Insets (kein doppelter
+  Abstand). Parameter: `title` (`title`-Style, normal case), `leading`
+  (z.B. Zurück-Button), `actions` (Liste). Einsatz in Sub-Seiten, die einen
+  eigenen Zurück-Button/Titel/Aktionen brauchen.
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste

@@ -8,7 +8,7 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
-import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
 import '../models/calendar_models.dart';
@@ -180,7 +180,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       return DesignSurface(
         child: Column(
           children: [
-            DesignAppBar(
+            DesignSubpageHeader(
               leading: DesignIconButton(
                 icon: Icons.arrow_back_rounded,
                 onPressed: () => context.pop(),
@@ -201,7 +201,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       return DesignSurface(
         child: Column(
           children: [
-            DesignAppBar(
+            DesignSubpageHeader(
               leading: DesignIconButton(
                 icon: Icons.arrow_back_rounded,
                 onPressed: () => context.pop(),
@@ -243,7 +243,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(
+          DesignSubpageHeader(
             leading: DesignIconButton(
               icon: Icons.arrow_back_rounded,
               onPressed: () => context.pop(),

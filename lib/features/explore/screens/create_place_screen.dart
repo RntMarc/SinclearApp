@@ -10,7 +10,7 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
-import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
 import '../models/explore_models.dart';
 
@@ -102,7 +102,7 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
     return DesignSurface(
       child: Column(
         children: [
-          const DesignAppBar(
+          const DesignSubpageHeader(
             title: 'Ort hinzufügen',
           ),
           Expanded(child: _buildBody(tokens)),
