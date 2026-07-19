@@ -33,10 +33,16 @@ class UserBasePublic {
       image: json['image'] as String?,
       discordId: json['discordId'] as String?,
       discordAvatarHash: json['discordAvatarHash'] as String?,
-      syncAvatarFromDiscord: json['syncAvatarFromDiscord'] as bool? ?? true,
+      syncAvatarFromDiscord: _coerceBool(
+        json['syncAvatarFromDiscord'],
+        defaultValue: true,
+      ),
       isAdmin: json['isAdmin'] as bool,
       createdAt: json['createdAt'] as String,
-      onboardingCompleted: json['onboardingCompleted'] as bool,
+      onboardingCompleted: _coerceBool(
+        json['onboardingCompleted'],
+        defaultValue: false,
+      ),
       birthday: json['birthday'] as String?,
     );
   }
@@ -210,4 +216,13 @@ class UserDetailPublicResponse {
       data: UserDetailPublic.fromJson(json['data'] as Map<String, dynamic>),
     );
   }
+}
+
+/// Coerces the API's boolean-like values (which may arrive as `bool` or as
+/// `int` `1`/`0`) into a Dart `bool`.
+bool _coerceBool(Object? value, {required bool defaultValue}) {
+  if (value == null) return defaultValue;
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  return defaultValue;
 }
