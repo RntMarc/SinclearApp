@@ -239,10 +239,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 color: tokens.primary,
                               ),
                             )
-                          : Switch(
-                              value: _syncAvatarFromDiscord,
-                              onChanged: (v) => _toggleDiscordSync(v),
-                              activeThumbColor: tokens.primary,
+                          : Material(
+                              type: MaterialType.transparency,
+                              child: Switch(
+                                value: _syncAvatarFromDiscord,
+                                onChanged: (v) => _toggleDiscordSync(v),
+                                activeThumbColor: tokens.primary,
+                              ),
                             ),
                       onTap: _savingSync
                           ? null
