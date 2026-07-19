@@ -133,7 +133,7 @@ Erzeugt alle Kinder eager – bei langen Listen Performance-Problem.
 - [x] **Analyse**: 32 Screens mit `setState`-Muster, 2 ChangeNotifier (Auth, Notification), 2 ValueNotifier (Design, WebUpdate)
 - [x] **A1 – ValueNotifier für UI-Toggles**: `_showMap` in `explore_screen.dart` + `category_screen.dart` auf `ValueNotifier` umgestellt → Full-Screen-Rebuild beim Kartenwechsel eliminiert
 - [x] **A2 – RefreshIndicator**: Auf 14 Screens nachgerüstet (Travel, TripDetail, Calendar, EventDetail, Settings, Feedback, FeedbackDetail, RecipeList, RecipeDetail, RecipeCatalog, Contacts, UserDetail, Onboarding, SubscriptionDetail)
-- [ ] Nach erneuter Analyse entscheiden, ob B (Auth-Reactivity) / C (Global Caching) zusätzlich nötig ist
+- [x] **Nachanalyse**: Paket B + C abgelehnt – Auth ändert sich nie bei sichtbarem Screen, Boilerplate-Einsparung marginal. Keine merkbare Verbesserung. C5 abgeschlossen ✅
 
 ### C6. `const`-Konstruktoren nachrüsten `[x]`
 - [x] `prefer_const_constructors`, `prefer_const_literals_to_create_immutables` in `analysis_options.yaml` aktiviert
