@@ -61,8 +61,14 @@ class UserPreferences {
       timezone: json['timezone'] as String?,
       emailVisibility: (json['emailVisibility'] as num?)?.toInt() ?? 1,
       birthdayVisibility: (json['birthdayVisibility'] as num?)?.toInt() ?? 1,
-      syncAvatarFromDiscord: json['syncAvatarFromDiscord'] as bool? ?? true,
-      onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
+      syncAvatarFromDiscord: _coerceBool(
+        json['syncAvatarFromDiscord'],
+        defaultValue: true,
+      ),
+      onboardingCompleted: _coerceBool(
+        json['onboardingCompleted'],
+        defaultValue: false,
+      ),
       discordVisibility: (json['discordVisibility'] as num?)?.toInt() ?? 1,
       fluxerVisibility: (json['fluxerVisibility'] as num?)?.toInt() ?? 1,
       matrixVisibility: (json['matrixVisibility'] as num?)?.toInt() ?? 1,
@@ -116,4 +122,13 @@ class UserPreferencesResponse {
       data: UserPreferences.fromJson(json['data'] as Map<String, dynamic>),
     );
   }
+}
+
+/// Coerces the API's boolean-like values (which may arrive as `bool` or as
+/// `int` `1`/`0`) into a Dart `bool`.
+bool _coerceBool(Object? value, {required bool defaultValue}) {
+  if (value == null) return defaultValue;
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  return defaultValue;
 }

@@ -110,10 +110,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final user = _user!;
 
-    return DesignSurface(
-      child: RefreshIndicator(
-        onRefresh: _load,
-        child: SingleChildScrollView(
+    return Scaffold(
+      body: DesignSurface(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(
             children: [
@@ -352,6 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
