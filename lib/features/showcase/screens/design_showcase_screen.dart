@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../design/theme/design_theme.dart';
-import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
@@ -236,7 +236,7 @@ class DesignShowcaseScreen extends StatelessWidget {
 
   Widget _appBarSample() {
     return DesignSurface(
-      child: DesignAppBar(
+      child: DesignSubpageHeader(
         title: 'Beispiel',
         leading: DesignIconButton(
           icon: Icons.arrow_back_rounded,

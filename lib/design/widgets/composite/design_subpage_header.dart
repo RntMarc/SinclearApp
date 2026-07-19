@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import '../../theme/design_theme.dart';
 import '../foundation/design_text.dart';
 
-/// Top app bar built entirely from catalog primitives (no Material [AppBar]).
+/// In-page header that *looks* like an app bar but is not one.
 ///
-/// Shows an optional back action, a title and trailing actions. Renders as a
-/// transparent strip – the parent screen should wrap the entire page in a
-/// single [DesignSurface] so the gradient is continuous from bar to body.
-class DesignAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const DesignAppBar({
+/// Unlike [DesignAppBar] this is a plain screen section rendered *below* the
+/// global shell app bar. It deliberately avoids [SafeArea] and status-bar
+/// insets so it never competes with the real app bar for top spacing. Use it
+/// for sub-pages that need a local back control plus a title and actions.
+class DesignSubpageHeader extends StatelessWidget {
+  const DesignSubpageHeader({
     this.title,
     this.leading,
     this.actions,
@@ -20,18 +21,14 @@ class DesignAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-
-  @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final topInset = MediaQuery.paddingOf(context).top;
-    return Container(
-      constraints: BoxConstraints(minHeight: kToolbarHeight + topInset),
+    return Padding(
       padding: EdgeInsets.fromLTRB(
-        tokens.spaceLg, topInset, tokens.spaceLg, tokens.spaceXs,
+        tokens.spaceLg, tokens.spaceMd, tokens.spaceLg, tokens.spaceMd,
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           if (leading != null)
             Padding(

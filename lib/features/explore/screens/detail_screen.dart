@@ -7,7 +7,7 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
-import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../user/models/user_models.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../models/explore_models.dart';
@@ -348,7 +348,7 @@ class _DetailScreenState extends State<DetailScreen> {
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(
+          DesignSubpageHeader(
             leading: DesignIconButton(
               icon: Icons.arrow_back_rounded,
               onPressed: () => context.pop(),

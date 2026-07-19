@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
-import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_card.dart';
@@ -65,7 +65,7 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(
+          DesignSubpageHeader(
             title: sub.name,
             leading: GestureDetector(
               onTap: () => Navigator.pop(context),

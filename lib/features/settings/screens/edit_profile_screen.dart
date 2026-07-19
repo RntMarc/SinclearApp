@@ -8,7 +8,7 @@ import '../../../core/image/image_compressor.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/network/api_client.dart';
 import '../../../design/theme/design_theme.dart';
-import '../../../design/widgets/composite/design_app_bar.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -283,7 +283,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(
+          DesignSubpageHeader(
             leading: DesignIconButton(
               icon: Icons.arrow_back_rounded,
               onPressed: () => context.pop(),
