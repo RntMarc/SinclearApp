@@ -35,6 +35,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   PackageInfo? _packageInfo;
   bool _checkingUpdate = false;
   String? _updateError;
+  bool _syncAvatarFromDiscord = true;
+  bool _savingSync = false;
 
   @override
   void didChangeDependencies() {
@@ -56,6 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _user = user;
         _packageInfo = packageInfo;
+        _syncAvatarFromDiscord = user.base.syncAvatarFromDiscord;
         _loading = false;
         _error = null;
       });
@@ -220,6 +223,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => context.push('/einstellungen/discord'),
                   ),
+                  if (user.base.discordId != null)
+                    DesignListTile(
+                      leading: const Icon(Icons.sync_rounded),
+                      title: 'Discord-Profilbild synchronisieren',
+                      subtitle: _syncAvatarFromDiscord
+                          ? 'Automatisch bei jedem Login'
+                          : 'Deaktiviert',
+                      trailing: _savingSync
+                          ? SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: tokens.primary,
+                              ),
+                            )
+                          : Switch(
+                              value: _syncAvatarFromDiscord,
+                              onChanged: (v) => _toggleDiscordSync(v),
+                              activeThumbColor: tokens.primary,
+                            ),
+                      onTap: _savingSync
+                          ? null
+                          : () => _toggleDiscordSync(!_syncAvatarFromDiscord),
+                    ),
                 ],
               ),
 
@@ -323,6 +351,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _toggleDiscordSync(bool newValue) async {
+    setState(() => _savingSync = true);
+
+    try {
+      final updated = await AppScope.of(
+        context,
+      ).user.updatePreferences({'syncAvatarFromDiscord': newValue});
+      if (!mounted) return;
+      setState(() {
+        _syncAvatarFromDiscord = updated.syncAvatarFromDiscord;
+        _savingSync = false;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Einstellung gespeichert')));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _savingSync = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern')));
+    }
   }
 
   String _socialSummary(UserSocialInfo s) {

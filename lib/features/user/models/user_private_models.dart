@@ -5,6 +5,8 @@ class UserBase {
   final String displayName;
   final String? image;
   final String? discordId;
+  final String? discordAvatarHash;
+  final bool syncAvatarFromDiscord;
   final bool isAdmin;
   final String createdAt;
   final bool onboardingCompleted;
@@ -18,6 +20,8 @@ class UserBase {
     required this.displayName,
     this.image,
     this.discordId,
+    this.discordAvatarHash,
+    this.syncAvatarFromDiscord = true,
     required this.isAdmin,
     required this.createdAt,
     required this.onboardingCompleted,
@@ -33,6 +37,8 @@ class UserBase {
       displayName: json['displayName'] as String,
       image: json['image'] as String?,
       discordId: json['discordId'] as String?,
+      discordAvatarHash: json['discordAvatarHash'] as String?,
+      syncAvatarFromDiscord: json['syncAvatarFromDiscord'] as bool? ?? true,
       isAdmin: json['isAdmin'] as bool,
       createdAt: json['createdAt'] as String,
       onboardingCompleted: json['onboardingCompleted'] as bool,
