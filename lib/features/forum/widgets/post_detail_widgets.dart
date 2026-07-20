@@ -140,7 +140,6 @@ class PostCommentsSection extends StatelessWidget {
   final ValueChanged<String> onReply;
   final void Function(String text, {String? parentId}) onAddComment;
   final void Function(String commentId) onDeleteComment;
-  final String Function(String userId) resolveUserName;
 
   const PostCommentsSection({
     super.key,
@@ -153,7 +152,6 @@ class PostCommentsSection extends StatelessWidget {
     required this.onReply,
     required this.onAddComment,
     required this.onDeleteComment,
-    required this.resolveUserName,
   });
 
   @override
@@ -208,7 +206,6 @@ class PostCommentsSection extends StatelessWidget {
               comment: comment,
               currentUserId: currentUserId,
               isAdmin: isAdmin,
-              resolveUserName: resolveUserName,
               onReply: onReply,
               onDelete: onDeleteComment,
             ),

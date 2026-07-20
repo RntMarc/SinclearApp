@@ -12,7 +12,6 @@ class CommentTreeTile extends StatelessWidget {
   final FeedPostComment comment;
   final String currentUserId;
   final bool isAdmin;
-  final String Function(String userId) resolveUserName;
   final ValueChanged<String> onReply;
   final ValueChanged<String> onDelete;
 
@@ -21,7 +20,6 @@ class CommentTreeTile extends StatelessWidget {
     required this.comment,
     required this.currentUserId,
     required this.isAdmin,
-    required this.resolveUserName,
     required this.onReply,
     required this.onDelete,
   });
@@ -30,7 +28,8 @@ class CommentTreeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOwner = comment.userId == currentUserId;
     final tokens = DesignTheme.of(context);
-    final userName = resolveUserName(comment.userId);
+    final userName = comment.userName ??
+        (isOwner ? 'Du' : 'Benutzer');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,7 +138,6 @@ class CommentTreeTile extends StatelessWidget {
                       comment: child,
                       currentUserId: currentUserId,
                       isAdmin: isAdmin,
-                      resolveUserName: resolveUserName,
                       onReply: onReply,
                       onDelete: onDelete,
                     ),
