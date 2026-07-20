@@ -155,18 +155,12 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId;
 
-    final tabs = <Tab>[const Tab(text: 'Übersicht'), const Tab(text: 'Events'), const Tab(text: 'Karte')];
+    final tabs = <Tab>[const Tab(text: 'Übersicht')];
     final tabViews = <Widget>[
       TripOverviewTab(
         trip: trip,
         accommodations: _accommodations,
         participants: _participants,
-        currentUserId: currentUserId,
-      ),
-      TripEventsTab(events: _events, currentUserId: currentUserId),
-      TripMapTab(
-        accommodations: _accommodations,
-        events: _events,
         currentUserId: currentUserId,
       ),
     ];
@@ -176,10 +170,20 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       tabViews.add(EmbeddedForumView(forumId: trip.forumId!));
     }
 
+    tabs.add(const Tab(text: 'Events'));
+    tabViews.add(TripEventsTab(events: _events, currentUserId: currentUserId));
+
     if (_subscriptions.isNotEmpty) {
       tabs.add(const Tab(text: 'Zahlungen'));
       tabViews.add(_buildPaymentsTab(tokens));
     }
+
+    tabs.add(const Tab(text: 'Karte'));
+    tabViews.add(TripMapTab(
+      accommodations: _accommodations,
+      events: _events,
+      currentUserId: currentUserId,
+    ));
 
     return RefreshIndicator(
       onRefresh: _load,
