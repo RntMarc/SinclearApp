@@ -218,6 +218,19 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 
 - [ ] Der API wurden neue Endpunkte hinzugefügt mit Funktionen zum Verwalten geteilter Abos unter Freunden. Es soll passend dazu ein neuer Screen Abos gebaut werden, auf dem der Nutzer alle Abonnements sieht, bei denen er ein Mitglied ist. Lies dir die Dokumentation der API dazu genau durch und befolge auch die Regeln zum Design exakt.
 
+### G3. Erweiterung von Reisen und Events `[x]`
+
+- [x] Event Detail Screen (`TravelEventDetailScreen`) – zeigt alle Event-Informationen (Name, Beschreibung, Datum/Zeit, Veranstalter, Adresse, Karte, Teilnehmer). Navigation von der Reise-Liste (Standalone) und aus dem Reise-Detail (Trip-Events).
+- [x] Unterkunft Detail Screen (`AccommodationDetailScreen`) – zeigt Name, Beschreibung, Adresse, Telefon, Mail, Karte, zugeordnete Nutzer. Navigation durch Klick auf Unterkunftskarte im Reise-Detail.
+- [x] Forum-Tab in der Reise-Detailansicht – wird dynamisch eingeblendet wenn `trip.forumId != null`. Zeigt `EmbeddedForumView` (identisch zum Forum-Detail-Screen, aber ohne Header/Title). API-Docs: "Alle Teilnehmer der Reise werden automatisch Mitglieder des Forums, verknüpfte Foren werden in der öffentlichen Foren-Liste ausgeblendet."
+- [x] Zahlungen-Tab in der Reise-Detailansicht – wird dynamisch eingeblendet wenn verknüpfte Abos existieren (`subscriptionCount > 0`). API filtert automatisch nur die Abos, auf die der Nutzer Zugriff hat. Bei leerer Liste wird der Tab nicht angezeigt.
+- [x] Neue Service-Methoden: `getEventUnified()`, `getAccommodationDetail()`, `getTripSubscriptions()`
+- [x] Neue Modelle: `ForumBrief`-Klasse, `forumId`/`forum`/`subscriptionCount` in `TravelTrip`
+
+### G4. Hinzufügen von Rezepten
+
+- [ ] Neuer Screen zum Hinzufügen von Rezepten. Dort Formular mit allen Feldern, entsprechend Vorgaben der API. Bei Maßeinheiten nur Auswahl aus den erlaubten Einheiten der API. Wenn API nichts vorgibt, schlage eine Änderung vor mit allen gängigen Maßeinheiten in Rezepten (g, Esslöffel, Stück, Prise, ml, ...), aber ändere die API nicht selbst.
+
 ---
 
 ## Reihenfolge / Abhängigkeiten
@@ -234,5 +247,6 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 10. ✅ **(mittel)** **D** – UI-Konsistenz ✅
 11. **(mittel)** **F1, F3, F4** – Logging + Error-Handling
 12. ✅ **(mittel)** **C5** – Paket A (ValueNotifier Toggles + RefreshIndicator) ✅
-13. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
-14. **(später)** **G** – Neue Funktionen (nach den Fundament-Verbesserungen)
+13. ✅ **(erledigt)** **G3** – Reisen/Events-Erweiterung ✅
+14. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
+15. **(später)** **G1, G2, G4** – Weitere neue Funktionen

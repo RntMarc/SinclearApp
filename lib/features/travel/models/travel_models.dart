@@ -1,5 +1,28 @@
 import '../../../core/utils/date_utils.dart';
 
+class ForumBrief {
+  final String id;
+  final String name;
+  final String? description;
+  final String? image;
+
+  const ForumBrief({
+    required this.id,
+    required this.name,
+    this.description,
+    this.image,
+  });
+
+  factory ForumBrief.fromJson(Map<String, dynamic> json) {
+    return ForumBrief(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      image: json['image'] as String?,
+    );
+  }
+}
+
 class TravelTrip {
   final String id;
   final String name;
@@ -9,6 +32,9 @@ class TravelTrip {
   final String hastickets;
   final String? ticket;
   final String? ticketUrl;
+  final String? forumId;
+  final ForumBrief? forum;
+  final int subscriptionCount;
 
   const TravelTrip({
     required this.id,
@@ -19,6 +45,9 @@ class TravelTrip {
     required this.hastickets,
     this.ticket,
     this.ticketUrl,
+    this.forumId,
+    this.forum,
+    this.subscriptionCount = 0,
   });
 
   factory TravelTrip.fromJson(Map<String, dynamic> json) {
@@ -31,6 +60,11 @@ class TravelTrip {
       hastickets: json['hastickets'] as String,
       ticket: json['ticket'] as String?,
       ticketUrl: json['ticketUrl'] as String?,
+      forumId: json['forumId'] as String?,
+      forum: json['forum'] != null
+          ? ForumBrief.fromJson(json['forum'] as Map<String, dynamic>)
+          : null,
+      subscriptionCount: (json['subscriptionCount'] as num?)?.toInt() ?? 0,
     );
   }
 }

@@ -8,9 +8,13 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
+import '../../subscription/models/subscription_models.dart';
+import '../../subscription/widgets/subscription_card.dart';
+import '../../subscription/screens/subscription_detail_screen.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../widgets/trip_detail_widgets.dart';
+import '../widgets/embedded_forum_view.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final String id;
@@ -32,6 +36,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   List<TravelEvent> _events = [];
   List<TravelAccommodation> _accommodations = [];
   List<TravelParticipant> _participants = [];
+  List<Subscription> _subscriptions = [];
   bool _hasLoaded = false;
 
   @override
@@ -50,20 +55,30 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     });
 
     try {
-      final results = await Future.wait([
-        _service.getTrip(widget.id),
+      final trip = await _service.getTrip(widget.id);
+
+      final futures = <Future>[
         _service.getEvents(widget.id),
         _service.getAccommodations(widget.id),
         _service.getParticipants(widget.id),
-      ]);
+      ];
+
+      if (trip.subscriptionCount > 0) {
+        futures.add(_service.getTripSubscriptions(widget.id));
+      }
+
+      final results = await Future.wait(futures);
 
       if (!mounted) return;
 
       setState(() {
-        _trip = results[0] as TravelTrip;
-        _events = (results[1] as TravelEventListResponse).data;
-        _accommodations = (results[2] as TravelAccommodationListResponse).data;
-        _participants = (results[3] as TravelParticipantListResponse).data;
+        _trip = trip;
+        _events = (results[0] as TravelEventListResponse).data;
+        _accommodations = (results[1] as TravelAccommodationListResponse).data;
+        _participants = (results[2] as TravelParticipantListResponse).data;
+        if (trip.subscriptionCount > 0 && results.length > 3) {
+          _subscriptions = results[3] as List<Subscription>;
+        }
         _loading = false;
       });
     } catch (e, st) {
@@ -140,10 +155,36 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId;
 
+    final tabs = <Tab>[const Tab(text: 'Übersicht'), const Tab(text: 'Events'), const Tab(text: 'Karte')];
+    final tabViews = <Widget>[
+      TripOverviewTab(
+        trip: trip,
+        accommodations: _accommodations,
+        participants: _participants,
+        currentUserId: currentUserId,
+      ),
+      TripEventsTab(events: _events, currentUserId: currentUserId),
+      TripMapTab(
+        accommodations: _accommodations,
+        events: _events,
+        currentUserId: currentUserId,
+      ),
+    ];
+
+    if (trip.forumId != null) {
+      tabs.add(const Tab(text: 'Forum'));
+      tabViews.add(EmbeddedForumView(forumId: trip.forumId!));
+    }
+
+    if (_subscriptions.isNotEmpty) {
+      tabs.add(const Tab(text: 'Zahlungen'));
+      tabViews.add(_buildPaymentsTab(tokens));
+    }
+
     return RefreshIndicator(
       onRefresh: _load,
       child: DefaultTabController(
-        length: 3,
+        length: tabs.length,
         child: Column(
           children: [
             TabBar(
@@ -152,32 +193,47 @@ class _TripDetailScreenState extends State<TripDetailScreen>
               unselectedLabelColor: tokens.textLow,
               labelStyle: tokens.bodyStyle(tokens.textHigh),
               unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
-              tabs: const [
-                Tab(text: 'Übersicht'),
-                Tab(text: 'Events'),
-                Tab(text: 'Karte'),
-              ],
+              isScrollable: tabs.length > 3,
+              tabs: tabs,
             ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  TripOverviewTab(
-                    trip: trip,
-                    accommodations: _accommodations,
-                    participants: _participants,
-                    currentUserId: currentUserId,
-                  ),
-                  TripEventsTab(events: _events, currentUserId: currentUserId),
-                  TripMapTab(
-                    accommodations: _accommodations,
-                    events: _events,
-                    currentUserId: currentUserId,
-                  ),
-                ],
-              ),
-            ),
+            Expanded(child: TabBarView(children: tabViews)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentsTab(DesignTokens tokens) {
+    if (_subscriptions.isEmpty) {
+      return Center(
+        child: DesignText(
+          'Keine Zahlungen verfügbar',
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        children: _subscriptions.map((sub) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: tokens.spaceSm),
+            child: SubscriptionCard(
+              subscription: sub,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        SubscriptionDetailScreen(subscription: sub),
+                  ),
+                );
+              },
+            ),
+          );
+        }).toList(),
       ),
     );
   }
