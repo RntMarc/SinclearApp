@@ -1,6 +1,5 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
@@ -8,6 +7,8 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
 import '../../forum/models/forum_models.dart';
+import '../../forum/screens/post_detail_screen.dart';
+import '../../forum/screens/create_post_screen.dart';
 import '../../forum/widgets/forum_detail_widgets.dart';
 
 class EmbeddedForumView extends StatefulWidget {
@@ -132,22 +133,6 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _postsLoading = false);
-    }
-  }
-
-  Future<void> _toggleJoin() async {
-    final forum = _forum;
-    if (forum == null) return;
-    try {
-      final forumService = AppScope.of(context).forum;
-      if (forum.isMember) {
-        await forumService.leave(forum.id);
-      } else {
-        await forumService.join(forum.id);
-      }
-      _load();
-    } catch (e) {
-      developer.log('Join/leave failed', error: e);
     }
   }
 
@@ -282,7 +267,6 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
                 children: [
                   ForumHeaderCard(
                     forum: forum,
-                    onToggleJoin: _toggleJoin,
                   ),
                   SizedBox(height: tokens.spaceMd),
                   const DesignDivider(),
@@ -297,6 +281,15 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
                     forumId: widget.forumId,
                     onVote: _votePost,
                     onDelete: _deletePost,
+                    onPostTap: (fid, pid) => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PostDetailScreen(
+                          forumId: fid,
+                          postId: pid,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -311,8 +304,14 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
               icon: Icons.add_rounded,
               label: 'Neuer Beitrag',
               fullWidth: true,
-              onPressed: () =>
-                  context.go('/forum/${widget.forumId}/erstellen'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CreatePostScreen(
+                    forumId: widget.forumId,
+                  ),
+                ),
+              ),
             ),
           ),
       ],

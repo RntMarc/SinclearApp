@@ -10,12 +10,12 @@ import 'post_card.dart';
 
 class ForumHeaderCard extends StatelessWidget {
   final ForumDetail forum;
-  final VoidCallback onToggleJoin;
+  final VoidCallback? onToggleJoin;
 
   const ForumHeaderCard({
     super.key,
     required this.forum,
-    required this.onToggleJoin,
+    this.onToggleJoin,
   });
 
   @override
@@ -80,19 +80,21 @@ class ForumHeaderCard extends StatelessWidget {
                     color: tokens.textLow,
                   ),
                 ],
-                SizedBox(height: tokens.spaceLg),
-                DesignButton(
-                  variant: forum.isMember
-                      ? DesignButtonVariant.outlined
-                      : DesignButtonVariant.filled,
-                  icon: forum.isMember
-                      ? Icons.exit_to_app_rounded
-                      : Icons.add_rounded,
-                  label: forum.isMember
-                      ? 'Forum verlassen'
-                      : 'Forum beitreten',
-                  onPressed: onToggleJoin,
-                ),
+                if (onToggleJoin != null) ...[
+                  SizedBox(height: tokens.spaceLg),
+                  DesignButton(
+                    variant: forum.isMember
+                        ? DesignButtonVariant.outlined
+                        : DesignButtonVariant.filled,
+                    icon: forum.isMember
+                        ? Icons.exit_to_app_rounded
+                        : Icons.add_rounded,
+                    label: forum.isMember
+                        ? 'Forum verlassen'
+                        : 'Forum beitreten',
+                    onPressed: onToggleJoin,
+                  ),
+                ],
               ],
             ),
           ),
@@ -112,6 +114,7 @@ class ForumPostList extends StatelessWidget {
   final String forumId;
   final void Function(FeedPost post) onVote;
   final void Function(FeedPost post) onDelete;
+  final void Function(String forumId, String postId)? onPostTap;
 
   const ForumPostList({
     super.key,
@@ -124,6 +127,7 @@ class ForumPostList extends StatelessWidget {
     required this.forumId,
     required this.onVote,
     required this.onDelete,
+    this.onPostTap,
   });
 
   @override
@@ -161,8 +165,9 @@ class ForumPostList extends StatelessWidget {
               key: ValueKey(post.id),
               post: post,
               currentUserId: currentUserId,
-              onTap: () =>
-                  context.go('/forum/$forumId/beitrag/${post.id}'),
+              onTap: () => onPostTap != null
+                  ? onPostTap!(forumId, post.id)
+                  : context.go('/forum/$forumId/beitrag/${post.id}'),
               onVote: () => onVote(post),
               onDelete: (post.userId == currentUserId || isAdmin)
                   ? () => onDelete(post)
