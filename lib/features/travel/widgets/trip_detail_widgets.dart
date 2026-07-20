@@ -8,6 +8,8 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../models/travel_models.dart';
+import '../screens/accommodation_detail_screen.dart';
+import '../screens/event_detail_screen.dart';
 import '../widgets/user_tile.dart';
 
 class TripOverviewTab extends StatelessWidget {
@@ -77,6 +79,7 @@ class TripOverviewTab extends StatelessWidget {
                 isMine:
                     currentUserId != null &&
                     a.users.any((u) => u.id == currentUserId),
+                tripId: trip.id,
               ),
             ),
           ],
@@ -185,13 +188,25 @@ class TripAccommodationMap extends StatelessWidget {
 class TripAccommodationCard extends StatelessWidget {
   final TravelAccommodation accommodation;
   final bool isMine;
+  final String? tripId;
 
-  const TripAccommodationCard({super.key, required this.accommodation, required this.isMine});
+  const TripAccommodationCard({super.key, required this.accommodation, required this.isMine, this.tripId});
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     return DesignCard(
+      onTap: tripId != null
+          ? () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AccommodationDetailScreen(
+                    tripId: tripId!,
+                    accommodationId: accommodation.id,
+                  ),
+                ),
+              )
+          : null,
       margin: EdgeInsets.only(bottom: tokens.spaceSm),
       padding: EdgeInsets.all(tokens.spaceMd),
       child: Column(
@@ -346,6 +361,13 @@ class TripEventCard extends StatelessWidget {
     return Opacity(
       opacity: participating ? 1.0 : 0.5,
       child: DesignCard(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                TravelEventDetailScreen(id: event.id),
+          ),
+        ),
         margin: EdgeInsets.fromLTRB(
           tokens.spaceLg,
           0,

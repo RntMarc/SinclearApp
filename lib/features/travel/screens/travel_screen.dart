@@ -8,6 +8,7 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../models/travel_models.dart';
+import '../screens/event_detail_screen.dart';
 import '../services/travel_service.dart';
 
 class TravelScreen extends StatefulWidget {
@@ -211,7 +212,15 @@ class _TravelScreenState extends State<TravelScreen> {
             tokens.spaceXs,
           ),
           padding: EdgeInsets.all(tokens.spaceMd),
-          onTap: entry.isTrip ? () => context.go('/reisen/${entry.id}') : null,
+          onTap: entry.isTrip
+              ? () => context.go('/reisen/${entry.id}')
+              : () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          TravelEventDetailScreen(id: entry.id),
+                    ),
+                  ),
           child: Row(
             children: [
               Container(

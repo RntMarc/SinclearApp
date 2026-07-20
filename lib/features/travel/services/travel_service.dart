@@ -1,5 +1,6 @@
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
+import '../../subscription/models/subscription_models.dart';
 import '../models/travel_models.dart';
 
 // ignore_for_file: prefer_initializing_formals
@@ -71,5 +72,35 @@ class TravelService {
       token: await _token(),
     );
     return TravelStandaloneEventListResponse.fromJson(data);
+  }
+
+  Future<TravelEvent> getEventUnified(String eventId) async {
+    final data = await _api.get(
+      '/trips/events/$eventId',
+      token: await _token(),
+    );
+    return TravelEvent.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<TravelAccommodation> getAccommodationDetail(
+    String tripId,
+    String accommodationId,
+  ) async {
+    final data = await _api.get(
+      '/trips/$tripId/accommodations/$accommodationId',
+      token: await _token(),
+    );
+    return TravelAccommodation.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<List<Subscription>> getTripSubscriptions(String tripId) async {
+    final data = await _api.get(
+      '/trips/$tripId/subscriptions',
+      token: await _token(),
+    );
+    final items = data['data'] as List<dynamic>;
+    return items
+        .map((item) => Subscription.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 }
