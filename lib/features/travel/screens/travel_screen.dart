@@ -7,9 +7,13 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../models/pt_models.dart';
 import '../models/travel_models.dart';
 import '../screens/event_detail_screen.dart';
+import '../screens/pt_journey_detail_screen.dart';
+import '../screens/pt_search_screen.dart';
 import '../services/travel_service.dart';
+import '../widgets/pt_journey_card.dart';
 
 class TravelScreen extends StatefulWidget {
   const TravelScreen({super.key});
@@ -26,6 +30,7 @@ class _TravelScreenState extends State<TravelScreen> {
   List<TimelineEntry> _current = [];
   List<TimelineEntry> _future = [];
   List<TimelineEntry> _past = [];
+  List<PtSavedJourney> _ptJourneys = [];
   bool _hasLoaded = false;
 
   @override
@@ -46,10 +51,18 @@ class _TravelScreenState extends State<TravelScreen> {
     try {
       final tripsFuture = _service.list(limit: 100);
       final standaloneFuture = _service.getStandaloneEvents(limit: 100);
-      final results = await Future.wait([tripsFuture, standaloneFuture]);
+      final ptFuture = AppScope.of(context).publicTransport.listJourneys(
+        limit: 100,
+      );
+      final results = await Future.wait([
+        tripsFuture,
+        standaloneFuture,
+        ptFuture,
+      ]);
 
       final trips = results[0] as TravelTripListResponse;
       final standalone = results[1] as TravelStandaloneEventListResponse;
+      final ptResponse = results[2] as PtSavedJourneyListResponse;
 
       final entries = <TimelineEntry>[
         for (final t in trips.data)
@@ -95,6 +108,7 @@ class _TravelScreenState extends State<TravelScreen> {
         _current = current;
         _future = future;
         _past = past;
+        _ptJourneys = ptResponse.data;
         _loading = false;
       });
     } catch (e, st) {
@@ -106,6 +120,14 @@ class _TravelScreenState extends State<TravelScreen> {
     }
   }
 
+  Future<void> _navigateToSearch() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => const PtSearchScreen()),
+    );
+    if (result == true && mounted) _load();
+  }
+
   String _formatDate(DateTime date) {
     final local = date.toLocal();
     return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
@@ -113,7 +135,21 @@ class _TravelScreenState extends State<TravelScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DesignSurface(child: _buildBody());
+    return Stack(
+      children: [
+        DesignSurface(child: _buildBody()),
+        Positioned(
+          right: 16,
+          bottom: 16,
+          child: FloatingActionButton(
+            onPressed: _navigateToSearch,
+            tooltip: 'ÖPNV-Suche',
+            heroTag: 'pt_search',
+            child: const Icon(Icons.directions_bus_rounded),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildBody() {
@@ -127,22 +163,26 @@ class _TravelScreenState extends State<TravelScreen> {
       return RefreshIndicator(
         onRefresh: _load,
         child: SingleChildScrollView(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DesignText(
-                  'Fehler beim Laden der Reisen',
-                  style: DesignTextStyle.body,
-                  color: tokens.textHigh,
-                ),
-                SizedBox(height: tokens.spaceMd),
-                DesignButton(
-                  variant: DesignButtonVariant.outlined,
-                  label: 'Erneut versuchen',
-                  onPressed: _load,
-                ),
-              ],
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DesignText(
+                    'Fehler beim Laden der Reisen',
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                  ),
+                  SizedBox(height: tokens.spaceMd),
+                  DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    label: 'Erneut versuchen',
+                    onPressed: _load,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -150,7 +190,10 @@ class _TravelScreenState extends State<TravelScreen> {
     }
 
     final hasEntries =
-        _current.isNotEmpty || _future.isNotEmpty || _past.isNotEmpty;
+        _current.isNotEmpty ||
+        _future.isNotEmpty ||
+        _past.isNotEmpty ||
+        _ptJourneys.isNotEmpty;
 
     if (!hasEntries) {
       return Center(
@@ -160,7 +203,7 @@ class _TravelScreenState extends State<TravelScreen> {
             Icon(Icons.event_rounded, size: 64, color: tokens.textLow),
             SizedBox(height: tokens.spaceLg),
             DesignText(
-              'Keine Reisen oder Events gefunden',
+              'Keine Reisen, Events oder ÖPNV-Fahrten gefunden',
               style: DesignTextStyle.body,
               color: tokens.textLow,
             ),
@@ -172,6 +215,7 @@ class _TravelScreenState extends State<TravelScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -179,8 +223,9 @@ class _TravelScreenState extends State<TravelScreen> {
               ..._buildSection('Aktuelle Reisen', _current),
             if (_future.isNotEmpty)
               ..._buildSection('Kommende Reisen', _future),
+            if (_ptJourneys.isNotEmpty) ..._buildPtSection(),
             if (_past.isNotEmpty) ..._buildSection('Vergangene Reisen', _past),
-            SizedBox(height: tokens.spaceXl),
+            SizedBox(height: tokens.spaceXxl + 80),
           ],
         ),
       ),
@@ -265,6 +310,41 @@ class _TravelScreenState extends State<TravelScreen> {
                 ),
             ],
           ),
+        );
+      }),
+    ];
+  }
+
+  List<Widget> _buildPtSection() {
+    final tokens = DesignTheme.of(context);
+    return [
+      Padding(
+        padding: EdgeInsets.fromLTRB(
+          tokens.spaceLg,
+          tokens.spaceXl,
+          tokens.spaceLg,
+          tokens.spaceXs,
+        ),
+        child: DesignText(
+          'ÖPNV-Fahrten',
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
+        ),
+      ),
+      ..._ptJourneys.map((journey) {
+        return PtJourneyCard(
+          journey: journey,
+          onTap: () async {
+            final result = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) =>
+                        PtJourneyDetailScreen(journeyId: journey.id),
+              ),
+            );
+            if (result == true && mounted) _load();
+          },
         );
       }),
     ];

@@ -25,6 +25,7 @@ import 'features/notifications/services/notification_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
+import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
 import 'firebase_options.dart';
 import 'router/router.dart';
@@ -77,6 +78,7 @@ void main() async {
   await auth.init();
   final explore = ExploreService(api: api, auth: auth);
   final travel = TravelService(api: api, auth: auth);
+  final publicTransport = PublicTransportService(api: api, auth: auth);
   final user = UserService(api: api, auth: auth);
   final calendar = CalendarService(api: api, auth: auth);
   final notification = NotificationService(api: api, auth: auth);
@@ -131,6 +133,7 @@ void main() async {
       explore: explore,
       nominatim: nominatim,
       travel: travel,
+      publicTransport: publicTransport,
       user: user,
       calendar: calendar,
       notification: notification,

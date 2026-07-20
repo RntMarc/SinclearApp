@@ -12,7 +12,7 @@ void main() {
       MaterialApp(
         home: DesignScope(
           variant: notifier,
-          child: Scaffold(body: Center(child: DesignSegmentedSwitch())),
+          child: const Scaffold(body: Center(child: DesignSegmentedSwitch())),
         ),
       ),
     );
