@@ -212,11 +212,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
-  String _resolveUserName(String userId) {
-    final auth = AppScope.of(context).auth;
-    return auth.userId == userId ? 'Du' : 'Benutzer';
-  }
-
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
@@ -425,7 +420,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             }),
             onAddComment: (text, {parentId}) => _addComment(text, parentId: parentId ?? _replyToId),
             onDeleteComment: _deleteComment,
-            resolveUserName: _resolveUserName,
           ),
         ],
       ),
