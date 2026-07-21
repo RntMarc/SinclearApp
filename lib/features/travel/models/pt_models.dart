@@ -112,13 +112,12 @@ class PtLeg {
       if (tripId != null) 'tripId': tripId,
       if (plannedDeparture != null)
         'plannedDeparture': toApiDate(plannedDeparture!),
-      if (plannedArrival != null)
-        'plannedArrival': toApiDate(plannedArrival!),
+      if (plannedArrival != null) 'plannedArrival': toApiDate(plannedArrival!),
       if (departureDelay != null) 'departureDelay': departureDelay,
       if (arrivalDelay != null) 'arrivalDelay': arrivalDelay,
       if (departurePlatform != null) 'departurePlatform': departurePlatform,
       if (arrivalPlatform != null) 'arrivalPlatform': arrivalPlatform,
-      'cancelled': cancelled,
+      'cancelled': cancelled ? 1 : 0,
       if (realTimeState != null) 'realTimeState': realTimeState,
     };
   }
@@ -149,7 +148,8 @@ class PtJourneySearchResult {
       arrivalTime: json['arrivalTime'] != null
           ? parseApiDate(json['arrivalTime'] as String)
           : null,
-      legs: (json['legs'] as List?)
+      legs:
+          (json['legs'] as List?)
               ?.map((e) => PtLeg.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -165,8 +165,7 @@ class PtJourneySearchResponse {
   factory PtJourneySearchResponse.fromJson(Map<String, dynamic> json) {
     return PtJourneySearchResponse(
       data: (json['data'] as List)
-          .map((e) =>
-              PtJourneySearchResult.fromJson(e as Map<String, dynamic>))
+          .map((e) => PtJourneySearchResult.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -177,11 +176,7 @@ class UserBrief {
   final String displayName;
   final String? image;
 
-  const UserBrief({
-    required this.id,
-    required this.displayName,
-    this.image,
-  });
+  const UserBrief({required this.id, required this.displayName, this.image});
 
   factory UserBrief.fromJson(Map<String, dynamic> json) {
     return UserBrief(
@@ -242,11 +237,13 @@ class PtSavedJourney {
       transfers: json['transfers'] as int? ?? 0,
       chosenAt: parseApiDate(json['chosenAt'] as String),
       createdAt: parseApiDate(json['createdAt'] as String),
-      legs: (json['legs'] as List?)
+      legs:
+          (json['legs'] as List?)
               ?.map((e) => PtLeg.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      participants: (json['participants'] as List?)
+      participants:
+          (json['participants'] as List?)
               ?.map((e) => UserBrief.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -258,10 +255,7 @@ class PtSavedJourneyListResponse {
   final List<PtSavedJourney> data;
   final PaginationMeta meta;
 
-  const PtSavedJourneyListResponse({
-    required this.data,
-    required this.meta,
-  });
+  const PtSavedJourneyListResponse({required this.data, required this.meta});
 
   factory PtSavedJourneyListResponse.fromJson(Map<String, dynamic> json) {
     final items = (json['data'] as List)
