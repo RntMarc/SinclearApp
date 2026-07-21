@@ -156,35 +156,48 @@ class _TravelScreenState extends State<TravelScreen> {
     final tokens = DesignTheme.of(context);
 
     if (_loading) {
-      return Center(child: CircularProgressIndicator(color: tokens.primary));
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: Center(
+                child: CircularProgressIndicator(color: tokens.primary),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     if (_error != null) {
       return RefreshIndicator(
         onRefresh: _load,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DesignText(
-                    'Fehler beim Laden der Reisen',
-                    style: DesignTextStyle.body,
-                    color: tokens.textHigh,
-                  ),
-                  SizedBox(height: tokens.spaceMd),
-                  DesignButton(
-                    variant: DesignButtonVariant.outlined,
-                    label: 'Erneut versuchen',
-                    onPressed: _load,
-                  ),
-                ],
+        child: ListView(
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DesignText(
+                      'Fehler beim Laden der Reisen',
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    DesignButton(
+                      variant: DesignButtonVariant.outlined,
+                      label: 'Erneut versuchen',
+                      onPressed: _load,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       );
     }
@@ -198,25 +211,26 @@ class _TravelScreenState extends State<TravelScreen> {
     if (!hasEntries) {
       return RefreshIndicator(
         onRefresh: _load,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.event_rounded, size: 64, color: tokens.textLow),
-                  SizedBox(height: tokens.spaceLg),
-                  DesignText(
-                    'Keine Reisen, Events oder ÖPNV-Fahrten gefunden',
-                    style: DesignTextStyle.body,
-                    color: tokens.textLow,
-                  ),
-                ],
+        child: ListView(
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.5,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.event_rounded, size: 64, color: tokens.textLow),
+                    SizedBox(height: tokens.spaceLg),
+                    DesignText(
+                      'Keine Reisen, Events oder ÖPNV-Fahrten gefunden',
+                      style: DesignTextStyle.body,
+                      color: tokens.textLow,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       );
     }

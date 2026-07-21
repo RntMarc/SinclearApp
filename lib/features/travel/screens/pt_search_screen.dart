@@ -77,7 +77,7 @@ class _PtSearchScreenState extends State<PtSearchScreen> {
       );
       return;
     }
-    final saved = await Navigator.push<bool>(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (context) => PtSearchResultsScreen(
@@ -90,7 +90,9 @@ class _PtSearchScreenState extends State<PtSearchScreen> {
         ),
       ),
     );
-    if (saved == true && mounted) Navigator.pop(context, true);
+    if (result == true && mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   @override
