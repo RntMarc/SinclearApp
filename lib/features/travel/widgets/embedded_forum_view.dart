@@ -265,9 +265,7 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
               ),
               child: Column(
                 children: [
-                  ForumHeaderCard(
-                    forum: forum,
-                  ),
+                  ForumHeaderCard(forum: forum),
                   SizedBox(height: tokens.spaceMd),
                   const DesignDivider(),
                   SizedBox(height: tokens.spaceMd),
@@ -284,10 +282,8 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
                     onPostTap: (fid, pid) => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PostDetailScreen(
-                          forumId: fid,
-                          postId: pid,
-                        ),
+                        builder: (context) =>
+                            PostDetailScreen(forumId: fid, postId: pid),
                       ),
                     ),
                   ),
@@ -307,9 +303,8 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CreatePostScreen(
-                    forumId: widget.forumId,
-                  ),
+                  builder: (context) =>
+                      CreatePostScreen(forumId: widget.forumId),
                 ),
               ),
             ),
