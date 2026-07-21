@@ -38,6 +38,7 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
   List<PtJourneySearchResult>? _results;
   bool _loading = true;
   String? _error;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -158,12 +159,15 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: DesignButton(
-                      label: 'Speichern',
+                      label: _isSaving ? 'Speichern...' : 'Speichern',
                       icon: Icons.bookmark_rounded,
-                      onPressed: () async {
-                        Navigator.pop(sheetContext);
-                        await _saveJourney(result, selectedTripId);
-                      },
+                      onPressed: _isSaving
+                          ? null
+                          : () => _saveFromSheet(
+                              sheetContext,
+                              result,
+                              selectedTripId,
+                            ),
                     ),
                   ),
                 ],
@@ -223,12 +227,32 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
     );
   }
 
-  Future<void> _saveJourney(
+  Future<void> _saveFromSheet(
+    BuildContext sheetContext,
     PtJourneySearchResult result,
     String? tripId,
   ) async {
-    final service = AppScope.of(context).publicTransport;
+    setState(() => _isSaving = true);
+
+    if (result.legs.isEmpty) {
+      if (!sheetContext.mounted) return;
+      ScaffoldMessenger.of(sheetContext).showSnackBar(
+        const SnackBar(content: Text('Keine Fahrtabschnitte vorhanden')),
+      );
+      setState(() => _isSaving = false);
+      return;
+    }
+
     try {
+      final service = AppScope.of(sheetContext).publicTransport;
+      final legMaps = result.legs.map((leg) {
+        final json = leg.toJson();
+        json['fromStationId'] ??= widget.fromStation.id;
+        json['fromStationName'] ??= widget.fromStation.name;
+        json['toStationId'] ??= widget.toStation.id;
+        json['toStationName'] ??= widget.toStation.name;
+        return json;
+      }).toList();
       final request = PtSaveJourneyRequest(
         tripId: tripId,
         fromStationId: widget.fromStation.id,
@@ -239,20 +263,20 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
         arrivalTime: toApiDate(result.arrivalTime ?? widget.departure),
         duration: result.duration,
         transfers: result.transfers,
-        legs: result.legs.map((leg) => leg.toJson()).toList(),
+        legs: legMaps,
       );
       await service.saveJourney(request);
+      if (!sheetContext.mounted) return;
+      Navigator.pop(sheetContext);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verbindung gespeichert')),
-      );
       Navigator.pop(context, true);
     } catch (e, st) {
       developer.log('Save journey failed', error: e, stackTrace: st);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim Speichern: $e')),
-      );
+      if (!sheetContext.mounted) return;
+      ScaffoldMessenger.of(
+        sheetContext,
+      ).showSnackBar(SnackBar(content: Text('Fehler beim Speichern: $e')));
+      setState(() => _isSaving = false);
     }
   }
 
@@ -272,9 +296,7 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
             ),
-            Expanded(
-              child: _buildBody(tokens),
-            ),
+            Expanded(child: _buildBody(tokens)),
           ],
         ),
       ),
@@ -318,12 +340,7 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
     }
 
     return ListView.builder(
-      padding: EdgeInsets.fromLTRB(
-        0,
-        0,
-        0,
-        tokens.spaceXl,
-      ),
+      padding: EdgeInsets.fromLTRB(0, 0, 0, tokens.spaceXl),
       itemCount: _results!.length,
       itemBuilder: (context, index) {
         final result = _results![index];
@@ -413,22 +430,21 @@ class _ResultCard extends StatelessWidget {
           if (result.legs.isNotEmpty)
             Wrap(
               spacing: tokens.spaceXs,
-              children:
-                  result.legs.map((leg) {
-                    return Chip(
-                      avatar: Icon(
-                        _modeIcon(leg.mode),
-                        size: 16,
-                        color: tokens.primary,
-                      ),
-                      label: Text(
-                        leg.lineName ?? leg.mode,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    );
-                  }).toList(),
+              children: result.legs.map((leg) {
+                return Chip(
+                  avatar: Icon(
+                    _modeIcon(leg.mode),
+                    size: 16,
+                    color: tokens.primary,
+                  ),
+                  label: Text(
+                    leg.lineName ?? leg.mode,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                );
+              }).toList(),
             ),
         ],
       ),
