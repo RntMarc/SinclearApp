@@ -39,11 +39,15 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
   bool _loading = true;
   String? _error;
   bool _isSaving = false;
+  bool _hasLoaded = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _search());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _search();
+    }
   }
 
   Future<void> _search() async {

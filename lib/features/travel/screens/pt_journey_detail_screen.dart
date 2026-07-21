@@ -26,11 +26,15 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
   bool _loading = true;
   String? _error;
   bool _refreshing = false;
+  bool _hasLoaded = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      _load();
+    }
   }
 
   Future<void> _load() async {

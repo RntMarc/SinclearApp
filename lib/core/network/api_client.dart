@@ -56,19 +56,43 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     if (kDebugMode) {
-      debugPrint('[api_client] POST $uri body=${body != null ? _truncateJson(body) : 'null'}');
+      debugPrint(
+        '[api_client] POST $uri body=${body != null ? _truncateJson(body) : 'null'}',
+      );
     }
-    final response = await _client
-        .post(
-          uri,
-          headers: _headers(token: token),
-          body: body != null ? jsonEncode(body) : null,
-        )
-        .timeout(timeout);
-    if (kDebugMode) {
-      _logResponse('POST', response);
+    for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
+      try {
+        final response = await _client
+            .post(
+              uri,
+              headers: _headers(token: token),
+              body: body != null ? jsonEncode(body) : null,
+            )
+            .timeout(timeout);
+        if (kDebugMode) {
+          _logResponse('POST', response);
+        }
+        if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
+          return _handleResponse(response);
+        }
+      } on TimeoutException {
+        if (kDebugMode) {
+          debugPrint(
+            '[api_client] POST $uri timed out (attempt $attempt/$maxGetAttempts)',
+          );
+        }
+        if (attempt == maxGetAttempts) rethrow;
+      } on http.ClientException {
+        if (kDebugMode) {
+          debugPrint(
+            '[api_client] POST $uri client error (attempt $attempt/$maxGetAttempts)',
+          );
+        }
+        if (attempt == maxGetAttempts) rethrow;
+      }
+      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
     }
-    return _handleResponse(response);
+    throw StateError('POST retry loop exited unexpectedly.');
   }
 
   Future<Map<String, dynamic>> get(
@@ -96,12 +120,16 @@ class ApiClient {
         }
       } on TimeoutException {
         if (kDebugMode) {
-          debugPrint('[api_client] GET $uri timed out (attempt $attempt/$maxGetAttempts)');
+          debugPrint(
+            '[api_client] GET $uri timed out (attempt $attempt/$maxGetAttempts)',
+          );
         }
         if (attempt == maxGetAttempts) rethrow;
       } on http.ClientException {
         if (kDebugMode) {
-          debugPrint('[api_client] GET $uri client error (attempt $attempt/$maxGetAttempts)');
+          debugPrint(
+            '[api_client] GET $uri client error (attempt $attempt/$maxGetAttempts)',
+          );
         }
         if (attempt == maxGetAttempts) rethrow;
       }
@@ -131,7 +159,9 @@ class ApiClient {
         )
         .timeout(timeout);
     if (kDebugMode) {
-      debugPrint('[api_client] PUT response status=${response.statusCode} body=${response.body.length > 500 ? '${response.body.substring(0, 500)}...' : response.body}');
+      debugPrint(
+        '[api_client] PUT response status=${response.statusCode} body=${response.body.length > 500 ? '${response.body.substring(0, 500)}...' : response.body}',
+      );
     }
     return _handleResponse(response);
   }
@@ -145,9 +175,7 @@ class ApiClient {
       buffer.write('"${entry.key}": ');
       if (entry.key == 'image' && entry.value is String) {
         final str = entry.value as String;
-        final preview = str.length > 80
-            ? '${str.substring(0, 80)}...'
-            : str;
+        final preview = str.length > 80 ? '${str.substring(0, 80)}...' : str;
         buffer.write('"<base64: len=${str.length}, preview=$preview>"');
       } else {
         buffer.write(entry.value.toString());
@@ -177,7 +205,9 @@ class ApiClient {
         .timeout(timeout);
     final httpResponse = await http.Response.fromStream(response);
     if (kDebugMode) {
-      debugPrint('[api_client] PATCH response status=${httpResponse.statusCode}');
+      debugPrint(
+        '[api_client] PATCH response status=${httpResponse.statusCode}',
+      );
     }
     return _handleResponse(httpResponse);
   }
@@ -192,18 +222,40 @@ class ApiClient {
     if (kDebugMode) {
       debugPrint('[api_client] DELETE $uri');
     }
-    final request = http.Request('DELETE', uri);
-    request.headers.addAll(_headers(token: token));
-    if (body != null) {
-      request.body = jsonEncode(body);
+    for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
+      try {
+        final request = http.Request('DELETE', uri);
+        request.headers.addAll(_headers(token: token));
+        if (body != null) {
+          request.body = jsonEncode(body);
+        }
+        final streamed = await _client.send(request).timeout(timeout);
+        final response = await http.Response.fromStream(streamed);
+        if (kDebugMode) {
+          _logResponse('DELETE', response);
+        }
+        if (response.statusCode == 204) return <String, dynamic>{};
+        if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
+          return _handleResponse(response);
+        }
+      } on TimeoutException {
+        if (kDebugMode) {
+          debugPrint(
+            '[api_client] DELETE $uri timed out (attempt $attempt/$maxGetAttempts)',
+          );
+        }
+        if (attempt == maxGetAttempts) rethrow;
+      } on http.ClientException {
+        if (kDebugMode) {
+          debugPrint(
+            '[api_client] DELETE $uri client error (attempt $attempt/$maxGetAttempts)',
+          );
+        }
+        if (attempt == maxGetAttempts) rethrow;
+      }
+      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
     }
-    final streamed = await _client.send(request).timeout(timeout);
-    final response = await http.Response.fromStream(streamed);
-    if (kDebugMode) {
-      _logResponse('DELETE', response);
-    }
-    if (response.statusCode == 204) return <String, dynamic>{};
-    return _handleResponse(response);
+    throw StateError('DELETE retry loop exited unexpectedly.');
   }
 
   void _logResponse(String method, http.Response response) {
