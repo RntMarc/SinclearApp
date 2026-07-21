@@ -10,10 +10,7 @@ class PublicTransportService {
 
   Future<String> _token() => _auth.getAccessToken();
 
-  Future<List<PtStation>> searchStations(
-    String query, {
-    int limit = 10,
-  }) async {
+  Future<List<PtStation>> searchStations(String query, {int limit = 10}) async {
     final data = await _api.get(
       '/public-transport/stations',
       queryParams: {'q': query, 'limit': limit.toString()},
@@ -109,10 +106,7 @@ class PublicTransportService {
     );
   }
 
-  Future<void> removeParticipant(
-    String journeyId,
-    String userId,
-  ) async {
+  Future<void> removeParticipant(String journeyId, String userId) async {
     await _api.delete(
       '/public-transport/journeys/$journeyId/participants/$userId',
       token: await _token(),

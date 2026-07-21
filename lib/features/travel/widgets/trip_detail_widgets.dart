@@ -18,7 +18,8 @@ class TripOverviewTab extends StatelessWidget {
   final List<TravelParticipant> participants;
   final String? currentUserId;
 
-  const TripOverviewTab({super.key,
+  const TripOverviewTab({
+    super.key,
     required this.trip,
     required this.accommodations,
     required this.participants,
@@ -108,7 +109,11 @@ class TripAccommodationMap extends StatelessWidget {
   final List<TravelAccommodation> accommodations;
   final String? currentUserId;
 
-  const TripAccommodationMap({super.key, required this.accommodations, this.currentUserId});
+  const TripAccommodationMap({
+    super.key,
+    required this.accommodations,
+    this.currentUserId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +195,12 @@ class TripAccommodationCard extends StatelessWidget {
   final bool isMine;
   final String? tripId;
 
-  const TripAccommodationCard({super.key, required this.accommodation, required this.isMine, this.tripId});
+  const TripAccommodationCard({
+    super.key,
+    required this.accommodation,
+    required this.isMine,
+    this.tripId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -198,14 +208,14 @@ class TripAccommodationCard extends StatelessWidget {
     return DesignCard(
       onTap: tripId != null
           ? () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AccommodationDetailScreen(
-                    tripId: tripId!,
-                    accommodationId: accommodation.id,
-                  ),
+              context,
+              MaterialPageRoute(
+                builder: (context) => AccommodationDetailScreen(
+                  tripId: tripId!,
+                  accommodationId: accommodation.id,
                 ),
-              )
+              ),
+            )
           : null,
       margin: EdgeInsets.only(bottom: tokens.spaceSm),
       padding: EdgeInsets.all(tokens.spaceMd),
@@ -364,8 +374,7 @@ class TripEventCard extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                TravelEventDetailScreen(id: event.id),
+            builder: (context) => TravelEventDetailScreen(id: event.id),
           ),
         ),
         margin: EdgeInsets.fromLTRB(
@@ -380,11 +389,7 @@ class TripEventCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.event_rounded,
-                  color: tokens.primary,
-                  size: 20,
-                ),
+                Icon(Icons.event_rounded, color: tokens.primary, size: 20),
                 SizedBox(width: tokens.spaceSm),
                 Expanded(
                   child: DesignText(
@@ -448,7 +453,8 @@ class TripMapTab extends StatelessWidget {
   final List<TravelEvent> events;
   final String? currentUserId;
 
-  const TripMapTab({super.key,
+  const TripMapTab({
+    super.key,
     required this.accommodations,
     required this.events,
     this.currentUserId,
@@ -480,11 +486,7 @@ class TripMapTab extends StatelessWidget {
       markers.add(
         Marker(
           point: LatLng(e.latitude!, e.longitude!),
-          child: Icon(
-            Icons.event_rounded,
-            color: tokens.warning,
-            size: 30,
-          ),
+          child: Icon(Icons.event_rounded, color: tokens.warning, size: 30),
         ),
       );
     }

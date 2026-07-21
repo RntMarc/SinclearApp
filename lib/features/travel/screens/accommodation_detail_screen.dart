@@ -30,8 +30,7 @@ class AccommodationDetailScreen extends StatefulWidget {
       _AccommodationDetailScreenState();
 }
 
-class _AccommodationDetailScreenState
-    extends State<AccommodationDetailScreen> {
+class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
   TravelService get _service => AppScope.of(context).travel;
 
   TravelAccommodation? _accommodation;
@@ -139,9 +138,7 @@ class _AccommodationDetailScreenState
             Row(
               children: [
                 Icon(
-                  acc.ishotel == 1
-                      ? Icons.hotel_rounded
-                      : Icons.home_rounded,
+                  acc.ishotel == 1 ? Icons.hotel_rounded : Icons.home_rounded,
                   color: isMine ? tokens.primary : tokens.textHigh,
                   size: 28,
                 ),
@@ -155,8 +152,7 @@ class _AccommodationDetailScreenState
                 ),
               ],
             ),
-            if (acc.description != null &&
-                acc.description!.isNotEmpty) ...[
+            if (acc.description != null && acc.description!.isNotEmpty) ...[
               SizedBox(height: tokens.spaceSm),
               DesignText(
                 acc.description!,
@@ -185,14 +181,10 @@ class _AccommodationDetailScreenState
                   height: 180,
                   child: FlutterMap(
                     options: MapOptions(
-                      initialCenter: LatLng(
-                        acc.latitude!,
-                        acc.longitude!,
-                      ),
+                      initialCenter: LatLng(acc.latitude!, acc.longitude!),
                       initialZoom: 14,
                       interactionOptions: const InteractionOptions(
-                        flags: InteractiveFlag.all &
-                            ~InteractiveFlag.rotate,
+                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                       ),
                     ),
                     children: [
@@ -204,14 +196,10 @@ class _AccommodationDetailScreenState
                       MarkerLayer(
                         markers: [
                           Marker(
-                            point: LatLng(
-                              acc.latitude!,
-                              acc.longitude!,
-                            ),
+                            point: LatLng(acc.latitude!, acc.longitude!),
                             child: Icon(
                               Icons.location_on,
-                              color:
-                                  isMine ? tokens.primary : Colors.red,
+                              color: isMine ? tokens.primary : Colors.red,
                               size: 36,
                             ),
                           ),

@@ -43,7 +43,7 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
   @override
   void initState() {
     super.initState();
-    _search();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _search());
   }
 
   Future<void> _search() async {

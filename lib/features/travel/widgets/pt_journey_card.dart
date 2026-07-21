@@ -26,11 +26,7 @@ IconData _modeIcon(String mode) {
 }
 
 class PtJourneyCard extends StatelessWidget {
-  const PtJourneyCard({
-    required this.journey,
-    this.onTap,
-    super.key,
-  });
+  const PtJourneyCard({required this.journey, this.onTap, super.key});
 
   final PtSavedJourney journey;
   final VoidCallback? onTap;
@@ -38,8 +34,7 @@ class PtJourneyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final mode =
-        journey.legs.isNotEmpty ? journey.legs.first.mode : 'RAIL';
+    final mode = journey.legs.isNotEmpty ? journey.legs.first.mode : 'RAIL';
 
     return DesignCard(
       margin: EdgeInsets.fromLTRB(
@@ -59,11 +54,7 @@ class PtJourneyCard extends StatelessWidget {
               color: tokens.surfaceVariant,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(
-              _modeIcon(mode),
-              color: tokens.primary,
-              size: 20,
-            ),
+            child: Icon(_modeIcon(mode), color: tokens.primary, size: 20),
           ),
           SizedBox(width: tokens.spaceMd),
           Expanded(
@@ -86,10 +77,7 @@ class PtJourneyCard extends StatelessWidget {
           ),
           Padding(
             padding: EdgeInsets.only(left: tokens.spaceMd),
-            child: Icon(
-              Icons.chevron_right_rounded,
-              color: tokens.textLow,
-            ),
+            child: Icon(Icons.chevron_right_rounded, color: tokens.textLow),
           ),
         ],
       ),

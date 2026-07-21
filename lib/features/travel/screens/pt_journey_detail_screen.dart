@@ -30,7 +30,7 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   Future<void> _load() async {
@@ -73,9 +73,9 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
       developer.log('Refresh journey failed', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _refreshing = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim Aktualisieren: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Fehler beim Aktualisieren: $e')));
     }
   }
 
@@ -86,23 +86,15 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
         final tokens = DesignTheme.of(context);
         return AlertDialog(
           title: const Text('Verbindung löschen'),
-          content: const Text(
-            'Diese Verbindung wirklich löschen?',
-          ),
+          content: const Text('Diese Verbindung wirklich löschen?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(
-                'Abbrechen',
-                style: TextStyle(color: tokens.textLow),
-              ),
+              child: Text('Abbrechen', style: TextStyle(color: tokens.textLow)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text(
-                'Löschen',
-                style: TextStyle(color: tokens.danger),
-              ),
+              child: Text('Löschen', style: TextStyle(color: tokens.danger)),
             ),
           ],
         );
@@ -114,16 +106,16 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
       final service = AppScope.of(context).publicTransport;
       await service.deleteJourney(widget.journeyId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verbindung gelöscht')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Verbindung gelöscht')));
       Navigator.pop(context, true);
     } catch (e, st) {
       developer.log('Delete journey failed', error: e, stackTrace: st);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler beim Löschen: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Fehler beim Löschen: $e')));
     }
   }
 
@@ -228,34 +220,37 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
 
-    return DesignSurface(
-      child: Material(
-        color: Colors.transparent,
-        child: Column(
-          children: [
-            DesignSubpageHeader(
-              title: 'Verbindungsdetails',
-              leading: DesignIconButton(
-                icon: Icons.arrow_back_rounded,
-                onPressed: () => Navigator.pop(context),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: DesignSurface(
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            children: [
+              DesignSubpageHeader(
+                title: 'Verbindungsdetails',
+                leading: DesignIconButton(
+                  icon: Icons.arrow_back_rounded,
+                  onPressed: () => Navigator.pop(context),
+                ),
+                actions: [
+                  DesignIconButton(
+                    icon: Icons.refresh_rounded,
+                    onPressed: _refreshing ? null : _refresh,
+                  ),
+                  DesignIconButton(
+                    icon: Icons.link_rounded,
+                    onPressed: _attachToTrip,
+                  ),
+                  DesignIconButton(
+                    icon: Icons.delete_rounded,
+                    onPressed: _delete,
+                  ),
+                ],
               ),
-              actions: [
-                DesignIconButton(
-                  icon: Icons.refresh_rounded,
-                  onPressed: _refreshing ? null : _refresh,
-                ),
-                DesignIconButton(
-                  icon: Icons.link_rounded,
-                  onPressed: _attachToTrip,
-                ),
-                DesignIconButton(
-                  icon: Icons.delete_rounded,
-                  onPressed: _delete,
-                ),
-              ],
-            ),
-            Expanded(child: _buildBody(tokens)),
-          ],
+              Expanded(child: _buildBody(tokens)),
+            ],
+          ),
         ),
       ),
     );
@@ -288,8 +283,7 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
     }
 
     final journey = _journey!;
-    final mode =
-        journey.legs.isNotEmpty ? journey.legs.first.mode : 'RAIL';
+    final mode = journey.legs.isNotEmpty ? journey.legs.first.mode : 'RAIL';
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
@@ -443,12 +437,11 @@ class _LegTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final color =
-        leg.cancelled
-            ? tokens.danger
-            : leg.realTimeState == 'UPDATED'
-            ? tokens.warning
-            : tokens.primary;
+    final color = leg.cancelled
+        ? tokens.danger
+        : leg.realTimeState == 'UPDATED'
+        ? tokens.warning
+        : tokens.primary;
 
     return IntrinsicHeight(
       child: Row(
@@ -467,12 +460,7 @@ class _LegTile extends StatelessWidget {
                   ),
                 ),
                 if (!isLast)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      color: tokens.divider,
-                    ),
-                  ),
+                  Expanded(child: Container(width: 2, color: tokens.divider)),
               ],
             ),
           ),

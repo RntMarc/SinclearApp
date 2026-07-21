@@ -25,10 +25,11 @@ class PtStationField extends StatefulWidget {
 
 class _PtStationFieldState extends State<PtStationField> {
   late final TextEditingController _controller;
+  final LayerLink _layerLink = LayerLink();
   Timer? _debounce;
   List<PtStation> _suggestions = [];
   bool _loading = false;
-  bool _showDropdown = false;
+  OverlayEntry? _overlayEntry;
 
   @override
   void initState() {
@@ -39,6 +40,7 @@ class _PtStationFieldState extends State<PtStationField> {
 
   @override
   void dispose() {
+    _removeOverlay();
     _debounce?.cancel();
     if (widget.controller == null) _controller.dispose();
     super.dispose();
@@ -48,10 +50,7 @@ class _PtStationFieldState extends State<PtStationField> {
     _debounce?.cancel();
     final text = _controller.text.trim();
     if (text.length < 2) {
-      setState(() {
-        _suggestions = [];
-        _showDropdown = false;
-      });
+      _removeOverlay();
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 300), () => _search(text));
@@ -65,16 +64,20 @@ class _PtStationFieldState extends State<PtStationField> {
       if (!mounted) return;
       setState(() {
         _suggestions = results;
-        _showDropdown = results.isNotEmpty;
         _loading = false;
       });
+      if (results.isNotEmpty) {
+        _showOverlay();
+      } else {
+        _removeOverlay();
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _suggestions = [];
-        _showDropdown = false;
         _loading = false;
       });
+      _removeOverlay();
     }
   }
 
@@ -83,75 +86,94 @@ class _PtStationFieldState extends State<PtStationField> {
     _controller.selection = TextSelection.fromPosition(
       TextPosition(offset: station.name.length),
     );
-    setState(() => _showDropdown = false);
+    _removeOverlay();
     widget.onSelected(station);
+  }
+
+  void _showOverlay() {
+    _removeOverlay();
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        return CompositedTransformFollower(
+          link: _layerLink,
+          offset: const Offset(0, 8),
+          showWhenUnlinked: false,
+          child: _buildDropdown(context),
+        );
+      },
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Widget _buildDropdown(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: tokens.surface,
+          borderRadius: BorderRadius.circular(tokens.radiusMd),
+          border: Border.all(color: tokens.border),
+          boxShadow: tokens.surfaceShadow,
+        ),
+        constraints: const BoxConstraints(maxHeight: 200),
+        child: ListView.builder(
+          padding: EdgeInsets.zero,
+          itemCount: _suggestions.length,
+          shrinkWrap: true,
+          itemBuilder: (context, index) {
+            final station = _suggestions[index];
+            return InkWell(
+              onTap: () => _select(station),
+              child: Padding(
+                padding: EdgeInsets.all(tokens.spaceMd),
+                child: DesignText(
+                  station.name,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
 
-    return Material(
-      color: Colors.transparent,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _controller,
-            focusNode: widget.focusNode,
-            decoration: InputDecoration(
-              labelText: widget.label,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(tokens.radiusMd),
-              ),
-              suffixIcon:
-                  _loading
-                      ? Padding(
-                        padding: EdgeInsets.all(tokens.spaceSm),
-                        child: SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: tokens.textLow,
-                          ),
-                        ),
-                      )
-                      : null,
-            ),
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: TextField(
+        controller: _controller,
+        focusNode: widget.focusNode,
+        decoration: InputDecoration(
+          labelText: widget.label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(tokens.radiusMd),
           ),
-          if (_showDropdown && _suggestions.isNotEmpty)
-            Container(
-              margin: EdgeInsets.only(top: tokens.spaceXs),
-            decoration: BoxDecoration(
-              color: tokens.surface,
-              borderRadius: BorderRadius.circular(tokens.radiusMd),
-              border: Border.all(color: tokens.border),
-              boxShadow: tokens.surfaceShadow,
-            ),
-            constraints: const BoxConstraints(maxHeight: 200),
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: _suggestions.length,
-              shrinkWrap: true,
-              itemBuilder: (context, index) {
-                final station = _suggestions[index];
-                return InkWell(
-                  onTap: () => _select(station),
-                  child: Padding(
-                    padding: EdgeInsets.all(tokens.spaceMd),
-                    child: DesignText(
-                      station.name,
-                      style: DesignTextStyle.body,
-                      color: tokens.textHigh,
+          suffixIcon: _loading
+              ? Padding(
+                  padding: EdgeInsets.all(tokens.spaceSm),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: tokens.textLow,
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                )
+              : null,
+        ),
       ),
     );
   }

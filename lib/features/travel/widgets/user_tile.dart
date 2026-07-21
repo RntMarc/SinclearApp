@@ -22,11 +22,7 @@ class UserTile extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        DesignAvatar(
-          imageUrl: imageUrl,
-          name: displayName,
-          size: avatarSize,
-        ),
+        DesignAvatar(imageUrl: imageUrl, name: displayName, size: avatarSize),
         SizedBox(width: tokens.spaceSm),
         Flexible(
           child: DesignText(

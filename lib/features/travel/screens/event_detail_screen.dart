@@ -125,8 +125,7 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
       return '$d $t';
     }
 
-    final hasCoords =
-        event.latitude != null && event.longitude != null;
+    final hasCoords = event.latitude != null && event.longitude != null;
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -158,11 +157,7 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
             ],
             if (event.address != null) ...[
               SizedBox(height: tokens.spaceXs),
-              _infoRow(
-                tokens,
-                Icons.location_on_rounded,
-                event.address!,
-              ),
+              _infoRow(tokens, Icons.location_on_rounded, event.address!),
             ],
             if (hasCoords) ...[
               SizedBox(height: tokens.spaceLg),
@@ -172,14 +167,10 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
                   height: 180,
                   child: FlutterMap(
                     options: MapOptions(
-                      initialCenter: LatLng(
-                        event.latitude!,
-                        event.longitude!,
-                      ),
+                      initialCenter: LatLng(event.latitude!, event.longitude!),
                       initialZoom: 14,
                       interactionOptions: const InteractionOptions(
-                        flags: InteractiveFlag.all &
-                            ~InteractiveFlag.rotate,
+                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                       ),
                     ),
                     children: [
@@ -191,10 +182,7 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
                       MarkerLayer(
                         markers: [
                           Marker(
-                            point: LatLng(
-                              event.latitude!,
-                              event.longitude!,
-                            ),
+                            point: LatLng(event.latitude!, event.longitude!),
                             child: const Icon(
                               Icons.location_on,
                               color: Colors.red,

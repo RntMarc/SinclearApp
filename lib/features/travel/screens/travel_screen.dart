@@ -51,9 +51,9 @@ class _TravelScreenState extends State<TravelScreen> {
     try {
       final tripsFuture = _service.list(limit: 100);
       final standaloneFuture = _service.getStandaloneEvents(limit: 100);
-      final ptFuture = AppScope.of(context).publicTransport.listJourneys(
-        limit: 100,
-      );
+      final ptFuture = AppScope.of(
+        context,
+      ).publicTransport.listJourneys(limit: 100);
       final results = await Future.wait([
         tripsFuture,
         standaloneFuture,
@@ -196,18 +196,27 @@ class _TravelScreenState extends State<TravelScreen> {
         _ptJourneys.isNotEmpty;
 
     if (!hasEntries) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.event_rounded, size: 64, color: tokens.textLow),
-            SizedBox(height: tokens.spaceLg),
-            DesignText(
-              'Keine Reisen, Events oder ÖPNV-Fahrten gefunden',
-              style: DesignTextStyle.body,
-              color: tokens.textLow,
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.event_rounded, size: 64, color: tokens.textLow),
+                  SizedBox(height: tokens.spaceLg),
+                  DesignText(
+                    'Keine Reisen, Events oder ÖPNV-Fahrten gefunden',
+                    style: DesignTextStyle.body,
+                    color: tokens.textLow,
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       );
     }
@@ -260,12 +269,11 @@ class _TravelScreenState extends State<TravelScreen> {
           onTap: entry.isTrip
               ? () => context.go('/reisen/${entry.id}')
               : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          TravelEventDetailScreen(id: entry.id),
-                    ),
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TravelEventDetailScreen(id: entry.id),
                   ),
+                ),
           child: Row(
             children: [
               Container(
@@ -338,9 +346,8 @@ class _TravelScreenState extends State<TravelScreen> {
             final result = await Navigator.push<bool>(
               context,
               MaterialPageRoute(
-                builder:
-                    (context) =>
-                        PtJourneyDetailScreen(journeyId: journey.id),
+                builder: (context) =>
+                    PtJourneyDetailScreen(journeyId: journey.id),
               ),
             );
             if (result == true && mounted) _load();

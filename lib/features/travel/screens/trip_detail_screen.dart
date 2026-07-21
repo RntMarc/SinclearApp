@@ -179,11 +179,13 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     }
 
     tabs.add(const Tab(text: 'Karte'));
-    tabViews.add(TripMapTab(
-      accommodations: _accommodations,
-      events: _events,
-      currentUserId: currentUserId,
-    ));
+    tabViews.add(
+      TripMapTab(
+        accommodations: _accommodations,
+        events: _events,
+        currentUserId: currentUserId,
+      ),
+    );
 
     return RefreshIndicator(
       onRefresh: _load,
