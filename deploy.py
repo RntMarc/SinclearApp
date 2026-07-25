@@ -502,9 +502,14 @@ def post_process_web(version, version_code):
         DIST.mkdir(parents=True, exist_ok=True)
 
     # Build-Inhalte in versioniertes Verzeichnis verschieben
+    # manifest.json und icons/ werden separat ins Root kopiert (für PWA)
     versioned = DIST / version
     if not DRY_RUN:
-        shutil.copytree(BUILD_WEB, versioned)
+        shutil.copytree(
+            BUILD_WEB,
+            versioned,
+            ignore=shutil.ignore_patterns('manifest.json', 'icons'),
+        )
 
     # .htaccess für versionierte Assets
     htaccess_versioned = ROOT / 'web' / '.htaccess.versioned'
@@ -564,6 +569,19 @@ def post_process_web(version, version_code):
         htaccess_root = ROOT / 'web' / '.htaccess'
         if htaccess_root.exists():
             shutil.copy2(htaccess_root, DIST / '.htaccess')
+
+        # manifest.json ins Root kopieren (für PWA, unabhängig von Version)
+        manifest_file = BUILD_WEB / 'manifest.json'
+        if manifest_file.exists():
+            shutil.copy2(manifest_file, DIST / 'manifest.json')
+
+        # icons/ ins Root kopieren (für PWA-Manifest mit absoluten Pfaden)
+        icons_dir = BUILD_WEB / 'icons'
+        if icons_dir.exists() and icons_dir.is_dir():
+            root_icons = DIST / 'icons'
+            if root_icons.exists():
+                shutil.rmtree(root_icons)
+            shutil.copytree(icons_dir, root_icons)
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -647,8 +665,8 @@ def main():
         print(f'    {GR}→ Verbinde zu {env["FTP_HOST"]} …{R}')
         print(f'    {GR}→ Lade zuerst dist/{version}/ vollständig hoch{R}')
         print(f'    {GR}→ Verifiziere Web-Dateien im Ordner {version}/{R}')
-        print(f'    {GR}→ Ersetze danach index.html, version.json '
-              f'und .htaccess{R}')
+        print(f'    {GR}→ Ersetze danach index.html, version.json, '
+              f'.htaccess, manifest.json und icons/{R}')
         print(f'    {GR}→ Lade {apk_name} → {remote_root}/downloads/ hoch{R}')
         print(f'    {GR}→ Schreibe api/app_version.json erst nach Web + APK{R}')
         print(f'    {GR}→ Lösche alte versionierte Verzeichnisse '
@@ -679,10 +697,17 @@ def main():
         # vorher zu löschen.
         print(f'    {GR}Root-Dateien ersetzen …{R}')
         for root_file in ('index.html', 'version.json', '.htaccess',
-                          'firebase-messaging-sw.js'):
+                          'firebase-messaging-sw.js', 'manifest.json'):
             local_file = DIST / root_file
             if local_file.exists():
                 ftp_upload_file(ftp, str(local_file), root_file)
+
+        # icons/ ins Root hochladen (für PWA-Manifest)
+        icons_dir = DIST / 'icons'
+        if icons_dir.exists() and icons_dir.is_dir():
+            print(f'    {GR}Icons-Verzeichnis hochladen …{R}')
+            ftp_mkdir(ftp, 'icons')
+            ftp_upload_dir(ftp, str(icons_dir), 'icons')
 
         # 6d. APK hochladen.
         print(f'    {GR}APK hochladen …{R}')
