@@ -502,13 +502,13 @@ def post_process_web(version, version_code):
         DIST.mkdir(parents=True, exist_ok=True)
 
     # Build-Inhalte in versioniertes Verzeichnis verschieben
-    # manifest.json und icons/ werden separat ins Root kopiert (für PWA)
+    # manifest.json und pwa-icons/ werden separat ins Root kopiert (für PWA)
     versioned = DIST / version
     if not DRY_RUN:
         shutil.copytree(
             BUILD_WEB,
             versioned,
-            ignore=shutil.ignore_patterns('manifest.json', 'icons'),
+            ignore=shutil.ignore_patterns('manifest.json', 'pwa-icons'),
         )
 
     # .htaccess für versionierte Assets
@@ -575,10 +575,10 @@ def post_process_web(version, version_code):
         if manifest_file.exists():
             shutil.copy2(manifest_file, DIST / 'manifest.json')
 
-        # icons/ ins Root kopieren (für PWA-Manifest mit absoluten Pfaden)
-        icons_dir = BUILD_WEB / 'icons'
+        # pwa-icons/ ins Root kopieren (für PWA-Manifest mit absoluten Pfaden)
+        icons_dir = BUILD_WEB / 'pwa-icons'
         if icons_dir.exists() and icons_dir.is_dir():
-            root_icons = DIST / 'icons'
+            root_icons = DIST / 'pwa-icons'
             if root_icons.exists():
                 shutil.rmtree(root_icons)
             shutil.copytree(icons_dir, root_icons)
@@ -666,7 +666,7 @@ def main():
         print(f'    {GR}→ Lade zuerst dist/{version}/ vollständig hoch{R}')
         print(f'    {GR}→ Verifiziere Web-Dateien im Ordner {version}/{R}')
         print(f'    {GR}→ Ersetze danach index.html, version.json, '
-              f'.htaccess, manifest.json und icons/{R}')
+              f'.htaccess, manifest.json und pwa-icons/{R}')
         print(f'    {GR}→ Lade {apk_name} → {remote_root}/downloads/ hoch{R}')
         print(f'    {GR}→ Schreibe api/app_version.json erst nach Web + APK{R}')
         print(f'    {GR}→ Lösche alte versionierte Verzeichnisse '
@@ -702,12 +702,12 @@ def main():
             if local_file.exists():
                 ftp_upload_file(ftp, str(local_file), root_file)
 
-        # icons/ ins Root hochladen (für PWA-Manifest)
-        icons_dir = DIST / 'icons'
+        # pwa-icons/ ins Root hochladen (für PWA-Manifest)
+        icons_dir = DIST / 'pwa-icons'
         if icons_dir.exists() and icons_dir.is_dir():
-            print(f'    {GR}Icons-Verzeichnis hochladen …{R}')
-            ftp_mkdir(ftp, 'icons')
-            ftp_upload_dir(ftp, str(icons_dir), 'icons')
+            print(f'    {GR}PWA-Icons-Verzeichnis hochladen …{R}')
+            ftp_mkdir(ftp, 'pwa-icons')
+            ftp_upload_dir(ftp, str(icons_dir), 'pwa-icons')
 
         # 6d. APK hochladen.
         print(f'    {GR}APK hochladen …{R}')
