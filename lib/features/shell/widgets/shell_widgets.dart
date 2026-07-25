@@ -6,12 +6,12 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../notifications/services/notification_service.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/composite/design_app_bar.dart';
-import '../../../design/widgets/composite/design_bottom_sheet.dart';
-import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../../notifications/widgets/notification_sheet.dart';
+import '../shell_page_config.dart';
+import 'shell_sub_page_nav.dart';
 
 String shellTitleForLocation(String location) {
   if (location.startsWith('/kalender')) return 'KALENDER';
@@ -25,110 +25,6 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/abos')) return 'ABOS';
   if (location.startsWith('/design-showcase')) return 'DESIGN SHOWCASE';
   return 'HOME';
-}
-
-// ---------------------------------------------------------------------------
-// Mobile Bottom Navigation
-// ---------------------------------------------------------------------------
-
-enum ShellNavCategory { system, gemeinschaft, home, unterwegs, organisation }
-
-ShellNavCategory shellCategoryForLocation(String location) {
-  if (location.startsWith('/einstellungen') ||
-      location.startsWith('/feedback')) {
-    return ShellNavCategory.system;
-  }
-  if (location.startsWith('/kontakte') ||
-      location.startsWith('/forum') ||
-      location.startsWith('/rezepte')) {
-    return ShellNavCategory.gemeinschaft;
-  }
-  if (location.startsWith('/entdecken') ||
-      location.startsWith('/reisen')) {
-    return ShellNavCategory.unterwegs;
-  }
-  if (location.startsWith('/kalender') ||
-      location.startsWith('/abos')) {
-    return ShellNavCategory.organisation;
-  }
-  return ShellNavCategory.home;
-}
-
-class ShellSheetItem {
-  final String label;
-  final IconData icon;
-  final String? route;
-
-  const ShellSheetItem(this.label, this.icon, this.route);
-}
-
-class ShellCategorySheet extends StatelessWidget {
-  final String category;
-  final List<ShellSheetItem> items;
-  final String currentLocation;
-
-  const ShellCategorySheet({
-    super.key,
-    required this.category,
-    required this.items,
-    required this.currentLocation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DesignText(
-            category,
-            style: DesignTextStyle.subtitle,
-            color: tokens.textHigh,
-          ),
-          SizedBox(height: tokens.spaceMd),
-          ...items.map((item) {
-            final isActive =
-                item.route != null && currentLocation.startsWith(item.route!);
-            final isPlaceholder = item.route == null;
-            final showBadge = isPlaceholder;
-
-            return Opacity(
-              opacity: isPlaceholder ? 0.45 : 1.0,
-              child: DesignListTile(
-                leading: Icon(
-                  item.icon,
-                  color: isPlaceholder ? tokens.textLow : tokens.textHigh,
-                ),
-                title: item.label,
-                onTap: isPlaceholder
-                    ? null
-                    : () {
-                        Navigator.pop(context);
-                        context.go(item.route!);
-                      },
-                trailing: showBadge
-                    ? const DesignBadge(label: 'Bald')
-                    : isActive
-                        ? DesignBadge(
-                            label: 'Aktiv',
-                            color: tokens.primary,
-                          )
-                        : null,
-                padding: EdgeInsets.symmetric(
-                  horizontal: tokens.spaceMd,
-                  vertical: tokens.spaceSm,
-                ),
-              ),
-            );
-          }),
-          SizedBox(height: tokens.spaceMd),
-        ],
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -293,8 +189,8 @@ class ShellNavContent extends StatelessWidget {
     final fg = active
         ? tokens.primary
         : enabled
-            ? tokens.textLow
-            : tokens.textLow.withValues(alpha: 0.4);
+        ? tokens.textLow
+        : tokens.textLow.withValues(alpha: 0.4);
 
     return PressScale(
       onTap: onTap,
@@ -316,11 +212,7 @@ class ShellNavContent extends StatelessWidget {
             Icon(icon, color: fg, size: 22),
             SizedBox(width: tokens.spaceMd),
             Expanded(
-              child: DesignText(
-                label,
-                style: DesignTextStyle.body,
-                color: fg,
-              ),
+              child: DesignText(label, style: DesignTextStyle.body, color: fg),
             ),
             trailing ?? const SizedBox.shrink(),
           ],
@@ -380,21 +272,123 @@ class ShellDesktop extends StatelessWidget {
 // Mobile Shell
 // ---------------------------------------------------------------------------
 
-class ShellMobile extends StatelessWidget {
+class ShellMobile extends StatefulWidget {
   final Widget child;
 
   const ShellMobile({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  State<ShellMobile> createState() => _ShellMobileState();
+}
+
+class _ShellMobileState extends State<ShellMobile> {
+  late PageController _pageController;
+  int _currentPageIndex = 0;
+  String _lastLocation = '';
+  bool _initialized = false;
+
+  int get _pvCount => allPages.length + 2;
+
+  int _realIndex(int pvIndex) {
+    final n = allPages.length;
+    if (pvIndex == 0) return n - 1;
+    if (pvIndex == n + 1) return 0;
+    return pvIndex - 1;
+  }
+
+  int _pvIndex(int realIndex) => realIndex + 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final location = GoRouterState.of(context).matchedLocation;
+      _currentPageIndex = pageIndexForLocation(location) ?? 0;
+      _lastLocation = location;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _pageController.jumpToPage(_pvIndex(_currentPageIndex));
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _syncPageWithRoute() {
     final location = GoRouterState.of(context).matchedLocation;
-    final title = shellTitleForLocation(location);
+    if (location == _lastLocation) return;
+    _lastLocation = location;
+    final idx = pageIndexForLocation(location);
+    if (idx != null && idx != _currentPageIndex) {
+      _currentPageIndex = idx;
+      _pageController.jumpToPage(_pvIndex(idx));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _syncPageWithRoute();
+
+    final location = GoRouterState.of(context).matchedLocation;
+    final pageIdx = pageIndexForLocation(location);
+    final isRoot = pageIdx != null && isExactRootLocation(location);
+    final activeCategory = pageIdx != null
+        ? categoryForPageIndex(pageIdx)
+        : ShellNavCategory.home;
+    final activePage = pageIdx ?? _currentPageIndex;
 
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(title: title, actions: const [ShellNotificationBell()]),
-          Expanded(child: child),
+          DesignAppBar(
+            title: isRoot
+                ? shellTitleForPageIndex(activePage)
+                : shellTitleForLocation(location),
+            actions: const [ShellNotificationBell()],
+          ),
+          Expanded(
+            child: isRoot
+                ? PageView.builder(
+                    controller: _pageController,
+                    itemCount: _pvCount,
+                    itemBuilder: (context, pvIndex) =>
+                        buildPageForIndex(_realIndex(pvIndex)),
+                    onPageChanged: (pvIndex) {
+                      final n = allPages.length;
+                      if (pvIndex == 0) {
+                        _pageController.jumpToPage(n);
+                        return;
+                      }
+                      if (pvIndex == n + 1) {
+                        _pageController.jumpToPage(1);
+                        return;
+                      }
+                      final real = pvIndex - 1;
+                      setState(() => _currentPageIndex = real);
+                      final route = allPages[real].route;
+                      if (route != null) context.go(route);
+                    },
+                  )
+                : widget.child,
+          ),
+          ShellSubPageNav(
+            category: activeCategory,
+            activePageIndex: activePage,
+            onPageTap: (index) {
+              final route = allPages[index].route;
+              if (route != null) context.go(route);
+            },
+          ),
           ShellMobileBottomNav(currentLocation: location),
         ],
       ),
@@ -414,7 +408,10 @@ class ShellMobileBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final active = shellCategoryForLocation(currentLocation);
+    final pageIdx = pageIndexForLocation(currentLocation);
+    final active = pageIdx != null
+        ? categoryForPageIndex(pageIdx)
+        : ShellNavCategory.home;
 
     final items = <({IconData icon, String label, ShellNavCategory category})>[
       (
@@ -491,85 +488,9 @@ class ShellMobileBottomNav extends StatelessWidget {
   }
 
   void _onTap(BuildContext context, ShellNavCategory category) {
-    switch (category) {
-      case ShellNavCategory.home:
-        context.go('/home');
-      case ShellNavCategory.system:
-        _showCategorySheet(
-          context,
-          category: 'System',
-          items: [
-            const ShellSheetItem(
-              'Design Showcase',
-              Icons.palette_rounded,
-              '/design-showcase',
-            ),
-            const ShellSheetItem(
-              'Einstellungen',
-              Icons.settings_rounded,
-              '/einstellungen',
-            ),
-            const ShellSheetItem('Admin', Icons.admin_panel_settings_rounded, null),
-            const ShellSheetItem('Feedback', Icons.feedback_rounded, '/feedback'),
-            const ShellSheetItem('Changelog', Icons.history_rounded, null),
-          ],
-        );
-      case ShellNavCategory.gemeinschaft:
-        _showCategorySheet(
-          context,
-          category: 'Gemeinschaft',
-          items: [
-            const ShellSheetItem('Forum', Icons.forum_rounded, '/forum'),
-            const ShellSheetItem('Kritik', Icons.rate_review_rounded, null),
-            const ShellSheetItem('Rezepte', Icons.restaurant_rounded, '/rezepte'),
-            const ShellSheetItem('Fotos', Icons.photo_library_rounded, null),
-            const ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
-          ],
-        );
-      case ShellNavCategory.unterwegs:
-        _showCategorySheet(
-          context,
-          category: 'Unterwegs',
-          items: [
-            const ShellSheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
-            const ShellSheetItem('Reisen', Icons.flight_rounded, '/reisen'),
-          ],
-        );
-      case ShellNavCategory.organisation:
-        _showCategorySheet(
-          context,
-          category: 'Organisation',
-          items: [
-            const ShellSheetItem(
-              'Kalender',
-              Icons.calendar_month_rounded,
-              '/kalender',
-            ),
-            const ShellSheetItem('Umfrage', Icons.poll_rounded, null),
-            const ShellSheetItem(
-              'Abos',
-              Icons.subscriptions_rounded,
-              '/abos',
-            ),
-          ],
-        );
-    }
-  }
-
-  void _showCategorySheet(
-    BuildContext context, {
-    required String category,
-    required List<ShellSheetItem> items,
-  }) {
-    final location = GoRouterState.of(context).matchedLocation;
-    showDesignSheet(
-      context: context,
-      child: ShellCategorySheet(
-        category: category,
-        items: items,
-        currentLocation: location,
-      ),
-    );
+    final index = firstPageInCategory(category);
+    final route = allPages[index].route;
+    if (route != null) context.go(route);
   }
 }
 
@@ -622,9 +543,7 @@ class _ShellNotificationBellState extends State<ShellNotificationBell> {
           Positioned(
             top: 2,
             right: 2,
-            child: DesignBadge(
-              label: unread > 99 ? '99+' : unread.toString(),
-            ),
+            child: DesignBadge(label: unread > 99 ? '99+' : unread.toString()),
           ),
       ],
     );
