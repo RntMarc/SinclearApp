@@ -2,8 +2,6 @@
     "name": "Sinclear Beyond",
     "short_name": "Beyond",
     "start_url": "/",
-    "scope": "/",
-    "id": "/",
     "display": "standalone",
     "background_color": "#011219",
     "theme_color": "#0064EA",
