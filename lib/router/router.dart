@@ -11,6 +11,9 @@ import '../features/explore/screens/explore_screen.dart';
 import '../features/explore/screens/category_screen.dart';
 import '../features/explore/screens/detail_screen.dart';
 import '../features/explore/screens/create_place_screen.dart';
+import '../features/explore/screens/submit_place_screen.dart';
+import '../features/explore/screens/submissions_list_screen.dart';
+import '../features/explore/screens/submission_detail_screen.dart';
 
 import '../features/shell/main_shell.dart';
 import '../features/travel/screens/travel_screen.dart';
@@ -123,6 +126,24 @@ GoRouter createRouter(AuthService auth) {
               GoRoute(
                 path: 'neu',
                 builder: (context, state) => const CreatePlaceScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'melden',
+                    builder: (context, state) => const SubmitPlaceScreen(),
+                  ),
+                  GoRoute(
+                    path: 'einreichungen',
+                    builder: (context, state) => const SubmissionsListScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':submissionId',
+                        builder: (context, state) => SubmissionDetailScreen(
+                          id: state.pathParameters['submissionId']!,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               GoRoute(
                 path: ':id',
@@ -184,8 +205,7 @@ GoRouter createRouter(AuthService auth) {
             routes: [
               GoRoute(
                 path: 'alle',
-                builder: (context, state) =>
-                    const RecipeCatalogScreen(),
+                builder: (context, state) => const RecipeCatalogScreen(),
               ),
               GoRoute(
                 path: 'kategorie/:key',
@@ -195,9 +215,8 @@ GoRouter createRouter(AuthService auth) {
               ),
               GoRoute(
                 path: ':id',
-                builder: (context, state) => RecipeDetailScreen(
-                  id: state.pathParameters['id']!,
-                ),
+                builder: (context, state) =>
+                    RecipeDetailScreen(id: state.pathParameters['id']!),
               ),
             ],
           ),

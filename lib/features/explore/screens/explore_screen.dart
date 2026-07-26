@@ -234,133 +234,155 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final crossAxisCount = isWide ? (width >= 900 ? 3 : 2) : 1;
 
     return DesignSurface(
-      child: Column(
+      child: Stack(
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              tokens.spaceLg,
-              tokens.spaceLg,
-              tokens.spaceLg,
-              tokens.spaceSm,
-            ),
-            child: Column(
-              children: [
-                Row(
+          Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                  tokens.spaceSm,
+                ),
+                child: Column(
                   children: [
-                    Expanded(
-                      child: DesignCard(
-                        onTap: _openSearch,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: tokens.spaceLg,
-                          vertical: tokens.spaceMd,
-                        ),
-                        margin: EdgeInsets.zero,
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.search_rounded,
-                              color: tokens.textLow,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DesignCard(
+                            onTap: _openSearch,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: tokens.spaceLg,
+                              vertical: tokens.spaceMd,
                             ),
-                            SizedBox(width: tokens.spaceMd),
-                            Flexible(
-                              child: DesignText(
-                                'Orte, Städte, Kategorien…',
-                                style: DesignTextStyle.body,
-                                color: tokens.textLow,
-                                overflow: TextOverflow.ellipsis,
+                            margin: EdgeInsets.zero,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.search_rounded,
+                                  color: tokens.textLow,
+                                ),
+                                SizedBox(width: tokens.spaceMd),
+                                Flexible(
+                                  child: DesignText(
+                                    'Orte, Städte, Kategorien…',
+                                    style: DesignTextStyle.body,
+                                    color: tokens.textLow,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: tokens.spaceSm),
+                        DesignIconButton(
+                          icon: Icons.my_location_rounded,
+                          tinted: true,
+                          onPressed: _searchByLocation,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DesignButton(
+                            variant: DesignButtonVariant.outlined,
+                            icon: Icons.restaurant_rounded,
+                            label: 'Gastronomie',
+                            onPressed: () =>
+                                context.go('/entdecken/gastronomie'),
+                          ),
+                        ),
+                        SizedBox(width: tokens.spaceMd),
+                        Expanded(
+                          child: DesignButton(
+                            variant: DesignButtonVariant.outlined,
+                            icon: Icons.park_rounded,
+                            label: 'Freizeit',
+                            onPressed: () => context.go('/entdecken/freizeit'),
+                          ),
+                        ),
+                        SizedBox(width: tokens.spaceSm),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _showMap,
+                          builder: (context, showMap, child) =>
+                              DesignIconButton(
+                                icon: showMap
+                                    ? Icons.list_rounded
+                                    : Icons.map_rounded,
+                                onPressed: () =>
+                                    _showMap.value = !_showMap.value,
                               ),
-                            ),
-                          ],
                         ),
-                      ),
-                    ),
-                    SizedBox(width: tokens.spaceSm),
-                    DesignIconButton(
-                      icon: Icons.my_location_rounded,
-                      tinted: true,
-                      onPressed: _searchByLocation,
+                      ],
                     ),
                   ],
                 ),
-                SizedBox(height: tokens.spaceMd),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DesignButton(
-                        variant: DesignButtonVariant.outlined,
-                        icon: Icons.restaurant_rounded,
-                        label: 'Gastronomie',
-                        onPressed: () => context.go('/entdecken/gastronomie'),
-                      ),
-                    ),
-                    SizedBox(width: tokens.spaceMd),
-                    Expanded(
-                      child: DesignButton(
-                        variant: DesignButtonVariant.outlined,
-                        icon: Icons.park_rounded,
-                        label: 'Freizeit',
-                        onPressed: () => context.go('/entdecken/freizeit'),
-                      ),
-                    ),
-                    SizedBox(width: tokens.spaceSm),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _showMap,
-                      builder: (context, showMap, child) =>
-                          DesignIconButton(
-                        icon: showMap
-                            ? Icons.list_rounded
-                            : Icons.map_rounded,
-                        onPressed: () =>
-                            _showMap.value = !_showMap.value,
-                      ),
-                    ),
-                  ],
+              ),
+              Expanded(
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _showMap,
+                  builder: (context, showMap, child) {
+                    if (_searchResults != null && _searchResults!.isNotEmpty) {
+                      return ExploreSearchResults(
+                        results: _searchResults!,
+                        crossAxisCount: crossAxisCount,
+                        loadingMore: _loadingMoreSearch,
+                        scrollController: _searchScrollController,
+                        onClear: _clearSearch,
+                      );
+                    }
+                    if (_searchResults != null) {
+                      return ExploreSearchEmpty(onBack: _clearSearch);
+                    }
+                    if (showMap) {
+                      return ExploreMap(places: _suggestions, zoom: 6);
+                    }
+                    return ExploreSuggestionsList(
+                      loading: _loading,
+                      suggestions: _suggestions,
+                      crossAxisCount: crossAxisCount,
+                      error: _error,
+                      loadingBookmarks: _loadingBookmarks,
+                      bookmarksError: _bookmarksError,
+                      bookmarks: _bookmarks,
+                      onRetry: _loadSuggestions,
+                      onRetryBookmarks: _loadBookmarks,
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          ValueListenableBuilder<bool>(
-            valueListenable: _showMap,
-            builder: (context, showMap, child) {
-              if (_searchResults != null && _searchResults!.isNotEmpty) {
-                return Expanded(
-                  child: ExploreSearchResults(
-                    results: _searchResults!,
-                    crossAxisCount: crossAxisCount,
-                    loadingMore: _loadingMoreSearch,
-                    scrollController: _searchScrollController,
-                    onClear: _clearSearch,
+          Positioned(
+            right: tokens.spaceLg,
+            bottom: tokens.spaceLg,
+            child: Material(
+              type: MaterialType.transparency,
+              child: GestureDetector(
+                onTap: () => context.push('/entdecken/neu'),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: tokens.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: tokens.glowShadow,
                   ),
-                );
-              }
-              if (_searchResults != null) {
-                return Expanded(
-                  child: ExploreSearchEmpty(onBack: _clearSearch),
-                );
-              }
-              if (showMap) {
-                return Expanded(
-                  child: ExploreMap(places: _suggestions, zoom: 6),
-                );
-              }
-              return Expanded(
-                child: ExploreSuggestionsList(
-                  loading: _loading,
-                  suggestions: _suggestions,
-                  crossAxisCount: crossAxisCount,
-                  error: _error,
-                  loadingBookmarks: _loadingBookmarks,
-                  bookmarksError: _bookmarksError,
-                  bookmarks: _bookmarks,
-                  onRetry: _loadSuggestions,
-                  onRetryBookmarks: _loadBookmarks,
+                  child: Icon(
+                    Icons.add_rounded,
+                    color: tokens.onPrimary,
+                    size: 28,
+                  ),
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-
 }
