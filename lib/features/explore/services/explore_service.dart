@@ -189,4 +189,51 @@ class ExploreService {
       token: await _token(),
     );
   }
+
+  Future<ExploreSubmission> createSubmission(
+    ExploreSubmissionCreateRequest request,
+  ) async {
+    final data = await _api.post(
+      '/explore/submissions',
+      body: request.toJson(),
+      token: await _token(),
+    );
+    return ExploreSubmission.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<ExploreSubmissionListResponse> getSubmissions({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    final data = await _api.get(
+      '/explore/submissions',
+      queryParams: params,
+      token: await _token(),
+    );
+    return ExploreSubmissionListResponse.fromJson(data);
+  }
+
+  Future<ExploreSubmission> getSubmission(String id) async {
+    final data = await _api.get(
+      '/explore/submissions/$id',
+      token: await _token(),
+    );
+    return ExploreSubmission.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<ExploreSubmission> updateSubmission(
+    String id,
+    ExploreSubmissionUpdateRequest request,
+  ) async {
+    final data = await _api.put(
+      '/explore/submissions/$id',
+      body: request.toJson(),
+      token: await _token(),
+    );
+    return ExploreSubmission.fromJson(data['data'] as Map<String, dynamic>);
+  }
 }

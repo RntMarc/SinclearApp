@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
@@ -284,148 +285,169 @@ class _CategoryScreenState extends State<CategoryScreen> {
     final crossAxisCount = isWide ? (width >= 900 ? 3 : 2) : 1;
 
     return DesignSurface(
-      child: Column(
+      child: Stack(
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              tokens.spaceLg,
-              tokens.spaceLg,
-              tokens.spaceLg,
-              tokens.spaceSm,
-            ),
-            child: Column(
-              children: [
-                Row(
+          Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                  tokens.spaceSm,
+                ),
+                child: Column(
                   children: [
-                    DesignIconButton(
-                      icon: Icons.arrow_back_rounded,
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    SizedBox(width: tokens.spaceSm),
-                    Expanded(
-                      child: DesignCard(
-                        onTap: _openSearch,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: tokens.spaceLg,
-                          vertical: tokens.spaceMd,
+                    Row(
+                      children: [
+                        DesignIconButton(
+                          icon: Icons.arrow_back_rounded,
+                          onPressed: () => Navigator.pop(context),
                         ),
-                        margin: EdgeInsets.zero,
+                        SizedBox(width: tokens.spaceSm),
+                        Expanded(
+                          child: DesignCard(
+                            onTap: _openSearch,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: tokens.spaceLg,
+                              vertical: tokens.spaceMd,
+                            ),
+                            margin: EdgeInsets.zero,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.search_rounded,
+                                  color: tokens.textLow,
+                                ),
+                                SizedBox(width: tokens.spaceMd),
+                                Flexible(
+                                  child: DesignText(
+                                    'Orte, Städte, Kategorien…',
+                                    style: DesignTextStyle.body,
+                                    color: tokens.textLow,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: tokens.spaceSm),
+                        DesignIconButton(
+                          icon: Icons.my_location_rounded,
+                          onPressed: _searchByLocation,
+                        ),
+                        SizedBox(width: tokens.spaceXs),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _showMap,
+                          builder: (context, showMap, child) =>
+                              DesignIconButton(
+                                icon: showMap
+                                    ? Icons.list_rounded
+                                    : Icons.map_rounded,
+                                onPressed: () =>
+                                    _showMap.value = !_showMap.value,
+                              ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    if (_searchResults != null)
+                      Row(
+                        children: [
+                          DesignText(
+                            'Suchergebnisse',
+                            style: DesignTextStyle.subtitle,
+                            color: tokens.textHigh,
+                          ),
+                          const Spacer(),
+                          DesignButton(
+                            variant: DesignButtonVariant.text,
+                            icon: Icons.close_rounded,
+                            label: 'Schließen',
+                            onPressed: _clearSearch,
+                          ),
+                        ],
+                      )
+                    else
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.search_rounded,
-                              color: tokens.textLow,
-                            ),
-                            SizedBox(width: tokens.spaceMd),
-                            Flexible(
-                              child: DesignText(
-                                'Orte, Städte, Kategorien…',
-                                style: DesignTextStyle.body,
-                                color: tokens.textLow,
-                                overflow: TextOverflow.ellipsis,
+                            for (final opt in _sortOptions)
+                              Padding(
+                                padding: EdgeInsets.only(right: tokens.spaceSm),
+                                child: DesignChip(
+                                  label: '${opt.$2}${_sortLabel(opt.$1)}',
+                                  selected: _isSelected(opt.$1),
+                                  onTap: () => _setSort(opt.$1),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
-                    ),
-                    SizedBox(width: tokens.spaceSm),
-                    DesignIconButton(
-                      icon: Icons.my_location_rounded,
-                      onPressed: _searchByLocation,
-                    ),
-                    SizedBox(width: tokens.spaceXs),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: _showMap,
-                      builder: (context, showMap, child) =>
-                          DesignIconButton(
-                        icon: showMap
-                            ? Icons.list_rounded
-                            : Icons.map_rounded,
-                        onPressed: () =>
-                            _showMap.value = !_showMap.value,
-                      ),
-                    ),
                   ],
                 ),
-                SizedBox(height: tokens.spaceSm),
-                if (_searchResults != null)
-                  Row(
-                    children: [
-                      DesignText(
-                        'Suchergebnisse',
-                        style: DesignTextStyle.subtitle,
-                        color: tokens.textHigh,
-                      ),
-                      const Spacer(),
-                      DesignButton(
-                        variant: DesignButtonVariant.text,
-                        icon: Icons.close_rounded,
-                        label: 'Schließen',
-                        onPressed: _clearSearch,
-                      ),
-                    ],
-                  )
-                else
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        for (final opt in _sortOptions)
-                          Padding(
-                            padding: EdgeInsets.only(right: tokens.spaceSm),
-                            child: DesignChip(
-                              label: '${opt.$2}${_sortLabel(opt.$1)}',
-                              selected: _isSelected(opt.$1),
-                              onTap: () => _setSort(opt.$1),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          ValueListenableBuilder<bool>(
-            valueListenable: _showMap,
-            builder: (context, showMap, child) {
-              if (_searchResults != null && _searchResults!.isNotEmpty) {
-                return Expanded(
-                  child: ExploreSearchResults(
-                    results: _searchResults!,
-                    crossAxisCount: crossAxisCount,
-                    loadingMore: _loadingMoreSearch,
-                    scrollController: _searchScrollController,
-                    onClear: _clearSearch,
-                  ),
-                );
-              }
-              if (_searchResults != null) {
-                return Expanded(
-                  child: ExploreSearchEmpty(onBack: _clearSearch),
-                );
-              }
-              if (showMap) {
-                return Expanded(
-                  child: ExploreMap(places: _places),
-                );
-              }
-              return Expanded(
-                child: CategoryPlaceList(
-                  loading: _loading,
-                  places: _places,
-                  crossAxisCount: crossAxisCount,
-                  error: _error,
-                  loadingMore: _loadingMore,
-                  scrollController: _scrollController,
-                  onRetry: _load,
+              ),
+              Expanded(
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _showMap,
+                  builder: (context, showMap, child) {
+                    if (_searchResults != null && _searchResults!.isNotEmpty) {
+                      return ExploreSearchResults(
+                        results: _searchResults!,
+                        crossAxisCount: crossAxisCount,
+                        loadingMore: _loadingMoreSearch,
+                        scrollController: _searchScrollController,
+                        onClear: _clearSearch,
+                      );
+                    }
+                    if (_searchResults != null) {
+                      return ExploreSearchEmpty(onBack: _clearSearch);
+                    }
+                    if (showMap) {
+                      return ExploreMap(places: _places);
+                    }
+                    return CategoryPlaceList(
+                      loading: _loading,
+                      places: _places,
+                      crossAxisCount: crossAxisCount,
+                      error: _error,
+                      loadingMore: _loadingMore,
+                      scrollController: _scrollController,
+                      onRetry: _load,
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+            ],
+          ),
+          Positioned(
+            right: tokens.spaceLg,
+            bottom: tokens.spaceLg,
+            child: Material(
+              type: MaterialType.transparency,
+              child: GestureDetector(
+                onTap: () => context.push('/entdecken/neu'),
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: tokens.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: tokens.glowShadow,
+                  ),
+                  child: Icon(
+                    Icons.add_rounded,
+                    color: tokens.onPrimary,
+                    size: 28,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-
 }

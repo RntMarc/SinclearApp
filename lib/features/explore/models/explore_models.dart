@@ -238,3 +238,172 @@ class NominatimResult {
     );
   }
 }
+
+class ExploreSubmission {
+  final String id;
+  final String userId;
+  final String name;
+  final String? address;
+  final double latitude;
+  final double longitude;
+  final String? photo;
+  final String? mapLink;
+  final String? website;
+  final int? rating;
+  final String? comment;
+  final String? note;
+  final String status;
+  final String? adminNote;
+  final String? targetPlaceId;
+  final String createdAt;
+  final String updatedAt;
+
+  const ExploreSubmission({
+    required this.id,
+    required this.userId,
+    required this.name,
+    this.address,
+    required this.latitude,
+    required this.longitude,
+    this.photo,
+    this.mapLink,
+    this.website,
+    this.rating,
+    this.comment,
+    this.note,
+    required this.status,
+    this.adminNote,
+    this.targetPlaceId,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory ExploreSubmission.fromJson(Map<String, dynamic> json) {
+    return ExploreSubmission(
+      id: json['id'] as String,
+      userId: json['userId'] as String,
+      name: json['name'] as String,
+      address: json['address'] as String?,
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+      photo: json['photo'] as String?,
+      mapLink: json['mapLink'] as String?,
+      website: json['website'] as String?,
+      rating: json['rating'] as int?,
+      comment: json['comment'] as String?,
+      note: json['note'] as String?,
+      status: json['status'] as String,
+      adminNote: json['adminNote'] as String?,
+      targetPlaceId: json['targetPlaceId'] as String?,
+      createdAt: json['createdAt'] as String,
+      updatedAt: json['updatedAt'] as String,
+    );
+  }
+
+  bool get isPending => status == 'pending';
+}
+
+class ExploreSubmissionListResponse {
+  final List<ExploreSubmission> data;
+  final PaginationMeta meta;
+
+  const ExploreSubmissionListResponse({required this.data, required this.meta});
+
+  factory ExploreSubmissionListResponse.fromJson(Map<String, dynamic> json) {
+    final submissions = (json['data'] as List)
+        .map((e) => ExploreSubmission.fromJson(e as Map<String, dynamic>))
+        .toList();
+    final meta = json['meta'] != null
+        ? PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>)
+        : PaginationMeta(
+            page: 1,
+            limit: submissions.length,
+            total: submissions.length,
+            totalPages: 1,
+          );
+    return ExploreSubmissionListResponse(data: submissions, meta: meta);
+  }
+}
+
+class ExploreSubmissionCreateRequest {
+  final String name;
+  final String? address;
+  final double latitude;
+  final double longitude;
+  final String? photo;
+  final String? mapLink;
+  final String? website;
+  final int rating;
+  final String? comment;
+  final String? note;
+
+  const ExploreSubmissionCreateRequest({
+    required this.name,
+    this.address,
+    required this.latitude,
+    required this.longitude,
+    this.photo,
+    this.mapLink,
+    this.website,
+    required this.rating,
+    this.comment,
+    this.note,
+  });
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'name': name,
+      'latitude': latitude,
+      'longitude': longitude,
+      'rating': rating,
+    };
+    if (address != null) map['address'] = address;
+    if (photo != null) map['photo'] = photo;
+    if (mapLink != null) map['mapLink'] = mapLink;
+    if (website != null) map['website'] = website;
+    if (comment != null) map['comment'] = comment;
+    if (note != null) map['note'] = note;
+    return map;
+  }
+}
+
+class ExploreSubmissionUpdateRequest {
+  final String? name;
+  final String? address;
+  final double? latitude;
+  final double? longitude;
+  final String? photo;
+  final String? mapLink;
+  final String? website;
+  final int? rating;
+  final String? comment;
+  final String? note;
+
+  const ExploreSubmissionUpdateRequest({
+    this.name,
+    this.address,
+    this.latitude,
+    this.longitude,
+    this.photo,
+    this.mapLink,
+    this.website,
+    this.rating,
+    this.comment,
+    this.note,
+  });
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{};
+    if (name != null) map['name'] = name;
+    if (address != null) map['address'] = address;
+    if (latitude != null) map['latitude'] = latitude;
+    if (longitude != null) map['longitude'] = longitude;
+    if (photo != null) map['photo'] = photo;
+    if (mapLink != null) map['mapLink'] = mapLink;
+    if (website != null) map['website'] = website;
+    if (rating != null) map['rating'] = rating;
+    if (comment != null) map['comment'] = comment;
+    if (note != null) map['note'] = note;
+    return map;
+  }
+}

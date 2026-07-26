@@ -102,9 +102,7 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
     return DesignSurface(
       child: Column(
         children: [
-          const DesignSubpageHeader(
-            title: 'Ort hinzufügen',
-          ),
+          const DesignSubpageHeader(title: 'Ort hinzufügen'),
           Expanded(child: _buildBody(tokens)),
         ],
       ),
@@ -150,9 +148,36 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
                     ),
                   )
                 : ListView.separated(
-                    itemCount: _results.length,
+                    itemCount: _results.length + 1,
                     separatorBuilder: (_, _) => const DesignDivider(),
                     itemBuilder: (context, index) {
+                      if (index == _results.length) {
+                        return DesignCard(
+                          margin: EdgeInsets.zero,
+                          padding: EdgeInsets.all(tokens.spaceMd),
+                          onTap: () => context.push('/entdecken/neu/melden'),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.add_location_alt_rounded,
+                                color: tokens.primary,
+                              ),
+                              SizedBox(width: tokens.spaceMd),
+                              Expanded(
+                                child: DesignText(
+                                  'Ort nicht gefunden? Manuell einreichen',
+                                  style: DesignTextStyle.body,
+                                  color: tokens.primary,
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: tokens.primary,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
                       final result = _results[index];
                       return DesignCard(
                         margin: EdgeInsets.zero,
