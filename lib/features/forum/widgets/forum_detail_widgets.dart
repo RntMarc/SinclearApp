@@ -12,11 +12,7 @@ class ForumHeaderCard extends StatelessWidget {
   final ForumDetail forum;
   final VoidCallback? onToggleJoin;
 
-  const ForumHeaderCard({
-    super.key,
-    required this.forum,
-    this.onToggleJoin,
-  });
+  const ForumHeaderCard({super.key, required this.forum, this.onToggleJoin});
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +39,11 @@ class ForumHeaderCard extends StatelessWidget {
                     height: 120,
                     color: tokens.primary.withValues(alpha: 0.15),
                     child: Center(
-                      child: Icon(Icons.forum_rounded, size: 48, color: tokens.primary),
+                      child: Icon(
+                        Icons.forum_rounded,
+                        size: 48,
+                        color: tokens.primary,
+                      ),
                     ),
                   ),
                 ),
@@ -59,7 +59,11 @@ class ForumHeaderCard extends StatelessWidget {
                 ),
               ),
               child: Center(
-                child: Icon(Icons.forum_rounded, size: 48, color: tokens.primary),
+                child: Icon(
+                  Icons.forum_rounded,
+                  size: 48,
+                  color: tokens.primary,
+                ),
               ),
             ),
           Padding(
@@ -67,12 +71,8 @@ class ForumHeaderCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DesignText(
-                  forum.name,
-                  style: DesignTextStyle.subtitle,
-                  color: tokens.textHigh,
-                ),
-                if (forum.description != null && forum.description!.isNotEmpty) ...[
+                if (forum.description != null &&
+                    forum.description!.isNotEmpty) ...[
                   SizedBox(height: tokens.spaceSm),
                   DesignText(
                     forum.description!,

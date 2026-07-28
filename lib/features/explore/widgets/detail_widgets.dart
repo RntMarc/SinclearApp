@@ -62,7 +62,6 @@ class PlaceDetailWide extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: tokens.spaceSm),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

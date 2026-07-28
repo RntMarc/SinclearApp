@@ -137,8 +137,6 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    DesignText(sub.name, style: DesignTextStyle.subtitle),
-                    SizedBox(height: tokens.spaceMd),
                     _infoRow(tokens, 'Zeitraum', period),
                     SizedBox(height: tokens.spaceSm),
                     _infoRow(

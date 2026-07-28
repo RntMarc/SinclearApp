@@ -134,13 +134,7 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DesignText(
-              event.name,
-              style: DesignTextStyle.title,
-              color: tokens.textHigh,
-            ),
             if (event.description != null && event.description!.isNotEmpty) ...[
-              SizedBox(height: tokens.spaceSm),
               DesignText(
                 event.description!,
                 style: DesignTextStyle.body,
