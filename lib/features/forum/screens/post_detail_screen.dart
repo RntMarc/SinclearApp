@@ -21,7 +21,11 @@ class PostDetailScreen extends StatefulWidget {
   final String forumId;
   final String postId;
 
-  const PostDetailScreen({super.key, required this.forumId, required this.postId});
+  const PostDetailScreen({
+    super.key,
+    required this.forumId,
+    required this.postId,
+  });
 
   @override
   State<PostDetailScreen> createState() => _PostDetailScreenState();
@@ -261,25 +265,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline, size: 48, color: tokens.danger),
-                  SizedBox(height: tokens.spaceSm),
-                  DesignText(_error!, style: DesignTextStyle.body, color: tokens.textHigh),
-                  SizedBox(height: tokens.spaceLg),
-                  DesignButton(
-                    variant: DesignButtonVariant.filled,
-                    label: 'Erneut versuchen',
-                    onPressed: _load,
-                  ),
-                ],
+              SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                    SizedBox(height: tokens.spaceSm),
+                    DesignText(
+                      _error!,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceLg),
+                    DesignButton(
+                      variant: DesignButtonVariant.filled,
+                      label: 'Erneut versuchen',
+                      onPressed: _load,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       );
     }
@@ -292,137 +300,130 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         padding: EdgeInsets.all(tokens.spaceLg),
         child: Column(
           children: [
-          Row(
-            children: [
-              DesignAvatar(
-                imageUrl: post.userImage,
-                name: post.userName ?? post.userId,
-                size: 32,
-              ),
-              SizedBox(width: tokens.spaceSm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DesignText(
-                      post.userName ?? 'Benutzer',
-                      style: DesignTextStyle.label,
-                      color: tokens.textHigh,
-                    ),
-                    DesignText(
-                      app_date.formatRelativeDate(post.createdAt),
-                      style: DesignTextStyle.label,
-                      color: tokens.textLow.withValues(alpha: 0.6),
-                    ),
-                  ],
+            Row(
+              children: [
+                DesignAvatar(
+                  imageUrl: post.userImage,
+                  name: post.userName ?? post.userId,
+                  size: 32,
                 ),
-              ),
-              Icon(postTypeIcon(post.type), size: 16, color: tokens.primary),
-              SizedBox(width: tokens.spaceXs),
+                SizedBox(width: tokens.spaceSm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DesignText(
+                        post.userName ?? 'Benutzer',
+                        style: DesignTextStyle.label,
+                        color: tokens.textHigh,
+                      ),
+                      DesignText(
+                        app_date.formatRelativeDate(post.createdAt),
+                        style: DesignTextStyle.label,
+                        color: tokens.textLow.withValues(alpha: 0.6),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(postTypeIcon(post.type), size: 16, color: tokens.primary),
+                SizedBox(width: tokens.spaceXs),
+                DesignText(
+                  postTypeLabel(post.type),
+                  style: DesignTextStyle.label,
+                  color: tokens.primary,
+                ),
+              ],
+            ),
+            if (post.text != null && post.text!.isNotEmpty) ...[
+              SizedBox(height: tokens.spaceSm),
               DesignText(
-                postTypeLabel(post.type),
-                style: DesignTextStyle.label,
-                color: tokens.primary,
+                post.text!,
+                style: DesignTextStyle.body,
+                color: tokens.textHigh,
               ),
             ],
-          ),
-          if (post.title != null && post.title!.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceLg),
-            DesignText(
-              post.title!,
-              style: DesignTextStyle.subtitle,
-              color: tokens.textHigh,
-            ),
-          ],
-          if (post.text != null && post.text!.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceMd),
-            DesignText(
-              post.text!,
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
-            ),
-          ],
-          if (post.type == 'web') ...[
-            if (post.youtubeIds.isNotEmpty) ...[
-              SizedBox(height: tokens.spaceLg),
-              ...post.youtubeIds.map(
+            if (post.type == 'web') ...[
+              if (post.youtubeIds.isNotEmpty) ...[
+                SizedBox(height: tokens.spaceSm),
+                ...post.youtubeIds.map(
+                  (id) => Padding(
+                    padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                    child: YouTubePlayerEmbed(videoId: id),
+                  ),
+                ),
+              ],
+              if (post.spotifyItems.isNotEmpty) ...[
+                SizedBox(height: tokens.spaceSm),
+                ...post.spotifyItems.map(
+                  (SpotifyItem item) => Padding(
+                    padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                    child: SpotifyThumbnail(
+                      item: item,
+                      originalUrl: post.webUrls.firstWhere(
+                        (u) => SpotifyHelper.parseUrl(u) != null,
+                        orElse: () => post.webUrls.first,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (post.genericUrls.isNotEmpty) ...[
+                SizedBox(height: tokens.spaceSm),
+                ...post.genericUrls.map(
+                  (url) => Padding(
+                    padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                    child: OgPreviewCard(url: url),
+                  ),
+                ),
+              ],
+            ],
+            if (post.type == 'video' && post.youtubeVideoIds.isNotEmpty) ...[
+              SizedBox(height: tokens.spaceSm),
+              ...post.youtubeVideoIds.map(
                 (id) => Padding(
                   padding: EdgeInsets.only(bottom: tokens.spaceMd),
                   child: YouTubePlayerEmbed(videoId: id),
                 ),
               ),
             ],
-            if (post.spotifyItems.isNotEmpty) ...[
+            if (post.type == 'music' && post.spotifyMusicItems.isNotEmpty) ...[
               SizedBox(height: tokens.spaceLg),
-              ...post.spotifyItems.map(
+              ...post.spotifyMusicItems.map(
                 (SpotifyItem item) => Padding(
                   padding: EdgeInsets.only(bottom: tokens.spaceMd),
                   child: SpotifyThumbnail(
                     item: item,
-                    originalUrl: post.webUrls.firstWhere(
-                      (u) => SpotifyHelper.parseUrl(u) != null,
-                      orElse: () => post.webUrls.first,
-                    ),
+                    originalUrl: post.urls
+                        .firstWhere(
+                          (u) => u.platform.toLowerCase().contains('spotify'),
+                        )
+                        .url,
                   ),
                 ),
               ),
             ],
-            if (post.genericUrls.isNotEmpty) ...[
-              SizedBox(height: tokens.spaceLg),
-              ...post.genericUrls.map(
-                (url) => Padding(
-                  padding: EdgeInsets.only(bottom: tokens.spaceMd),
-                  child: OgPreviewCard(url: url),
-                ),
-              ),
-            ],
-          ],
-          if (post.type == 'video' && post.youtubeVideoIds.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceLg),
-            ...post.youtubeVideoIds.map(
-              (id) => Padding(
-                padding: EdgeInsets.only(bottom: tokens.spaceMd),
-                child: YouTubePlayerEmbed(videoId: id),
-              ),
+            ...postLinkDetailEntries(tokens, post),
+            PostVoteSection(
+              hasVoted: post.hasVoted,
+              upvoteCount: post.upvoteCount,
+              onVote: () => _handleVote(post),
+            ),
+            PostCommentsSection(
+              commentTotal: _commentTotal,
+              replyToId: _replyToId,
+              commentsLoading: _commentsLoading,
+              comments: _comments,
+              currentUserId: currentUserId,
+              isAdmin: isAdmin,
+              onReply: (id) => setState(() {
+                _replyToId = id.isEmpty ? null : id;
+              }),
+              onAddComment: (text, {parentId}) =>
+                  _addComment(text, parentId: parentId ?? _replyToId),
+              onDeleteComment: _deleteComment,
             ),
           ],
-          if (post.type == 'music' && post.spotifyMusicItems.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceLg),
-            ...post.spotifyMusicItems.map(
-              (SpotifyItem item) => Padding(
-                padding: EdgeInsets.only(bottom: tokens.spaceMd),
-                child: SpotifyThumbnail(
-                  item: item,
-                  originalUrl: post.urls
-                      .firstWhere(
-                        (u) => u.platform.toLowerCase().contains('spotify'),
-                      )
-                      .url,
-                ),
-              ),
-            ),
-          ],
-          ...postLinkDetailEntries(tokens, post),
-          PostVoteSection(
-            hasVoted: post.hasVoted,
-            upvoteCount: post.upvoteCount,
-            onVote: () => _handleVote(post),
-          ),
-          PostCommentsSection(
-            commentTotal: _commentTotal,
-            replyToId: _replyToId,
-            commentsLoading: _commentsLoading,
-            comments: _comments,
-            currentUserId: currentUserId,
-            isAdmin: isAdmin,
-            onReply: (id) => setState(() {
-              _replyToId = id.isEmpty ? null : id;
-            }),
-            onAddComment: (text, {parentId}) => _addComment(text, parentId: parentId ?? _replyToId),
-            onDeleteComment: _deleteComment,
-          ),
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -445,8 +446,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           userImage: post.userImage,
           type: post.type,
           content: post.content,
-          upvoteCount:
-              post.hasVoted ? post.upvoteCount - 1 : post.upvoteCount + 1,
+          upvoteCount: post.hasVoted
+              ? post.upvoteCount - 1
+              : post.upvoteCount + 1,
           commentCount: post.commentCount,
           hasVoted: !post.hasVoted,
           createdAt: post.createdAt,

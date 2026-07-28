@@ -38,8 +38,8 @@ List<Widget> postLinkDetailEntries(DesignTokens tokens, FeedPost post) {
   final links = post.type == 'video' || post.type == 'music'
       ? post.genericMusicUrls
       : post.type != 'web' && post.type != 'text'
-          ? post.urls
-          : const <MusicUrl>[];
+      ? post.urls
+      : const <MusicUrl>[];
   if (links.isEmpty) return const [];
   return [
     SizedBox(height: tokens.spaceLg),
@@ -110,9 +110,7 @@ class PostVoteSection extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                hasVoted
-                    ? Icons.thumb_up_rounded
-                    : Icons.thumb_up_outlined,
+                hasVoted ? Icons.thumb_up_rounded : Icons.thumb_up_outlined,
                 size: 20,
                 color: hasVoted ? tokens.primary : tokens.textLow,
               ),
