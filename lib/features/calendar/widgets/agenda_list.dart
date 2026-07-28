@@ -10,12 +10,14 @@ class AgendaList extends StatelessWidget {
   final List<CalendarEvent> events;
   final void Function(CalendarEvent event)? onEventTap;
   final ScrollController? scrollController;
+  final double bottomPadding;
 
   const AgendaList({
     super.key,
     required this.events,
     this.onEventTap,
     this.scrollController,
+    this.bottomPadding = 0,
   });
 
   @override
@@ -46,7 +48,12 @@ class AgendaList extends StatelessWidget {
 
     return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 8,
+        bottom: 8 + bottomPadding,
+      ),
       itemCount: grouped.length,
       itemBuilder: (context, index) {
         final entry = grouped[index];
