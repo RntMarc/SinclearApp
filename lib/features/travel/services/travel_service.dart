@@ -93,6 +93,84 @@ class TravelService {
     return TravelAccommodation.fromJson(data['data'] as Map<String, dynamic>);
   }
 
+  Future<List<TravelEventTicket>> getTripTickets(String tripId) async {
+    final data = await _api.get(
+      '/trips/$tripId/tickets',
+      token: await _token(),
+    );
+    final items = data['data'] as List<dynamic>;
+    return items
+        .map((item) => TravelEventTicket.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<TravelEventTicket>> getEventTickets(String eventId) async {
+    final data = await _api.get(
+      '/trips/events/$eventId/tickets',
+      token: await _token(),
+    );
+    final items = data['data'] as List<dynamic>;
+    return items
+        .map((item) => TravelEventTicket.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<TravelEventTicket>> listUserTickets() async {
+    final data = await _api.get('/trips/tickets/user', token: await _token());
+    final items = data['data'] as List<dynamic>;
+    return items
+        .map((item) => TravelEventTicket.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<TravelEventTicket> createUserTicket({
+    String? qrcode,
+    String? image,
+    String? eventId,
+    String? tripId,
+  }) async {
+    final body = <String, dynamic>{};
+    if (qrcode != null) body['qrcode'] = qrcode;
+    if (image != null) body['image'] = image;
+    if (eventId != null) body['event'] = eventId;
+    if (tripId != null) body['trip'] = tripId;
+
+    final data = await _api.post(
+      '/trips/tickets/user',
+      body: body,
+      token: await _token(),
+    );
+    return TravelEventTicket.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<TravelEventTicket> updateUserTicket(
+    String ticketId, {
+    String? qrcode,
+    String? image,
+    String? eventId,
+    String? tripId,
+  }) async {
+    final body = <String, dynamic>{};
+    if (qrcode != null) body['qrcode'] = qrcode;
+    if (image != null) body['image'] = image;
+    if (eventId != null) body['event'] = eventId;
+    if (tripId != null) body['trip'] = tripId;
+
+    final data = await _api.put(
+      '/trips/tickets/user/$ticketId',
+      body: body,
+      token: await _token(),
+    );
+    return TravelEventTicket.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteUserTicket(String ticketId) async {
+    await _api.delete(
+      '/trips/tickets/user/$ticketId',
+      token: await _token(),
+    );
+  }
+
   Future<List<Subscription>> getTripSubscriptions(String tripId) async {
     final data = await _api.get(
       '/trips/$tripId/subscriptions',

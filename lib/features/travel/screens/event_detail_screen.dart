@@ -11,6 +11,7 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
@@ -29,6 +30,7 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
   TravelService get _service => AppScope.of(context).travel;
 
   TravelEvent? _event;
+  List<TravelEventTicket> _tickets = [];
   bool _loading = true;
   String? _error;
 
@@ -44,10 +46,14 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
       _error = null;
     });
     try {
-      final event = await _service.getEventUnified(widget.id);
+      final results = await Future.wait([
+        _service.getEventUnified(widget.id),
+        _service.getEventTickets(widget.id),
+      ]);
       if (!mounted) return;
       setState(() {
-        _event = event;
+        _event = results[0] as TravelEvent;
+        _tickets = results[1] as List<TravelEventTicket>;
         _loading = false;
       });
     } catch (e, st) {
@@ -190,6 +196,19 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
                 ),
               ),
             ],
+            if (event.hastickets == '1' || _tickets.isNotEmpty) ...[
+              SizedBox(height: tokens.spaceXl),
+              DesignText(
+                'Tickets',
+                style: DesignTextStyle.subtitle,
+                color: tokens.textHigh,
+              ),
+              SizedBox(height: tokens.spaceSm),
+              if (event.hastickets == '1') ...[
+                _ticketInfoCard(tokens, event.ticket, event.ticketUrl),
+              ],
+              ..._tickets.map((t) => _ticketCard(tokens, t)),
+            ],
             if (event.participants.isNotEmpty) ...[
               SizedBox(height: tokens.spaceXl),
               DesignText(
@@ -223,6 +242,82 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _ticketInfoCard(DesignTokens tokens, String? ticket, String? ticketUrl) {
+    return DesignCard(
+      useGlass: false,
+      margin: EdgeInsets.only(bottom: tokens.spaceSm),
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
+              SizedBox(width: tokens.spaceSm),
+              DesignText('Ticket-Info', style: DesignTextStyle.body, color: tokens.textHigh),
+            ],
+          ),
+          if (ticket != null && ticket.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceXs),
+            DesignText(ticket, style: DesignTextStyle.label, color: tokens.textLow),
+          ],
+          if (ticketUrl != null && ticketUrl.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceXs),
+            GestureDetector(
+              onTap: () => {/* TODO: open URL */},
+              child: DesignText(
+                ticketUrl,
+                style: DesignTextStyle.label,
+                color: tokens.primary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _ticketCard(DesignTokens tokens, TravelEventTicket t) {
+    return DesignCard(
+      useGlass: false,
+      margin: EdgeInsets.only(bottom: tokens.spaceSm),
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
+              SizedBox(width: tokens.spaceSm),
+              DesignText(
+                t.type == 'event' ? 'Event-Ticket' : t.type == 'user' ? 'Mein Ticket' : 'Ticket',
+                style: DesignTextStyle.body,
+                color: tokens.textHigh,
+              ),
+            ],
+          ),
+          if (t.qrcode != null && t.qrcode!.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceXs),
+            DesignText(t.qrcode!, style: DesignTextStyle.label, color: tokens.textLow),
+          ],
+          if (t.image != null && t.image!.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceXs),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(tokens.radiusSm),
+              child: Image.network(
+                t.image!,
+                height: 100,
+                width: double.infinity,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
