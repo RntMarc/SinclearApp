@@ -124,12 +124,14 @@ class TravelService {
   }
 
   Future<TravelEventTicket> createUserTicket({
+    String? title,
     String? qrcode,
     String? image,
     String? eventId,
     String? tripId,
   }) async {
     final body = <String, dynamic>{};
+    if (title != null) body['title'] = title;
     if (qrcode != null) body['qrcode'] = qrcode;
     if (image != null) body['image'] = image;
     if (eventId != null) body['event'] = eventId;
@@ -145,12 +147,14 @@ class TravelService {
 
   Future<TravelEventTicket> updateUserTicket(
     String ticketId, {
+    String? title,
     String? qrcode,
     String? image,
     String? eventId,
     String? tripId,
   }) async {
     final body = <String, dynamic>{};
+    if (title != null) body['title'] = title;
     if (qrcode != null) body['qrcode'] = qrcode;
     if (image != null) body['image'] = image;
     if (eventId != null) body['event'] = eventId;

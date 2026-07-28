@@ -192,6 +192,7 @@ class TravelAccommodation {
 class TravelEventTicket {
   final String id;
   final String type;
+  final String? title;
   final String? event;
   final String? trip;
   final String? user;
@@ -201,6 +202,7 @@ class TravelEventTicket {
   const TravelEventTicket({
     required this.id,
     required this.type,
+    this.title,
     this.event,
     this.trip,
     this.user,
@@ -212,6 +214,7 @@ class TravelEventTicket {
     return TravelEventTicket(
       id: json['ID'] as String,
       type: json['type'] as String,
+      title: json['title'] as String?,
       event: json['event'] as String?,
       trip: json['trip'] as String?,
       user: json['user'] as String?,

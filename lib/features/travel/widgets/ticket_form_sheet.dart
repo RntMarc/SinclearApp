@@ -49,12 +49,14 @@ class _TicketFormSheet extends StatefulWidget {
 }
 
 class _TicketFormSheetState extends State<_TicketFormSheet> {
+  final _titleController = TextEditingController();
   final _qrController = TextEditingController();
   Uint8List? _imageBytes;
   bool _saving = false;
 
   @override
   void dispose() {
+    _titleController.dispose();
     _qrController.dispose();
     super.dispose();
   }
@@ -111,13 +113,16 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
   }
 
   bool get _hasContent =>
-      _qrController.text.isNotEmpty || _imageBytes != null;
+      _titleController.text.isNotEmpty ||
+      _qrController.text.isNotEmpty ||
+      _imageBytes != null;
 
   Future<void> _save() async {
     if (!_hasContent) return;
     setState(() => _saving = true);
     try {
       await widget.service.createUserTicket(
+        title: _titleController.text.isNotEmpty ? _titleController.text : null,
         qrcode: _qrController.text.isNotEmpty ? _qrController.text : null,
         image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
         tripId: widget.tripId,
@@ -163,6 +168,15 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
                 onPressed: () => Navigator.pop(context),
               ),
             ],
+          ),
+          SizedBox(height: t.spaceMd),
+          TextField(
+            controller: _titleController,
+            decoration: const InputDecoration(
+              labelText: 'Titel (optional)',
+              hintText: 'z.B. Messe, Fahrschein',
+              border: OutlineInputBorder(),
+            ),
           ),
           SizedBox(height: t.spaceMd),
           Row(
