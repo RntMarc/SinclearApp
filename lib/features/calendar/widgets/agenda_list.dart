@@ -230,11 +230,7 @@ class _EventTile extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 20,
-              color: tokens.textLow,
-            ),
+            Icon(Icons.chevron_right_rounded, size: 20, color: tokens.textLow),
           ],
         ),
       ),

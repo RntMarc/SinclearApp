@@ -221,6 +221,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         startTime: result['startTime'] as DateTime,
         endTime: result['endTime'] as DateTime,
         visibility: result['visibility'] as int,
+        participantIds: result['participantIds'] as List<String>?,
       );
       final day = DateTime(
         event.startTime.year,
