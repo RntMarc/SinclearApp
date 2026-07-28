@@ -8,9 +8,11 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/travel_models.dart';
 import '../screens/accommodation_detail_screen.dart';
 import '../screens/event_detail_screen.dart';
+import '../widgets/ticket_preview_page.dart';
 import '../widgets/user_tile.dart';
 
 class TripOverviewTab extends StatelessWidget {
@@ -558,7 +560,7 @@ class TripTicketsTab extends StatelessWidget {
               color: tokens.textHigh,
             ),
             SizedBox(height: tokens.spaceSm),
-            ...tripTickets.map((t) => _ticketCard(tokens, t, 'Reise-Ticket')),
+            ...tripTickets.map((t) => _ticketCard(context, tokens, t, 'Reise-Ticket')),
             SizedBox(height: tokens.spaceLg),
           ],
           if (eventTickets.isNotEmpty) ...[
@@ -569,8 +571,8 @@ class TripTicketsTab extends StatelessWidget {
             ),
             SizedBox(height: tokens.spaceSm),
             ...eventTickets.map(
-              (t) =>
-                  _ticketCard(tokens, t, 'Event: ${_eventName(t.event ?? '')}'),
+              (t) => _ticketCard(
+                context, tokens, t, 'Event: ${_eventName(t.event ?? '')}'),
             ),
             SizedBox(height: tokens.spaceLg),
           ],
@@ -581,14 +583,7 @@ class TripTicketsTab extends StatelessWidget {
               color: tokens.textHigh,
             ),
             SizedBox(height: tokens.spaceSm),
-            ...userTickets.map((t) {
-              final contextLabel = t.trip != null
-                  ? 'Zur Reise'
-                  : t.event != null
-                  ? 'Zu Event: ${_eventName(t.event!)}'
-                  : null;
-              return _ticketCard(tokens, t, 'Mein Ticket', contextLabel);
-            }),
+            ...userTickets.map((t) => _ticketCard(context, tokens, t, 'Mein Ticket')),
           ],
         ],
       ),
@@ -596,11 +591,14 @@ class TripTicketsTab extends StatelessWidget {
   }
 
   Widget _ticketCard(
+    BuildContext context,
     DesignTokens tokens,
     TravelEventTicket t, [
     String label = 'Ticket',
-    String? contextLabel,
   ]) {
+    final hasQr = t.qrcode != null && t.qrcode!.isNotEmpty;
+    final hasImg = t.image != null && resolveImageProvider(t.image) != null;
+
     return DesignCard(
       useGlass: false,
       margin: EdgeInsets.only(bottom: tokens.spaceSm),
@@ -610,45 +608,64 @@ class TripTicketsTab extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.confirmation_number_rounded,
-                color: tokens.primary,
-                size: 20,
-              ),
+              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
               SizedBox(width: tokens.spaceSm),
-              DesignText(
-                label,
-                style: DesignTextStyle.body,
-                color: tokens.textHigh,
+              Expanded(
+                child: DesignText(
+                  t.title ?? label,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
               ),
             ],
           ),
-          if (contextLabel != null) ...[
-            SizedBox(height: tokens.spaceXs),
-            DesignText(
-              contextLabel,
-              style: DesignTextStyle.label,
-              color: tokens.primary,
-            ),
-          ],
-          if (t.qrcode != null && t.qrcode!.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceXs),
-            DesignText(
-              t.qrcode!,
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
-          ],
-          if (t.image != null && resolveImageProvider(t.image) != null) ...[
-            SizedBox(height: tokens.spaceXs),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(tokens.radiusSm),
-              child: Image(
-                image: resolveImageProvider(t.image)!,
-                height: 100,
-                width: double.infinity,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          if (hasQr || hasImg) ...[
+            SizedBox(height: tokens.spaceSm),
+            SizedBox(
+              height: 120,
+              child: Row(
+                children: [
+                  if (hasQr)
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TicketPreviewPage(
+                              qrcode: t.qrcode,
+                              title: t.title ?? label,
+                            ),
+                          ),
+                        ),
+                        child: QrImageView(data: t.qrcode!, size: 120),
+                      ),
+                    ),
+                  if (hasQr && hasImg) SizedBox(width: tokens.spaceSm),
+                  if (hasImg)
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TicketPreviewPage(
+                              image: t.image,
+                              title: t.title ?? label,
+                            ),
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(tokens.radiusSm),
+                          child: Image(
+                            image: resolveImageProvider(t.image)!,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],

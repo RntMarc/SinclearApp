@@ -14,9 +14,11 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../widgets/ticket_form_sheet.dart';
+import '../widgets/ticket_preview_page.dart';
 
 class TravelEventDetailScreen extends StatefulWidget {
   final String id;
@@ -329,6 +331,14 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
   }
 
   Widget _ticketCard(DesignTokens tokens, TravelEventTicket t) {
+    final label = t.type == 'event'
+        ? 'Event-Ticket'
+        : t.type == 'user'
+            ? 'Mein Ticket'
+            : 'Ticket';
+    final hasQr = t.qrcode != null && t.qrcode!.isNotEmpty;
+    final hasImg = t.image != null && resolveImageProvider(t.image) != null;
+
     return DesignCard(
       useGlass: false,
       margin: EdgeInsets.only(bottom: tokens.spaceSm),
@@ -338,41 +348,64 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.confirmation_number_rounded,
-                color: tokens.primary,
-                size: 20,
-              ),
+              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
               SizedBox(width: tokens.spaceSm),
-              DesignText(
-                t.type == 'event'
-                    ? 'Event-Ticket'
-                    : t.type == 'user'
-                    ? 'Mein Ticket'
-                    : 'Ticket',
-                style: DesignTextStyle.body,
-                color: tokens.textHigh,
+              Expanded(
+                child: DesignText(
+                  t.title ?? label,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
               ),
             ],
           ),
-          if (t.qrcode != null && t.qrcode!.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceXs),
-            DesignText(
-              t.qrcode!,
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
-          ],
-          if (t.image != null && resolveImageProvider(t.image) != null) ...[
-            SizedBox(height: tokens.spaceXs),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(tokens.radiusSm),
-              child: Image(
-                image: resolveImageProvider(t.image)!,
-                height: 100,
-                width: double.infinity,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          if (hasQr || hasImg) ...[
+            SizedBox(height: tokens.spaceSm),
+            SizedBox(
+              height: 120,
+              child: Row(
+                children: [
+                  if (hasQr)
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TicketPreviewPage(
+                              qrcode: t.qrcode,
+                              title: t.title ?? label,
+                            ),
+                          ),
+                        ),
+                        child: QrImageView(data: t.qrcode!, size: 120),
+                      ),
+                    ),
+                  if (hasQr && hasImg) SizedBox(width: tokens.spaceSm),
+                  if (hasImg)
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TicketPreviewPage(
+                              image: t.image,
+                              title: t.title ?? label,
+                            ),
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(tokens.radiusSm),
+                          child: Image(
+                            image: resolveImageProvider(t.image)!,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
