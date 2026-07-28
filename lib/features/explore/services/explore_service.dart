@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/explore_models.dart';
@@ -193,12 +194,27 @@ class ExploreService {
   Future<ExploreSubmission> createSubmission(
     ExploreSubmissionCreateRequest request,
   ) async {
+    debugPrint('[explore_service] createSubmission: calling _api.post');
     final data = await _api.post(
       '/explore/submissions',
       body: request.toJson(),
       token: await _token(),
     );
-    return ExploreSubmission.fromJson(data['data'] as Map<String, dynamic>);
+    debugPrint(
+      '[explore_service] createSubmission: _api.post returned, keys=${data.keys}',
+    );
+    debugPrint(
+      '[explore_service] createSubmission: data["data"] type=${data['data'].runtimeType}',
+    );
+    final submissionData = data['data'] as Map<String, dynamic>;
+    debugPrint(
+      '[explore_service] createSubmission: parsing ExploreSubmission, keys=${submissionData.keys}',
+    );
+    final result = ExploreSubmission.fromJson(submissionData);
+    debugPrint(
+      '[explore_service] createSubmission: parsed OK, id=${result.id}',
+    );
+    return result;
   }
 
   Future<ExploreSubmissionListResponse> getSubmissions({
@@ -229,10 +245,14 @@ class ExploreService {
     String id,
     ExploreSubmissionUpdateRequest request,
   ) async {
+    debugPrint('[explore_service] updateSubmission: calling _api.put id=$id');
     final data = await _api.put(
       '/explore/submissions/$id',
       body: request.toJson(),
       token: await _token(),
+    );
+    debugPrint(
+      '[explore_service] updateSubmission: _api.put returned, keys=${data.keys}',
     );
     return ExploreSubmission.fromJson(data['data'] as Map<String, dynamic>);
   }

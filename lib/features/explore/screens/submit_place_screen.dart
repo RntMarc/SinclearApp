@@ -171,16 +171,23 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    debugPrint('[submit] === _submit() called ===');
+    if (!_formKey.currentState!.validate()) {
+      debugPrint('[submit] Form validation failed');
+      return;
+    }
     if (_selectedLocation == null) {
+      debugPrint('[submit] No location selected');
       setState(() => _error = 'Bitte waehle einen Standort auf der Karte.');
       return;
     }
     if (_rating == 0) {
+      debugPrint('[submit] No rating set');
       setState(() => _error = 'Bitte vergebe eine Bewertung (1-5 Sterne).');
       return;
     }
 
+    debugPrint('[submit] Validation passed, starting submission');
     setState(() {
       _submitting = true;
       _error = null;
@@ -189,6 +196,9 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
     try {
       final explore = AppScope.of(context).explore;
       final photo = _imageBytes != null ? base64Encode(_imageBytes!) : null;
+      debugPrint(
+        '[submit] explore service obtained, photo.length=${photo?.length ?? 0}',
+      );
 
       if (_isEditing) {
         final request = ExploreSubmissionUpdateRequest(
@@ -213,7 +223,9 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
               ? null
               : _noteController.text.trim(),
         );
+        debugPrint('[submit] Calling updateSubmission');
         await explore.updateSubmission(widget.initial!.id, request);
+        debugPrint('[submit] updateSubmission succeeded');
       } else {
         final request = ExploreSubmissionCreateRequest(
           name: _nameController.text.trim(),
@@ -237,10 +249,18 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
               ? null
               : _noteController.text.trim(),
         );
+        debugPrint('[submit] Calling createSubmission');
         await explore.createSubmission(request);
+        debugPrint('[submit] createSubmission succeeded');
       }
 
-      if (!mounted) return;
+      debugPrint('[submit] Checking mounted: $mounted');
+      if (!mounted) {
+        debugPrint('[submit] Not mounted after API call, returning early');
+        return;
+      }
+
+      debugPrint('[submit] Showing success snackbar');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -250,15 +270,25 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
           ),
         ),
       );
+
+      debugPrint('[submit] Popping route');
       context.pop();
     } catch (e, st) {
+      debugPrint('[submit] === EXCEPTION CAUGHT ===');
+      debugPrint('[submit] Type: ${e.runtimeType}');
+      debugPrint('[submit] Message: $e');
+      debugPrint('[submit] StackTrace: $st');
       developer.log('Failed to submit place', error: e, stackTrace: st);
-      if (!mounted) return;
+      if (!mounted) {
+        debugPrint('[submit] Not mounted in catch block, returning');
+        return;
+      }
       setState(() {
         _submitting = false;
         _error = 'Fehler beim Speichern. Bitte versuche es erneut.';
       });
     }
+    debugPrint('[submit] === _submit() finished ===');
   }
 
   @override
