@@ -637,7 +637,7 @@ class TripTicketsTab extends StatelessWidget {
                             ),
                           ),
                         ),
-                        child: QrImageView(data: t.qrcode!, size: 120),
+                        child: QrImageView(data: t.qrcode!, size: 120, backgroundColor: Colors.white),
                       ),
                     ),
                   if (hasQr && hasImg) SizedBox(width: tokens.spaceSm),
