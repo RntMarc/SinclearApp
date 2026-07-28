@@ -122,7 +122,7 @@ class CreatePlaceRequest {
 
   const CreatePlaceRequest({required this.osmId, required this.osmType});
 
-  Map<String, dynamic> toJson() => {'osmId': osmId, 'osmType': osmType};
+  Map<String, dynamic> toJson() => {'osm_id': osmId, 'osm_type': osmType};
 }
 
 class Review {
