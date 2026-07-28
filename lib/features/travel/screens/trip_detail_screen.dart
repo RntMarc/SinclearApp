@@ -27,7 +27,7 @@ class TripDetailScreen extends StatefulWidget {
 }
 
 class _TripDetailScreenState extends State<TripDetailScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   TravelService get _service => AppScope.of(context).travel;
 
   bool _loading = true;
