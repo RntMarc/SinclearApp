@@ -88,16 +88,26 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
     );
     if (source == null) return;
 
-    final picker = ImagePicker();
-    final photo = await picker.pickImage(source: source, maxWidth: 1024);
-    if (photo == null) return;
-
-    final bytes = await photo.readAsBytes();
-    if (!mounted) return;
-    setState(() => _imageBytes = bytes);
+    try {
+      final picker = ImagePicker();
+      final photo = await picker.pickImage(source: source, maxWidth: 1024);
+      if (photo == null) return;
+      final bytes = await photo.readAsBytes();
+      if (!mounted) return;
+      setState(() => _imageBytes = bytes);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kamera nicht verfügbar')),
+      );
+    }
   }
 
+  bool get _hasContent =>
+      _qrController.text.isNotEmpty || _imageBytes != null;
+
   Future<void> _save() async {
+    if (!_hasContent) return;
     setState(() => _saving = true);
     try {
       await widget.service.createUserTicket(
