@@ -121,9 +121,11 @@ class ExploreService {
     required int osmId,
     required String osmType,
   }) async {
+    const typeMap = {'node': 'N', 'way': 'W', 'relation': 'R'};
+    final apiType = typeMap[osmType] ?? osmType;
     final data = await _api.post(
       '/explore',
-      body: CreatePlaceRequest(osmId: osmId, osmType: osmType).toJson(),
+      body: CreatePlaceRequest(osmId: osmId, osmType: apiType).toJson(),
       token: await _token(),
     );
     return ExplorePlace.fromJson(data['data'] as Map<String, dynamic>);
