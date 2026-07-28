@@ -360,14 +360,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    DesignText(
-                      event.title,
-                      style: DesignTextStyle.subtitle,
-                      color: tokens.textHigh,
-                    ),
                     if (event.description != null &&
                         event.description!.isNotEmpty) ...[
-                      SizedBox(height: tokens.spaceMd),
                       DesignText(
                         event.description!,
                         style: DesignTextStyle.body,
