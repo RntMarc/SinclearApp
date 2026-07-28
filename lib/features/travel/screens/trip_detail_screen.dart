@@ -36,6 +36,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   List<TravelEvent> _events = [];
   List<TravelAccommodation> _accommodations = [];
   List<TravelParticipant> _participants = [];
+  List<TravelEventTicket> _tickets = [];
   List<Subscription> _subscriptions = [];
   bool _hasLoaded = false;
 
@@ -54,6 +55,8 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       _error = null;
     });
 
+    final currentUserId = AppScope.of(context).auth.userId;
+
     try {
       final trip = await _service.getTrip(widget.id);
 
@@ -61,6 +64,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         _service.getEvents(widget.id),
         _service.getAccommodations(widget.id),
         _service.getParticipants(widget.id),
+        _service.getTripTickets(widget.id),
       ];
 
       if (trip.subscriptionCount > 0) {
@@ -68,16 +72,31 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       }
 
       final results = await Future.wait(futures);
+      final events = (results[0] as TravelEventListResponse).data;
+
+      final myEventIds = currentUserId != null
+          ? events
+              .where((e) => e.participants.any((p) => p.id == currentUserId))
+              .map((e) => e.id)
+              .toList()
+          : <String>[];
+
+      final eventTicketLists = await Future.wait(
+        myEventIds.map((eid) => _service.getEventTickets(eid)),
+      );
+      final eventTickets = eventTicketLists.expand((l) => l).toList();
+      final tripTickets = results[3] as List<TravelEventTicket>;
 
       if (!mounted) return;
 
       setState(() {
         _trip = trip;
-        _events = (results[0] as TravelEventListResponse).data;
+        _events = events;
         _accommodations = (results[1] as TravelAccommodationListResponse).data;
         _participants = (results[2] as TravelParticipantListResponse).data;
-        if (trip.subscriptionCount > 0 && results.length > 3) {
-          _subscriptions = results[3] as List<Subscription>;
+        _tickets = [...tripTickets, ...eventTickets];
+        if (trip.subscriptionCount > 0 && results.length > 4) {
+          _subscriptions = results[4] as List<Subscription>;
         }
         _loading = false;
       });
@@ -172,6 +191,13 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
     tabs.add(const Tab(text: 'Events'));
     tabViews.add(TripEventsTab(events: _events, currentUserId: currentUserId));
+
+    if (_tickets.isNotEmpty) {
+      tabs.add(const Tab(text: 'Tickets'));
+      tabViews.add(
+        TripTicketsTab(tickets: _tickets, events: _events),
+      );
+    }
 
     if (_subscriptions.isNotEmpty) {
       tabs.add(const Tab(text: 'Zahlungen'));

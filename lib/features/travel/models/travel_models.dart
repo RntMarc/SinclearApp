@@ -189,6 +189,38 @@ class TravelAccommodation {
   }
 }
 
+class TravelEventTicket {
+  final String id;
+  final String type;
+  final String? event;
+  final String? trip;
+  final String? user;
+  final String? qrcode;
+  final String? image;
+
+  const TravelEventTicket({
+    required this.id,
+    required this.type,
+    this.event,
+    this.trip,
+    this.user,
+    this.qrcode,
+    this.image,
+  });
+
+  factory TravelEventTicket.fromJson(Map<String, dynamic> json) {
+    return TravelEventTicket(
+      id: json['ID'] as String,
+      type: json['type'] as String,
+      event: json['event'] as String?,
+      trip: json['trip'] as String?,
+      user: json['user'] as String?,
+      qrcode: json['qrcode'] as String?,
+      image: json['image'] as String?,
+    );
+  }
+}
+
 class TravelParticipantBrief {
   final String id;
   final String displayName;

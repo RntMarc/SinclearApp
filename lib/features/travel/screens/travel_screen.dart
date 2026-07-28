@@ -120,6 +120,17 @@ class _TravelScreenState extends State<TravelScreen> {
     }
   }
 
+  Future<void> _showUserTickets() async {
+    final tokens = DesignTheme.of(context);
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => _UserTicketSheet(service: _service, tokens: tokens),
+    );
+    if (result == true && mounted) _load();
+  }
+
   Future<void> _navigateToSearch() async {
     final result = await Navigator.push<bool>(
       context,
@@ -242,6 +253,20 @@ class _TravelScreenState extends State<TravelScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                tokens.spaceLg,
+                tokens.spaceLg,
+                tokens.spaceLg,
+                tokens.spaceXs,
+              ),
+              child: DesignButton(
+                variant: DesignButtonVariant.text,
+                label: 'Meine Tickets',
+                icon: Icons.confirmation_number_rounded,
+                onPressed: _showUserTickets,
+              ),
+            ),
             if (_current.isNotEmpty)
               ..._buildSection('Aktuelle Reisen', _current),
             if (_future.isNotEmpty)
@@ -369,5 +394,236 @@ class _TravelScreenState extends State<TravelScreen> {
         );
       }),
     ];
+  }
+}
+
+class _UserTicketSheet extends StatefulWidget {
+  final TravelService service;
+  final DesignTokens tokens;
+
+  const _UserTicketSheet({required this.service, required this.tokens});
+
+  @override
+  State<_UserTicketSheet> createState() => _UserTicketSheetState();
+}
+
+class _UserTicketSheetState extends State<_UserTicketSheet> {
+  List<TravelEventTicket> _tickets = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final tickets = await widget.service.listUserTickets();
+      if (!mounted) return;
+      setState(() {
+        _tickets = tickets;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.tokens;
+    return Padding(
+      padding: EdgeInsets.all(t.spaceLg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              DesignText('Meine Tickets', style: DesignTextStyle.subtitle, color: t.textHigh),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          SizedBox(height: t.spaceMd),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else ...[
+            ..._tickets.map((ticket) => _buildTicketTile(t, ticket)),
+            SizedBox(height: t.spaceMd),
+            Center(
+              child: DesignButton(
+                variant: DesignButtonVariant.outlined,
+                label: 'Ticket hinzufügen',
+                icon: Icons.add_rounded,
+                onPressed: () => _editTicket(null),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTicketTile(DesignTokens t, TravelEventTicket ticket) {
+    return DesignCard(
+      useGlass: false,
+      margin: EdgeInsets.only(bottom: t.spaceSm),
+      padding: EdgeInsets.all(t.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.confirmation_number_rounded, color: t.primary, size: 20),
+              SizedBox(width: t.spaceSm),
+              Expanded(
+                child: DesignText(
+                  ticket.qrcode ?? ticket.image ?? 'Ticket',
+                  style: DesignTextStyle.body,
+                  color: t.textHigh,
+                  maxLines: 1,
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.edit_rounded, size: 18, color: t.textLow),
+                onPressed: () => _editTicket(ticket),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_rounded, size: 18, color: t.danger),
+                onPressed: () => _deleteTicket(ticket),
+              ),
+            ],
+          ),
+          if (ticket.trip != null || ticket.event != null) ...[
+            SizedBox(height: t.spaceXs),
+            DesignText(
+              ticket.trip != null ? 'Verknüpft mit Reise' : 'Verknüpft mit Event',
+              style: DesignTextStyle.label,
+              color: t.textLow,
+            ),
+          ],
+          if (ticket.image != null) ...[
+            SizedBox(height: t.spaceXs),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(t.radiusSm),
+              child: Image.network(
+                ticket.image!,
+                height: 80,
+                width: double.infinity,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editTicket(TravelEventTicket? ticket) async {
+    final qrcodeController = TextEditingController(text: ticket?.qrcode ?? '');
+    final imageController = TextEditingController(text: ticket?.image ?? '');
+    final tripController = TextEditingController(text: ticket?.trip ?? '');
+    final eventController = TextEditingController(text: ticket?.event ?? '');
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ticket == null ? 'Ticket hinzufügen' : 'Ticket bearbeiten'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: qrcodeController,
+                decoration: const InputDecoration(labelText: 'QR-Code / Code', border: OutlineInputBorder()),
+                maxLines: 2,
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: imageController,
+                decoration: const InputDecoration(labelText: 'Bild-URL', border: OutlineInputBorder()),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: tripController,
+                decoration: const InputDecoration(
+                  labelText: 'Reise-ID (optional)',
+                  hintText: 'nur wenn mit Reise verknüpft',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: eventController,
+                decoration: const InputDecoration(
+                  labelText: 'Event-ID (optional)',
+                  hintText: 'nur wenn mit Event verknüpft',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(ticket == null ? 'Hinzufügen' : 'Speichern'),
+          ),
+        ],
+      ),
+    );
+    if (result != true || !context.mounted) return;
+    try {
+      if (ticket == null) {
+        await widget.service.createUserTicket(
+          qrcode: qrcodeController.text.isNotEmpty ? qrcodeController.text : null,
+          image: imageController.text.isNotEmpty ? imageController.text : null,
+          tripId: tripController.text.isNotEmpty ? tripController.text : null,
+          eventId: eventController.text.isNotEmpty ? eventController.text : null,
+        );
+      } else {
+        await widget.service.updateUserTicket(
+          ticket.id,
+          qrcode: qrcodeController.text.isNotEmpty ? qrcodeController.text : null,
+          image: imageController.text.isNotEmpty ? imageController.text : null,
+          tripId: tripController.text.isNotEmpty ? tripController.text : null,
+          eventId: eventController.text.isNotEmpty ? eventController.text : null,
+        );
+      }
+      if (!mounted) return;
+      _load();
+    } catch (_) {}
+  }
+
+  Future<void> _deleteTicket(TravelEventTicket ticket) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ticket löschen'),
+        content: Text('Möchtest du dieses Ticket wirklich löschen?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      await widget.service.deleteUserTicket(ticket.id);
+      if (!mounted) return;
+      _load();
+    } catch (_) {}
   }
 }
