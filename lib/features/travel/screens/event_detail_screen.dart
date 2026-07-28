@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
@@ -15,6 +16,7 @@ import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
+import '../widgets/ticket_form_sheet.dart';
 
 class TravelEventDetailScreen extends StatefulWidget {
   final String id;
@@ -78,7 +80,7 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
             ),
             title: _event?.name ?? 'Event',
           ),
-          Expanded(child: _buildBody()),
+          Expanded(child: _buildBodyWithFab()),
         ],
       ),
     );
@@ -246,7 +248,11 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
     );
   }
 
-  Widget _ticketInfoCard(DesignTokens tokens, String? ticket, String? ticketUrl) {
+  Widget _ticketInfoCard(
+    DesignTokens tokens,
+    String? ticket,
+    String? ticketUrl,
+  ) {
     return DesignCard(
       useGlass: false,
       margin: EdgeInsets.only(bottom: tokens.spaceSm),
@@ -256,14 +262,26 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
+              Icon(
+                Icons.confirmation_number_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
               SizedBox(width: tokens.spaceSm),
-              DesignText('Ticket-Info', style: DesignTextStyle.body, color: tokens.textHigh),
+              DesignText(
+                'Ticket-Info',
+                style: DesignTextStyle.body,
+                color: tokens.textHigh,
+              ),
             ],
           ),
           if (ticket != null && ticket.isNotEmpty) ...[
             SizedBox(height: tokens.spaceXs),
-            DesignText(ticket, style: DesignTextStyle.label, color: tokens.textLow),
+            DesignText(
+              ticket,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
           ],
           if (ticketUrl != null && ticketUrl.isNotEmpty) ...[
             SizedBox(height: tokens.spaceXs),
@@ -281,6 +299,35 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
     );
   }
 
+  Future<void> _addTicket() async {
+    final result = await showTicketFormSheet(
+      context: context,
+      service: _service,
+      eventId: widget.id,
+    );
+    if (result == true && mounted) _load();
+  }
+
+  Widget _buildBodyWithFab() {
+    if (_loading || _error != null || _event == null) return _buildBody();
+    return Stack(
+      children: [
+        _buildBody(),
+        if (_event!.hastickets == '1')
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              heroTag: 'event_ticket_fab',
+              onPressed: _addTicket,
+              tooltip: 'Ticket hinzufügen',
+              child: const Icon(Icons.qr_code_scanner_rounded),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _ticketCard(DesignTokens tokens, TravelEventTicket t) {
     return DesignCard(
       useGlass: false,
@@ -291,10 +338,18 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
+              Icon(
+                Icons.confirmation_number_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
               SizedBox(width: tokens.spaceSm),
               DesignText(
-                t.type == 'event' ? 'Event-Ticket' : t.type == 'user' ? 'Mein Ticket' : 'Ticket',
+                t.type == 'event'
+                    ? 'Event-Ticket'
+                    : t.type == 'user'
+                    ? 'Mein Ticket'
+                    : 'Ticket',
                 style: DesignTextStyle.body,
                 color: tokens.textHigh,
               ),
@@ -302,14 +357,18 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
           ),
           if (t.qrcode != null && t.qrcode!.isNotEmpty) ...[
             SizedBox(height: tokens.spaceXs),
-            DesignText(t.qrcode!, style: DesignTextStyle.label, color: tokens.textLow),
+            DesignText(
+              t.qrcode!,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
           ],
-          if (t.image != null && t.image!.isNotEmpty) ...[
+          if (t.image != null && resolveImageProvider(t.image) != null) ...[
             SizedBox(height: tokens.spaceXs),
             ClipRRect(
               borderRadius: BorderRadius.circular(tokens.radiusSm),
-              child: Image.network(
-                t.image!,
+              child: Image(
+                image: resolveImageProvider(t.image)!,
                 height: 100,
                 width: double.infinity,
                 fit: BoxFit.contain,

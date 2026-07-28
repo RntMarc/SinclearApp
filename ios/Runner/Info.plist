@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Kamera wird zum Scannen von QR-Codes auf Tickets verwendet</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Zugriff auf Fotos zum Hinzufügen von Ticket-Bildern</string>
 </dict>
 </plist>

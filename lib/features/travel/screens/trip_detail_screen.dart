@@ -13,6 +13,7 @@ import '../../subscription/widgets/subscription_card.dart';
 import '../../subscription/screens/subscription_detail_screen.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
+import '../widgets/ticket_form_sheet.dart';
 import '../widgets/trip_detail_widgets.dart';
 import '../widgets/embedded_forum_view.dart';
 
@@ -39,6 +40,9 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   List<TravelEventTicket> _tickets = [];
   List<Subscription> _subscriptions = [];
   bool _hasLoaded = false;
+
+  TabController? _tabController;
+  int _currentTabIndex = 0;
 
   @override
   void didChangeDependencies() {
@@ -76,9 +80,9 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
       final myEventIds = currentUserId != null
           ? events
-              .where((e) => e.participants.any((p) => p.id == currentUserId))
-              .map((e) => e.id)
-              .toList()
+                .where((e) => e.participants.any((p) => p.id == currentUserId))
+                .map((e) => e.id)
+                .toList()
           : <String>[];
 
       final eventTicketLists = await Future.wait(
@@ -111,6 +115,31 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   }
 
   @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
+
+  void _ensureTabController(int length) {
+    if (_tabController != null && _tabController!.length == length) return;
+    _tabController?.dispose();
+    _tabController = TabController(length: length, vsync: this);
+    _tabController!.addListener(() {
+      if (!mounted) return;
+      setState(() => _currentTabIndex = _tabController!.index);
+    });
+  }
+
+  Future<void> _addTicket() async {
+    final result = await showTicketFormSheet(
+      context: context,
+      service: _service,
+      tripId: widget.id,
+    );
+    if (result == true && mounted) _load();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return DesignSurface(
       child: Column(
@@ -122,7 +151,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             ),
             title: _trip?.name ?? 'Reise',
           ),
-          Expanded(child: _buildBody()),
+          Expanded(child: _buildBodyWithFab()),
         ],
       ),
     );
@@ -194,9 +223,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
 
     if (_tickets.isNotEmpty) {
       tabs.add(const Tab(text: 'Tickets'));
-      tabViews.add(
-        TripTicketsTab(tickets: _tickets, events: _events),
-      );
+      tabViews.add(TripTicketsTab(tickets: _tickets, events: _events));
     }
 
     if (_subscriptions.isNotEmpty) {
@@ -213,25 +240,47 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       ),
     );
 
+    _ensureTabController(tabs.length);
+
     return RefreshIndicator(
       onRefresh: _load,
-      child: DefaultTabController(
-        length: tabs.length,
-        child: Column(
-          children: [
-            TabBar(
-              indicatorColor: tokens.primary,
-              labelColor: tokens.textHigh,
-              unselectedLabelColor: tokens.textLow,
-              labelStyle: tokens.bodyStyle(tokens.textHigh),
-              unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
-              isScrollable: tabs.length > 3,
-              tabs: tabs,
-            ),
-            Expanded(child: TabBarView(children: tabViews)),
-          ],
-        ),
+      child: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            indicatorColor: tokens.primary,
+            labelColor: tokens.textHigh,
+            unselectedLabelColor: tokens.textLow,
+            labelStyle: tokens.bodyStyle(tokens.textHigh),
+            unselectedLabelStyle: tokens.labelStyle(tokens.textLow),
+            isScrollable: tabs.length > 3,
+            tabs: tabs,
+          ),
+          Expanded(
+            child: TabBarView(controller: _tabController, children: tabViews),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildBodyWithFab() {
+    if (_loading || _error != null || _trip == null) return _buildBody();
+    return Stack(
+      children: [
+        _buildBody(),
+        if (_currentTabIndex == 0 && _trip!.hastickets == '1')
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              heroTag: 'trip_ticket_fab',
+              onPressed: _addTicket,
+              tooltip: 'Ticket hinzufügen',
+              child: const Icon(Icons.qr_code_scanner_rounded),
+            ),
+          ),
+      ],
     );
   }
 

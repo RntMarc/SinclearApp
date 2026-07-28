@@ -7,6 +7,7 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../models/pt_models.dart';
 import '../models/travel_models.dart';
 import '../screens/event_detail_screen.dart';
@@ -443,7 +444,11 @@ class _UserTicketSheetState extends State<_UserTicketSheet> {
         children: [
           Row(
             children: [
-              DesignText('Meine Tickets', style: DesignTextStyle.subtitle, color: t.textHigh),
+              DesignText(
+                'Meine Tickets',
+                style: DesignTextStyle.subtitle,
+                color: t.textHigh,
+              ),
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.close_rounded),
@@ -456,15 +461,6 @@ class _UserTicketSheetState extends State<_UserTicketSheet> {
             const Center(child: CircularProgressIndicator())
           else ...[
             ..._tickets.map((ticket) => _buildTicketTile(t, ticket)),
-            SizedBox(height: t.spaceMd),
-            Center(
-              child: DesignButton(
-                variant: DesignButtonVariant.outlined,
-                label: 'Ticket hinzufügen',
-                icon: Icons.add_rounded,
-                onPressed: () => _editTicket(null),
-              ),
-            ),
           ],
         ],
       ),
@@ -481,7 +477,11 @@ class _UserTicketSheetState extends State<_UserTicketSheet> {
         children: [
           Row(
             children: [
-              Icon(Icons.confirmation_number_rounded, color: t.primary, size: 20),
+              Icon(
+                Icons.confirmation_number_rounded,
+                color: t.primary,
+                size: 20,
+              ),
               SizedBox(width: t.spaceSm),
               Expanded(
                 child: DesignText(
@@ -504,17 +504,20 @@ class _UserTicketSheetState extends State<_UserTicketSheet> {
           if (ticket.trip != null || ticket.event != null) ...[
             SizedBox(height: t.spaceXs),
             DesignText(
-              ticket.trip != null ? 'Verknüpft mit Reise' : 'Verknüpft mit Event',
+              ticket.trip != null
+                  ? 'Verknüpft mit Reise'
+                  : 'Verknüpft mit Event',
               style: DesignTextStyle.label,
               color: t.textLow,
             ),
           ],
-          if (ticket.image != null) ...[
+          if (ticket.image != null &&
+              resolveImageProvider(ticket.image) != null) ...[
             SizedBox(height: t.spaceXs),
             ClipRRect(
               borderRadius: BorderRadius.circular(t.radiusSm),
-              child: Image.network(
-                ticket.image!,
+              child: Image(
+                image: resolveImageProvider(ticket.image)!,
                 height: 80,
                 width: double.infinity,
                 fit: BoxFit.contain,
@@ -542,13 +545,19 @@ class _UserTicketSheetState extends State<_UserTicketSheet> {
             children: [
               TextField(
                 controller: qrcodeController,
-                decoration: const InputDecoration(labelText: 'QR-Code / Code', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'QR-Code / Code',
+                  border: OutlineInputBorder(),
+                ),
                 maxLines: 2,
               ),
               SizedBox(height: 12),
               TextField(
                 controller: imageController,
-                decoration: const InputDecoration(labelText: 'Bild-URL', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: 'Bild-URL',
+                  border: OutlineInputBorder(),
+                ),
               ),
               SizedBox(height: 12),
               TextField(
@@ -572,7 +581,10 @@ class _UserTicketSheetState extends State<_UserTicketSheet> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(ticket == null ? 'Hinzufügen' : 'Speichern'),
@@ -584,18 +596,26 @@ class _UserTicketSheetState extends State<_UserTicketSheet> {
     try {
       if (ticket == null) {
         await widget.service.createUserTicket(
-          qrcode: qrcodeController.text.isNotEmpty ? qrcodeController.text : null,
+          qrcode: qrcodeController.text.isNotEmpty
+              ? qrcodeController.text
+              : null,
           image: imageController.text.isNotEmpty ? imageController.text : null,
           tripId: tripController.text.isNotEmpty ? tripController.text : null,
-          eventId: eventController.text.isNotEmpty ? eventController.text : null,
+          eventId: eventController.text.isNotEmpty
+              ? eventController.text
+              : null,
         );
       } else {
         await widget.service.updateUserTicket(
           ticket.id,
-          qrcode: qrcodeController.text.isNotEmpty ? qrcodeController.text : null,
+          qrcode: qrcodeController.text.isNotEmpty
+              ? qrcodeController.text
+              : null,
           image: imageController.text.isNotEmpty ? imageController.text : null,
           tripId: tripController.text.isNotEmpty ? tripController.text : null,
-          eventId: eventController.text.isNotEmpty ? eventController.text : null,
+          eventId: eventController.text.isNotEmpty
+              ? eventController.text
+              : null,
         );
       }
       if (!mounted) return;
@@ -610,7 +630,10 @@ class _UserTicketSheetState extends State<_UserTicketSheet> {
         title: const Text('Ticket löschen'),
         content: Text('Möchtest du dieses Ticket wirklich löschen?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abbrechen')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Abbrechen'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

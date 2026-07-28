@@ -165,10 +165,7 @@ class TravelService {
   }
 
   Future<void> deleteUserTicket(String ticketId) async {
-    await _api.delete(
-      '/trips/tickets/user/$ticketId',
-      token: await _token(),
-    );
+    await _api.delete('/trips/tickets/user/$ticketId', token: await _token());
   }
 
   Future<List<Subscription>> getTripSubscriptions(String tripId) async {

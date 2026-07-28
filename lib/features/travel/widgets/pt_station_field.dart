@@ -132,12 +132,15 @@ class _PtStationFieldState extends State<PtStationField> {
                         ),
                       )
                     : _showSuggestions
-                        ? IconButton(
-                            icon: Icon(Icons.close_rounded,
-                                color: tokens.textLow, size: 20),
-                            onPressed: _closeSuggestions,
-                          )
-                        : null,
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: tokens.textLow,
+                          size: 20,
+                        ),
+                        onPressed: _closeSuggestions,
+                      )
+                    : null,
               ),
             ),
             if (_showSuggestions && _suggestions.isNotEmpty)

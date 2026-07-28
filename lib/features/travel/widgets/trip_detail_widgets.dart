@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/osm_config.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
@@ -108,7 +109,11 @@ class TripOverviewTab extends StatelessWidget {
     );
   }
 
-  Widget _ticketInfoCard(DesignTokens tokens, String? ticket, String? ticketUrl) {
+  Widget _ticketInfoCard(
+    DesignTokens tokens,
+    String? ticket,
+    String? ticketUrl,
+  ) {
     return DesignCard(
       useGlass: false,
       margin: EdgeInsets.only(bottom: tokens.spaceSm),
@@ -118,14 +123,26 @@ class TripOverviewTab extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
+              Icon(
+                Icons.confirmation_number_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
               SizedBox(width: tokens.spaceSm),
-              DesignText('Ticket-Info', style: DesignTextStyle.body, color: tokens.textHigh),
+              DesignText(
+                'Ticket-Info',
+                style: DesignTextStyle.body,
+                color: tokens.textHigh,
+              ),
             ],
           ),
           if (ticket != null && ticket.isNotEmpty) ...[
             SizedBox(height: tokens.spaceXs),
-            DesignText(ticket, style: DesignTextStyle.label, color: tokens.textLow),
+            DesignText(
+              ticket,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
           ],
           if (ticketUrl != null && ticketUrl.isNotEmpty) ...[
             SizedBox(height: tokens.spaceXs),
@@ -142,7 +159,6 @@ class TripOverviewTab extends StatelessWidget {
       ),
     );
   }
-
 }
 
 class TripAccommodationMap extends StatelessWidget {
@@ -442,7 +458,11 @@ class TripEventCard extends StatelessWidget {
                 if (event.hastickets == '1')
                   Padding(
                     padding: EdgeInsets.only(left: 4),
-                    child: Icon(Icons.confirmation_number_rounded, size: 16, color: tokens.warning),
+                    child: Icon(
+                      Icons.confirmation_number_rounded,
+                      size: 16,
+                      color: tokens.warning,
+                    ),
                   ),
               ],
             ),
@@ -549,7 +569,8 @@ class TripTicketsTab extends StatelessWidget {
             ),
             SizedBox(height: tokens.spaceSm),
             ...eventTickets.map(
-              (t) => _ticketCard(tokens, t, 'Event: ${_eventName(t.event ?? '')}'),
+              (t) =>
+                  _ticketCard(tokens, t, 'Event: ${_eventName(t.event ?? '')}'),
             ),
             SizedBox(height: tokens.spaceLg),
           ],
@@ -564,8 +585,8 @@ class TripTicketsTab extends StatelessWidget {
               final contextLabel = t.trip != null
                   ? 'Zur Reise'
                   : t.event != null
-                      ? 'Zu Event: ${_eventName(t.event!)}'
-                      : null;
+                  ? 'Zu Event: ${_eventName(t.event!)}'
+                  : null;
               return _ticketCard(tokens, t, 'Mein Ticket', contextLabel);
             }),
           ],
@@ -589,25 +610,41 @@ class TripTicketsTab extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
+              Icon(
+                Icons.confirmation_number_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
               SizedBox(width: tokens.spaceSm),
-              DesignText(label, style: DesignTextStyle.body, color: tokens.textHigh),
+              DesignText(
+                label,
+                style: DesignTextStyle.body,
+                color: tokens.textHigh,
+              ),
             ],
           ),
           if (contextLabel != null) ...[
             SizedBox(height: tokens.spaceXs),
-            DesignText(contextLabel, style: DesignTextStyle.label, color: tokens.primary),
+            DesignText(
+              contextLabel,
+              style: DesignTextStyle.label,
+              color: tokens.primary,
+            ),
           ],
           if (t.qrcode != null && t.qrcode!.isNotEmpty) ...[
             SizedBox(height: tokens.spaceXs),
-            DesignText(t.qrcode!, style: DesignTextStyle.label, color: tokens.textLow),
+            DesignText(
+              t.qrcode!,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
           ],
-          if (t.image != null && t.image!.isNotEmpty) ...[
+          if (t.image != null && resolveImageProvider(t.image) != null) ...[
             SizedBox(height: tokens.spaceXs),
             ClipRRect(
               borderRadius: BorderRadius.circular(tokens.radiusSm),
-              child: Image.network(
-                t.image!,
+              child: Image(
+                image: resolveImageProvider(t.image)!,
                 height: 100,
                 width: double.infinity,
                 fit: BoxFit.contain,
