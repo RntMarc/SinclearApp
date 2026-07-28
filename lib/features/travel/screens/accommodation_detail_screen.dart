@@ -135,30 +135,13 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  acc.ishotel == 1 ? Icons.hotel_rounded : Icons.home_rounded,
-                  color: isMine ? tokens.primary : tokens.textHigh,
-                  size: 28,
-                ),
-                SizedBox(width: tokens.spaceSm),
-                Expanded(
-                  child: DesignText(
-                    acc.name,
-                    style: DesignTextStyle.title,
-                    color: tokens.textHigh,
-                  ),
-                ),
-              ],
-            ),
             if (acc.description != null && acc.description!.isNotEmpty) ...[
-              SizedBox(height: tokens.spaceSm),
               DesignText(
                 acc.description!,
                 style: DesignTextStyle.body,
                 color: tokens.textHigh,
               ),
+              _infoRow(tokens, Icons.location_on_rounded, acc.address!),
             ],
             SizedBox(height: tokens.spaceLg),
             if (acc.address != null) ...[

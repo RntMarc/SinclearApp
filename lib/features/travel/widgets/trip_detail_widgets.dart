@@ -39,13 +39,7 @@ class TripOverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DesignText(
-            trip.name,
-            style: DesignTextStyle.title,
-            color: tokens.textHigh,
-          ),
           if (trip.description != null) ...[
-            SizedBox(height: tokens.spaceSm),
             DesignText(
               trip.description!,
               style: DesignTextStyle.body,
