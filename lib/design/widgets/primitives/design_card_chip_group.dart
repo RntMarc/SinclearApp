@@ -95,20 +95,23 @@ class _DesignCardChipGroupState extends State<DesignCardChipGroup> {
 
     return SizedBox(
       height: tokens.spaceLg * 3,
-      child: ListView.separated(
-        controller: _scrollController,
-        clipBehavior: Clip.none,
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-        separatorBuilder: (_, _) => SizedBox(width: tokens.spaceSm),
-        itemCount: widget.items.length,
-        itemBuilder: (context, index) {
-          final item = widget.items[index];
-          return _CardChip(
-            key: _itemKeys.putIfAbsent(index, () => GlobalKey()),
-            item: item,
-          );
-        },
+      child: Padding(
+        padding: EdgeInsets.only(top: tokens.spaceSm),
+        child: ListView.separated(
+          controller: _scrollController,
+          clipBehavior: Clip.none,
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+          separatorBuilder: (_, _) => SizedBox(width: tokens.spaceSm),
+          itemCount: widget.items.length,
+          itemBuilder: (context, index) {
+            final item = widget.items[index];
+            return _CardChip(
+              key: _itemKeys.putIfAbsent(index, () => GlobalKey()),
+              item: item,
+            );
+          },
+        ),
       ),
     );
   }
@@ -149,11 +152,7 @@ class _CardChip extends StatelessWidget {
               ),
             ),
             SizedBox(width: tokens.spaceXs),
-            DesignText(
-              item.label,
-              style: DesignTextStyle.label,
-              color: fg,
-            ),
+            DesignText(item.label, style: DesignTextStyle.label, color: fg),
           ],
         ),
       ),
