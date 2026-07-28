@@ -442,6 +442,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                       ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: MediaQuery.of(context).padding.bottom + 100,
+                      ),
+                    ),
                   ],
                 ),
               ),
