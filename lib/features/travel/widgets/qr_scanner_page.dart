@@ -32,6 +32,21 @@ class _QrScannerPageState extends State<QrScannerPage> {
             Navigator.pop(context, value);
           }
         },
+        errorBuilder: (context, error) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded, size: 48, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text('Kamera nicht verfügbar'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Zurück'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
