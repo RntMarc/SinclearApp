@@ -1,16 +1,17 @@
-import 'dart:developer' as developer;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'design/theme/design_preferences.dart';
 import 'core/config/osm_config.dart';
+import 'core/logging.dart';
 import 'core/network/api_client.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
@@ -32,6 +33,8 @@ import 'router/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  setupLogging();
+  final log = Logger('main');
 
   if (!kIsWeb) {
     final view = WidgetsBinding.instance.platformDispatcher.views.first;
@@ -50,12 +53,7 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e, s) {
-    developer.log(
-      'Firebase initialization failed',
-      name: 'main',
-      error: e,
-      stackTrace: s,
-    );
+    log.severe('Firebase initialization failed', e, s);
   }
   await dotenv.load();
 
@@ -94,12 +92,7 @@ void main() async {
     await notification.init();
     if (auth.isLoggedIn) notification.onLoggedIn();
   } catch (e, s) {
-    developer.log(
-      'Notification service initialization failed',
-      name: 'main',
-      error: e,
-      stackTrace: s,
-    );
+    log.severe('Notification service initialization failed', e, s);
   }
   auth.addListener(() {
     if (auth.isLoggedIn) {

@@ -178,11 +178,13 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 
 ## F. Debugging & Logging
 
-### F1. Zentrales Logging einführen
-- [ ] `package:logging` zu `dependencies` hinzufügen
-- [ ] Zentrale `Logger`-Instanz pro Feature/Service (z.B. `final log = Logger('api_client');`)
-- [ ] `debugPrint`-Aufrufe in `lib/core/network/api_client.dart` durch `log.fine(...)` ersetzen
-- [ ] `dart:developer`-Logs in `image_compressor.dart`, `image_provider_helper.dart`, `android_update_service.dart` auf `logging` umstellen (oder zumindest konsolidieren)
+### F1. Zentrales Logging einführen `[x]`
+- [x] `package:logging` zu `dependencies` hinzugefügt
+- [x] `lib/core/logging.dart` – `setupLogging()` mit Level-Filter (debug/release) + `debugPrint`-Ausgabe
+- [x] `lib/main.dart` – `setupLogging()`-Aufruf beim Start, `developer.log` → `Logger('main')`
+- [x] `api_client.dart` – `debugPrint` → `_log.fine()`, kDebugMode-Guards für String-Kosten behalten
+- [x] `image_compressor.dart`, `image_provider_helper.dart` – `dart:developer` → gemeinsamer `Logger('image')`
+- [x] `android_update_service.dart` – eigenes `_log`-Wrapper → `Logger('AndroidUpdateService')` mit passenden Levels (info/warning/severe)
 
 ### F2. `BuildContext` über async gaps absichern
 - [ ] `lib/features/onboarding/screens/onboarding_screen.dart:217` – `mounted`-Check vor `setState`/Navigation
@@ -212,7 +214,7 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 
 ### G1. ÖPNV (Public Transport)
 
-- [ ] Implementieren der neuen ÖPNV-Funktionen aus der API. Documentation prüfen und Umsetzung gemeinsam mit dem Nutzer planen. Es gibt Fahrten, die mit Reisen verknüpft sind und Fahrten, die eigenständig sind.
+- [x] Implementieren der neuen ÖPNV-Funktionen aus der API. Documentation prüfen und Umsetzung gemeinsam mit dem Nutzer planen. Es gibt Fahrten, die mit Reisen verknüpft sind und Fahrten, die eigenständig sind.
 
 ### G2. Abos (Subscriptions)
 
@@ -245,8 +247,8 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 8. ✅ **(mittel)** **C4** – Marker-Memoization ✅
 9. ✅ **(mittel)** **C6** – const-Konstruktoren nachrüsten ✅
 10. ✅ **(mittel)** **D** – UI-Konsistenz ✅
-11. **(mittel)** **F1, F3, F4** – Logging + Error-Handling
+11. ✅ **(mittel)** **F1** – Zentrales Logging ✅
 12. ✅ **(mittel)** **C5** – Paket A (ValueNotifier Toggles + RefreshIndicator) ✅
 13. ✅ **(erledigt)** **G3** – Reisen/Events-Erweiterung ✅
 14. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
-15. **(später)** **G1, G2, G4** – Weitere neue Funktionen
+15. **(später)** **G2, G4** – Weitere neue Funktionen

@@ -1,7 +1,7 @@
-import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
+import 'package:logging/logging.dart';
 
 const int _defaultMaxDimension = 1000;
 const int _maxBytes = 200 * 1024;
@@ -15,6 +15,8 @@ const int _qualityStep = 10;
 /// Bug-report screenshots:           [maxDimension] 4000.
 /// Max decoded file size is always 200 KB.
 ///
+final _log = Logger('image');
+
 /// Returns `null` if the bytes cannot be decoded as an image,
 /// or `null` when the result still exceeds 200 KB after aggressive
 /// down-scaling (caller should show an error).
@@ -24,19 +26,16 @@ Uint8List? compressImage(
 }) {
   final decoded = img.decodeImage(bytes);
   if (decoded == null) {
-    developer.log(
+    _log.warning(
       'compressImage: decode failed, input=${bytes.length}B',
-      name: 'image',
-      level: 900,
     );
     return null;
   }
 
-  developer.log(
+  _log.info(
     'compressImage: original=${bytes.length}B, '
     'dims=${decoded.width}x${decoded.height}, '
     'maxDim=$maxDimension',
-    name: 'image',
   );
 
   var resized = decoded;
@@ -47,9 +46,8 @@ Uint8List? compressImage(
       height: decoded.height >= decoded.width ? maxDimension : null,
       interpolation: img.Interpolation.linear,
     );
-    developer.log(
+    _log.fine(
       'compressImage: resized to ${resized.width}x${resized.height}',
-      name: 'image',
     );
   }
 
@@ -60,9 +58,8 @@ Uint8List? compressImage(
     final encoded = Uint8List.fromList(
       img.encodeJpg(resized, quality: quality),
     );
-    developer.log(
+    _log.fine(
       'compressImage: quality=$quality, size=${encoded.length}B',
-      name: 'image',
     );
     if (encoded.length <= _maxBytes) return encoded;
     lastEncoded = encoded;
@@ -82,27 +79,23 @@ Uint8List? compressImage(
     final encoded = Uint8List.fromList(
       img.encodeJpg(downscaled, quality: _minQuality),
     );
-    developer.log(
+    _log.fine(
       'compressImage: aggressive scale ${downscaled.width}x'
       '${downscaled.height}, size=${encoded.length}B',
-      name: 'image',
     );
     if (encoded.length <= _maxBytes) return encoded;
   }
 
   // Last resort: return best-effort or null when way too big.
   if (lastEncoded != null && lastEncoded.length <= _maxBytes * 1.25) {
-    developer.log(
+    _log.info(
       'compressImage: returning best-effort (${lastEncoded.length}B)',
-      name: 'image',
     );
     return lastEncoded;
   }
 
-  developer.log(
+  _log.severe(
     'compressImage: FAILED – cannot compress below 200 KB',
-    name: 'image',
-    level: 1000,
   );
   return null;
 }

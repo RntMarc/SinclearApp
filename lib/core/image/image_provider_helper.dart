@@ -1,8 +1,10 @@
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('image');
 
 /// Returns an [ImageProvider] for the given [imageUrl].
 ///
@@ -19,10 +21,8 @@ ImageProvider? resolveImageProvider(String? imageUrl) {
   if (imageUrl.startsWith('data:')) {
     final data = _decodeBase64DataUri(imageUrl);
     if (data != null) return MemoryImage(data);
-    developer.log(
+    _log.warning(
       'resolveImageProvider: invalid data URI (len=${imageUrl.length})',
-      name: 'image',
-      level: 800,
     );
     return null;
   }
@@ -33,10 +33,8 @@ ImageProvider? resolveImageProvider(String? imageUrl) {
     if (decoded.isEmpty) return null;
     return MemoryImage(decoded);
   } catch (e) {
-    developer.log(
+    _log.warning(
       'resolveImageProvider: base64 decode failed (len=${imageUrl.length}): $e',
-      name: 'image',
-      level: 800,
     );
     return null;
   }
@@ -54,11 +52,7 @@ Uint8List? _decodeBase64DataUri(String dataUri) {
       return base64.decode(payload.trim());
     }
   } catch (e) {
-    developer.log(
-      '_decodeBase64DataUri: decode failed: $e',
-      name: 'image',
-      level: 800,
-    );
+    _log.warning('_decodeBase64DataUri: decode failed: $e');
   }
 
   return null;
