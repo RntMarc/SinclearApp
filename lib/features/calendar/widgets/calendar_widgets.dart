@@ -29,6 +29,7 @@ class CalendarDesktopCalendar extends StatelessWidget {
         firstDay: DateTime(2020),
         lastDay: DateTime(2035),
         focusedDay: focusedDay,
+        startingDayOfWeek: StartingDayOfWeek.monday,
         selectedDayPredicate: (day) => isSameDay(selectedDay, day),
         onDaySelected: onDaySelected,
         calendarFormat: CalendarFormat.month,
