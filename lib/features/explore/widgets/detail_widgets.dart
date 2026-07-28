@@ -33,7 +33,8 @@ class PlaceDetailWide extends StatelessWidget {
   final void Function(Review) onEditReview;
   final void Function(Review) onDeleteReview;
 
-  const PlaceDetailWide({super.key,
+  const PlaceDetailWide({
+    super.key,
     required this.place,
     required this.canDelete,
     required this.refreshing,
@@ -124,7 +125,8 @@ class PlaceDetailNarrow extends StatelessWidget {
   final void Function(Review) onEditReview;
   final void Function(Review) onDeleteReview;
 
-  const PlaceDetailNarrow({super.key,
+  const PlaceDetailNarrow({
+    super.key,
     required this.place,
     required this.canDelete,
     required this.refreshing,
@@ -174,10 +176,7 @@ class PlaceDetailNarrow extends StatelessWidget {
                     children: [
                       PlaceInfoContent(place: place),
                       SizedBox(height: tokens.spaceLg),
-                      SizedBox(
-                        height: 200,
-                        child: PlaceMapCard(place: place),
-                      ),
+                      SizedBox(height: 200, child: PlaceMapCard(place: place)),
                       SizedBox(height: tokens.spaceLg),
                       PlaceActionsCard(
                         canDelete: canDelete,
@@ -224,11 +223,6 @@ class PlaceInfoContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DesignText(
-          place.name,
-          style: DesignTextStyle.title,
-          color: tokens.textHigh,
-        ),
         SizedBox(height: tokens.spaceLg),
         if (place.address != null)
           _infoRow(Icons.location_on_rounded, place.address!, tokens),
@@ -253,8 +247,16 @@ class PlaceInfoContent extends StatelessWidget {
             tokens,
           ),
         SizedBox(height: tokens.spaceLg),
-        _metaRow('Kategorie', place.category == 'gastronomy' ? 'Gastronomie' : 'Freizeit', tokens),
-        _metaRow('OSM-ID', '${place.osmType ?? "?"}/${place.osmId?.toString() ?? "?"}', tokens),
+        _metaRow(
+          'Kategorie',
+          place.category == 'gastronomy' ? 'Gastronomie' : 'Freizeit',
+          tokens,
+        ),
+        _metaRow(
+          'OSM-ID',
+          '${place.osmType ?? "?"}/${place.osmId?.toString() ?? "?"}',
+          tokens,
+        ),
         _metaRow('Erstellt', place.createdAt.substring(0, 10), tokens),
         _metaRow(
           'Letzte Aktualisierung',
@@ -299,11 +301,7 @@ Widget _metaRow(String label, String value, DesignTokens tokens) {
             color: tokens.textLow,
           ),
         ),
-        DesignText(
-          value,
-          style: DesignTextStyle.label,
-          color: tokens.textHigh,
-        ),
+        DesignText(value, style: DesignTextStyle.label, color: tokens.textHigh),
       ],
     ),
   );
@@ -381,7 +379,8 @@ class PlaceActionsCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onToggleBookmark;
 
-  const PlaceActionsCard({super.key,
+  const PlaceActionsCard({
+    super.key,
     required this.canDelete,
     required this.refreshing,
     required this.bookmarked,
@@ -446,7 +445,8 @@ class PlaceReviewsSection extends StatelessWidget {
   final void Function(Review) onEditReview;
   final void Function(Review) onDeleteReview;
 
-  const PlaceReviewsSection({super.key,
+  const PlaceReviewsSection({
+    super.key,
     required this.reviews,
     required this.loading,
     this.error,
@@ -473,7 +473,11 @@ class PlaceReviewsSection extends StatelessWidget {
           children: [
             Icon(Icons.error_outline, size: 48, color: tokens.danger),
             SizedBox(height: tokens.spaceSm),
-            DesignText(error!, style: DesignTextStyle.body, color: tokens.textHigh),
+            DesignText(
+              error!,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
             SizedBox(height: tokens.spaceLg),
             DesignButton(
               variant: DesignButtonVariant.filled,
@@ -543,7 +547,8 @@ class PlaceReviewCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const PlaceReviewCard({super.key,
+  const PlaceReviewCard({
+    super.key,
     required this.review,
     required this.isOwn,
     this.reviewUser,
@@ -587,10 +592,7 @@ class PlaceReviewCard extends StatelessWidget {
               PlaceStarRating(rating: review.rating, size: 16),
               const Spacer(),
               if (isOwn) ...[
-                DesignIconButton(
-                  icon: Icons.edit_rounded,
-                  onPressed: onEdit,
-                ),
+                DesignIconButton(icon: Icons.edit_rounded, onPressed: onEdit),
                 DesignIconButton(
                   icon: Icons.delete_rounded,
                   onPressed: onDelete,
