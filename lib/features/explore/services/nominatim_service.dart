@@ -42,6 +42,39 @@ class NominatimService {
         .toList();
   }
 
+  Future<Map<String, dynamic>?> lookup(int osmId, String osmType) async {
+    final now = DateTime.now();
+    final elapsed = now.difference(_lastRequest);
+    if (elapsed < _minRequestInterval) {
+      await Future.delayed(_minRequestInterval - elapsed);
+    }
+
+    const typeMap = {'node': 'N', 'way': 'W', 'relation': 'R'};
+    final typeLetter = typeMap[osmType] ?? osmType.toUpperCase();
+    final osmIds = '$typeLetter$osmId';
+
+    final uri = Uri.parse('$_baseUrl/lookup').replace(
+      queryParameters: {
+        'osm_ids': osmIds,
+        'format': 'json',
+        'addressdetails': '1',
+        'extratags': '1',
+      },
+    );
+
+    final response = await _client.get(
+      uri,
+      headers: {'User-Agent': _userAgent},
+    );
+
+    _lastRequest = DateTime.now();
+    if (response.statusCode != 200) return null;
+
+    final list = jsonDecode(response.body) as List;
+    if (list.isEmpty) return null;
+    return list[0] as Map<String, dynamic>;
+  }
+
   void dispose() {
     _client.close();
   }
