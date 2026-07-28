@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
+import '../../user/models/user_models.dart';
 import '../models/calendar_models.dart';
 
 class EventFormSheet extends StatefulWidget {
@@ -23,6 +25,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
   late DateTime _endDate;
   late TimeOfDay _endTime;
   late int _visibility;
+  final Set<String> _participantIds = {};
 
   bool get _isEditing => widget.event != null;
 
@@ -43,6 +46,9 @@ class _EventFormSheetState extends State<EventFormSheet> {
       event?.endTime ?? now.add(const Duration(hours: 1)),
     );
     _visibility = event?.visibility ?? 0;
+    if (event != null) {
+      _participantIds.addAll(event.participants.map((p) => p.id));
+    }
   }
 
   @override
@@ -59,7 +65,10 @@ class _EventFormSheetState extends State<EventFormSheet> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        tokens.spaceLg, tokens.spaceLg, tokens.spaceLg, tokens.spaceLg + bottomInset,
+        tokens.spaceLg,
+        tokens.spaceLg,
+        tokens.spaceLg,
+        tokens.spaceLg + bottomInset,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -72,10 +81,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
               color: tokens.textHigh,
             ),
             SizedBox(height: tokens.spaceLg),
-            DesignTextField(
-              hint: 'Titel *',
-              controller: _titleController,
-            ),
+            DesignTextField(hint: 'Titel *', controller: _titleController),
             SizedBox(height: tokens.spaceMd),
             Material(
               type: MaterialType.transparency,
@@ -118,6 +124,18 @@ class _EventFormSheetState extends State<EventFormSheet> {
               value: _visibility,
               onChanged: (v) => setState(() => _visibility = v),
             ),
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
+              'Teilnehmer',
+              style: DesignTextStyle.label,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceXs),
+            _ParticipantChips(
+              participantIds: _participantIds,
+              onRemove: (id) => setState(() => _participantIds.remove(id)),
+              onAdd: _pickParticipants,
+            ),
             SizedBox(height: tokens.spaceLg),
             SizedBox(
               width: double.infinity,
@@ -131,6 +149,27 @@ class _EventFormSheetState extends State<EventFormSheet> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickParticipants() async {
+    final users = await AppScope.of(context).user.listAll();
+    if (!mounted) return;
+
+    final selected = await showModalBottomSheet<Set<String>>(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (ctx) =>
+          _UserPickerSheet(users: users, selected: Set.from(_participantIds)),
+    );
+
+    if (selected != null) {
+      setState(
+        () => _participantIds
+          ..clear()
+          ..addAll(selected),
+      );
+    }
   }
 
   Future<void> _submit() async {
@@ -167,6 +206,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
       'startTime': start,
       'endTime': end,
       'visibility': _visibility,
+      'participantIds': _participantIds.toList(),
     });
   }
 }
@@ -238,6 +278,153 @@ class _DateTimePicker extends StatelessWidget {
   }
 }
 
+class _ParticipantChips extends StatelessWidget {
+  final Set<String> participantIds;
+  final ValueChanged<String> onRemove;
+  final VoidCallback onAdd;
+
+  const _ParticipantChips({
+    required this.participantIds,
+    required this.onRemove,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (participantIds.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(bottom: tokens.spaceSm),
+            child: Wrap(
+              spacing: tokens.spaceXs,
+              runSpacing: tokens.spaceXs,
+              children: participantIds
+                  .map(
+                    (id) => Chip(
+                      label: DesignText(id, style: DesignTextStyle.label),
+                      deleteIcon: const Icon(Icons.close, size: 16),
+                      onDeleted: () => onRemove(id),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        DesignButton(
+          label: 'Teilnehmer auswählen',
+          variant: DesignButtonVariant.outlined,
+          icon: Icons.person_add_rounded,
+          onPressed: onAdd,
+        ),
+      ],
+    );
+  }
+}
+
+class _UserPickerSheet extends StatefulWidget {
+  final List<UserBasePublic> users;
+  final Set<String> selected;
+
+  const _UserPickerSheet({required this.users, required this.selected});
+
+  @override
+  State<_UserPickerSheet> createState() => _UserPickerSheetState();
+}
+
+class _UserPickerSheetState extends State<_UserPickerSheet> {
+  late Set<String> _selected;
+  late String _query;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = Set.from(widget.selected);
+    _query = '';
+  }
+
+  List<UserBasePublic> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return widget.users;
+    return widget.users
+        .where(
+          (u) =>
+              u.displayName.toLowerCase().contains(q) ||
+              (u.email?.toLowerCase().contains(q) ?? false),
+        )
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        tokens.spaceLg,
+        tokens.spaceLg,
+        tokens.spaceLg,
+        tokens.spaceLg + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Teilnehmer auswählen',
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Suchen...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(tokens.radiusMd),
+              ),
+            ),
+            onChanged: (v) => setState(() => _query = v),
+          ),
+          SizedBox(height: tokens.spaceMd),
+          SizedBox(
+            height: 300,
+            child: ListView(
+              children: _filtered
+                  .map(
+                    (user) => CheckboxListTile(
+                      value: _selected.contains(user.id),
+                      title: Text(user.displayName),
+                      subtitle: user.email != null ? Text(user.email!) : null,
+                      onChanged: (checked) {
+                        setState(() {
+                          if (checked == true) {
+                            _selected.add(user.id);
+                          } else {
+                            _selected.remove(user.id);
+                          }
+                        });
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          SizedBox(height: tokens.spaceMd),
+          SizedBox(
+            width: double.infinity,
+            child: DesignButton(
+              label: 'Bestätigen (${_selected.length})',
+              variant: DesignButtonVariant.filled,
+              onPressed: () => Navigator.pop(context, _selected),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _VisibilitySelector extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
@@ -265,7 +452,9 @@ class _VisibilitySelector extends StatelessWidget {
       child: DesignButton(
         label: label,
         icon: icon,
-        variant: selected ? DesignButtonVariant.filled : DesignButtonVariant.outlined,
+        variant: selected
+            ? DesignButtonVariant.filled
+            : DesignButtonVariant.outlined,
         onPressed: () => onChanged(v),
       ),
     );

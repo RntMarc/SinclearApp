@@ -97,7 +97,10 @@ class CalendarDesktopLayout extends StatelessWidget {
               children: [
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    tokens.spaceMd, tokens.spaceSm, tokens.spaceXs, 0,
+                    tokens.spaceMd,
+                    tokens.spaceSm,
+                    tokens.spaceXs,
+                    0,
                   ),
                   child: Row(
                     children: [

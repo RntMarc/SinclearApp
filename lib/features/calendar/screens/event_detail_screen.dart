@@ -11,6 +11,7 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
+import '../../user/models/user_models.dart';
 import '../models/calendar_models.dart';
 import '../services/calendar_service.dart';
 import '../widgets/event_form_sheet.dart';
@@ -31,6 +32,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   bool _hasLoaded = false;
   bool _loading = true;
   String? _error;
+
+  bool _canEdit(CalendarEvent event) {
+    final userId = AppScope.of(context).auth.userId;
+    if (userId == null) return false;
+    return userId == event.creatorId ||
+        event.participants.any((p) => p.id == userId);
+  }
 
   @override
   void initState() {
@@ -159,6 +167,90 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
   }
 
+  Future<void> _addParticipant() async {
+    if (_event == null) return;
+    final users = await AppScope.of(context).user.listAll();
+    if (!mounted) return;
+
+    final existingIds = {
+      _event!.creatorId,
+      ..._event!.participants.map((p) => p.id),
+    };
+    final available = users.where((u) => !existingIds.contains(u.id)).toList();
+
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      builder: (ctx) => _SimpleUserPicker(users: available),
+    );
+
+    if (picked == null || !mounted) return;
+
+    try {
+      await _service.addParticipant(_event!.id, picked);
+      _load();
+    } catch (e, st) {
+      developer.log('Failed to add participant', error: e, stackTrace: st);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Fehler beim Hinzufügen')));
+      }
+    }
+  }
+
+  Future<void> _removeParticipant(String userId) async {
+    if (_event == null) return;
+
+    final confirmed = await showDesignSheet<bool>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Teilnehmer entfernen?',
+            style: DesignTextStyle.subtitle,
+            color: DesignTheme.of(context).textHigh,
+          ),
+          SizedBox(height: DesignTheme.of(context).spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  label: 'Abbrechen',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              SizedBox(width: DesignTheme.of(context).spaceMd),
+              Expanded(
+                child: DesignButton(
+                  label: 'Entfernen',
+                  variant: DesignButtonVariant.filled,
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await _service.removeParticipant(_event!.id, userId);
+      _load();
+    } catch (e, st) {
+      developer.log('Failed to remove participant', error: e, stackTrace: st);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Fehler beim Entfernen')));
+      }
+    }
+  }
+
   String _visibilityLabel(int visibility) {
     switch (visibility) {
       case 0:
@@ -250,8 +342,13 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ),
             title: event.title,
             actions: [
-              DesignIconButton(icon: Icons.edit_rounded, onPressed: _edit),
-              DesignIconButton(icon: Icons.delete_rounded, onPressed: _delete),
+              if (_canEdit(event))
+                DesignIconButton(icon: Icons.edit_rounded, onPressed: _edit),
+              if (_canEdit(event))
+                DesignIconButton(
+                  icon: Icons.delete_rounded,
+                  onPressed: _delete,
+                ),
             ],
           ),
           Expanded(
@@ -295,38 +392,51 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       tokens: tokens,
                       icon: Icons.person_rounded,
                       label: 'Erstellt von',
-                      value: event.creatorId,
+                      value: event.creatorDisplayName ?? event.creatorId,
                     ),
-                    if (event.participants.isNotEmpty) ...[
-                      SizedBox(height: tokens.spaceLg),
-                      DesignText(
-                        'Teilnehmer (${event.participants.length})',
-                        style: DesignTextStyle.label,
-                        color: tokens.textHigh,
-                      ),
-                      SizedBox(height: tokens.spaceSm),
-                      ...event.participants.map(
-                        (p) => DesignListTile(
-                          leading: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: tokens.primary,
-                              borderRadius: BorderRadius.circular(
-                                tokens.radiusPill,
-                              ),
-                            ),
-                            child: Center(
-                              child: DesignText(
-                                p.displayName[0].toUpperCase(),
-                                style: DesignTextStyle.body,
-                                color: tokens.textHigh,
-                              ),
+                    SizedBox(height: tokens.spaceLg),
+                    DesignText(
+                      'Teilnehmer (${event.participants.length})',
+                      style: DesignTextStyle.label,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    ...event.participants.map(
+                      (p) => DesignListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: tokens.primary,
+                            borderRadius: BorderRadius.circular(
+                              tokens.radiusPill,
                             ),
                           ),
-                          title: p.displayName,
-                          padding: EdgeInsets.zero,
+                          child: Center(
+                            child: DesignText(
+                              p.displayName[0].toUpperCase(),
+                              style: DesignTextStyle.body,
+                              color: tokens.textHigh,
+                            ),
+                          ),
                         ),
+                        title: p.displayName,
+                        trailing: _canEdit(event) && p.id != event.creatorId
+                            ? DesignIconButton(
+                                icon: Icons.remove_circle_outline_rounded,
+                                onPressed: () => _removeParticipant(p.id),
+                              )
+                            : null,
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                    if (_canEdit(event)) ...[
+                      SizedBox(height: tokens.spaceMd),
+                      DesignButton(
+                        label: 'Teilnehmer hinzufügen',
+                        variant: DesignButtonVariant.outlined,
+                        icon: Icons.person_add_rounded,
+                        onPressed: _addParticipant,
                       ),
                     ],
                   ],
@@ -334,6 +444,77 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SimpleUserPicker extends StatelessWidget {
+  final List<UserBasePublic> users;
+
+  const _SimpleUserPicker({required this.users});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Padding(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Teilnehmer hinzufügen',
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          if (users.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceLg),
+              child: DesignText(
+                'Keine weiteren Nutzer verfügbar',
+                style: DesignTextStyle.body,
+                color: tokens.textLow,
+              ),
+            )
+          else
+            SizedBox(
+              height: 300,
+              child: ListView.separated(
+                itemCount: users.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final user = users[index];
+                  return ListTile(
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: tokens.primary,
+                        borderRadius: BorderRadius.circular(tokens.radiusPill),
+                      ),
+                      child: Center(
+                        child: DesignText(
+                          user.displayName[0].toUpperCase(),
+                          style: DesignTextStyle.body,
+                          color: tokens.textHigh,
+                        ),
+                      ),
+                    ),
+                    title: DesignText(
+                      user.displayName,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    trailing: DesignIconButton(
+                      icon: Icons.add_circle_outline_rounded,
+                      onPressed: () => Navigator.pop(context, user.id),
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );

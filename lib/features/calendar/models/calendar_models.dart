@@ -19,6 +19,8 @@ class UserBrief {
 class CalendarEvent {
   final String id;
   final String creatorId;
+  final String? creatorDisplayName;
+  final String? creatorImage;
   final String title;
   final String? description;
   final DateTime startTime;
@@ -31,6 +33,8 @@ class CalendarEvent {
   const CalendarEvent({
     required this.id,
     required this.creatorId,
+    this.creatorDisplayName,
+    this.creatorImage,
     required this.title,
     this.description,
     required this.startTime,
@@ -45,6 +49,8 @@ class CalendarEvent {
     return CalendarEvent(
       id: json['id'] as String,
       creatorId: json['creatorId'] as String,
+      creatorDisplayName: json['creatorDisplayName'] as String?,
+      creatorImage: json['creatorImage'] as String?,
       title: json['title'] as String,
       description: json['description'] as String?,
       startTime: parseApiDate(json['startTime'] as String),
