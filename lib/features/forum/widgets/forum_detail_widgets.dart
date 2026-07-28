@@ -73,7 +73,6 @@ class ForumHeaderCard extends StatelessWidget {
               children: [
                 if (forum.description != null &&
                     forum.description!.isNotEmpty) ...[
-                  SizedBox(height: tokens.spaceSm),
                   DesignText(
                     forum.description!,
                     style: DesignTextStyle.body,
