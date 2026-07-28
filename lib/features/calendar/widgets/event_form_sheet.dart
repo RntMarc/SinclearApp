@@ -4,6 +4,7 @@ import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../user/models/user_models.dart';
 import '../models/calendar_models.dart';
@@ -26,6 +27,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
   late TimeOfDay _endTime;
   late int _visibility;
   final Set<String> _participantIds = {};
+  List<UserBasePublic> _allUsers = const [];
 
   bool get _isEditing => widget.event != null;
 
@@ -133,6 +135,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
             SizedBox(height: tokens.spaceXs),
             _ParticipantChips(
               participantIds: _participantIds,
+              allUsers: _allUsers,
               onRemove: (id) => setState(() => _participantIds.remove(id)),
               onAdd: _pickParticipants,
             ),
@@ -152,15 +155,19 @@ class _EventFormSheetState extends State<EventFormSheet> {
   }
 
   Future<void> _pickParticipants() async {
-    final users = await AppScope.of(context).user.listAll();
+    if (_allUsers.isEmpty) {
+      _allUsers = await AppScope.of(context).user.listAll();
+    }
     if (!mounted) return;
 
     final selected = await showModalBottomSheet<Set<String>>(
       context: context,
       isScrollControlled: true,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      builder: (ctx) =>
-          _UserPickerSheet(users: users, selected: Set.from(_participantIds)),
+      builder: (ctx) => _UserPickerSheet(
+        users: _allUsers,
+        selected: Set.from(_participantIds),
+      ),
     );
 
     if (selected != null) {
@@ -280,11 +287,13 @@ class _DateTimePicker extends StatelessWidget {
 
 class _ParticipantChips extends StatelessWidget {
   final Set<String> participantIds;
+  final List<UserBasePublic> allUsers;
   final ValueChanged<String> onRemove;
   final VoidCallback onAdd;
 
   const _ParticipantChips({
     required this.participantIds,
+    required this.allUsers,
     required this.onRemove,
     required this.onAdd,
   });
@@ -292,6 +301,11 @@ class _ParticipantChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final lookup = {for (final u in allUsers) u.id: u};
+    final selected = participantIds
+        .map((id) => lookup[id])
+        .whereType<UserBasePublic>();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -301,12 +315,17 @@ class _ParticipantChips extends StatelessWidget {
             child: Wrap(
               spacing: tokens.spaceXs,
               runSpacing: tokens.spaceXs,
-              children: participantIds
+              children: selected
                   .map(
-                    (id) => Chip(
-                      label: DesignText(id, style: DesignTextStyle.label),
+                    (user) => Chip(
+                      avatar: DesignAvatar(
+                        imageUrl: user.image,
+                        name: user.displayName,
+                        size: 24,
+                      ),
+                      label: Text(user.displayName),
                       deleteIcon: const Icon(Icons.close, size: 16),
-                      onDeleted: () => onRemove(id),
+                      onDeleted: () => onRemove(user.id),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   )
@@ -392,16 +411,32 @@ class _UserPickerSheetState extends State<_UserPickerSheet> {
             child: ListView(
               children: _filtered
                   .map(
-                    (user) => CheckboxListTile(
-                      value: _selected.contains(user.id),
+                    (user) => ListTile(
+                      leading: DesignAvatar(
+                        imageUrl: user.image,
+                        name: user.displayName,
+                        size: 36,
+                      ),
                       title: Text(user.displayName),
                       subtitle: user.email != null ? Text(user.email!) : null,
-                      onChanged: (checked) {
+                      trailing: Checkbox(
+                        value: _selected.contains(user.id),
+                        onChanged: (checked) {
+                          setState(() {
+                            if (checked == true) {
+                              _selected.add(user.id);
+                            } else {
+                              _selected.remove(user.id);
+                            }
+                          });
+                        },
+                      ),
+                      onTap: () {
                         setState(() {
-                          if (checked == true) {
-                            _selected.add(user.id);
-                          } else {
+                          if (_selected.contains(user.id)) {
                             _selected.remove(user.id);
+                          } else {
+                            _selected.add(user.id);
                           }
                         });
                       },

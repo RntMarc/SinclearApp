@@ -11,6 +11,7 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../user/models/user_models.dart';
 import '../models/calendar_models.dart';
 import '../services/calendar_service.dart';
@@ -403,22 +404,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     SizedBox(height: tokens.spaceSm),
                     ...event.participants.map(
                       (p) => DesignListTile(
-                        leading: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: tokens.primary,
-                            borderRadius: BorderRadius.circular(
-                              tokens.radiusPill,
-                            ),
-                          ),
-                          child: Center(
-                            child: DesignText(
-                              p.displayName[0].toUpperCase(),
-                              style: DesignTextStyle.body,
-                              color: tokens.textHigh,
-                            ),
-                          ),
+                        leading: DesignAvatar(
+                          imageUrl: p.image,
+                          name: p.displayName,
+                          size: 36,
                         ),
                         title: p.displayName,
                         trailing: _canEdit(event) && p.id != event.creatorId
@@ -487,20 +476,10 @@ class _SimpleUserPicker extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final user = users[index];
                   return ListTile(
-                    leading: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: tokens.primary,
-                        borderRadius: BorderRadius.circular(tokens.radiusPill),
-                      ),
-                      child: Center(
-                        child: DesignText(
-                          user.displayName[0].toUpperCase(),
-                          style: DesignTextStyle.body,
-                          color: tokens.textHigh,
-                        ),
-                      ),
+                    leading: DesignAvatar(
+                      imageUrl: user.image,
+                      name: user.displayName,
+                      size: 36,
                     ),
                     title: DesignText(
                       user.displayName,
