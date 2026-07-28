@@ -97,8 +97,15 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
       setState(() => _imageBytes = bytes);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kamera nicht verfügbar')),
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Hinweis'),
+          content: const Text('Kamera nicht verfügbar'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+          ],
+        ),
       );
     }
   }
@@ -121,9 +128,16 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Fehler beim Speichern: $e')));
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Fehler'),
+          content: Text('Fehler beim Speichern: $e'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+          ],
+        ),
+      );
     }
   }
 
