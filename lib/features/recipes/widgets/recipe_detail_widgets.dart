@@ -18,7 +18,8 @@ class RecipeContent extends StatelessWidget {
   final bool bookmarkToggling;
   final VoidCallback onToggleBookmark;
 
-  const RecipeContent({super.key,
+  const RecipeContent({
+    super.key,
     required this.recipe,
     required this.bookmarked,
     required this.bookmarkToggling,
@@ -36,12 +37,6 @@ class RecipeContent extends StatelessWidget {
         children: [
           if (recipe.image != null && recipe.image!.isNotEmpty)
             RecipeImage(image: recipe.image!, tokens: tokens),
-          DesignText(
-            recipe.title,
-            style: DesignTextStyle.title,
-            color: tokens.textHigh,
-          ),
-          SizedBox(height: tokens.spaceSm),
           if (recipe.description != null && recipe.description!.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(bottom: tokens.spaceSm),
@@ -81,8 +76,8 @@ class RecipeContent extends StatelessWidget {
             label: bookmarkToggling
                 ? '…'
                 : bookmarked
-                    ? 'Lesezeichen entfernen'
-                    : 'Lesezeichen setzen',
+                ? 'Lesezeichen entfernen'
+                : 'Lesezeichen setzen',
             loading: bookmarkToggling,
             onPressed: bookmarkToggling ? null : onToggleBookmark,
           ),
@@ -131,9 +126,7 @@ class RecipeContent extends StatelessWidget {
                       color: tokens.primary,
                     ),
                     SizedBox(height: tokens.spaceSm),
-                    ...entry.value.map(
-                      (step) => stepCard(step, tokens),
-                    ),
+                    ...entry.value.map((step) => stepCard(step, tokens)),
                   ],
                 ),
               ),
@@ -169,7 +162,10 @@ class RecipeContent extends StatelessWidget {
 
 Widget metaChip(String emoji, String label, DesignTokens tokens) {
   return Container(
-    padding: EdgeInsets.symmetric(horizontal: tokens.spaceSm, vertical: tokens.spaceXs),
+    padding: EdgeInsets.symmetric(
+      horizontal: tokens.spaceSm,
+      vertical: tokens.spaceXs,
+    ),
     decoration: BoxDecoration(
       color: tokens.surfaceVariant,
       borderRadius: BorderRadius.circular(tokens.radiusPill),
@@ -177,13 +173,12 @@ Widget metaChip(String emoji, String label, DesignTokens tokens) {
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 14)),
-        SizedBox(width: tokens.spaceXs),
-        DesignText(
-          label,
-          style: DesignTextStyle.label,
-          color: tokens.textHigh,
+        Text(
+          emoji,
+          style: const TextStyle(fontSize: 14, decoration: TextDecoration.none),
         ),
+        SizedBox(width: tokens.spaceXs),
+        DesignText(label, style: DesignTextStyle.label, color: tokens.textHigh),
       ],
     ),
   );
@@ -202,11 +197,7 @@ Widget metaRow(String label, String value, DesignTokens tokens) {
             color: tokens.textLow,
           ),
         ),
-        DesignText(
-          value,
-          style: DesignTextStyle.label,
-          color: tokens.textHigh,
-        ),
+        DesignText(value, style: DesignTextStyle.label, color: tokens.textHigh),
       ],
     ),
   );
@@ -350,7 +341,8 @@ class RecipeReviewsSection extends StatelessWidget {
   final void Function(RecipeReview) onEditReview;
   final void Function(RecipeReview) onDeleteReview;
 
-  const RecipeReviewsSection({super.key,
+  const RecipeReviewsSection({
+    super.key,
     required this.reviews,
     required this.loading,
     this.error,
@@ -454,7 +446,8 @@ class RecipeReviewCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const RecipeReviewCard({super.key,
+  const RecipeReviewCard({
+    super.key,
     required this.review,
     required this.isOwn,
     this.reviewUser,
@@ -498,10 +491,7 @@ class RecipeReviewCard extends StatelessWidget {
               RecipeStarRating(rating: review.rating, size: 16),
               const Spacer(),
               if (isOwn) ...[
-                DesignIconButton(
-                  icon: Icons.edit_rounded,
-                  onPressed: onEdit,
-                ),
+                DesignIconButton(icon: Icons.edit_rounded, onPressed: onEdit),
                 DesignIconButton(
                   icon: Icons.delete_rounded,
                   onPressed: onDelete,
