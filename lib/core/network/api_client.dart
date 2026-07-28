@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 class ApiException implements Exception {
   final String errorCode;
@@ -33,6 +34,7 @@ class ApiClient {
   final http.Client _client;
   final Duration timeout;
   final int maxGetAttempts;
+  final Logger _log = Logger('api_client');
 
   ApiClient({
     required this.baseUrl,
@@ -56,9 +58,7 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     if (kDebugMode) {
-      debugPrint(
-        '[api_client] POST $uri body=${body != null ? _truncateJson(body) : 'null'}',
-      );
+      _log.fine('POST $uri body=${body != null ? _truncateJson(body) : 'null'}');
     }
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
       try {
@@ -70,23 +70,19 @@ class ApiClient {
             )
             .timeout(timeout);
         if (kDebugMode) {
-          _logResponse('POST', response);
+          _logResponse('POST', uri.toString(), response);
         }
         if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
       } on TimeoutException {
         if (kDebugMode) {
-          debugPrint(
-            '[api_client] POST $uri timed out (attempt $attempt/$maxGetAttempts)',
-          );
+          _log.fine('POST $uri timed out (attempt $attempt/$maxGetAttempts)');
         }
         if (attempt == maxGetAttempts) rethrow;
       } on http.ClientException {
         if (kDebugMode) {
-          debugPrint(
-            '[api_client] POST $uri client error (attempt $attempt/$maxGetAttempts)',
-          );
+          _log.fine('POST $uri client error (attempt $attempt/$maxGetAttempts)');
         }
         if (attempt == maxGetAttempts) rethrow;
       }
@@ -105,7 +101,7 @@ class ApiClient {
       uri = uri.replace(queryParameters: queryParams);
     }
     if (kDebugMode) {
-      debugPrint('[api_client] GET $uri');
+      _log.fine('GET $uri');
     }
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
       try {
@@ -113,23 +109,19 @@ class ApiClient {
             .get(uri, headers: _headers(token: token))
             .timeout(timeout);
         if (kDebugMode) {
-          _logResponse('GET', response);
+          _logResponse('GET', uri.toString(), response);
         }
         if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
       } on TimeoutException {
         if (kDebugMode) {
-          debugPrint(
-            '[api_client] GET $uri timed out (attempt $attempt/$maxGetAttempts)',
-          );
+          _log.fine('GET $uri timed out (attempt $attempt/$maxGetAttempts)');
         }
         if (attempt == maxGetAttempts) rethrow;
       } on http.ClientException {
         if (kDebugMode) {
-          debugPrint(
-            '[api_client] GET $uri client error (attempt $attempt/$maxGetAttempts)',
-          );
+          _log.fine('GET $uri client error (attempt $attempt/$maxGetAttempts)');
         }
         if (attempt == maxGetAttempts) rethrow;
       }
@@ -148,7 +140,7 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     if (kDebugMode) {
       final bodyPreview = body != null ? _truncateJson(body) : 'null';
-      debugPrint('[api_client] PUT $uri body=$bodyPreview');
+      _log.fine('PUT $uri body=$bodyPreview');
     }
     final encodedBody = body != null ? jsonEncode(body) : null;
     final response = await _client
@@ -159,8 +151,8 @@ class ApiClient {
         )
         .timeout(timeout);
     if (kDebugMode) {
-      debugPrint(
-        '[api_client] PUT response status=${response.statusCode} body=${response.body.length > 500 ? '${response.body.substring(0, 500)}...' : response.body}',
+      _log.fine(
+        'PUT response status=${response.statusCode} body=${response.body.length > 500 ? '${response.body.substring(0, 500)}...' : response.body}',
       );
     }
     return _handleResponse(response);
@@ -193,7 +185,7 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     if (kDebugMode) {
       final bodyPreview = body != null ? _truncateJson(body) : 'null';
-      debugPrint('[api_client] PATCH $uri body=$bodyPreview');
+      _log.fine('PATCH $uri body=$bodyPreview');
     }
     final encodedBody = body != null ? jsonEncode(body) : null;
     final response = await _client
@@ -205,9 +197,7 @@ class ApiClient {
         .timeout(timeout);
     final httpResponse = await http.Response.fromStream(response);
     if (kDebugMode) {
-      debugPrint(
-        '[api_client] PATCH response status=${httpResponse.statusCode}',
-      );
+      _log.fine('PATCH response status=${httpResponse.statusCode}');
     }
     return _handleResponse(httpResponse);
   }
@@ -220,7 +210,7 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     if (kDebugMode) {
-      debugPrint('[api_client] DELETE $uri');
+      _log.fine('DELETE $uri');
     }
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
       try {
@@ -232,7 +222,7 @@ class ApiClient {
         final streamed = await _client.send(request).timeout(timeout);
         final response = await http.Response.fromStream(streamed);
         if (kDebugMode) {
-          _logResponse('DELETE', response);
+          _logResponse('DELETE', uri.toString(), response);
         }
         if (response.statusCode == 204) return <String, dynamic>{};
         if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
@@ -240,16 +230,12 @@ class ApiClient {
         }
       } on TimeoutException {
         if (kDebugMode) {
-          debugPrint(
-            '[api_client] DELETE $uri timed out (attempt $attempt/$maxGetAttempts)',
-          );
+          _log.fine('DELETE $uri timed out (attempt $attempt/$maxGetAttempts)');
         }
         if (attempt == maxGetAttempts) rethrow;
       } on http.ClientException {
         if (kDebugMode) {
-          debugPrint(
-            '[api_client] DELETE $uri client error (attempt $attempt/$maxGetAttempts)',
-          );
+          _log.fine('DELETE $uri client error (attempt $attempt/$maxGetAttempts)');
         }
         if (attempt == maxGetAttempts) rethrow;
       }
@@ -258,11 +244,11 @@ class ApiClient {
     throw StateError('DELETE retry loop exited unexpectedly.');
   }
 
-  void _logResponse(String method, http.Response response) {
+  void _logResponse(String method, String uri, http.Response response) {
     final bodyPreview = response.body.length > 500
         ? '${response.body.substring(0, 500)}...'
         : response.body;
-    debugPrint('[api_client] $method ${response.statusCode} body=$bodyPreview');
+    _log.fine('$method $uri ${response.statusCode} body=$bodyPreview');
   }
 
   bool _shouldRetry(int statusCode) {
