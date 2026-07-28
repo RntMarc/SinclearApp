@@ -363,8 +363,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DesignText(
-            'Ein Problem gefunden? Schicke uns einen Fehlerbericht – '
-            'gern mit Screenshot.',
+            'Ein Problem gefunden? Schicke uns einen Fehlerbericht mit Screenshot.',
             style: DesignTextStyle.body,
             color: tokens.textLow,
           ),
