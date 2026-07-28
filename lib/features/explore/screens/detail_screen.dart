@@ -345,18 +345,21 @@ class _DetailScreenState extends State<DetailScreen> {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
 
-    return DesignSurface(
-      child: Column(
-        children: [
-          DesignSubpageHeader(
-            leading: DesignIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => context.pop(),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: DesignSurface(
+        child: Column(
+          children: [
+            DesignSubpageHeader(
+              leading: DesignIconButton(
+                icon: Icons.arrow_back_rounded,
+                onPressed: () => context.pop(),
+              ),
+              title: _place?.name ?? 'Details',
             ),
-            title: _place?.name ?? 'Details',
-          ),
-          Expanded(child: _buildBody(tokens)),
-        ],
+            Expanded(child: _buildBody(tokens)),
+          ],
+        ),
       ),
     );
   }

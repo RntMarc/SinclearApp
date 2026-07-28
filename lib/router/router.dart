@@ -12,8 +12,10 @@ import '../features/explore/screens/category_screen.dart';
 import '../features/explore/screens/detail_screen.dart';
 import '../features/explore/screens/create_place_screen.dart';
 import '../features/explore/screens/submit_place_screen.dart';
+import '../features/explore/screens/place_confirm_screen.dart';
 import '../features/explore/screens/submissions_list_screen.dart';
 import '../features/explore/screens/submission_detail_screen.dart';
+import '../features/explore/models/explore_models.dart';
 
 import '../features/shell/main_shell.dart';
 import '../features/travel/screens/travel_screen.dart';
@@ -127,6 +129,12 @@ GoRouter createRouter(AuthService auth) {
                 path: 'neu',
                 builder: (context, state) => const CreatePlaceScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'bestaetigen',
+                    builder: (context, state) => PlaceConfirmScreen(
+                      result: state.extra as NominatimResult,
+                    ),
+                  ),
                   GoRoute(
                     path: 'melden',
                     builder: (context, state) => const SubmitPlaceScreen(),
