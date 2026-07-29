@@ -1,5 +1,63 @@
+import 'package:flutter/material.dart';
+
 import '../../../core/utils/date_utils.dart';
 import 'travel_models.dart';
+
+/// Icon for a public-transport mode string.
+IconData ptModeIcon(String mode) {
+  switch (mode.toUpperCase()) {
+    case 'RAIL':
+    case 'TRAIN':
+    case 'HIGHSPEED_RAIL':
+      return Icons.train_rounded;
+    case 'REGIONAL_RAIL':
+    case 'REGIONAL_FAST_RAIL':
+      return Icons.train_rounded;
+    case 'BUS':
+      return Icons.directions_bus_rounded;
+    case 'TRAM':
+      return Icons.tram_rounded;
+    case 'SUBWAY':
+    case 'SUBWAY_METRO':
+      return Icons.subway_rounded;
+    case 'SUBURBAN':
+      return Icons.directions_railway_rounded;
+    case 'FERRY':
+      return Icons.directions_ferry_rounded;
+    case 'WALK':
+      return Icons.directions_walk_rounded;
+    default:
+      return Icons.directions_transit_rounded;
+  }
+}
+
+/// German label for a public-transport mode string.
+String ptModeLabel(String mode) {
+  switch (mode.toUpperCase()) {
+    case 'RAIL':
+    case 'TRAIN':
+    case 'HIGHSPEED_RAIL':
+      return 'Fernverkehr';
+    case 'REGIONAL_RAIL':
+    case 'REGIONAL_FAST_RAIL':
+      return 'Regionalverkehr';
+    case 'BUS':
+      return 'Bus';
+    case 'TRAM':
+      return 'Straßenbahn';
+    case 'SUBWAY':
+    case 'SUBWAY_METRO':
+      return 'U-Bahn';
+    case 'SUBURBAN':
+      return 'S-Bahn';
+    case 'FERRY':
+      return 'Fähre';
+    case 'WALK':
+      return 'Zu Fuß';
+    default:
+      return 'ÖPNV';
+  }
+}
 
 class PtStation {
   final String id;
@@ -270,6 +328,48 @@ class PtSavedJourneyListResponse {
             totalPages: 1,
           );
     return PtSavedJourneyListResponse(data: items, meta: meta);
+  }
+}
+
+class PtDeparture {
+  final String lineName;
+  final String mode;
+  final DateTime? departure;
+  final String? platform;
+  final String? headsign;
+
+  const PtDeparture({
+    required this.lineName,
+    required this.mode,
+    this.departure,
+    this.platform,
+    this.headsign,
+  });
+
+  factory PtDeparture.fromJson(Map<String, dynamic> json) {
+    return PtDeparture(
+      lineName: json['lineName'] as String? ?? '',
+      mode: json['mode'] as String? ?? 'UNKNOWN',
+      departure: json['departure'] != null
+          ? parseApiDate(json['departure'] as String)
+          : null,
+      platform: json['platform'] as String?,
+      headsign: json['headsign'] as String?,
+    );
+  }
+}
+
+class PtDepartureListResponse {
+  final List<PtDeparture> data;
+
+  const PtDepartureListResponse({required this.data});
+
+  factory PtDepartureListResponse.fromJson(Map<String, dynamic> json) {
+    return PtDepartureListResponse(
+      data: (json['data'] as List)
+          .map((e) => PtDeparture.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
   }
 }
 

@@ -114,16 +114,34 @@ class PublicTransportService {
     );
   }
 
-  // TODO: Replace with actual PATCH call once
-  //       PATCH /public-transport/journeys/{id} is available in the API.
-  //       See doc/pt_plan.md section 2.
-  Future<PtSavedJourney> updateJourneyTripId(
-    String journeyId,
-    String? tripId,
-  ) async {
-    throw UnimplementedError(
-      'PATCH /public-transport/journeys/$journeyId not yet available in API. '
-      'See doc/pt_plan.md section 2.',
+  Future<List<PtDeparture>> getStationDepartures(
+    String stationId, {
+    int limit = 10,
+    bool arriveBy = false,
+  }) async {
+    final params = <String, String>{
+      'limit': limit.toString(),
+      if (arriveBy) 'arriveBy': 'true',
+    };
+    final data = await _api.get(
+      '/public-transport/stations/$stationId/departures',
+      queryParams: params,
+      token: await _token(),
     );
+    return PtDepartureListResponse.fromJson(data).data;
+  }
+
+  Future<PtSavedJourney> updateJourney(
+    String journeyId, {
+    String? tripId,
+  }) async {
+    final data = await _api.patch(
+      '/public-transport/journeys/$journeyId',
+      body: {
+        if (tripId != null) 'tripId': tripId,
+      },
+      token: await _token(),
+    );
+    return PtSavedJourney.fromJson(data['data'] as Map<String, dynamic>);
   }
 }

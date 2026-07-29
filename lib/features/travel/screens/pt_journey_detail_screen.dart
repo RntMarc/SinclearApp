@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
@@ -9,8 +10,11 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../features/user/models/user_public_models.dart';
 import '../models/pt_models.dart';
 import '../models/travel_models.dart';
+import 'pt_departure_board_screen.dart';
 
 class PtJourneyDetailScreen extends StatefulWidget {
   final String journeyId;
@@ -113,7 +117,7 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Verbindung gelöscht')));
-      Navigator.pop(context, true);
+      context.pop();
     } catch (e, st) {
       developer.log('Delete journey failed', error: e, stackTrace: st);
       if (!mounted) return;
@@ -204,20 +208,17 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
   }
 
   Future<void> _updateTripId(String? tripId) async {
-    // TODO: Replace with actual PATCH call once
-    //       PATCH /public-transport/journeys/{id} is available in the API.
-    //       See doc/pt_plan.md section 2.
-    // For now we cannot update tripId after save. The user should set tripId
-    // when first saving the journey.
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Nachträgliches Anheften/Lösen wird unterstützt, sobald der '
-          'PATCH-Endpunkt in der API verfügbar ist.',
-        ),
-      ),
-    );
+    try {
+      final service = AppScope.of(context).publicTransport;
+      await service.updateJourney(widget.journeyId, tripId: tripId);
+      if (!mounted) return;
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Fehler: $e')));
+    }
   }
 
   @override
@@ -235,7 +236,7 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
                 title: 'Verbindungsdetails',
                 leading: DesignIconButton(
                   icon: Icons.arrow_back_rounded,
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => context.pop(),
                 ),
                 actions: [
                   DesignIconButton(
@@ -301,14 +302,45 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
         children: [
           _buildHeader(journey, mode, tokens),
           SizedBox(height: tokens.spaceLg),
-          if (journey.tripId != null) ...[
-            _buildTripBadge(journey.tripId!, tokens),
+          if (journey.participants.isNotEmpty) ...[
+            Row(
+              children: [
+                DesignText(
+                  'Mitfahrer',
+                  style: DesignTextStyle.subtitle,
+                  color: tokens.textHigh,
+                ),
+                const Spacer(),
+                const Spacer(),
+                DesignButton(
+                  variant: DesignButtonVariant.ghost,
+                  label: 'Mitfahrer einladen',
+                  icon: Icons.person_add_rounded,
+                  onPressed: () => _addParticipant(journey),
+                ),
+              ],
+            ),
+            SizedBox(height: tokens.spaceMd),
+            _buildParticipants(journey, tokens),
             SizedBox(height: tokens.spaceLg),
           ],
-          DesignText(
-            'Verlauf',
-            style: DesignTextStyle.subtitle,
-            color: tokens.textHigh,
+          Row(
+            children: [
+              DesignText(
+                'Verlauf',
+                style: DesignTextStyle.subtitle,
+                color: tokens.textHigh,
+              ),
+              if (journey.participants.isEmpty) ...[
+                const Spacer(),
+                DesignButton(
+                  variant: DesignButtonVariant.ghost,
+                  label: 'Mitfahrer einladen',
+                  icon: Icons.person_add_rounded,
+                  onPressed: () => _addParticipant(journey),
+                ),
+              ],
+            ],
           ),
           SizedBox(height: tokens.spaceMd),
           _buildLegTimeline(journey.legs, tokens),
@@ -328,7 +360,7 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(_modeIcon(mode), color: tokens.primary, size: 28),
+              Icon(ptModeIcon(mode), color: tokens.primary, size: 28),
               SizedBox(width: tokens.spaceSm),
               Expanded(
                 child: DesignText(
@@ -372,26 +404,133 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
     );
   }
 
-  Widget _buildTripBadge(String tripId, DesignTokens tokens) {
-    return DesignCard(
-      child: Row(
-        children: [
-          Icon(Icons.flight_rounded, color: tokens.primary, size: 20),
-          SizedBox(width: tokens.spaceSm),
-          Expanded(
-            child: DesignText(
-              'An Reise angeheftet',
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
-            ),
-          ),
-          DesignIconButton(
-            icon: Icons.link_off_rounded,
-            onPressed: () => _updateTripId(null),
-          ),
-        ],
+  void _openDepartureBoard(String stationId, String stationName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PtDepartureBoardScreen(
+          stationId: stationId,
+          stationName: stationName,
+        ),
       ),
     );
+  }
+
+  Widget _buildParticipants(PtSavedJourney journey, DesignTokens tokens) {
+    return Column(
+      children: journey.participants.map((p) {
+        return DesignCard(
+          child: Row(
+            children: [
+              DesignAvatar(imageUrl: p.image, name: p.displayName, size: 32),
+              SizedBox(width: tokens.spaceMd),
+              Expanded(
+                child: DesignText(
+                  p.displayName,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+              ),
+              if (journey.creatorId == AppScope.of(context).auth.userId)
+                DesignIconButton(
+                  icon: Icons.person_remove_rounded,
+                  onPressed: () => _removeParticipant(journey.id, p.id),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Future<void> _addParticipant(PtSavedJourney journey) async {
+    final userService = AppScope.of(context).user;
+    final ptService = AppScope.of(context).publicTransport;
+
+    List<UserBasePublic> users;
+    try {
+      users = await userService.listAll();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Fehler: $e')));
+      return;
+    }
+
+    final existingIds = journey.participants.map((p) => p.id).toSet();
+
+    if (!mounted) return;
+    final selected = await showModalBottomSheet<UserBasePublic>(
+      context: context,
+      builder: (ctx) {
+        final t = DesignTheme.of(ctx);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(t.spaceLg, t.spaceLg, t.spaceLg, 0),
+              child: DesignText(
+                'Mitfahrer hinzufügen',
+                style: DesignTextStyle.subtitle,
+                color: t.textHigh,
+              ),
+            ),
+            SizedBox(height: t.spaceSm),
+            SizedBox(
+              height: 300,
+              child: ListView(
+                children: users
+                    .where((u) => !existingIds.contains(u.id))
+                    .map(
+                      (u) => ListTile(
+                        leading: DesignAvatar(
+                          imageUrl: u.image,
+                          name: u.displayName,
+                          size: 32,
+                        ),
+                        title: Text(u.displayName),
+                        onTap: () => Navigator.pop(ctx, u),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selected == null || !mounted) return;
+
+    try {
+      await ptService.addParticipant(journey.id, selected.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${selected.displayName} hinzugefügt')),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Fehler: $e')));
+    }
+  }
+
+  Future<void> _removeParticipant(String journeyId, String userId) async {
+    try {
+      final service = AppScope.of(context).publicTransport;
+      await service.removeParticipant(journeyId, userId);
+      if (!mounted) return;
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Fehler: $e')));
+    }
   }
 
   Widget _buildLegTimeline(List<PtLeg> legs, DesignTokens tokens) {
@@ -399,7 +538,11 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
       children: List.generate(legs.length, (index) {
         final leg = legs[index];
         final isLast = index == legs.length - 1;
-        return _LegTile(leg: leg, isLast: isLast);
+        return _LegTile(
+          leg: leg,
+          isLast: isLast,
+          onStationTap: (id, name) => _openDepartureBoard(id, name),
+        );
       }),
     );
   }
@@ -410,33 +553,14 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
     if (h > 0) return '${h}h ${m}min';
     return '${m}min';
   }
-
-  IconData _modeIcon(String mode) {
-    switch (mode.toUpperCase()) {
-      case 'RAIL':
-      case 'TRAIN':
-        return Icons.train_rounded;
-      case 'BUS':
-        return Icons.directions_bus_rounded;
-      case 'TRAM':
-        return Icons.tram_rounded;
-      case 'SUBWAY':
-        return Icons.subway_rounded;
-      case 'WALK':
-        return Icons.directions_walk_rounded;
-      case 'FERRY':
-        return Icons.directions_ferry_rounded;
-      default:
-        return Icons.directions_transit_rounded;
-    }
-  }
 }
 
 class _LegTile extends StatelessWidget {
-  const _LegTile({required this.leg, required this.isLast});
+  const _LegTile({required this.leg, required this.isLast, this.onStationTap});
 
   final PtLeg leg;
   final bool isLast;
+  final void Function(String stationId, String stationName)? onStationTap;
 
   @override
   Widget build(BuildContext context) {
@@ -478,14 +602,14 @@ class _LegTile extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        _modeIcon(leg.mode),
+                        ptModeIcon(leg.mode),
                         size: 16,
                         color: tokens.textHigh,
                       ),
                       SizedBox(width: tokens.spaceXs),
                       Expanded(
                         child: DesignText(
-                          leg.lineName ?? leg.mode,
+                          leg.lineName ?? ptModeLabel(leg.mode),
                           style: DesignTextStyle.body,
                           color: tokens.textHigh,
                         ),
@@ -494,10 +618,32 @@ class _LegTile extends StatelessWidget {
                   ),
                   SizedBox(height: tokens.spaceXs),
                   if (leg.fromStationName != null)
-                    DesignText(
-                      leg.fromStationName!,
-                      style: DesignTextStyle.label,
-                      color: tokens.textLow,
+                    GestureDetector(
+                      onTap: leg.fromStationId != null && onStationTap != null
+                          ? () => onStationTap!(
+                              leg.fromStationId!,
+                              leg.fromStationName!,
+                            )
+                          : null,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DesignText(
+                            leg.fromStationName!,
+                            style: DesignTextStyle.label,
+                            color: tokens.textLow,
+                          ),
+                          if (leg.fromStationId != null &&
+                              onStationTap != null) ...[
+                            SizedBox(width: tokens.spaceXs),
+                            Icon(
+                              Icons.departure_board_rounded,
+                              size: 14,
+                              color: tokens.primary,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   if (leg.plannedDeparture != null)
                     DesignText(
@@ -513,10 +659,32 @@ class _LegTile extends StatelessWidget {
                     ),
                   SizedBox(height: tokens.spaceXs),
                   if (leg.toStationName != null)
-                    DesignText(
-                      leg.toStationName!,
-                      style: DesignTextStyle.label,
-                      color: tokens.textLow,
+                    GestureDetector(
+                      onTap: leg.toStationId != null && onStationTap != null
+                          ? () => onStationTap!(
+                              leg.toStationId!,
+                              leg.toStationName!,
+                            )
+                          : null,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DesignText(
+                            leg.toStationName!,
+                            style: DesignTextStyle.label,
+                            color: tokens.textLow,
+                          ),
+                          if (leg.toStationId != null &&
+                              onStationTap != null) ...[
+                            SizedBox(width: tokens.spaceXs),
+                            Icon(
+                              Icons.departure_board_rounded,
+                              size: 14,
+                              color: tokens.primary,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   if (leg.plannedArrival != null)
                     DesignText(
@@ -543,25 +711,5 @@ class _LegTile extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  IconData _modeIcon(String mode) {
-    switch (mode.toUpperCase()) {
-      case 'RAIL':
-      case 'TRAIN':
-        return Icons.train_rounded;
-      case 'BUS':
-        return Icons.directions_bus_rounded;
-      case 'TRAM':
-        return Icons.tram_rounded;
-      case 'SUBWAY':
-        return Icons.subway_rounded;
-      case 'WALK':
-        return Icons.directions_walk_rounded;
-      case 'FERRY':
-        return Icons.directions_ferry_rounded;
-      default:
-        return Icons.directions_transit_rounded;
-    }
   }
 }

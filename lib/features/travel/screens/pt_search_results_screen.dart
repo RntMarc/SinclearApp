@@ -211,7 +211,7 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
           for (final leg in result.legs) ...[
             Row(
               children: [
-                Icon(_modeIcon(leg.mode), size: 16, color: tokens.primary),
+                Icon(ptModeIcon(leg.mode), size: 16, color: tokens.primary),
                 SizedBox(width: tokens.spaceXs),
                 Expanded(
                   child: DesignText(
@@ -370,26 +370,6 @@ class _PtSearchResultsScreenState extends State<PtSearchResultsScreen> {
     if (h > 0) return '${h}h ${m}min';
     return '${m}min';
   }
-
-  IconData _modeIcon(String mode) {
-    switch (mode.toUpperCase()) {
-      case 'RAIL':
-      case 'TRAIN':
-        return Icons.train_rounded;
-      case 'BUS':
-        return Icons.directions_bus_rounded;
-      case 'TRAM':
-        return Icons.tram_rounded;
-      case 'SUBWAY':
-        return Icons.subway_rounded;
-      case 'WALK':
-        return Icons.directions_walk_rounded;
-      case 'FERRY':
-        return Icons.directions_ferry_rounded;
-      default:
-        return Icons.directions_transit_rounded;
-    }
-  }
 }
 
 class _ResultCard extends StatelessWidget {
@@ -437,12 +417,12 @@ class _ResultCard extends StatelessWidget {
               children: result.legs.map((leg) {
                 return Chip(
                   avatar: Icon(
-                    _modeIcon(leg.mode),
+                    ptModeIcon(leg.mode),
                     size: 16,
                     color: tokens.primary,
                   ),
                   label: Text(
-                    leg.lineName ?? leg.mode,
+                    leg.lineName ?? ptModeLabel(leg.mode),
                     style: const TextStyle(fontSize: 12),
                   ),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -460,25 +440,5 @@ class _ResultCard extends StatelessWidget {
     final m = (seconds % 3600) ~/ 60;
     if (h > 0) return '${h}h ${m}min';
     return '${m}min';
-  }
-
-  IconData _modeIcon(String mode) {
-    switch (mode.toUpperCase()) {
-      case 'RAIL':
-      case 'TRAIN':
-        return Icons.train_rounded;
-      case 'BUS':
-        return Icons.directions_bus_rounded;
-      case 'TRAM':
-        return Icons.tram_rounded;
-      case 'SUBWAY':
-        return Icons.subway_rounded;
-      case 'WALK':
-        return Icons.directions_walk_rounded;
-      case 'FERRY':
-        return Icons.directions_ferry_rounded;
-      default:
-        return Icons.directions_transit_rounded;
-    }
   }
 }
