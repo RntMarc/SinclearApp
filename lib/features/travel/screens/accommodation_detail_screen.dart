@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -158,39 +158,21 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
             ],
             if (hasCoords) ...[
               SizedBox(height: tokens.spaceLg),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(tokens.radiusLg),
-                child: SizedBox(
-                  height: 180,
-                  child: FlutterMap(
-                    options: MapOptions(
-                      initialCenter: LatLng(acc.latitude!, acc.longitude!),
-                      initialZoom: 14,
-                      interactionOptions: const InteractionOptions(
-                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                      ),
+              DesignMapCard(
+                center: LatLng(acc.latitude!, acc.longitude!),
+                initialZoom: 14,
+                markers: [
+                  Marker(
+                    point: LatLng(acc.latitude!, acc.longitude!),
+                    child: Icon(
+                      Icons.location_on,
+                      color: isMine ? tokens.primary : Colors.red,
+                      size: 36,
                     ),
-                    children: [
-                      TileLayer(
-                        urlTemplate: OsmConfig.tileUrlTemplate,
-                        userAgentPackageName: OsmConfig.tileUserAgent,
-                        tileProvider: osmTileProvider(),
-                      ),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: LatLng(acc.latitude!, acc.longitude!),
-                            child: Icon(
-                              Icons.location_on,
-                              color: isMine ? tokens.primary : Colors.red,
-                              size: 36,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
-                ),
+                ],
+                height: 180,
+                interactive: true,
               ),
             ],
             if (acc.users.isNotEmpty) ...[

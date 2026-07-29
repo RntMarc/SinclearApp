@@ -203,42 +203,58 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId;
 
-    final tabs = <Tab>[const Tab(text: 'Übersicht')];
-    final tabViews = <Widget>[
-      TripOverviewTab(
-        trip: trip,
-        accommodations: _accommodations,
-        participants: _participants,
-        currentUserId: currentUserId,
-      ),
-    ];
+    final tabTitles = _getTabTitles(trip);
+    final mapTabIndex = tabTitles.indexOf('Karte');
 
-    if (trip.forumId != null) {
-      tabs.add(const Tab(text: 'Forum'));
-      tabViews.add(EmbeddedForumView(forumId: trip.forumId!));
+    final tabs = <Tab>[];
+    final tabViews = <Widget>[];
+
+    for (final title in tabTitles) {
+      tabs.add(Tab(text: title));
+      switch (title) {
+        case 'Übersicht':
+          tabViews.add(
+            TripOverviewTab(
+              trip: trip,
+              accommodations: _accommodations,
+              participants: _participants,
+              currentUserId: currentUserId,
+              onSelectMapTab: mapTabIndex != -1
+                  ? () => _tabController?.animateTo(mapTabIndex)
+                  : null,
+            ),
+          );
+          break;
+        case 'Forum':
+          tabViews.add(EmbeddedForumView(forumId: trip.forumId!));
+          break;
+        case 'Events':
+          tabViews.add(TripEventsTab(events: _events, currentUserId: currentUserId));
+          break;
+        case 'Tickets':
+          tabViews.add(
+            TripTicketsTab(
+              tickets: _tickets,
+              events: _events,
+              ticket: trip.ticket,
+              ticketUrl: trip.ticketUrl,
+            ),
+          );
+          break;
+        case 'Zahlungen':
+          tabViews.add(_buildPaymentsTab(tokens));
+          break;
+        case 'Karte':
+          tabViews.add(
+            TripMapTab(
+              accommodations: _accommodations,
+              events: _events,
+              currentUserId: currentUserId,
+            ),
+          );
+          break;
+      }
     }
-
-    tabs.add(const Tab(text: 'Events'));
-    tabViews.add(TripEventsTab(events: _events, currentUserId: currentUserId));
-
-    if (_tickets.isNotEmpty) {
-      tabs.add(const Tab(text: 'Tickets'));
-      tabViews.add(TripTicketsTab(tickets: _tickets, events: _events));
-    }
-
-    if (_subscriptions.isNotEmpty) {
-      tabs.add(const Tab(text: 'Zahlungen'));
-      tabViews.add(_buildPaymentsTab(tokens));
-    }
-
-    tabs.add(const Tab(text: 'Karte'));
-    tabViews.add(
-      TripMapTab(
-        accommodations: _accommodations,
-        events: _events,
-        currentUserId: currentUserId,
-      ),
-    );
 
     _ensureTabController(tabs.length);
 
@@ -264,12 +280,31 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     );
   }
 
+  List<String> _getTabTitles(TravelTrip trip) {
+    final titles = <String>['Übersicht'];
+    if (trip.forumId != null) titles.add('Forum');
+    titles.add('Events');
+    final hasTicketInfo = (trip.ticket != null && trip.ticket!.isNotEmpty) ||
+        (trip.ticketUrl != null && trip.ticketUrl!.isNotEmpty) ||
+        trip.hastickets == '1';
+    if (_tickets.isNotEmpty || hasTicketInfo) titles.add('Tickets');
+    if (_subscriptions.isNotEmpty) titles.add('Zahlungen');
+    titles.add('Karte');
+    return titles;
+  }
+
   Widget _buildBodyWithFab() {
     if (_loading || _error != null || _trip == null) return _buildBody();
+    final tabTitles = _getTabTitles(_trip!);
+    final ticketsTabIndex = tabTitles.indexOf('Tickets');
+    final showFab = ticketsTabIndex != -1 &&
+        _currentTabIndex == ticketsTabIndex &&
+        _trip!.hastickets == '1';
+
     return Stack(
       children: [
         _buildBody(),
-        if (_currentTabIndex == 0 && _trip!.hastickets == '1')
+        if (showFab)
           Positioned(
             right: 16,
             bottom: 16,

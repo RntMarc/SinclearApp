@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
+import '../../../core/utils/url_helper.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -165,39 +166,21 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
             ],
             if (hasCoords) ...[
               SizedBox(height: tokens.spaceLg),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(tokens.radiusLg),
-                child: SizedBox(
-                  height: 180,
-                  child: FlutterMap(
-                    options: MapOptions(
-                      initialCenter: LatLng(event.latitude!, event.longitude!),
-                      initialZoom: 14,
-                      interactionOptions: const InteractionOptions(
-                        flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                      ),
+              DesignMapCard(
+                center: LatLng(event.latitude!, event.longitude!),
+                initialZoom: 14,
+                markers: [
+                  Marker(
+                    point: LatLng(event.latitude!, event.longitude!),
+                    child: const Icon(
+                      Icons.location_on,
+                      color: Colors.red,
+                      size: 36,
                     ),
-                    children: [
-                      TileLayer(
-                        urlTemplate: OsmConfig.tileUrlTemplate,
-                        userAgentPackageName: OsmConfig.tileUserAgent,
-                        tileProvider: osmTileProvider(),
-                      ),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: LatLng(event.latitude!, event.longitude!),
-                            child: const Icon(
-                              Icons.location_on,
-                              color: Colors.red,
-                              size: 36,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
-                ),
+                ],
+                height: 180,
+                interactive: true,
               ),
             ],
             if (event.hastickets == '1' || _tickets.isNotEmpty) ...[
@@ -255,8 +238,10 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
     String? ticket,
     String? ticketUrl,
   ) {
+    final hasUrl = ticketUrl != null && ticketUrl.isNotEmpty;
     return DesignCard(
       useGlass: false,
+      onTap: hasUrl ? () => launchExternalUrl(ticketUrl) : null,
       margin: EdgeInsets.only(bottom: tokens.spaceSm),
       padding: EdgeInsets.all(tokens.spaceMd),
       child: Column(
@@ -270,11 +255,19 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
                 size: 20,
               ),
               SizedBox(width: tokens.spaceSm),
-              DesignText(
-                'Ticket-Info',
-                style: DesignTextStyle.body,
-                color: tokens.textHigh,
+              Expanded(
+                child: DesignText(
+                  'Ticket-Info',
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
               ),
+              if (hasUrl)
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 16,
+                  color: tokens.primary,
+                ),
             ],
           ),
           if (ticket != null && ticket.isNotEmpty) ...[
@@ -285,15 +278,12 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
               color: tokens.textLow,
             ),
           ],
-          if (ticketUrl != null && ticketUrl.isNotEmpty) ...[
+          if (hasUrl) ...[
             SizedBox(height: tokens.spaceXs),
-            GestureDetector(
-              onTap: () => {/* TODO: open URL */},
-              child: DesignText(
-                ticketUrl,
-                style: DesignTextStyle.label,
-                color: tokens.primary,
-              ),
+            DesignText(
+              ticketUrl,
+              style: DesignTextStyle.label,
+              color: tokens.primary,
             ),
           ],
         ],

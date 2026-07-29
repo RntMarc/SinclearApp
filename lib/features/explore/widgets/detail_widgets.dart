@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/config/osm_config.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
@@ -313,58 +313,24 @@ class PlaceMapCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    if (place.latitude == null || place.longitude == null) {
-      return DesignCard(
-        useGlass: false,
-        child: SizedBox(
-          height: 200,
-          child: Center(
-            child: DesignText(
-              'Keine Koordinaten verfügbar',
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
-          ),
-        ),
-      );
-    }
-    return DesignCard(
-      useGlass: false,
-      padding: EdgeInsets.zero,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(tokens.radiusLg),
-        child: SizedBox(
-          height: 200,
-          child: FlutterMap(
-            options: MapOptions(
-              initialCenter: LatLng(place.latitude!, place.longitude!),
-              initialZoom: 15,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+    final hasCoords = place.latitude != null && place.longitude != null;
+    return DesignMapCard(
+      center: hasCoords ? LatLng(place.latitude!, place.longitude!) : null,
+      initialZoom: 15,
+      markers: hasCoords
+          ? [
+              Marker(
+                point: LatLng(place.latitude!, place.longitude!),
+                child: Icon(
+                  Icons.location_on,
+                  color: tokens.danger,
+                  size: 36,
+                ),
               ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: OsmConfig.tileUrlTemplate,
-                userAgentPackageName: OsmConfig.tileUserAgent,
-                tileProvider: osmTileProvider(),
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: LatLng(place.latitude!, place.longitude!),
-                    child: Icon(
-                      Icons.location_on,
-                      color: tokens.danger,
-                      size: 36,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+            ]
+          : const [],
+      height: 200,
+      interactive: true,
     );
   }
 }

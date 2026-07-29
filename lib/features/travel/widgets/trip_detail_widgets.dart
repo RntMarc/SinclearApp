@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../../../core/config/osm_config.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/image/image_provider_helper.dart';
+import '../../../core/utils/url_helper.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_card.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import '../models/travel_models.dart';
 import '../screens/accommodation_detail_screen.dart';
 import '../screens/event_detail_screen.dart';
@@ -20,6 +21,7 @@ class TripOverviewTab extends StatelessWidget {
   final List<TravelAccommodation> accommodations;
   final List<TravelParticipant> participants;
   final String? currentUserId;
+  final VoidCallback? onSelectMapTab;
 
   const TripOverviewTab({
     super.key,
@@ -27,6 +29,7 @@ class TripOverviewTab extends StatelessWidget {
     required this.accommodations,
     required this.participants,
     this.currentUserId,
+    this.onSelectMapTab,
   });
 
   String _formatDate(DateTime date) {
@@ -55,16 +58,6 @@ class TripOverviewTab extends StatelessWidget {
             style: DesignTextStyle.label,
             color: tokens.textLow,
           ),
-          if (trip.hastickets == '1') ...[
-            SizedBox(height: tokens.spaceLg),
-            DesignText(
-              'Tickets',
-              style: DesignTextStyle.subtitle,
-              color: tokens.textHigh,
-            ),
-            SizedBox(height: tokens.spaceSm),
-            _ticketInfoCard(tokens, trip.ticket, trip.ticketUrl),
-          ],
           SizedBox(height: tokens.spaceLg),
           if (accommodations.isNotEmpty) ...[
             SizedBox(
@@ -72,6 +65,7 @@ class TripOverviewTab extends StatelessWidget {
               child: TripAccommodationMap(
                 accommodations: accommodations,
                 currentUserId: currentUserId,
+                onTap: onSelectMapTab,
               ),
             ),
             SizedBox(height: tokens.spaceLg),
@@ -110,67 +104,18 @@ class TripOverviewTab extends StatelessWidget {
       ),
     );
   }
-
-  Widget _ticketInfoCard(
-    DesignTokens tokens,
-    String? ticket,
-    String? ticketUrl,
-  ) {
-    return DesignCard(
-      useGlass: false,
-      margin: EdgeInsets.only(bottom: tokens.spaceSm),
-      padding: EdgeInsets.all(tokens.spaceMd),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.confirmation_number_rounded,
-                color: tokens.primary,
-                size: 20,
-              ),
-              SizedBox(width: tokens.spaceSm),
-              DesignText(
-                'Ticket-Info',
-                style: DesignTextStyle.body,
-                color: tokens.textHigh,
-              ),
-            ],
-          ),
-          if (ticket != null && ticket.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceXs),
-            DesignText(
-              ticket,
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
-          ],
-          if (ticketUrl != null && ticketUrl.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceXs),
-            GestureDetector(
-              onTap: () => {/* TODO: open URL */},
-              child: DesignText(
-                ticketUrl,
-                style: DesignTextStyle.label,
-                color: tokens.primary,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 }
 
 class TripAccommodationMap extends StatelessWidget {
   final List<TravelAccommodation> accommodations;
   final String? currentUserId;
+  final VoidCallback? onTap;
 
   const TripAccommodationMap({
     super.key,
     required this.accommodations,
     this.currentUserId,
+    this.onTap,
   });
 
   @override
@@ -181,69 +126,35 @@ class TripAccommodationMap extends StatelessWidget {
         .toList();
 
     if (coords.isEmpty) {
-      return DesignCard(
-        useGlass: false,
-        margin: EdgeInsets.zero,
-        child: SizedBox(
-          height: 200,
-          child: Center(
-            child: DesignText(
-              'Keine Koordinaten verfügbar',
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
-          ),
-        ),
+      return const DesignMapCard(
+        height: 200,
+        emptyMessage: 'Keine Koordinaten verfügbar',
       );
     }
 
     final first = coords.first;
     final center = LatLng(first.latitude!, first.longitude!);
 
-    return DesignCard(
-      useGlass: false,
-      margin: EdgeInsets.zero,
-      padding: EdgeInsets.zero,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(tokens.radiusLg),
-        child: SizedBox(
-          height: 200,
-          child: GestureDetector(
-            onTap: () => DefaultTabController.of(context).animateTo(2),
-            child: FlutterMap(
-              options: MapOptions(
-                initialCenter: center,
-                initialZoom: 13,
-                interactionOptions: const InteractionOptions(
-                  flags: InteractiveFlag.none,
-                ),
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: OsmConfig.tileUrlTemplate,
-                  userAgentPackageName: OsmConfig.tileUserAgent,
-                  tileProvider: osmTileProvider(),
-                ),
-                MarkerLayer(
-                  markers: coords.map((a) {
-                    final isMine =
-                        currentUserId != null &&
-                        a.users.any((u) => u.id == currentUserId);
-                    return Marker(
-                      point: LatLng(a.latitude!, a.longitude!),
-                      child: Icon(
-                        Icons.location_on,
-                        color: isMine ? tokens.primary : tokens.danger,
-                        size: 36,
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
+    final markers = coords.map((a) {
+      final isMine =
+          currentUserId != null && a.users.any((u) => u.id == currentUserId);
+      return Marker(
+        point: LatLng(a.latitude!, a.longitude!),
+        child: Icon(
+          Icons.location_on,
+          color: isMine ? tokens.primary : tokens.danger,
+          size: 36,
         ),
-      ),
+      );
+    }).toList();
+
+    return DesignMapCard(
+      center: center,
+      initialZoom: 13,
+      markers: markers,
+      height: 200,
+      interactive: false,
+      onTap: onTap,
     );
   }
 }
@@ -518,11 +429,15 @@ class TripEventCard extends StatelessWidget {
 class TripTicketsTab extends StatelessWidget {
   final List<TravelEventTicket> tickets;
   final List<TravelEvent> events;
+  final String? ticket;
+  final String? ticketUrl;
 
   const TripTicketsTab({
     super.key,
     required this.tickets,
     required this.events,
+    this.ticket,
+    this.ticketUrl,
   });
 
   String _eventName(String eventId) {
@@ -534,7 +449,11 @@ class TripTicketsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
 
-    if (tickets.isEmpty) {
+    final hasTicketInfo =
+        (ticket != null && ticket!.isNotEmpty) ||
+        (ticketUrl != null && ticketUrl!.isNotEmpty);
+
+    if (tickets.isEmpty && !hasTicketInfo) {
       return Center(
         child: DesignText(
           'Keine Tickets verfügbar',
@@ -576,6 +495,10 @@ class TripTicketsTab extends StatelessWidget {
             ),
             SizedBox(height: tokens.spaceLg),
           ],
+          if (hasTicketInfo) ...[
+            _ticketInfoCard(tokens, ticket, ticketUrl),
+            SizedBox(height: tokens.spaceLg),
+          ],
           if (userTickets.isNotEmpty) ...[
             DesignText(
               'Meine Tickets',
@@ -584,6 +507,64 @@ class TripTicketsTab extends StatelessWidget {
             ),
             SizedBox(height: tokens.spaceSm),
             ...userTickets.map((t) => _ticketCard(context, tokens, t, 'Mein Ticket')),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _ticketInfoCard(
+    DesignTokens tokens,
+    String? ticket,
+    String? ticketUrl,
+  ) {
+    final hasUrl = ticketUrl != null && ticketUrl.isNotEmpty;
+    return DesignCard(
+      useGlass: false,
+      onTap: hasUrl ? () => launchExternalUrl(ticketUrl) : null,
+      margin: EdgeInsets.only(bottom: tokens.spaceSm),
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.confirmation_number_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
+              SizedBox(width: tokens.spaceSm),
+              Expanded(
+                child: DesignText(
+                  'Ticket-Info',
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+              ),
+              if (hasUrl)
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 16,
+                  color: tokens.primary,
+                ),
+            ],
+          ),
+          if (ticket != null && ticket.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceXs),
+            DesignText(
+              ticket,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ],
+          if (hasUrl) ...[
+            SizedBox(height: tokens.spaceXs),
+            DesignText(
+              ticketUrl,
+              style: DesignTextStyle.label,
+              color: tokens.primary,
+            ),
           ],
         ],
       ),
@@ -730,30 +711,12 @@ class TripMapTab extends StatelessWidget {
 
     final first = markers.first.point;
 
-    return DesignCard(
-      useGlass: false,
+    return DesignMapCard(
+      center: first,
+      initialZoom: 12,
+      markers: markers,
       margin: EdgeInsets.all(tokens.spaceLg),
-      padding: EdgeInsets.zero,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(tokens.radiusLg),
-        child: FlutterMap(
-          options: MapOptions(
-            initialCenter: first,
-            initialZoom: 12,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-            ),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: OsmConfig.tileUrlTemplate,
-              userAgentPackageName: OsmConfig.tileUserAgent,
-              tileProvider: osmTileProvider(),
-            ),
-            MarkerLayer(markers: markers),
-          ],
-        ),
-      ),
+      interactive: true,
     );
   }
 }
