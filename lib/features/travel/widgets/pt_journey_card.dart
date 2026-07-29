@@ -5,26 +5,6 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../models/pt_models.dart';
 
-IconData _modeIcon(String mode) {
-  switch (mode.toUpperCase()) {
-    case 'RAIL':
-    case 'TRAIN':
-      return Icons.train_rounded;
-    case 'BUS':
-      return Icons.directions_bus_rounded;
-    case 'TRAM':
-      return Icons.tram_rounded;
-    case 'SUBWAY':
-      return Icons.subway_rounded;
-    case 'WALK':
-      return Icons.directions_walk_rounded;
-    case 'FERRY':
-      return Icons.directions_ferry_rounded;
-    default:
-      return Icons.directions_transit_rounded;
-  }
-}
-
 class PtJourneyCard extends StatelessWidget {
   const PtJourneyCard({required this.journey, this.onTap, super.key});
 
@@ -54,7 +34,7 @@ class PtJourneyCard extends StatelessWidget {
               color: tokens.surfaceVariant,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(_modeIcon(mode), color: tokens.primary, size: 20),
+            child: Icon(ptModeIcon(mode), color: tokens.primary, size: 20),
           ),
           SizedBox(width: tokens.spaceMd),
           Expanded(

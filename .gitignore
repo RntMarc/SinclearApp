@@ -1,6 +1,9 @@
 # env vars
 .env
 
+# manually loaded api docs (should be renewed after each api update!)
+doc/api/
+
 # Miscellaneous
 *.class
 *.log

@@ -10,7 +10,6 @@ import '../../../design/widgets/primitives/design_card.dart';
 import '../models/pt_models.dart';
 import '../models/travel_models.dart';
 import '../screens/event_detail_screen.dart';
-import '../screens/pt_journey_detail_screen.dart';
 import '../screens/pt_search_screen.dart';
 import '../services/travel_service.dart';
 import '../widgets/pt_journey_card.dart';
@@ -32,6 +31,11 @@ class _TravelScreenState extends State<TravelScreen> {
   List<TimelineEntry> _past = [];
   List<PtSavedJourney> _ptJourneys = [];
   bool _hasLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void didChangeDependencies() {
@@ -356,16 +360,7 @@ class _TravelScreenState extends State<TravelScreen> {
       ..._ptJourneys.map((journey) {
         return PtJourneyCard(
           journey: journey,
-          onTap: () async {
-            final result = await Navigator.push<bool>(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    PtJourneyDetailScreen(journeyId: journey.id),
-              ),
-            );
-            if (result == true && mounted) _load();
-          },
+          onTap: () => context.go('/reisen/pt/${journey.id}'),
         );
       }),
     ];

@@ -58,42 +58,50 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 
 ### B1. Mitfahrer verwalten
 
-- [ ] UI zum Hinzufügen/Entfernen von Mitfahrern (API unterstützt `POST/DELETE /participants` bereits)
+- [x] UI zum Hinzufügen/Entfernen von Mitfahrern in `PtJourneyDetailScreen` – Teilnehmerliste, Einladen via BottomSheet (User-Auswahl), Entfernen-Button für Ersteller
 
 ### B2. Abfahrtspläne
-- [ ] Endpunkt `/stations/{id}/departures` existiert in der API, aktuell nicht in der App verwendet. Abfahrtspläne von Bahnhöfen anzeigen, wenn Nutzer einen Bahnhof anklickt.
+
+- [x] `PtDeparture`-Modell + `getStationDepartures()` in `pt_service.dart`
+- [x] `PtDepartureBoardScreen` – Abfahrts-/Ankunftstafel mit Minuten-Auto-Refresh, umschaltbar
+- [x] Station-Name-Tap in der Leg-Timeline öffnet Abfahrtsplan
+- [x] Abfahrtsplan-Button in der `PtStationField`-Autocomplete-Liste
 
 ### B3. [API] Automatisches Aktualisieren von PT-Fahrten
-- [ ] API hat `findStaleLegs()` vorbereitet, aber kein Cron-Job implementiert. Schreibe einen Prompt für die API, dass diese Funktion verbessert werden muss.
 
-### B4. Deel Linking
-- [ ] PT-Screens sind nicht per GoRouter erreichbar; als `/reisen/pt/:id` registrieren
+- [ ] API hat `findStaleLegs()` vorbereitet, aber kein Cron-Job implementiert. Siehe Prompt unten.
 
----
+#### Prompt für die API-Entwicklung
 
-## C. Umstellung auf path-basiertes Routing `[x]`
+```
+In der Sinclear API existiert die Methode `PtService::findStaleLegs()`, die alle
+PtLeg-Einträge findet, deren `lastCheckedAt` älter als N Minuten ist (z. B. 5 min).
+Diese Methode wird aktuell nirgends aufgerufen.
 
-Bekannte Einschränkung: Android verwirft Hash-Fragmente beim Intent-Matching – ein Deep-Link `/#/reisen` landet auf der Startseite. Vollständiges Deep-Linking erfordert Umstellung auf path-basiertes Routing (kein `#` in der URL)
+Bitte implementiere einen Cron-Job (z. B. via Cron/Task-Scheduler im Hosting),
+der regelmäßig (alle 5 Minuten) `findStaleLegs()` aufruft und für jeden
+stalen Leg die aktuellen Daten von Transitious `/api/v5/trip?tripId=...`
+abruft und folgende Felder aktualisiert:
 
-- [x] `usePathUrlStrategy()` in `main.dart` (web only) – PWA nutzt jetzt `sinclear.de/reisen` statt `sinclear.de/#/reisen`
-- [x] Share-URL wieder ohne `/#/` – `$appBaseUrl$path` (z. B. `https://sinclear.de/reisen`)
-- [x] GoRouter-Routen nicht mit API-Pfaden kollidierend (keine Route beginnt mit `/api/`)
-- [x] Android Intent-Filter bereits host-basiert (`https://sinclear.de`) – kompatibel
+- `actualDeparture` / `actualArrival`
+- `departureDelay` / `arrivalDelay`
+- `departurePlatform` / `arrivalPlatform`
+- `cancelled`
+- `realTimeState`
+- `lastCheckedAt`
 
-### ⚠️ Server-Konfiguration erforderlich
+Dabei müssen die Rate-Limits von Transitious beachtet werden:
+nicht mehr als 5-10 Trip-Requests pro Batch und eine Pause zwischen
+den Batches einplanen.
 
-Der Webserver (nginx/Apache) muss so konfiguriert werden, dass `/api/` **nicht** auf `index.html` umgeleitet wird, sondern an das Backend geht. Beispiel nginx:
-
-```nginx
-location /api/ {
-    proxy_pass http://backend:8000;
-}
-location / {
-    try_files $uri /index.html;
-}
+Nutze dazu den bestehenden `PtLegRepository` und `TransitiousClient`.
+Die Logik für den API-Call pro Leg existiert bereits in `refreshLeg()`
+in `PtService`.
 ```
 
-Ohne diese Regel würden API-Aufrufe im Browser die Flutter-App laden statt die API-Antwort zurückzugeben. `flutter run` im Dev-Mode hat dieses Problem nicht (der Dev-Proxy leitet `/api/` nicht um).
+### B4. Deep Linking
+
+- [x] PT-Screens sind per GoRouter erreichbar; als `/reisen/pt/:id` registriert
 
 ---
 
@@ -184,7 +192,7 @@ Ohne diese Regel würden API-Aufrufe im Browser die Flutter-App laden statt die 
 ## Reihenfolge / Abhängigkeiten
 
 1. ✅ **(sofort)** **C** – Path-basiertes Routing ✅
-2. **(später/nebenbei)** **B1, B2, B4** – PT ausbauen
+2. ✅ **(nebenbei)** **B1, B2, B4** – PT ausbauen ✅ (B3 wartet auf API)
 3. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
 4. **(später)** **B3** – [API] PT stale legs
 5. **(später)** **F2, F3, F4** – Debugging & Error-Handling
