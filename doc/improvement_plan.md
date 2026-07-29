@@ -54,125 +54,46 @@ Aktuell: **1 Testdatei** (`test/design_showcase_test.dart`)
 
 ---
 
-## B. Dead Code entfernen
+## B. PT ausbauen
 
-### B1. Orphaned Widgets
-- [x] `lib/features/recipes/widgets/recipe_card.dart` gelöscht (durch `DesignCard` ersetzt, nirgends importiert)
-- [x] Leeres `widgets/`-Verzeichnis unter recipes entfernt
+### B1. Mitfahrer verwalten
 
-### B2. Veraltete Importe und Codepfade
-- [x] `lib/core/theme/app_theme.dart` entfernt – Theme in `app.dart` inline via `ColorScheme.fromSeed`
-- [x] `google_fonts`-Abhängigkeit aus `pubspec.yaml` entfernt (nur noch von `app_theme.dart` genutzt)
-- [x] Leeres `lib/core/theme/`-Verzeichnis entfernt (inkl. leerem `noise/`-Unterordner)
+- [ ] UI zum Hinzufügen/Entfernen von Mitfahrern (API unterstützt `POST/DELETE /participants` bereits)
 
-### B3. Tote `null`-Checks (dart analyze Warnings)
-- [x] `active_shares_screen.dart:54` – entfernt (parseApiDate gibt non-nullable DateTime zurück)
-- [x] `session_map_screen.dart:235` – entfernt
-- [x] `shared_locations_screen.dart:32` – entfernt
+### B2. Abfahrtspläne
+- [ ] Endpunkt `/stations/{id}/departures` existiert in der API, aktuell nicht in der App verwendet. Abfahrtspläne von Bahnhöfen anzeigen, wenn Nutzer einen Bahnhof anklickt.
 
-### B4. Unnötige Imports
-- [x] `location_sender.dart:4` – `import 'package:flutter/material.dart'` durch `foundation.dart` ersetzt
+### B3. [API] Automatisches Aktualisieren von PT-Fahrten
+- [ ] API hat `findStaleLegs()` vorbereitet, aber kein Cron-Job implementiert. Schreibe einen Prompt für die API, dass diese Funktion verbessert werden muss.
+
+### B4. Deel Linking
+- [ ] PT-Screens sind nicht per GoRouter erreichbar; als `/reisen/pt/:id` registrieren
 
 ---
 
-## C. Performance
+## C. Umstellung auf path-basiertes Routing `[x]`
 
-### C1. Große Dateien aufteilen (> 500 Zeilen)
-| Datei | Zeilen | Aktion |
-|---|---|---|
-| Datei | Zeilen | Aktion |
-|---|---|---|---|
-| ~~`lib/features/explore/screens/detail_screen.dart`~~ | ~~1199~~ | ✅ → 439 Z. (`detail_widgets.dart` +733 Z.) |
-| ~~`lib/features/recipes/screens/recipe_detail_screen.dart`~~ | ~~1027~~ | ✅ → 361 Z. (`recipe_detail_widgets.dart` +664 Z.) |
-| ~~`lib/features/onboarding/screens/onboarding_screen.dart`~~ | ~~764~~ | ✅ → 366 Z. (`onboarding_widgets.dart` +398 Z.) |
-| ~~`lib/features/travel/screens/trip_detail_screen.dart`~~ | ~~679~~ | ✅ → 176 Z. (`trip_detail_widgets.dart` +496 Z.) |
-| ~~`lib/features/shell/main_shell.dart`~~ | ~~707~~ | ✅ → 100 Z. (`shell_widgets.dart` +593 Z.) |
-| ~~`lib/features/feedback/screens/feedback_detail_screen.dart`~~ | ~~715~~ | ✅ → 581 Z. (`feedback_detail_widgets.dart` +237 Z.) |
-| ~~`lib/features/forum/screens/post_detail_screen.dart`~~ | ~~612~~ | ✅ → 466 Z. (`post_detail_widgets.dart` +219 Z.) |
-| ~~`lib/features/user/models/user_models.dart`~~ | ~~597~~ | ✅ → Barrel + 3 Files |
-| ~~`lib/features/notifications/services/notification_service.dart`~~ | ~~573~~ | ✅ → 421 Z. (`notification_display.dart` +159 Z.) |
-| ~~`lib/features/explore/screens/explore_screen.dart`~~ | ~~555~~ | ✅ → 351 Z. (`explore_widgets.dart` +285 Z.) |
-| ~~`lib/features/calendar/screens/calendar_screen.dart`~~ | ~~542~~ | ✅ → 454 Z. (`calendar_widgets.dart` +157 Z.) |
-| ~~`lib/features/explore/screens/category_screen.dart`~~ | ~~514~~ | ✅ → 416 Z. (`category_widgets.dart` +88 Z.) |
-| ~~`lib/features/forum/screens/forum_detail_screen.dart`~~ | ~~507~~ | ✅ → 395 Z. (`forum_detail_widgets.dart` +183 Z.) |
+Bekannte Einschränkung: Android verwirft Hash-Fragmente beim Intent-Matching – ein Deep-Link `/#/reisen` landet auf der Startseite. Vollständiges Deep-Linking erfordert Umstellung auf path-basiertes Routing (kein `#` in der URL)
 
-- [x] `detail_screen.dart` aufgeteilt (1199 → 439 Z.)
-- [x] `recipe_detail_screen.dart` aufgeteilt (1029 → 361 Z.)
-- [x] `onboarding_screen.dart` aufgeteilt (765 → 366 Z.)
-- [x] `main_shell.dart` aufgeteilt (707 → 100 Z.)
-- [x] `post_detail_screen.dart` aufgeteilt (612 → 466 Z.)
-- [x] `user_models.dart` aufgeteilt (597 → Barrel + 3 Dateien)
-- [x] `explore_screen.dart` aufgeteilt (555 → 351 Z.)
-- [x] `calendar_screen.dart` aufgeteilt (542 → 454 Z.)
-- [x] `category_screen.dart` aufgeteilt (514 → 416 Z.)
-- [x] `forum_detail_screen.dart` aufgeteilt (507 → 395 Z.)
-- [x] ~ `feedback_detail_screen.dart` (715 → 581 Z.) – Widgets extrahiert
-- [x] ~ `notification_service.dart` (573 → 421 Z.) – Display-Logik in `notification_display.dart`
+- [x] `usePathUrlStrategy()` in `main.dart` (web only) – PWA nutzt jetzt `sinclear.de/reisen` statt `sinclear.de/#/reisen`
+- [x] Share-URL wieder ohne `/#/` – `$appBaseUrl$path` (z. B. `https://sinclear.de/reisen`)
+- [x] GoRouter-Routen nicht mit API-Pfaden kollidierend (keine Route beginnt mit `/api/`)
+- [x] Android Intent-Filter bereits host-basiert (`https://sinclear.de`) – kompatibel
 
-### C2. `ListView` ohne `.builder()` ersetzen `[x]`
-Erzeugt alle Kinder eager – bei langen Listen Performance-Problem.
+### ⚠️ Server-Konfiguration erforderlich
 
-- [x] `trip_detail_screen.dart:480` → `SingleChildScrollView` + `Column` (3 section children)
-- [x] `settings_screen.dart:112` → `SingleChildScrollView` + `Column` (statische Seite)
-- [x] `event_detail_screen.dart:257` → `SingleChildScrollView` + `Column` (statische Detailseite)
-- [x] `forum_detail_screen.dart:367` → `SingleChildScrollView` + `Column`
-- [x] `forum_list_screen.dart:101,112,174` → Loading/Error/Empty → `SingleChildScrollView` + `Column`
-- [x] `post_detail_screen.dart:255,267,295` → Loading/Error/Main → `SingleChildScrollView` + `Column`
+Der Webserver (nginx/Apache) muss so konfiguriert werden, dass `/api/` **nicht** auf `index.html` umgeleitet wird, sondern an das Backend geht. Beispiel nginx:
 
-*location_sharing-Stellen entfallen (Feature entfernt).*
+```nginx
+location /api/ {
+    proxy_pass http://backend:8000;
+}
+location / {
+    try_files $uri /index.html;
+}
+```
 
-### C3. `Image.network` ohne Caching konsolidieren `[x]`
-- [x] `recipe_list_screen.dart:117` → `CachedNetworkImage` + Import
-- [x] `recipe_detail_screen.dart:600` → `CachedNetworkImage` + Import
-
-### C4. `explore_map.dart` Marker-Memoization `[x]`
-- [x] `ExploreMap` in `StatefulWidget` umgewandelt, Marker in `_cachedMarkers` gecacht, nur bei `places`-Änderung neu berechnet
-
-### C5. State Management evaluieren `[~]`
-
-- [x] **Analyse**: 32 Screens mit `setState`-Muster, 2 ChangeNotifier (Auth, Notification), 2 ValueNotifier (Design, WebUpdate)
-- [x] **A1 – ValueNotifier für UI-Toggles**: `_showMap` in `explore_screen.dart` + `category_screen.dart` auf `ValueNotifier` umgestellt → Full-Screen-Rebuild beim Kartenwechsel eliminiert
-- [x] **A2 – RefreshIndicator**: Auf 14 Screens nachgerüstet (Travel, TripDetail, Calendar, EventDetail, Settings, Feedback, FeedbackDetail, RecipeList, RecipeDetail, RecipeCatalog, Contacts, UserDetail, Onboarding, SubscriptionDetail)
-- [x] **Nachanalyse**: Paket B + C abgelehnt – Auth ändert sich nie bei sichtbarem Screen, Boilerplate-Einsparung marginal. Keine merkbare Verbesserung. C5 abgeschlossen ✅
-
-### C6. `const`-Konstruktoren nachrüsten `[x]`
-- [x] `prefer_const_constructors`, `prefer_const_literals_to_create_immutables` in `analysis_options.yaml` aktiviert
-- [x] `dart fix --apply`: 56 const-Fixes in 26 Dateien
-- [x] `dart analyze`: 0 Issues
-
----
-
-## D. UI-Konsistenz
-
-### D1. `core/widgets/user_avatar.dart` (letzter Material-Nutzer außer location_sharing)
-- [x] Datei gelöscht (dead code, nirgends importiert)
-
-### D2. `core/widgets/web_update_banner.dart` (web-only)
-- [x] `TextButton` → `DesignButton`(text)
-- [x] `FilledButton.tonal` → `DesignButton`(filled)
-- [x] `Theme.of(context)` → `DesignTheme.of(context)`
-
-### D3. Bekannte Inkonsistenzen aus der Migration normalisieren
-- [x] `CommentInput`-Duplikat vereinheitlichen (`feedback` + `forum` → eine Definition im Katalog)
-- [x] `DesignTextField` um `maxLines`-Support erweitern (für `CommentInput`, `EventFormSheet`)
-- [x] `VisibilityBadge`: `PopupMenuButton` beibehalten – bereits Design-tokens-konform
-- [x] `ExploreSearchOverlay.slider`: `Slider` beibehalten – bereits via `SliderTheme` eingefärbt
-
----
-
-## E. location_sharing vorerst entfernen `[x]`
-
-Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktioniert, ist eine komplette Neuimplementation in der Zukunft besser, als ein halb-kaputtes System irgendwie aufrecht zu erhalten. Daher ist auch eine Anpassung an die neue UI unnötig und alle Funktionen zum Standort Teilen werden erst einmal aus dem Code der App entfernt.
-
-**Erledigt:**
-- [x] Alle 12 Dateien in `lib/features/location_sharing/` gelöscht
-- [x] `lib/main.dart`: imports, Instanziierung, Constructor-Args entfernt
-- [x] `lib/app.dart`: imports, Felder, Constructor-Args, AppScope-Args entfernt
-- [x] `lib/router/router.dart`: imports, Route `/standort-teilen` + Subroutes entfernt, auth redirect bereinigt
-- [x] `lib/core/di/app_scope.dart`: imports, Felder, Constructor-Args entfernt
-- [x] `lib/features/shell/main_shell.dart`: `_standortWarningShown` + SnackBar entfernt, `_titleForLocation` bereinigt, `_categoryForLocation` bereinigt, mobile Kategorie-Sheet Eintrag entfernt, Desktop-Sidebar Eintrag entfernt; `_SheetItem.comingSoon` aufgeräumt
-- [x] `lib/core/config/notification_config.dart`: `location_sharing.started` cases aus allen 3 Switch-Statements entfernt
-- [x] `lib/features/notifications/widgets/notification_sheet.dart`: `location_sharing.started` Navigation entfernt
+Ohne diese Regel würden API-Aufrufe im Browser die Flutter-App laden statt die API-Antwort zurückzugeben. `flutter run` im Dev-Mode hat dieses Problem nicht (der Dev-Proxy leitet `/api/` nicht um).
 
 ---
 
@@ -233,22 +154,38 @@ Da location_sharing momentan zu viele Probleme macht und unzuverlässig funktion
 
 - [ ] Neuer Screen zum Hinzufügen von Rezepten. Dort Formular mit allen Feldern, entsprechend Vorgaben der API. Bei Maßeinheiten nur Auswahl aus den erlaubten Einheiten der API. Wenn API nichts vorgibt, schlage eine Änderung vor mit allen gängigen Maßeinheiten in Rezepten (g, Esslöffel, Stück, Prise, ml, ...), aber ändere die API nicht selbst.
 
+### G5. Hinzufügen Statistiken-Screen (später, benötigt vorausgehende Arbeit an der API)
+
+- [ ] Neuer Screen zur Ansicht der Statistiken unseres Discord-Servers.
+
+### G6. Verbesserung Reisen
+
+- [ ] Beim Anklicken der Karte auf dem Tab "Übersicht" auf dem Reise-Detail-Screen muss zum Tab "Karte" gewechselt werden. Es wurde schon mehrfach versucht, das zu implementieren, aber funktioniert noch nicht. Vielleicht liegt es daran, dass die Karte die Touches/Klicks erkennt und wir einfach ein unsichtbares UI-Element darüber legen sollten, damit die Karte wie ein Button funktioniert.
+- [ ] Neuer Tab "ÖPNV" auf dem Reise-Detail-Screen. Dort Anzeige der verknüpften PT-Fahrten. Verknüpfung von Reisen via PT-Funktion bereits implementiert, nur Anzeige fehlt noch.
+
+### G7. Verbesserung PT/ÖPNV
+
+- [ ] Wenn eine PT-Fahrt mit einer Reise verknüpft wurde, sollte dort trotzdem keine extra Karte "An Reise angeheftet" erscheinen. Stattdessen Erweitern des Buttons oben, mit dem auch verknüpft werden kann, um klarer darzustellen, ob eine Fahrt gerade verknüpft ist oder nicht.
+- [ ] Anzeige weiterer Details für jedes Leg. Aktuell steht nur Art des Transports, Startbahnhof, Abfahrtszeit, Zielbahnhof und Ankunftszeit dort. Es fehlen vor allem die Gleise.
+- [ ] Verbesserung der Anzeige der Transportart. Aktuell stehen dort Werte wie "HIGHSPEED_RAIL", "WALK", "REGIONAL_RAIL", "SUBWAY", "SUBURBAN" oder "BUS". Es sollten aber gängige Begriffe wie "ICE/IC", "Laufen", "Regio", "U-Bahn", "S-Bahn" oder "Bus" dort stehen.
+- [ ] Integration einer Karte, welche die Reiseroute in allen einzelnen Abschnitten abbildet. Die UI muss sinnvoll gestaltet werden.
+
+### G8. Integration Teilen-Funktion + URI-Handler `[x]`
+
+- [x] `share_plus` als Dependency hinzugefügt
+- [x] `AppScope` um `appBaseUrl` erweitert (aus `API_BASE_URL` → `scheme://host` geparst)
+- [x] `ShellShareButton` in der globalen AppBar (neben der Notification-Glocke) – teilt die aktuelle Seite via nativem Share-Dialog
+- [x] Share-URL verwendet path-basiertes Format (`$baseUrl$path`), z. B. `https://sinclear.de/reisen`
+- [x] Android Deep Link: Intent-Filter in `AndroidManifest.xml` für `https://sinclear.de`
+- [x] Deep-Linking funktioniert jetzt plattformübergreifend (kein `#`-Fragment mehr)
+
 ---
 
 ## Reihenfolge / Abhängigkeiten
 
-1. ✅ **(sofort)** **B** – Dead Code entfernen
-2. ✅ **(sofort)** **A3** – analysis_options.yaml verschärfen
-3. ✅ **(dringend)** **E** – location_sharing entfernen
-4. ✅ **(dringend)** **F2** – `mounted`-Checks absichern (erledigt in A3)
-5. ✅ **(parallel)** **C2** – ListView.builder-Fixes
-6. ✅ **(parallel)** **C3** – Image.network → CachedNetworkImage
-7. ✅ **(mittel)** **C1** – Große Dateien aufteilen ✅
-8. ✅ **(mittel)** **C4** – Marker-Memoization ✅
-9. ✅ **(mittel)** **C6** – const-Konstruktoren nachrüsten ✅
-10. ✅ **(mittel)** **D** – UI-Konsistenz ✅
-11. ✅ **(mittel)** **F1** – Zentrales Logging ✅
-12. ✅ **(mittel)** **C5** – Paket A (ValueNotifier Toggles + RefreshIndicator) ✅
-13. ✅ **(erledigt)** **G3** – Reisen/Events-Erweiterung ✅
-14. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
-15. **(später)** **G2, G4** – Weitere neue Funktionen
+1. ✅ **(sofort)** **C** – Path-basiertes Routing ✅
+2. **(später/nebenbei)** **B1, B2, B4** – PT ausbauen
+3. **(später)** **A1, A2, A4** – SDK-Updates + Tests (kontinuierlich)
+4. **(später)** **B3** – [API] PT stale legs
+5. **(später)** **F2, F3, F4** – Debugging & Error-Handling
+6. **(später)** **G2, G4, G5, G6, G7** – Neue Funktionen

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
@@ -349,7 +350,10 @@ class ShellDesktop extends StatelessWidget {
         children: [
           DesignAppBar(
             title: shellTitleForLocation(location),
-            actions: const [ShellNotificationBell()],
+            actions: const [
+              ShellShareButton(),
+              ShellNotificationBell(),
+            ],
           ),
           Expanded(
             child: Row(
@@ -393,7 +397,10 @@ class ShellMobile extends StatelessWidget {
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(title: title, actions: const [ShellNotificationBell()]),
+          DesignAppBar(title: title, actions: const [
+        ShellShareButton(),
+        ShellNotificationBell(),
+      ]),
           Expanded(child: child),
           ShellMobileBottomNav(currentLocation: location),
         ],
@@ -568,6 +575,29 @@ class ShellMobileBottomNav extends StatelessWidget {
         category: category,
         items: items,
         currentLocation: location,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Share Button
+// ---------------------------------------------------------------------------
+
+class ShellShareButton extends StatelessWidget {
+  const ShellShareButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.toString();
+    final path = location == '/' || location.isEmpty ? '' : location;
+    final appBaseUrl = AppScope.of(context).appBaseUrl;
+    final url = path.isEmpty ? appBaseUrl : '$appBaseUrl$path';
+
+    return DesignIconButton(
+      icon: Icons.ios_share_rounded,
+      onPressed: () => SharePlus.instance.share(
+        ShareParams(text: url),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -33,6 +34,7 @@ import 'router/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) usePathUrlStrategy();
   setupLogging();
   final log = Logger('main');
 
@@ -59,6 +61,10 @@ void main() async {
 
   final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v2';
   final appId = dotenv.env['APP_ID'] ?? 'de.example.beyond';
+  final apiUri = Uri.tryParse(baseUrl);
+  final appBaseUrl = apiUri != null
+      ? '${apiUri.scheme}://${apiUri.host}'
+      : 'http://localhost:8000';
 
   final packageInfo = await PackageInfo.fromPlatform();
   OsmConfig.init(
@@ -138,6 +144,7 @@ void main() async {
       webUpdate: webUpdate,
       initialDesignVariant: initialDesign,
       router: router,
+      appBaseUrl: appBaseUrl,
     ),
   );
 }
