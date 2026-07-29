@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -13,6 +12,7 @@ import 'app.dart';
 import 'design/theme/design_preferences.dart';
 import 'core/config/osm_config.dart';
 import 'core/logging.dart';
+import 'core/url_strategy.dart';
 import 'core/network/api_client.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
@@ -34,7 +34,7 @@ import 'router/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (kIsWeb) usePathUrlStrategy();
+  setupUrlStrategy();
   setupLogging();
   final log = Logger('main');
 
