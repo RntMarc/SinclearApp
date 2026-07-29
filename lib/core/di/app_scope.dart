@@ -28,6 +28,8 @@ class AppScope extends InheritedWidget {
   final SubscriptionService subscription;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
+  final String appBaseUrl;
+
   const AppScope({
     super.key,
     required this.auth,
@@ -44,6 +46,7 @@ class AppScope extends InheritedWidget {
     required this.subscription,
     required this.androidUpdate,
     this.webUpdate,
+    required this.appBaseUrl,
     required super.child,
   });
 

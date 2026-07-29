@@ -42,6 +42,7 @@ class SinclearApp extends StatelessWidget {
 
   /// Active design selection; changes are persisted via [DesignController].
   final ValueNotifier<DesignVariant> designVariant;
+  final String appBaseUrl;
 
   SinclearApp({
     super.key,
@@ -61,6 +62,7 @@ class SinclearApp extends StatelessWidget {
     required this.androidUpdate,
     required this.webUpdate,
     required this.router,
+    required this.appBaseUrl,
   }) : designVariant = DesignController(initialDesignVariant);
 
   @override
@@ -80,6 +82,7 @@ class SinclearApp extends StatelessWidget {
       subscription: subscription,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
+      appBaseUrl: appBaseUrl,
       child: WebUpdateBanner(
         service: webUpdate,
         child: DesignScope(
