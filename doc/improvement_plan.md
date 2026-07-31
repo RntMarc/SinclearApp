@@ -135,8 +135,8 @@ in `PtService`.
 - [x] Test: `test/global_error_handling_test.dart` (Framework-Errors + Zone-Errors → severe LogRecords)
 
 ### F4. DevTools-Konfiguration
-- [ ] `devtools_options.yaml` erweitern (logging_extensions, etc.)
-- [ ] Prüfen ob Performance-Benchmarks via DevTools sinnvoll sind
+- [x] `devtools_options.yaml` – existiert bereits mit `extensions: shared_preferences: true`; keine Logging-Extension nötig (kein etabliertes Paket auf pub.dev, nur obskure Drittanbieter). Stattdessen: `setupLogging()` in `core/logging.dart` gibt Records zusätzlich als `developer.log` aus (`name` = Logger-Name, `level` = `Level.value`, passt exakt zu den DevTools-Leveln) → alle zentralen Logs erscheinen in der eingebauten DevTools-Logging-Ansicht
+- [x] Performance-Benchmarks geprüft → bewusst weggelassen (YAGNI): kein automatisiertes Benchmark-Setup für diese App-Größe; bei konkreten Performance-Verdachtsfällen DevTools Performance-Panel manuell nutzen
 
 ---
 

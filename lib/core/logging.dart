@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
@@ -13,6 +15,13 @@ void setupLogging() {
     } else {
       debugPrint('[${record.loggerName}] ${record.level.name}: $msg');
     }
+    developer.log(
+      msg,
+      name: record.loggerName,
+      level: record.level.value,
+      error: error,
+      stackTrace: stack,
+    );
   });
 }
 
