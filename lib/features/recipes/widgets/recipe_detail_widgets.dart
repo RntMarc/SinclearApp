@@ -1,7 +1,6 @@
-import 'dart:convert';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -222,30 +221,14 @@ class RecipeImage extends StatelessWidget {
   }
 
   Widget _buildImage(BuildContext context) {
-    if (image.startsWith('data:')) {
-      try {
-        final data = image.contains(',')
-            ? image.substring(image.indexOf(',') + 1)
-            : image;
-        final bytes = base64Decode(data);
-        return Image.memory(
-          bytes,
-          width: double.infinity,
-          height: 220,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => _imagePlaceholder,
-        );
-      } catch (_) {
-        return _imagePlaceholder;
-      }
-    }
-    return CachedNetworkImage(
-      imageUrl: image,
+    final provider = resolveImageProvider(image);
+    if (provider == null) return _imagePlaceholder;
+    return Image(
+      image: provider,
       width: double.infinity,
       height: 220,
       fit: BoxFit.cover,
-      placeholder: (_, _) => _imagePlaceholder,
-      errorWidget: (_, _, _) => _imagePlaceholder,
+      errorBuilder: (_, _, _) => _imagePlaceholder,
     );
   }
 
