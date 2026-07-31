@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/url_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
@@ -26,6 +28,17 @@ class RecipeContent extends StatelessWidget {
     this.guest = false,
     required this.onToggleBookmark,
   });
+
+  /// Builds the Bring deep link for the recipe's public HTML page.
+  String bringDeepLink(BuildContext context) {
+    final scope = AppScope.of(context);
+    final recipeUrl = '${scope.apiBaseUrl}/html/public/recipe?id=${recipe.id}';
+    return 'https://api.getbring.com/rest/bringrecipes/deeplink'
+        '?url=${Uri.encodeComponent(recipeUrl)}'
+        '&source=web'
+        '&baseQuantity=${recipe.servings}'
+        '&requestedQuantity=${recipe.servings}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,20 +82,36 @@ class RecipeContent extends StatelessWidget {
             ],
           ),
           SizedBox(height: tokens.spaceLg),
-          if (!guest)
-            DesignButton(
-              variant: DesignButtonVariant.filled,
-              icon: bookmarked
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              label: bookmarkToggling
-                  ? '…'
-                  : bookmarked
-                  ? 'Lesezeichen entfernen'
-                  : 'Lesezeichen setzen',
-              loading: bookmarkToggling,
-              onPressed: bookmarkToggling ? null : onToggleBookmark,
-            ),
+          Row(
+            children: [
+              if (!guest) ...[
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    icon: bookmarked
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    label: bookmarkToggling
+                        ? '…'
+                        : bookmarked
+                        ? 'Lesezeichen entfernen'
+                        : 'Lesezeichen setzen',
+                    loading: bookmarkToggling,
+                    onPressed: bookmarkToggling ? null : onToggleBookmark,
+                  ),
+                ),
+                SizedBox(width: tokens.spaceSm),
+              ],
+              Expanded(
+                child: DesignButton(
+                  variant: DesignButtonVariant.outlined,
+                  icon: Icons.shopping_basket_rounded,
+                  label: 'Zu Bring',
+                  onPressed: () => launchExternalUrl(bringDeepLink(context)),
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: tokens.spaceXl),
           if (recipe.ingredients.isNotEmpty) ...[
             DesignText(

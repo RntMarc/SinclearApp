@@ -13,6 +13,7 @@ import '../../features/subscription/services/subscription_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/travel/services/pt_service.dart';
 import '../../features/user/services/user_service.dart';
+
 class AppScope extends InheritedWidget {
   final AuthService auth;
   final ExploreService explore;
@@ -29,6 +30,7 @@ class AppScope extends InheritedWidget {
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
   final String appBaseUrl;
+  final String apiBaseUrl;
 
   const AppScope({
     super.key,
@@ -47,6 +49,7 @@ class AppScope extends InheritedWidget {
     required this.androidUpdate,
     this.webUpdate,
     required this.appBaseUrl,
+    required this.apiBaseUrl,
     required super.child,
   });
 

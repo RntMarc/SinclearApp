@@ -152,6 +152,7 @@ Future<void> _bootstrap() async {
       initialDesignVariant: initialDesign,
       router: router,
       appBaseUrl: appBaseUrl,
+      apiBaseUrl: baseUrl,
     ),
   );
 }
