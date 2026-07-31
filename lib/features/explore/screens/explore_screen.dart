@@ -91,6 +91,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Future<void> _loadBookmarks() async {
+    if (!AppScope.of(context).auth.isLoggedIn) {
+      setState(() {
+        _loadingBookmarks = false;
+        _bookmarksError = false;
+      });
+      return;
+    }
     setState(() {
       _loadingBookmarks = true;
       _bookmarksError = false;
@@ -232,6 +239,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 600;
     final crossAxisCount = isWide ? (width >= 900 ? 3 : 2) : 1;
+    final guest = !AppScope.of(context).auth.isLoggedIn;
 
     return DesignSurface(
       child: Stack(
@@ -346,6 +354,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       suggestions: _suggestions,
                       crossAxisCount: crossAxisCount,
                       error: _error,
+                      showBookmarks: !guest,
                       loadingBookmarks: _loadingBookmarks,
                       bookmarksError: _bookmarksError,
                       bookmarks: _bookmarks,
@@ -357,30 +366,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
             ],
           ),
-          Positioned(
-            right: tokens.spaceLg,
-            bottom: tokens.spaceLg,
-            child: Material(
-              type: MaterialType.transparency,
-              child: GestureDetector(
-                onTap: () => context.push('/entdecken/neu'),
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: tokens.primary,
-                    shape: BoxShape.circle,
-                    boxShadow: tokens.glowShadow,
-                  ),
-                  child: Icon(
-                    Icons.add_rounded,
-                    color: tokens.onPrimary,
-                    size: 28,
+          if (!guest)
+            Positioned(
+              right: tokens.spaceLg,
+              bottom: tokens.spaceLg,
+              child: Material(
+                type: MaterialType.transparency,
+                child: GestureDetector(
+                  onTap: () => context.push('/entdecken/neu'),
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: tokens.primary,
+                      shape: BoxShape.circle,
+                      boxShadow: tokens.glowShadow,
+                    ),
+                    child: Icon(
+                      Icons.add_rounded,
+                      color: tokens.onPrimary,
+                      size: 28,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

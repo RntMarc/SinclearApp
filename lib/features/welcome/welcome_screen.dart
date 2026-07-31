@@ -59,6 +59,36 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                SizedBox(height: tokens.spaceXl),
+                DesignText(
+                  'Ohne Login stöbern:',
+                  style: DesignTextStyle.label,
+                  color: tokens.textLow,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: tokens.spaceSm),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: DesignButton(
+                        label: 'Rezepte',
+                        icon: Icons.restaurant_rounded,
+                        variant: DesignButtonVariant.outlined,
+                        onPressed: () => context.go('/rezepte'),
+                      ),
+                    ),
+                    SizedBox(width: tokens.spaceSm),
+                    Expanded(
+                      child: DesignButton(
+                        label: 'Entdecken',
+                        icon: Icons.explore_rounded,
+                        variant: DesignButtonVariant.outlined,
+                        onPressed: () => context.go('/entdecken'),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

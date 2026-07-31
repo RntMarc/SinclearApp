@@ -10,6 +10,15 @@ class RecipesService {
 
   Future<String> _token() => _auth.getAccessToken();
 
+  /// Token nur bei eingeloggten Nutzern; Gäste nutzen die öffentlichen
+  /// `/public/...`-Endpunkte ohne Authorization-Header.
+  Future<String?> _optionalToken() async {
+    if (!_auth.isLoggedIn) return null;
+    return _auth.getAccessToken();
+  }
+
+  bool get _isGuest => !_auth.isLoggedIn;
+
   Future<RecipeListResponse> list({
     String? search,
     String? sort,
@@ -24,15 +33,18 @@ class RecipesService {
     if (sort != null) params['sort'] = sort;
 
     final data = await _api.get(
-      '/recipes',
+      _isGuest ? '/public/recipes' : '/recipes',
       queryParams: params,
-      token: await _token(),
+      token: await _optionalToken(),
     );
     return RecipeListResponse.fromJson(data);
   }
 
   Future<RecipeDetail> get(String id) async {
-    final data = await _api.get('/recipes/$id', token: await _token());
+    final data = await _api.get(
+      _isGuest ? '/public/recipes/$id' : '/recipes/$id',
+      token: await _optionalToken(),
+    );
     return RecipeDetail.fromJson(data['data'] as Map<String, dynamic>);
   }
 
@@ -58,10 +70,7 @@ class RecipesService {
   }
 
   Future<bool> bookmarkStatus(String id) async {
-    final data = await _api.get(
-      '/recipes/$id/bookmark',
-      token: await _token(),
-    );
+    final data = await _api.get('/recipes/$id/bookmark', token: await _token());
     return (data['data'] as Map<String, dynamic>)['bookmarked'] as bool;
   }
 

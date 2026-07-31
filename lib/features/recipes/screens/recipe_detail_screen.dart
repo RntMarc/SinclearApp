@@ -52,6 +52,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     setState(() => _loading = true);
     try {
       final scope = AppScope.of(context);
+      if (!scope.auth.isLoggedIn) {
+        final recipe = await scope.recipes.get(widget.id);
+        if (!mounted) return;
+        setState(() {
+          _recipe = recipe;
+          _loading = false;
+          _error = null;
+        });
+        return;
+      }
       await scope.auth.getAccessToken();
       final (recipe, bookmarked) = await (
         scope.recipes.get(widget.id),
@@ -256,6 +266,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final guest = !AppScope.of(context).auth.isLoggedIn;
 
     return DesignSurface(
       child: Column(
@@ -267,21 +278,22 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             ),
             title: _recipe?.title ?? 'Rezept',
             actions: [
-              DesignIconButton(
-                icon: _bookmarked == true
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                onPressed: _bookmarkToggling ? null : _toggleBookmark,
-              ),
+              if (!guest)
+                DesignIconButton(
+                  icon: _bookmarked == true
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                  onPressed: _bookmarkToggling ? null : _toggleBookmark,
+                ),
             ],
           ),
-          Expanded(child: _buildBody(tokens)),
+          Expanded(child: _buildBody(tokens, guest)),
         ],
       ),
     );
   }
 
-  Widget _buildBody(DesignTokens tokens) {
+  Widget _buildBody(DesignTokens tokens, bool guest) {
     if (_loading) {
       return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
@@ -341,6 +353,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     recipe: _recipe!,
                     bookmarked: _bookmarked ?? false,
                     bookmarkToggling: _bookmarkToggling,
+                    guest: guest,
                     onToggleBookmark: _toggleBookmark,
                   ),
                   RecipeReviewsSection(
@@ -349,6 +362,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     error: _reviewsError,
                     currentUserId: _currentUserId,
                     reviewUsers: _reviewUsers,
+                    guest: guest,
                     onLoadReviews: _loadReviews,
                     onCreateReview: _showCreateReviewDialog,
                     onEditReview: _showEditReviewDialog,

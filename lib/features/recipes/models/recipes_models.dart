@@ -73,7 +73,10 @@ class Recipe {
   final String? dietaryTags;
   final String? image;
   final int servings;
-  final String creatorId;
+
+  /// Nur bei authentifizierten Aufrufen gesetzt; die öffentlichen Endpunkte
+  /// blenden `creatorId` für anonyme Nutzer aus.
+  final String? creatorId;
   final String createdAt;
   final String updatedAt;
 
@@ -85,7 +88,7 @@ class Recipe {
     this.dietaryTags,
     this.image,
     required this.servings,
-    required this.creatorId,
+    this.creatorId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -99,7 +102,7 @@ class Recipe {
       dietaryTags: json['dietaryTags'] as String?,
       image: json['image'] as String?,
       servings: json['servings'] as int,
-      creatorId: json['creatorId'] as String,
+      creatorId: json['creatorId'] as String?,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
     );
@@ -120,7 +123,7 @@ class RecipeListItem extends Recipe {
     super.dietaryTags,
     super.image,
     required super.servings,
-    required super.creatorId,
+    super.creatorId,
     required super.createdAt,
     required super.updatedAt,
     this.avgRating,
@@ -136,7 +139,7 @@ class RecipeListItem extends Recipe {
       dietaryTags: json['dietaryTags'] as String?,
       image: json['image'] as String?,
       servings: json['servings'] as int,
-      creatorId: json['creatorId'] as String,
+      creatorId: json['creatorId'] as String?,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
       avgRating: (json['avgRating'] as num?)?.toDouble(),
@@ -160,7 +163,7 @@ class RecipeDetail extends Recipe {
     super.dietaryTags,
     super.image,
     required super.servings,
-    required super.creatorId,
+    super.creatorId,
     required super.createdAt,
     required super.updatedAt,
     this.avgRating,
@@ -179,7 +182,7 @@ class RecipeDetail extends Recipe {
       dietaryTags: json['dietaryTags'] as String?,
       image: json['image'] as String?,
       servings: json['servings'] as int,
-      creatorId: json['creatorId'] as String,
+      creatorId: json['creatorId'] as String?,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
       avgRating: (json['avgRating'] as num?)?.toDouble(),

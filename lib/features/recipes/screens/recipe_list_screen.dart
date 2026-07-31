@@ -73,6 +73,13 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   }
 
   Future<void> _loadBookmarks() async {
+    if (!AppScope.of(context).auth.isLoggedIn) {
+      setState(() {
+        _loadingBookmarks = false;
+        _bookmarksError = null;
+      });
+      return;
+    }
     setState(() {
       _loadingBookmarks = true;
       _bookmarksError = null;
@@ -240,6 +247,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final guest = !AppScope.of(context).auth.isLoggedIn;
 
     return DesignSurface(
       child: Stack(
@@ -326,66 +334,75 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      tokens.spaceLg,
-                      tokens.spaceXl,
-                      tokens.spaceLg,
-                      tokens.spaceSm,
-                    ),
-                    child: const DesignText(
-                      'Lesezeichen',
-                      style: DesignTextStyle.title,
-                    ),
-                  ),
-                  if (_loadingBookmarks)
+                  if (!guest) ...[
                     Padding(
-                      padding: EdgeInsets.all(tokens.spaceLg),
-                      child: Center(
-                        child: CircularProgressIndicator(color: tokens.primary),
+                      padding: EdgeInsets.fromLTRB(
+                        tokens.spaceLg,
+                        tokens.spaceXl,
+                        tokens.spaceLg,
+                        tokens.spaceSm,
                       ),
-                    )
-                  else if (_bookmarksError != null)
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-                      child: _sectionError(
-                        _bookmarksError!,
-                        _loadBookmarks,
-                        tokens,
+                      child: const DesignText(
+                        'Lesezeichen',
+                        style: DesignTextStyle.title,
                       ),
-                    )
-                  else if (_bookmarks.isEmpty)
-                    Padding(
-                      padding: EdgeInsets.all(tokens.spaceLg),
-                      child: Center(
-                        child: DesignText(
-                          'Noch keine Lesezeichen vorhanden.',
-                          color: tokens.textLow,
+                    ),
+                    if (_loadingBookmarks)
+                      Padding(
+                        padding: EdgeInsets.all(tokens.spaceLg),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: tokens.primary,
+                          ),
+                        ),
+                      )
+                    else if (_bookmarksError != null)
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.spaceLg,
+                        ),
+                        child: _sectionError(
+                          _bookmarksError!,
+                          _loadBookmarks,
+                          tokens,
+                        ),
+                      )
+                    else if (_bookmarks.isEmpty)
+                      Padding(
+                        padding: EdgeInsets.all(tokens.spaceLg),
+                        child: Center(
+                          child: DesignText(
+                            'Noch keine Lesezeichen vorhanden.',
+                            color: tokens.textLow,
+                          ),
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.spaceLg,
+                        ),
+                        child: Column(
+                          children: [
+                            for (final recipe in _bookmarks)
+                              _recipeTile(recipe, tokens),
+                          ],
                         ),
                       ),
-                    )
-                  else
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-                      child: Column(
-                        children: [
-                          for (final recipe in _bookmarks)
-                            _recipeTile(recipe, tokens),
-                        ],
-                      ),
-                    ),
+                  ],
                 ],
               ),
             ),
           ),
-          Positioned(
-            bottom: tokens.spaceLg,
-            right: tokens.spaceLg,
-            child: DesignIconButton(
-              icon: Icons.add_rounded,
-              onPressed: () => context.go('/rezepte/neu'),
+          if (!guest)
+            Positioned(
+              bottom: tokens.spaceLg,
+              right: tokens.spaceLg,
+              child: DesignIconButton(
+                icon: Icons.add_rounded,
+                onPressed: () => context.go('/rezepte/neu'),
+              ),
             ),
-          ),
         ],
       ),
     );
