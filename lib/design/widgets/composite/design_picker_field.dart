@@ -67,53 +67,45 @@ class DesignPickerField extends StatelessWidget {
             color: tokens.textHigh,
           ),
           SizedBox(height: tokens.spaceMd),
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                children: items.map((item) {
-                  final selected = item.value == value;
-                  return PressScale(
-                    onTap: () => Navigator.pop(context, item.value),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: tokens.spaceMd,
-                        horizontal: tokens.spaceXs,
+          ...items.map((item) {
+            final selected = item.value == value;
+            return PressScale(
+              onTap: () => Navigator.pop(context, item.value),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: tokens.spaceMd,
+                  horizontal: tokens.spaceXs,
+                ),
+                child: Row(
+                  children: [
+                    if (item.icon != null) ...<Widget>[
+                      Text(
+                        item.icon!,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          decoration: TextDecoration.none,
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          if (item.icon != null) ...<Widget>[
-                            Text(
-                              item.icon!,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                decoration: TextDecoration.none,
-                              ),
-                            ),
-                            SizedBox(width: tokens.spaceSm),
-                          ],
-                          Expanded(
-                            child: DesignText(
-                              item.label,
-                              style: DesignTextStyle.body,
-                              color: selected
-                                  ? tokens.primary
-                                  : tokens.textHigh,
-                            ),
-                          ),
-                          if (selected)
-                            Icon(
-                              Icons.check_rounded,
-                              size: 20,
-                              color: tokens.primary,
-                            ),
-                        ],
+                      SizedBox(width: tokens.spaceSm),
+                    ],
+                    Expanded(
+                      child: DesignText(
+                        item.label,
+                        style: DesignTextStyle.body,
+                        color: selected ? tokens.primary : tokens.textHigh,
                       ),
                     ),
-                  );
-                }).toList(),
+                    if (selected)
+                      Icon(
+                        Icons.check_rounded,
+                        size: 20,
+                        color: tokens.primary,
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          }),
         ],
       ),
     );

@@ -20,20 +20,22 @@ Future<T?> showDesignSheet<T>({
       tokens.spaceLg,
       tokens.spaceXl,
     ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Container(
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: tokens.textLow.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(2),
+    child: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: tokens.textLow.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
-        ),
-        const SizedBox(height: _sheetSpacer),
-        child,
-      ],
+          const SizedBox(height: _sheetSpacer),
+          child,
+        ],
+      ),
     ),
   );
 

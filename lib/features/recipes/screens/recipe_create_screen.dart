@@ -435,31 +435,46 @@ class _IngredientRowState extends State<_IngredientRow> {
     final tokens = DesignTheme.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: tokens.spaceMd),
-      child: Row(
+      child: Column(
         children: [
-          SizedBox(
-            width: 72,
-            child: DesignTextField(
-              controller: widget.entry.amountController,
-              hint: 'Menge',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+          Row(
+            children: [
+              Expanded(
+                child: DesignTextField(
+                  controller: widget.entry.nameController,
+                  hint: 'Zutat',
+                ),
               ),
-            ),
+              SizedBox(width: tokens.spaceSm),
+              DesignIconButton(
+                icon: Icons.remove_circle_outline_rounded,
+                onPressed: widget.onRemove,
+              ),
+            ],
           ),
-          SizedBox(width: tokens.spaceSm),
-          Expanded(
-            child: DesignPickerField(
-              items: widget.unitItems,
-              value: widget.entry.unit,
-              onChanged: (v) => setState(() => widget.entry.unit = v),
-              hint: 'Einheit',
-            ),
-          ),
-          SizedBox(width: tokens.spaceSm),
-          DesignIconButton(
-            icon: Icons.remove_circle_outline_rounded,
-            onPressed: widget.onRemove,
+          SizedBox(height: tokens.spaceSm),
+          Row(
+            children: [
+              SizedBox(
+                width: 72,
+                child: DesignTextField(
+                  controller: widget.entry.amountController,
+                  hint: 'Menge',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                ),
+              ),
+              SizedBox(width: tokens.spaceSm),
+              Expanded(
+                child: DesignPickerField(
+                  items: widget.unitItems,
+                  value: widget.entry.unit,
+                  onChanged: (v) => setState(() => widget.entry.unit = v),
+                  hint: 'Einheit',
+                ),
+              ),
+            ],
           ),
         ],
       ),
