@@ -13,7 +13,10 @@ class ExplorePlace {
   final String? email;
   final String? openingHours;
   final String? cuisine;
-  final String creatorId;
+
+  /// Nur bei authentifizierten Aufrufen gesetzt; die öffentlichen Endpunkte
+  /// blenden `creatorId` für anonyme Nutzer aus.
+  final String? creatorId;
   final String createdAt;
   final String lastUpdated;
   final double? distance;
@@ -35,7 +38,7 @@ class ExplorePlace {
     this.email,
     this.openingHours,
     this.cuisine,
-    required this.creatorId,
+    this.creatorId,
     required this.createdAt,
     required this.lastUpdated,
     this.distance,
@@ -59,7 +62,7 @@ class ExplorePlace {
       email: json['email'] as String?,
       openingHours: json['openingHours'] as String?,
       cuisine: json['cuisine'] as String?,
-      creatorId: json['creatorId'] as String,
+      creatorId: json['creatorId'] as String?,
       createdAt: json['createdAt'] as String,
       lastUpdated: json['lastUpdated'] as String,
       distance: (json['distance'] as num?)?.toDouble(),

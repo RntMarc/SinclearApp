@@ -15,6 +15,15 @@ class ExploreService {
 
   Future<String> _token() => _auth.getAccessToken();
 
+  /// Token nur bei eingeloggten Nutzern; Gäste nutzen die öffentlichen
+  /// `/public/...`-Endpunkte ohne Authorization-Header.
+  Future<String?> _optionalToken() async {
+    if (!_auth.isLoggedIn) return null;
+    return _auth.getAccessToken();
+  }
+
+  bool get _isGuest => !_auth.isLoggedIn;
+
   Future<ExploreListResponse> list({
     String? category,
     String? sort,
@@ -29,9 +38,9 @@ class ExploreService {
     if (sort != null) params['sort'] = sort;
 
     final data = await _api.get(
-      '/explore',
+      _isGuest ? '/public/explore' : '/explore',
       queryParams: params,
-      token: await _token(),
+      token: await _optionalToken(),
     );
     return ExploreListResponse.fromJson(data);
   }
@@ -41,9 +50,9 @@ class ExploreService {
     if (category != null) params['category'] = category;
 
     final data = await _api.get(
-      '/explore/random',
+      _isGuest ? '/public/explore/random' : '/explore/random',
       queryParams: params,
-      token: await _token(),
+      token: await _optionalToken(),
     );
     return ExploreListResponse.fromJson(data);
   }
@@ -105,15 +114,18 @@ class ExploreService {
     if (location != null) params['location'] = location;
 
     final data = await _api.get(
-      '/explore/search',
+      _isGuest ? '/public/explore/search' : '/explore/search',
       queryParams: params,
-      token: await _token(),
+      token: await _optionalToken(),
     );
     return ExploreListResponse.fromJson(data);
   }
 
   Future<ExplorePlace> get(String id) async {
-    final data = await _api.get('/explore/$id', token: await _token());
+    final data = await _api.get(
+      _isGuest ? '/public/explore/$id' : '/explore/$id',
+      token: await _optionalToken(),
+    );
     return ExplorePlace.fromJson(data['data'] as Map<String, dynamic>);
   }
 

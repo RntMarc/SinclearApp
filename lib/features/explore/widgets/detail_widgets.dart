@@ -16,6 +16,9 @@ import '../utils/cuisine_translations.dart';
 
 class PlaceDetailWide extends StatelessWidget {
   final ExplorePlace place;
+
+  /// Gast-Modus: Lesezeichen-/OSM-Aktionen und Bewertungen werden ausgeblendet.
+  final bool guest;
   final bool canDelete;
   final bool refreshing;
   final bool bookmarked;
@@ -36,6 +39,7 @@ class PlaceDetailWide extends StatelessWidget {
   const PlaceDetailWide({
     super.key,
     required this.place,
+    this.guest = false,
     required this.canDelete,
     required this.refreshing,
     required this.bookmarked,
@@ -72,16 +76,18 @@ class PlaceDetailWide extends StatelessWidget {
                 child: Column(
                   children: [
                     SizedBox(height: 200, child: PlaceMapCard(place: place)),
-                    SizedBox(height: tokens.spaceLg),
-                    PlaceActionsCard(
-                      canDelete: canDelete,
-                      refreshing: refreshing,
-                      bookmarked: bookmarked,
-                      bookmarkToggling: bookmarkToggling,
-                      onRefresh: onRefresh,
-                      onDelete: onDelete,
-                      onToggleBookmark: onToggleBookmark,
-                    ),
+                    if (!guest) ...[
+                      SizedBox(height: tokens.spaceLg),
+                      PlaceActionsCard(
+                        canDelete: canDelete,
+                        refreshing: refreshing,
+                        bookmarked: bookmarked,
+                        bookmarkToggling: bookmarkToggling,
+                        onRefresh: onRefresh,
+                        onDelete: onDelete,
+                        onToggleBookmark: onToggleBookmark,
+                      ),
+                    ],
                     SizedBox(height: tokens.spaceLg),
                     PlaceReviewsSection(
                       reviews: reviews,
@@ -89,6 +95,7 @@ class PlaceDetailWide extends StatelessWidget {
                       error: reviewsError,
                       currentUserId: currentUserId,
                       reviewUsers: reviewUsers,
+                      guest: guest,
                       onLoadReviews: onLoadReviews,
                       onCreateReview: onCreateReview,
                       onEditReview: onEditReview,
@@ -107,6 +114,9 @@ class PlaceDetailWide extends StatelessWidget {
 
 class PlaceDetailNarrow extends StatelessWidget {
   final ExplorePlace place;
+
+  /// Gast-Modus: Lesezeichen-/OSM-Aktionen und Bewertungen werden ausgeblendet.
+  final bool guest;
   final bool canDelete;
   final bool refreshing;
   final bool bookmarked;
@@ -127,6 +137,7 @@ class PlaceDetailNarrow extends StatelessWidget {
   const PlaceDetailNarrow({
     super.key,
     required this.place,
+    this.guest = false,
     required this.canDelete,
     required this.refreshing,
     required this.bookmarked,
@@ -176,16 +187,18 @@ class PlaceDetailNarrow extends StatelessWidget {
                       PlaceInfoContent(place: place),
                       SizedBox(height: tokens.spaceLg),
                       SizedBox(height: 200, child: PlaceMapCard(place: place)),
-                      SizedBox(height: tokens.spaceLg),
-                      PlaceActionsCard(
-                        canDelete: canDelete,
-                        refreshing: refreshing,
-                        bookmarked: bookmarked,
-                        bookmarkToggling: bookmarkToggling,
-                        onRefresh: onRefresh,
-                        onDelete: onDelete,
-                        onToggleBookmark: onToggleBookmark,
-                      ),
+                      if (!guest) ...[
+                        SizedBox(height: tokens.spaceLg),
+                        PlaceActionsCard(
+                          canDelete: canDelete,
+                          refreshing: refreshing,
+                          bookmarked: bookmarked,
+                          bookmarkToggling: bookmarkToggling,
+                          onRefresh: onRefresh,
+                          onDelete: onDelete,
+                          onToggleBookmark: onToggleBookmark,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -197,6 +210,7 @@ class PlaceDetailNarrow extends StatelessWidget {
                     error: reviewsError,
                     currentUserId: currentUserId,
                     reviewUsers: reviewUsers,
+                    guest: guest,
                     onLoadReviews: onLoadReviews,
                     onCreateReview: onCreateReview,
                     onEditReview: onEditReview,
@@ -321,11 +335,7 @@ class PlaceMapCard extends StatelessWidget {
           ? [
               Marker(
                 point: LatLng(place.latitude!, place.longitude!),
-                child: Icon(
-                  Icons.location_on,
-                  color: tokens.danger,
-                  size: 36,
-                ),
+                child: Icon(Icons.location_on, color: tokens.danger, size: 36),
               ),
             ]
           : const [],
@@ -405,6 +415,9 @@ class PlaceReviewsSection extends StatelessWidget {
   final String? error;
   final String currentUserId;
   final Map<String, UserBasePublic> reviewUsers;
+
+  /// Gast-Modus: statt Bewertungen wird ein Login-Hinweis angezeigt.
+  final bool guest;
   final VoidCallback onLoadReviews;
   final VoidCallback onCreateReview;
   final void Function(Review) onEditReview;
@@ -417,6 +430,7 @@ class PlaceReviewsSection extends StatelessWidget {
     this.error,
     required this.currentUserId,
     required this.reviewUsers,
+    this.guest = false,
     required this.onLoadReviews,
     required this.onCreateReview,
     required this.onEditReview,
@@ -426,6 +440,31 @@ class PlaceReviewsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+
+    if (guest) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 48, color: tokens.textLow),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              'Bewertungen sind nur für angemeldete Nutzer sichtbar.',
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              icon: Icons.login_rounded,
+              label: 'Zum Login',
+              onPressed: () => context.go('/login'),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (loading && reviews == null) {
       return Center(child: CircularProgressIndicator(color: tokens.primary));

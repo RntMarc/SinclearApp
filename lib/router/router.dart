@@ -53,13 +53,13 @@ GoRouter createRouter(AuthService auth) {
       final isAuth =
           location.startsWith('/home') ||
           location.startsWith('/kalender') ||
-          location.startsWith('/entdecken') ||
+          (location.startsWith('/entdecken') && !_isGuestExplore(location)) ||
           location.startsWith('/reisen') ||
           location.startsWith('/kontakte') ||
           location.startsWith('/einstellungen') ||
           location.startsWith('/feedback') ||
           location.startsWith('/forum') ||
-          location.startsWith('/rezepte') ||
+          (location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
           location.startsWith('/abos') ||
           location.startsWith('/design-showcase');
 
@@ -278,4 +278,20 @@ GoRouter createRouter(AuthService auth) {
       ),
     ],
   );
+}
+
+/// Entdecken-Seiten, die auch ohne Login erreichbar sind (Liste, Kategorien,
+/// Details). Die Erstellen-Flows unter `/entdecken/neu` bleiben angemeldeten
+/// Nutzern vorbehalten.
+bool _isGuestExplore(String location) {
+  return location.startsWith('/entdecken') &&
+      !location.startsWith('/entdecken/neu');
+}
+
+/// Rezepte-Seiten, die auch ohne Login erreichbar sind (Liste, Katalog,
+/// Details). Der Erstellen-Flow `/rezepte/neu` bleibt angemeldeten Nutzern
+/// vorbehalten.
+bool _isGuestRecipes(String location) {
+  return location.startsWith('/rezepte') &&
+      !location.startsWith('/rezepte/neu');
 }

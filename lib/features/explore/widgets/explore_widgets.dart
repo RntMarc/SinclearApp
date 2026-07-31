@@ -63,17 +63,14 @@ class ExploreSearchResults extends StatelessWidget {
               crossAxisSpacing: 8,
               childAspectRatio: crossAxisCount > 1 ? 2.0 : 3.5,
             ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if (index >= results.length) {
-                  return Center(
-                    child: CircularProgressIndicator(color: tokens.primary),
-                  );
-                }
-                return PlaceCard(place: results[index]);
-              },
-              childCount: results.length + (loadingMore ? 1 : 0),
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              if (index >= results.length) {
+                return Center(
+                  child: CircularProgressIndicator(color: tokens.primary),
+                );
+              }
+              return PlaceCard(place: results[index]);
+            }, childCount: results.length + (loadingMore ? 1 : 0)),
           ),
         ),
       ],
@@ -93,11 +90,7 @@ class ExploreSearchEmpty extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: 48,
-            color: tokens.textLow,
-          ),
+          Icon(Icons.search_off_rounded, size: 48, color: tokens.textLow),
           SizedBox(height: tokens.spaceSm),
           DesignText(
             'Keine Ergebnisse gefunden.',
@@ -121,6 +114,9 @@ class ExploreSuggestionsList extends StatelessWidget {
   final List<ExplorePlace> suggestions;
   final int crossAxisCount;
   final String? error;
+
+  /// Blendet den Lesezeichen-Bereich für Gäste aus.
+  final bool showBookmarks;
   final bool loadingBookmarks;
   final bool bookmarksError;
   final List<ExplorePlace> bookmarks;
@@ -133,6 +129,7 @@ class ExploreSuggestionsList extends StatelessWidget {
     required this.suggestions,
     required this.crossAxisCount,
     this.error,
+    this.showBookmarks = true,
     required this.loadingBookmarks,
     required this.bookmarksError,
     required this.bookmarks,
@@ -155,7 +152,11 @@ class ExploreSuggestionsList extends StatelessWidget {
           children: [
             Icon(Icons.error_outline, size: 48, color: tokens.danger),
             SizedBox(height: tokens.spaceSm),
-            DesignText(error!, style: DesignTextStyle.body, color: tokens.textHigh),
+            DesignText(
+              error!,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
             SizedBox(height: tokens.spaceLg),
             DesignButton(
               variant: DesignButtonVariant.filled,
@@ -197,88 +198,90 @@ class ExploreSuggestionsList extends StatelessWidget {
             ),
           ),
         ),
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(
-            tokens.spaceLg,
-            tokens.spaceXl,
-            tokens.spaceLg,
-            tokens.spaceLg,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DesignText(
-                  'Lesezeichen',
-                  style: DesignTextStyle.subtitle,
-                  color: tokens.textHigh,
-                ),
-                SizedBox(height: tokens.spaceSm),
-                if (loadingBookmarks)
-                  Padding(
-                    padding: EdgeInsets.all(tokens.spaceXl),
-                    child: Center(
-                      child: CircularProgressIndicator(color: tokens.primary),
-                    ),
-                  )
-                else if (bookmarksError)
-                  DesignCard(
-                    padding: EdgeInsets.all(tokens.spaceXl),
-                    margin: EdgeInsets.zero,
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 24,
-                            color: tokens.danger,
-                          ),
-                          SizedBox(height: tokens.spaceSm),
-                          DesignText(
-                            'Lesezeichen konnten nicht geladen werden.',
-                            style: DesignTextStyle.body,
-                            color: tokens.danger,
-                          ),
-                          SizedBox(height: tokens.spaceSm),
-                          DesignButton(
-                            variant: DesignButtonVariant.text,
-                            label: 'Erneut versuchen',
-                            onPressed: onRetryBookmarks,
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else if (bookmarks.isEmpty)
-                  DesignCard(
-                    padding: EdgeInsets.all(tokens.spaceXl),
-                    margin: EdgeInsets.zero,
-                    child: Center(
-                      child: DesignText(
-                        'Keine Lesezeichen vorhanden.',
-                        style: DesignTextStyle.body,
-                        color: tokens.textLow,
-                      ),
-                    ),
-                  )
-                else
-                  SizedBox(
-                    height: 200,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: EdgeInsets.zero,
-                      itemCount: bookmarks.length,
-                      separatorBuilder: (_, _) => SizedBox(width: tokens.spaceSm),
-                      itemBuilder: (context, index) => SizedBox(
-                        width: 260,
-                        child: PlaceCard(place: bookmarks[index]),
-                      ),
-                    ),
+        if (showBookmarks)
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              tokens.spaceLg,
+              tokens.spaceXl,
+              tokens.spaceLg,
+              tokens.spaceLg,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignText(
+                    'Lesezeichen',
+                    style: DesignTextStyle.subtitle,
+                    color: tokens.textHigh,
                   ),
-              ],
+                  SizedBox(height: tokens.spaceSm),
+                  if (loadingBookmarks)
+                    Padding(
+                      padding: EdgeInsets.all(tokens.spaceXl),
+                      child: Center(
+                        child: CircularProgressIndicator(color: tokens.primary),
+                      ),
+                    )
+                  else if (bookmarksError)
+                    DesignCard(
+                      padding: EdgeInsets.all(tokens.spaceXl),
+                      margin: EdgeInsets.zero,
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 24,
+                              color: tokens.danger,
+                            ),
+                            SizedBox(height: tokens.spaceSm),
+                            DesignText(
+                              'Lesezeichen konnten nicht geladen werden.',
+                              style: DesignTextStyle.body,
+                              color: tokens.danger,
+                            ),
+                            SizedBox(height: tokens.spaceSm),
+                            DesignButton(
+                              variant: DesignButtonVariant.text,
+                              label: 'Erneut versuchen',
+                              onPressed: onRetryBookmarks,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (bookmarks.isEmpty)
+                    DesignCard(
+                      padding: EdgeInsets.all(tokens.spaceXl),
+                      margin: EdgeInsets.zero,
+                      child: Center(
+                        child: DesignText(
+                          'Keine Lesezeichen vorhanden.',
+                          style: DesignTextStyle.body,
+                          color: tokens.textLow,
+                        ),
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      height: 200,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: EdgeInsets.zero,
+                        itemCount: bookmarks.length,
+                        separatorBuilder: (_, _) =>
+                            SizedBox(width: tokens.spaceSm),
+                        itemBuilder: (context, index) => SizedBox(
+                          width: 260,
+                          child: PlaceCard(place: bookmarks[index]),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }

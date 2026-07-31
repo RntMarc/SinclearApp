@@ -48,6 +48,16 @@ class _DetailScreenState extends State<DetailScreen> {
     setState(() => _loading = true);
     try {
       final scope = AppScope.of(context);
+      if (!scope.auth.isLoggedIn) {
+        final place = await scope.explore.get(widget.id);
+        if (!mounted) return;
+        setState(() {
+          _place = place;
+          _loading = false;
+          _error = null;
+        });
+        return;
+      }
       await scope.auth.getAccessToken();
       final (place, bookmarked, reviewsResponse) = await (
         scope.explore.get(widget.id),
@@ -221,7 +231,10 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _showCreateReviewDialog() async {
-    final result = await _showReviewSheet(initialRating: null, initialComment: null);
+    final result = await _showReviewSheet(
+      initialRating: null,
+      initialComment: null,
+    );
     if (result == null || !mounted) return;
     try {
       await AppScope.of(context).explore.createReview(
@@ -404,7 +417,9 @@ class _DetailScreenState extends State<DetailScreen> {
     final place = _place!;
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId ?? '';
-    final isOwner = currentUserId == place.creatorId;
+    final guest = !auth.isLoggedIn;
+    final isOwner =
+        currentUserId.isNotEmpty && currentUserId == place.creatorId;
     final canDelete = isOwner || auth.isAdmin;
 
     if (isWide) {
@@ -412,6 +427,7 @@ class _DetailScreenState extends State<DetailScreen> {
         onRefresh: _load,
         child: PlaceDetailWide(
           place: place,
+          guest: guest,
           canDelete: canDelete,
           refreshing: _refreshing,
           bookmarked: _bookmarked ?? false,
@@ -435,6 +451,7 @@ class _DetailScreenState extends State<DetailScreen> {
       onRefresh: _load,
       child: PlaceDetailNarrow(
         place: place,
+        guest: guest,
         canDelete: canDelete,
         refreshing: _refreshing,
         bookmarked: _bookmarked ?? false,

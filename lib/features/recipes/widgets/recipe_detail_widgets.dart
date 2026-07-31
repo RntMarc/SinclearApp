@@ -15,6 +15,7 @@ class RecipeContent extends StatelessWidget {
   final RecipeDetail recipe;
   final bool bookmarked;
   final bool bookmarkToggling;
+  final bool guest;
   final VoidCallback onToggleBookmark;
 
   const RecipeContent({
@@ -22,6 +23,7 @@ class RecipeContent extends StatelessWidget {
     required this.recipe,
     required this.bookmarked,
     required this.bookmarkToggling,
+    this.guest = false,
     required this.onToggleBookmark,
   });
 
@@ -67,19 +69,20 @@ class RecipeContent extends StatelessWidget {
             ],
           ),
           SizedBox(height: tokens.spaceLg),
-          DesignButton(
-            variant: DesignButtonVariant.filled,
-            icon: bookmarked
-                ? Icons.bookmark_rounded
-                : Icons.bookmark_border_rounded,
-            label: bookmarkToggling
-                ? '…'
-                : bookmarked
-                ? 'Lesezeichen entfernen'
-                : 'Lesezeichen setzen',
-            loading: bookmarkToggling,
-            onPressed: bookmarkToggling ? null : onToggleBookmark,
-          ),
+          if (!guest)
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              icon: bookmarked
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded,
+              label: bookmarkToggling
+                  ? '…'
+                  : bookmarked
+                  ? 'Lesezeichen entfernen'
+                  : 'Lesezeichen setzen',
+              loading: bookmarkToggling,
+              onPressed: bookmarkToggling ? null : onToggleBookmark,
+            ),
           SizedBox(height: tokens.spaceXl),
           if (recipe.ingredients.isNotEmpty) ...[
             DesignText(
@@ -249,9 +252,7 @@ class RecipeImage extends StatelessWidget {
     final provider = resolveImageProvider(image);
     if (provider == null) return;
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => RecipeImageViewer(provider: provider),
-      ),
+      MaterialPageRoute(builder: (_) => RecipeImageViewer(provider: provider)),
     );
   }
 
@@ -406,6 +407,7 @@ class RecipeReviewsSection extends StatelessWidget {
   final String? error;
   final String currentUserId;
   final Map<String, UserBasePublic> reviewUsers;
+  final bool guest;
   final VoidCallback onLoadReviews;
   final VoidCallback onCreateReview;
   final void Function(RecipeReview) onEditReview;
@@ -418,6 +420,7 @@ class RecipeReviewsSection extends StatelessWidget {
     this.error,
     required this.currentUserId,
     required this.reviewUsers,
+    this.guest = false,
     required this.onLoadReviews,
     required this.onCreateReview,
     required this.onEditReview,
@@ -427,6 +430,31 @@ class RecipeReviewsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+
+    if (guest) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 48, color: tokens.textLow),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              'Bewertungen sind nur für angemeldete Nutzer sichtbar.',
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.filled,
+              icon: Icons.login_rounded,
+              label: 'Zum Login',
+              onPressed: () => context.go('/login'),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (loading && reviews == null) {
       return Center(child: CircularProgressIndicator(color: tokens.primary));
