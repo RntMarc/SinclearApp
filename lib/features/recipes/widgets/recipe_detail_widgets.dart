@@ -210,12 +210,47 @@ class RecipeImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = resolveImageProvider(image);
     final widget = _buildImage(context);
     return Padding(
       padding: EdgeInsets.only(bottom: tokens.spaceLg),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(tokens.radiusLg),
-        child: widget,
+      child: GestureDetector(
+        onTap: provider == null ? null : () => _openViewer(context),
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(tokens.radiusLg),
+              child: widget,
+            ),
+            if (provider != null)
+              Positioned(
+                right: tokens.spaceSm,
+                bottom: tokens.spaceSm,
+                child: Container(
+                  padding: EdgeInsets.all(tokens.spaceXs),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.open_in_full_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openViewer(BuildContext context) {
+    final provider = resolveImageProvider(image);
+    if (provider == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RecipeImageViewer(provider: provider),
       ),
     );
   }
@@ -239,6 +274,57 @@ class RecipeImage extends StatelessWidget {
       child: Icon(Icons.image_rounded, size: 48, color: tokens.textLow),
     ),
   );
+}
+
+/// Fullscreen viewer showing a recipe image in its original aspect ratio.
+///
+/// Opens from [RecipeImage] on tap. Supports pinch-to-zoom and pan via
+/// [InteractiveViewer]; closes via the close button or the system back
+/// gesture.
+class RecipeImageViewer extends StatelessWidget {
+  final ImageProvider provider;
+
+  const RecipeImageViewer({super.key, required this.provider});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: InteractiveViewer(
+              maxScale: 5,
+              child: Center(
+                child: Image(
+                  image: provider,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const Icon(
+                    Icons.broken_image_rounded,
+                    size: 64,
+                    color: Colors.white54,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: 'Schließen',
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 Widget ingredientRow(RecipeIngredient ingredient, DesignTokens tokens) {
