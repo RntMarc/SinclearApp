@@ -170,10 +170,11 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
       return 'Bitte wähle eine Kategorie.';
     }
     final servings = int.tryParse(_servingsController.text.trim());
-    // ponytail: 255 = TINYINT-Limit der Recipe-Tabelle (MySQL); sobald die
-    // API das Limit selbst validiert, hier auf den dokumentierten Wert heben.
-    if (servings == null || servings < 1 || servings > 255) {
-      return 'Bitte gib eine Portionsanzahl zwischen 1 und 255 ein.';
+    // ponytail: 127 = TINYINT-Limit (signed) der Recipe-Tabelle (MySQL);
+    // sobald die API das Limit selbst validiert und dokumentiert, hier auf
+    // den offiziellen Wert heben.
+    if (servings == null || servings < 1 || servings > 127) {
+      return 'Bitte gib eine Portionsanzahl zwischen 1 und 127 ein.';
     }
     for (final entry in _ingredients) {
       final name = entry.nameController.text.trim();
