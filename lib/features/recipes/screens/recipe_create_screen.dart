@@ -36,6 +36,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
   String? _category;
   Uint8List? _imageBytes;
   bool _submitting = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -131,7 +132,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
     if (!mounted) return;
     final compressed = compressImage(rawBytes);
     if (compressed == null) {
-      _showSnack('Bild konnte nicht verarbeitet werden.');
+      _setError('Bild konnte nicht verarbeitet werden.');
       return;
     }
     setState(() => _imageBytes = compressed);
@@ -159,11 +160,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
     );
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
+  void _setError(String message) => setState(() => _error = message);
 
   String? _validate() {
     if (_titleController.text.trim().isEmpty) {
@@ -173,8 +170,10 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
       return 'Bitte wähle eine Kategorie.';
     }
     final servings = int.tryParse(_servingsController.text.trim());
-    if (servings == null || servings < 1) {
-      return 'Bitte gib eine gültige Portionsanzahl ein.';
+    // ponytail: 255 = TINYINT-Limit der Recipe-Tabelle (MySQL); sobald die
+    // API das Limit selbst validiert, hier auf den dokumentierten Wert heben.
+    if (servings == null || servings < 1 || servings > 255) {
+      return 'Bitte gib eine Portionsanzahl zwischen 1 und 255 ein.';
     }
     for (final entry in _ingredients) {
       final name = entry.nameController.text.trim();
@@ -191,7 +190,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
   Future<void> _submit() async {
     final error = _validate();
     if (error != null) {
-      _showSnack(error);
+      _setError(error);
       return;
     }
 
@@ -225,7 +224,10 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
       );
     }
 
-    setState(() => _submitting = true);
+    setState(() {
+      _error = null;
+      _submitting = true;
+    });
     try {
       final request = RecipeCreateRequest(
         title: _titleController.text.trim(),
@@ -247,7 +249,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
     } catch (e, st) {
       developer.log('Failed to create recipe', error: e, stackTrace: st);
       if (!mounted) return;
-      _showSnack('Rezept konnte nicht erstellt werden.');
+      _setError('Rezept konnte nicht erstellt werden.');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -284,6 +286,36 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_error != null) ...[
+                    Container(
+                      padding: EdgeInsets.all(tokens.spaceMd),
+                      decoration: BoxDecoration(
+                        color: tokens.danger.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(tokens.radiusMd),
+                        border: Border.all(
+                          color: tokens.danger.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            size: 20,
+                            color: tokens.danger,
+                          ),
+                          SizedBox(width: tokens.spaceSm),
+                          Expanded(
+                            child: DesignText(
+                              _error!,
+                              style: DesignTextStyle.body,
+                              color: tokens.danger,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                  ],
                   DesignTextField(
                     controller: _titleController,
                     hint: 'Titel',
