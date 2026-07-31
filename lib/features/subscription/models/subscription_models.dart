@@ -1,3 +1,5 @@
+import '../../../core/utils/date_utils.dart';
+
 class Subscription {
   final String id;
   final String name;
@@ -31,7 +33,7 @@ class Subscription {
 
   static DateTime _parseDate(dynamic value) {
     if (value is DateTime) return value;
-    if (value is String) return DateTime.parse(value);
+    if (value is String) return parseApiDate(value);
     throw ArgumentError('Invalid date value: $value');
   }
 
