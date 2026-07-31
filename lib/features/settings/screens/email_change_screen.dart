@@ -53,6 +53,7 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
         _loading = false;
       });
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = switch (e.errorCode) {
           'email_already_taken' => 'Diese E-Mail wird bereits verwendet.',
@@ -96,6 +97,7 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
       );
       context.go('/');
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = switch (e.errorCode) {
           'invalid_or_expired_code' => 'Der Code ist ungültig oder abgelaufen.',

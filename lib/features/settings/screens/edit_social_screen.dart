@@ -221,6 +221,7 @@ class _EditSocialScreenState extends State<EditSocialScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Social Media gespeichert')));
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
       developer.log('Failed to save social info', error: e, stackTrace: st);

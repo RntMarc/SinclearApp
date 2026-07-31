@@ -63,6 +63,7 @@ class _TravelScreenState extends State<TravelScreen> {
         standaloneFuture,
         ptFuture,
       ]);
+      if (!mounted) return;
 
       final trips = results[0] as TravelTripListResponse;
       final standalone = results[1] as TravelStandaloneEventListResponse;
@@ -117,6 +118,7 @@ class _TravelScreenState extends State<TravelScreen> {
       });
     } catch (e, st) {
       developer.log('Failed to load travel', error: e, stackTrace: st);
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;

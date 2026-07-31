@@ -115,18 +115,18 @@ in `PtService`.
 - [x] `image_compressor.dart`, `image_provider_helper.dart` – `dart:developer` → gemeinsamer `Logger('image')`
 - [x] `android_update_service.dart` – eigenes `_log`-Wrapper → `Logger('AndroidUpdateService')` mit passenden Levels (info/warning/severe)
 
-### F2. `BuildContext` über async gaps absichern
-- [ ] `lib/features/onboarding/screens/onboarding_screen.dart:217` – `mounted`-Check vor `setState`/Navigation
-- [ ] `lib/features/location_sharing/screens/active_shares_screen.dart:87` – `mounted`-Check
-- [ ] Generell: Pattern `if (mounted) setState(...)` nach jedem `await` standardisieren
-- [ ] Evtl. Hilfs-Mixin `MountedState` einführen:
-  ```dart
-  mixin MountedState<T extends StatefulWidget> on State<T> {
-    void guardedSetState(VoidCallback fn) {
-      if (mounted) setState(fn);
-    }
-  }
-  ```
+### F2. `BuildContext` über async gaps absichern `[x]`
+- [x] Alle 17 Verstöße in 10 Dateien gefixt (`flutter analyze` zeigt 0 `use_build_context_synchronously`)
+- [x] `forum_detail_screen.dart` (3 Stellen): `_toggleJoin`, `_toggleNotifications`, `_votePost`
+- [x] `travel_screen.dart` (2 Stellen): `_load()` – try + catch
+- [x] `embedded_forum_view.dart` (1 Stelle): `_votePost`
+- [x] `calendar/event_detail_screen.dart` (3 Stellen): `_edit`, `_addParticipant`, `_removeParticipant`
+- [x] `settings/edit_profile_screen.dart` (2 Stellen): `_showImagePicker`, `_save` catch
+- [x] `settings/edit_contact_screen.dart` (1 Stelle): `_save` catch
+- [x] `settings/edit_social_screen.dart` (1 Stelle): `_save` catch
+- [x] `settings/email_change_screen.dart` (2 Stellen): `_requestCode` catch, `_verifyCode` catch
+- [x] `settings/discord_relink_screen.dart` (2 Stellen): `_startRelink` else-branch, `_verifyCode` catch
+- [~] Evtl. Hilfs-Mixin `MountedState` einführen – bewusst weggelassen (zuwenig Cases für Abstraktion)
 
 ### F3. Globales Error-Handling
 - [ ] `runZonedGuarded` in `main.dart` für nicht-catchte Fehler

@@ -151,6 +151,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
       } else {
         await forumService.join(forum.id);
       }
+      if (!mounted) return;
       _load();
     } catch (e) {
       developer.log('Join/leave failed', error: e);
@@ -166,6 +167,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
         forum.id,
         enabled: !forum.notificationsEnabled,
       );
+      if (!mounted) return;
       setState(() {
         _forum = ForumDetail(
           id: forum.id,
@@ -212,6 +214,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
       } else {
         await forumService.votePost(widget.id, post.id);
       }
+      if (!mounted) return;
       setState(() {
         _posts = _posts.map((p) {
           if (p.id != post.id) return p;
