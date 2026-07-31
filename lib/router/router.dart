@@ -33,6 +33,7 @@ import '../features/feedback/screens/feedback_screen.dart';
 import '../features/feedback/screens/feedback_detail_screen.dart';
 import '../features/recipes/screens/recipe_list_screen.dart';
 import '../features/recipes/screens/recipe_catalog_screen.dart';
+import '../features/recipes/screens/recipe_create_screen.dart';
 import '../features/recipes/screens/recipe_detail_screen.dart';
 import '../features/forum/screens/forum_list_screen.dart';
 import '../features/forum/screens/forum_detail_screen.dart';
@@ -227,6 +228,10 @@ GoRouter createRouter(AuthService auth) {
                 builder: (context, state) => RecipeCatalogScreen(
                   initialCategory: state.pathParameters['key'],
                 ),
+              ),
+              GoRoute(
+                path: 'neu',
+                builder: (context, state) => const RecipeCreateScreen(),
               ),
               GoRoute(
                 path: ':id',

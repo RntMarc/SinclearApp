@@ -148,7 +148,7 @@ in `PtService`.
 
 ### G2. Abos (Subscriptions)
 
-- [ ] Der API wurden neue Endpunkte hinzugefügt mit Funktionen zum Verwalten geteilter Abos unter Freunden. Es soll passend dazu ein neuer Screen Abos gebaut werden, auf dem der Nutzer alle Abonnements sieht, bei denen er ein Mitglied ist. Lies dir die Dokumentation der API dazu genau durch und befolge auch die Regeln zum Design exakt.
+- [x] Der API wurden neue Endpunkte hinzugefügt mit Funktionen zum Verwalten geteilter Abos unter Freunden. Es soll passend dazu ein neuer Screen Abos gebaut werden, auf dem der Nutzer alle Abonnements sieht, bei denen er ein Mitglied ist. Lies dir die Dokumentation der API dazu genau durch und befolge auch die Regeln zum Design exakt.
 
 ### G3. Erweiterung von Reisen und Events `[x]`
 
@@ -161,7 +161,10 @@ in `PtService`.
 
 ### G4. Hinzufügen von Rezepten
 
-- [ ] Neuer Screen zum Hinzufügen von Rezepten. Dort Formular mit allen Feldern, entsprechend Vorgaben der API. Bei Maßeinheiten nur Auswahl aus den erlaubten Einheiten der API. Wenn API nichts vorgibt, schlage eine Änderung vor mit allen gängigen Maßeinheiten in Rezepten (g, Esslöffel, Stück, Prise, ml, ...), aber ändere die API nicht selbst.
+- [x] Neuer Screen `RecipeCreateScreen` (`/rezepte/neu`) mit Formular für alle API-Felder: Titel, Beschreibung, Kategorie, Portionen, Ernährung, optionales Bild (Base64 via `image_picker` + `compressImage`), dynamische Zutaten- und Schrittlisten.
+- [x] Maßeinheiten als Auswahl statt Freitext: neues Katalog-Widget `DesignPickerField` (öffnet `showDesignSheet`-Auswahlliste) + `recipeUnits`-Konstante in `recipes_models.dart` (g, kg, ml, l, TL, EL, Prise, Stk, Bund, Zehe, Scheibe, Tasse, Dose, Packung, Tropfen).
+- [x] `parseAmount` akzeptiert Komma/Punkt als Dezimaltrenner; Test in `test/recipe_units_test.dart`.
+- [x] API regelt `unit` als kleingeschriebenes Enum (`tl`, `el`, `stk`, ...); App sendet und verarbeitet nur kanonische Werte, Anzeige via `recipeUnitLabel`.
 
 ### G5. Hinzufügen Statistiken-Screen (später, benötigt vorausgehende Arbeit an der API)
 

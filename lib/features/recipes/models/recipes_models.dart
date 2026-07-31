@@ -30,6 +30,41 @@ const stepCategories = {
   'sonstiges': 'Sonstiges',
 };
 
+/// Erlaubte Mengeneinheiten für Zutaten (API-Wert → Anzeige-Label).
+///
+/// Die API definiert `unit` als Enum; kanonisch ist ausschließlich die
+/// kleingeschriebene Schreibweise (`tl`, `el`, `stk`, ...). Ungültige Werte
+/// lehnt die API mit `invalid_unit` (HTTP 400) ab.
+const recipeUnits = {
+  'g': 'Gramm',
+  'kg': 'Kilogramm',
+  'ml': 'Milliliter',
+  'l': 'Liter',
+  'tl': 'Teelöffel',
+  'el': 'Esslöffel',
+  'prise': 'Prise',
+  'stk': 'Stück',
+  'bund': 'Bund',
+  'zehe': 'Zehe(n)',
+  'scheibe': 'Scheibe(n)',
+  'tasse': 'Tasse(n)',
+  'dose': 'Dose(n)',
+  'packung': 'Packung(en)',
+  'tropfen': 'Tropfen',
+};
+
+/// Anzeige-Label für eine Mengeneinheit; fällt auf den Rohwert zurück, wenn
+/// die API einen unbekannten Wert liefert.
+String recipeUnitLabel(String unit) => recipeUnits[unit] ?? unit;
+
+/// Parst eine Mengenangabe; akzeptiert Komma oder Punkt als Dezimaltrenner.
+double? parseAmount(String raw) {
+  final normalized = raw.trim().replaceAll(',', '.');
+  final amount = double.tryParse(normalized);
+  if (amount == null || amount <= 0) return null;
+  return amount;
+}
+
 class Recipe {
   final String id;
   final String title;

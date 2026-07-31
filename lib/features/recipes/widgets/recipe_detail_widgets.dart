@@ -266,7 +266,8 @@ Widget ingredientRow(RecipeIngredient ingredient, DesignTokens tokens) {
         SizedBox(
           width: 64,
           child: DesignText(
-            '${formatAmount(ingredient.amount)} ${ingredient.unit}',
+            '${formatAmount(ingredient.amount)} '
+            '${recipeUnitLabel(ingredient.unit)}',
             style: DesignTextStyle.body,
             color: tokens.textHigh,
           ),
