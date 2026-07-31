@@ -170,9 +170,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
       return 'Bitte wähle eine Kategorie.';
     }
     final servings = int.tryParse(_servingsController.text.trim());
-    // ponytail: 127 = TINYINT-Limit (signed) der Recipe-Tabelle (MySQL);
-    // sobald die API das Limit selbst validiert und dokumentiert, hier auf
-    // den offiziellen Wert heben.
+    // API-Limit laut Doku: ganzzahlig 1–127, sonst invalid_servings (400).
     if (servings == null || servings < 1 || servings > 127) {
       return 'Bitte gib eine Portionsanzahl zwischen 1 und 127 ein.';
     }
