@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,10 +34,18 @@ import 'features/user/services/user_service.dart';
 import 'firebase_options.dart';
 import 'router/router.dart';
 
-void main() async {
+void main() {
+  runZonedGuarded(
+    _bootstrap,
+    (error, stackTrace) => reportUncaughtError(error, stackTrace),
+  );
+}
+
+Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   setupUrlStrategy();
   setupLogging();
+  setupGlobalErrorHandling();
   final log = Logger('main');
 
   if (!kIsWeb) {
@@ -67,10 +77,7 @@ void main() async {
       : 'http://localhost:8000';
 
   final packageInfo = await PackageInfo.fromPlatform();
-  OsmConfig.init(
-    appId: appId,
-    version: 'v${packageInfo.version}',
-  );
+  OsmConfig.init(appId: appId, version: 'v${packageInfo.version}');
 
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('api_base_url', baseUrl);

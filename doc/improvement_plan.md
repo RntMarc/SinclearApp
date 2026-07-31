@@ -116,7 +116,7 @@ in `PtService`.
 - [x] `android_update_service.dart` – eigenes `_log`-Wrapper → `Logger('AndroidUpdateService')` mit passenden Levels (info/warning/severe)
 
 ### F2. `BuildContext` über async gaps absichern `[x]`
-- [x] Alle 17 Verstöße in 10 Dateien gefixt (`flutter analyze` zeigt 0 `use_build_context_synchronously`)
+- [x] Alle 17 Verstöße in 9 Dateien gefixt (`flutter analyze` zeigt 0 `use_build_context_synchronously`)
 - [x] `forum_detail_screen.dart` (3 Stellen): `_toggleJoin`, `_toggleNotifications`, `_votePost`
 - [x] `travel_screen.dart` (2 Stellen): `_load()` – try + catch
 - [x] `embedded_forum_view.dart` (1 Stelle): `_votePost`
@@ -129,9 +129,10 @@ in `PtService`.
 - [~] Evtl. Hilfs-Mixin `MountedState` einführen – bewusst weggelassen (zuwenig Cases für Abstraktion)
 
 ### F3. Globales Error-Handling
-- [ ] `runZonedGuarded` in `main.dart` für nicht-catchte Fehler
-- [ ] `FlutterError.onError` setzen (z.B. Logging + ggf. Remote-Logging)
-- [ ] Error-Handling in Screens vereinheitlichen (try-catch pattern)
+- [x] `runZonedGuarded` in `main.dart` für nicht-catchte Fehler → `reportUncaughtError()` in `core/logging.dart` (Logger('main').severe), Bootstrap in `_bootstrap()` extrahiert
+- [x] `FlutterError.onError` setzen → `setupGlobalErrorHandling()` in `core/logging.dart` (behält `FlutterError.presentError` bei, loggt zusätzlich via Logger('flutter').severe)
+- [x] Error-Handling in Screens vereinheitlichen (try-catch pattern) – verifiziert: 162× `developer.log(error, stack)` konsistent über alle Screens, 5 bewusste best-effort-Catches (`catch (_) {}` für Hintergrund-Loads/Options-Sheets, keine Änderung nötig)
+- [x] Test: `test/global_error_handling_test.dart` (Framework-Errors + Zone-Errors → severe LogRecords)
 
 ### F4. DevTools-Konfiguration
 - [ ] `devtools_options.yaml` erweitern (logging_extensions, etc.)
