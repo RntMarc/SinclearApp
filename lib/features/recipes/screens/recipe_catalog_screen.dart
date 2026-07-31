@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
@@ -79,8 +80,40 @@ class _RecipeCatalogScreenState extends State<RecipeCatalogScreen> {
     }
   }
 
-  Widget _recipeCard(RecipeListItem recipe, DesignTokens tokens) {
+  Widget _recipeThumb(RecipeListItem recipe, DesignTokens tokens) {
     final icon = recipeCategoryIcons[recipe.category] ?? '🍴';
+    final fallback = Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: tokens.surfaceVariant,
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+      ),
+      child: Center(
+        child: Text(
+          icon,
+          style: const TextStyle(
+            fontSize: 20,
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ),
+    );
+    final provider = resolveImageProvider(recipe.image);
+    if (provider == null) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(tokens.radiusMd),
+      child: Image(
+        image: provider,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => fallback,
+      ),
+    );
+  }
+
+  Widget _recipeCard(RecipeListItem recipe, DesignTokens tokens) {
     return DesignCard(
       margin: EdgeInsets.only(bottom: tokens.spaceMd),
       useGlass: false,
@@ -89,23 +122,7 @@ class _RecipeCatalogScreenState extends State<RecipeCatalogScreen> {
         padding: EdgeInsets.all(tokens.spaceSm),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(tokens.radiusMd),
-              child: Container(
-                width: 48,
-                height: 48,
-                color: tokens.surfaceVariant,
-                child: Center(
-                  child: Text(
-                    icon,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            _recipeThumb(recipe, tokens),
             SizedBox(width: tokens.spaceSm),
             Expanded(
               child: Column(
