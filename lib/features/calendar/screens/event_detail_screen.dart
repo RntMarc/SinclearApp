@@ -99,6 +99,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         endTime: result['endTime'] as DateTime,
         visibility: result['visibility'] as int,
       );
+      if (!mounted) return;
       _load();
     } catch (e, st) {
       developer.log('Failed to update event', error: e, stackTrace: st);
@@ -189,6 +190,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     try {
       await _service.addParticipant(_event!.id, picked);
+      if (!mounted) return;
       _load();
     } catch (e, st) {
       developer.log('Failed to add participant', error: e, stackTrace: st);
@@ -241,6 +243,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     try {
       await _service.removeParticipant(_event!.id, userId);
+      if (!mounted) return;
       _load();
     } catch (e, st) {
       developer.log('Failed to remove participant', error: e, stackTrace: st);

@@ -166,6 +166,7 @@ class _EditContactScreenState extends State<EditContactScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Kontaktdaten gespeichert')));
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e, st) {
       developer.log('Failed to save contact info', error: e, stackTrace: st);

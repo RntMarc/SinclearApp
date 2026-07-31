@@ -138,6 +138,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           '[edit_profile] ApiException: status=${e.statusCode} error=${e.errorCode} message=${e.message} preview=${e.responsePreview}',
         );
       }
+      if (!mounted) return;
       setState(() => _error = e.message ?? 'Fehler beim Speichern.');
     } catch (e) {
       if (kDebugMode) debugPrint('[edit_profile] Unexpected error: $e');
@@ -243,6 +244,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (picked == null || !mounted) return;
 
     final rawBytes = await picked.readAsBytes();
+    if (!mounted) return;
     final compressed = compressImage(rawBytes);
     if (compressed == null) {
       setState(() => _error = 'Bild konnte nicht verarbeitet werden.');

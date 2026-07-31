@@ -76,6 +76,7 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
       if (uri != null && await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
+        if (!mounted) return;
         setState(() => _error = 'Discord konnte nicht geöffnet werden.');
       }
       if (!mounted) return;
@@ -113,6 +114,7 @@ class _DiscordRelinkScreenState extends State<DiscordRelinkScreen> {
         const SnackBar(content: Text('Discord-Verknüpfung aktualisiert')),
       );
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = switch (e.errorCode) {
           'invalid_or_expired_code' => 'Der Code ist ungültig oder abgelaufen.',

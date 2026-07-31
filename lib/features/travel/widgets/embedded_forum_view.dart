@@ -144,6 +144,7 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
       } else {
         await forumService.votePost(widget.forumId, post.id);
       }
+      if (!mounted) return;
       setState(() {
         _posts = _posts.map((p) {
           if (p.id != post.id) return p;
