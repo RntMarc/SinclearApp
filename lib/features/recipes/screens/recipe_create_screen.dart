@@ -355,7 +355,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
                   else
                     ..._ingredients.asMap().entries.map(
                       (entry) => _IngredientRow(
-                        key: ValueKey(entry.key),
+                        key: ValueKey('ingredient-${entry.key}'),
                         entry: entry.value,
                         unitItems: _unitItems,
                         onRemove: () => _removeIngredient(entry.key),
@@ -386,7 +386,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
                   else
                     ..._steps.asMap().entries.map(
                       (entry) => _StepRow(
-                        key: ValueKey(entry.key),
+                        key: ValueKey('step-${entry.key}'),
                         entry: entry.value,
                         stepCategoryItems: _stepCategoryItems,
                         onRemove: () => _removeStep(entry.key),
