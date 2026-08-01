@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/network/api_client.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
@@ -10,6 +11,8 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/forum_models.dart';
 import '../widgets/forum_detail_widgets.dart';
 import '../widgets/member_sheet.dart';
@@ -201,7 +204,9 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mitglieder konnten nicht geladen werden.')),
+        const SnackBar(
+          content: Text('Mitglieder konnten nicht geladen werden.'),
+        ),
       );
     }
   }
@@ -282,6 +287,18 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
       setState(() {
         _posts = _posts.where((p) => p.id != post.id).toList();
       });
+    } on ApiException catch (e) {
+      developer.log('Delete post failed', error: e);
+      if (!mounted) return;
+      if (e.errorCode == 'edit_window_expired') {
+        await showModerationRequestSheet(
+          context,
+          objectType: ModerationObjectType.forumPost,
+          objectId: post.id,
+          objectName: post.title ?? post.text ?? 'Beitrag',
+          isOwn: true,
+        );
+      }
     } catch (e) {
       developer.log('Delete post failed', error: e);
     }
@@ -314,9 +331,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
               ),
             ],
           ),
-          Expanded(
-            child: _buildBody(context, tokens, auth),
-          ),
+          Expanded(child: _buildBody(context, tokens, auth)),
           if (_forum?.isMember == true)
             Padding(
               padding: EdgeInsets.all(tokens.spaceLg),
@@ -333,11 +348,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     );
   }
 
-  Widget _buildBody(
-    BuildContext context,
-    DesignTokens tokens,
-    dynamic auth,
-  ) {
+  Widget _buildBody(BuildContext context, DesignTokens tokens, dynamic auth) {
     if (_loading) {
       return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
@@ -349,7 +360,11 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
           children: [
             Icon(Icons.error_outline, size: 48, color: tokens.danger),
             SizedBox(height: tokens.spaceSm),
-            DesignText(_error!, style: DesignTextStyle.body, color: tokens.textHigh),
+            DesignText(
+              _error!,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
             SizedBox(height: tokens.spaceLg),
             DesignButton(
               variant: DesignButtonVariant.filled,

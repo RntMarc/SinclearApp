@@ -138,6 +138,7 @@ class PostCommentsSection extends StatelessWidget {
   final ValueChanged<String> onReply;
   final void Function(String text, {String? parentId}) onAddComment;
   final void Function(String commentId) onDeleteComment;
+  final void Function(String commentId)? onReportComment;
 
   const PostCommentsSection({
     super.key,
@@ -150,6 +151,7 @@ class PostCommentsSection extends StatelessWidget {
     required this.onReply,
     required this.onAddComment,
     required this.onDeleteComment,
+    this.onReportComment,
   });
 
   @override
@@ -206,6 +208,7 @@ class PostCommentsSection extends StatelessWidget {
               isAdmin: isAdmin,
               onReply: onReply,
               onDelete: onDeleteComment,
+              onReport: onReportComment,
             ),
           ),
       ],

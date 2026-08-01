@@ -25,6 +25,7 @@ import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
+import 'features/moderation/services/moderation_service.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/subscription/services/subscription_service.dart';
@@ -96,6 +97,7 @@ Future<void> _bootstrap() async {
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
+  final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
   final webUpdate = WebUpdateService(
@@ -146,6 +148,7 @@ Future<void> _bootstrap() async {
       feedback: feedback,
       forum: forum,
       recipes: recipes,
+      moderation: moderation,
       subscription: subscription,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,

@@ -14,6 +14,7 @@ class CommentTreeTile extends StatelessWidget {
   final bool isAdmin;
   final ValueChanged<String> onReply;
   final ValueChanged<String> onDelete;
+  final ValueChanged<String>? onReport;
 
   const CommentTreeTile({
     super.key,
@@ -22,14 +23,14 @@ class CommentTreeTile extends StatelessWidget {
     required this.isAdmin,
     required this.onReply,
     required this.onDelete,
+    this.onReport,
   });
 
   @override
   Widget build(BuildContext context) {
     final isOwner = comment.userId == currentUserId;
     final tokens = DesignTheme.of(context);
-    final userName = comment.userName ??
-        (isOwner ? 'Du' : 'Benutzer');
+    final userName = comment.userName ?? (isOwner ? 'Du' : 'Benutzer');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,6 +100,11 @@ class CommentTreeTile extends StatelessWidget {
                           if (confirmed == true) onDelete(comment.id);
                         });
                       },
+                    )
+                  else if (onReport != null && !comment.isDeleted)
+                    DesignIconButton(
+                      icon: Icons.flag_rounded,
+                      onPressed: () => onReport!(comment.id),
                     ),
                 ],
               ),
@@ -140,6 +146,7 @@ class CommentTreeTile extends StatelessWidget {
                       isAdmin: isAdmin,
                       onReply: onReply,
                       onDelete: onDelete,
+                      onReport: onReport,
                     ),
                   )
                   .toList(),

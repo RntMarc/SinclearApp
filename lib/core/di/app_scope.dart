@@ -7,6 +7,7 @@ import '../../features/explore/services/explore_service.dart';
 import '../../features/explore/services/nominatim_service.dart';
 import '../../features/feedback/services/feedback_service.dart';
 import '../../features/forum/services/forum_service.dart';
+import '../../features/moderation/services/moderation_service.dart';
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
 import '../../features/subscription/services/subscription_service.dart';
@@ -26,6 +27,7 @@ class AppScope extends InheritedWidget {
   final FeedbackService feedback;
   final ForumService forum;
   final RecipesService recipes;
+  final ModerationService moderation;
   final SubscriptionService subscription;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
@@ -45,6 +47,7 @@ class AppScope extends InheritedWidget {
     required this.feedback,
     required this.forum,
     required this.recipes,
+    required this.moderation,
     required this.subscription,
     required this.androidUpdate,
     this.webUpdate,
