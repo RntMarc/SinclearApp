@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../core/utils/spotify_helper.dart';
 import '../../../design/theme/design_theme.dart';
@@ -11,6 +12,8 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/forum_models.dart';
 import '../widgets/post_detail_widgets.dart';
 import '../widgets/youtube_player_embed.dart';
@@ -211,9 +214,43 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       );
       if (!mounted) return;
       _loadComments();
+    } on ApiException catch (e) {
+      developer.log('Failed to delete comment', error: e);
+      if (!mounted) return;
+      if (e.errorCode == 'edit_window_expired') {
+        await showModerationRequestSheet(
+          context,
+          objectType: ModerationObjectType.forumPost,
+          objectId: widget.postId,
+          objectName: _post?.title ?? _post?.text ?? 'Beitrag',
+          isOwn: true,
+        );
+      }
     } catch (e) {
       developer.log('Failed to delete comment', error: e);
     }
+  }
+
+  Future<void> _report() async {
+    final post = _post;
+    if (post == null) return;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.forumPost,
+      objectId: post.id,
+      objectName: post.title ?? post.text ?? 'Beitrag',
+      isOwn: false,
+    );
+  }
+
+  Future<void> _reportComment(String commentId) async {
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.forumPost,
+      objectId: commentId,
+      objectName: 'Kommentar',
+      isOwn: false,
+    );
   }
 
   @override
@@ -232,6 +269,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: _post?.title ?? 'Beitrag',
+            actions: [
+              if (_post != null && _post!.userId != currentUserId)
+                DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
+            ],
           ),
           Expanded(child: _buildBody(context, tokens, currentUserId, isAdmin)),
         ],
@@ -421,6 +462,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               onAddComment: (text, {parentId}) =>
                   _addComment(text, parentId: parentId ?? _replyToId),
               onDeleteComment: _deleteComment,
+              onReportComment: (commentId) => _reportComment(commentId),
             ),
           ],
         ),

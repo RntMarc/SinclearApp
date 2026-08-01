@@ -20,11 +20,13 @@ class PlaceDetailWide extends StatelessWidget {
   /// Gast-Modus: Lesezeichen-/OSM-Aktionen und Bewertungen werden ausgeblendet.
   final bool guest;
   final bool canDelete;
+  final bool canReport;
   final bool refreshing;
   final bool bookmarked;
   final bool bookmarkToggling;
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
+  final VoidCallback onReport;
   final VoidCallback onToggleBookmark;
   final List<Review>? reviews;
   final bool loadingReviews;
@@ -41,11 +43,13 @@ class PlaceDetailWide extends StatelessWidget {
     required this.place,
     this.guest = false,
     required this.canDelete,
+    this.canReport = false,
     required this.refreshing,
     required this.bookmarked,
     required this.bookmarkToggling,
     required this.onRefresh,
     required this.onDelete,
+    this.onReport = _noop,
     required this.onToggleBookmark,
     required this.reviews,
     required this.loadingReviews,
@@ -118,11 +122,13 @@ class PlaceDetailNarrow extends StatelessWidget {
   /// Gast-Modus: Lesezeichen-/OSM-Aktionen und Bewertungen werden ausgeblendet.
   final bool guest;
   final bool canDelete;
+  final bool canReport;
   final bool refreshing;
   final bool bookmarked;
   final bool bookmarkToggling;
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
+  final VoidCallback onReport;
   final VoidCallback onToggleBookmark;
   final List<Review>? reviews;
   final bool loadingReviews;
@@ -139,11 +145,13 @@ class PlaceDetailNarrow extends StatelessWidget {
     required this.place,
     this.guest = false,
     required this.canDelete,
+    this.canReport = false,
     required this.refreshing,
     required this.bookmarked,
     required this.bookmarkToggling,
     required this.onRefresh,
     required this.onDelete,
+    this.onReport = _noop,
     required this.onToggleBookmark,
     required this.reviews,
     required this.loadingReviews,
@@ -347,21 +355,25 @@ class PlaceMapCard extends StatelessWidget {
 
 class PlaceActionsCard extends StatelessWidget {
   final bool canDelete;
+  final bool canReport;
   final bool refreshing;
   final bool bookmarked;
   final bool bookmarkToggling;
   final VoidCallback onRefresh;
   final VoidCallback onDelete;
+  final VoidCallback onReport;
   final VoidCallback onToggleBookmark;
 
   const PlaceActionsCard({
     super.key,
     required this.canDelete,
+    this.canReport = false,
     required this.refreshing,
     required this.bookmarked,
     required this.bookmarkToggling,
     required this.onRefresh,
     required this.onDelete,
+    this.onReport = _noop,
     required this.onToggleBookmark,
   });
 
@@ -403,11 +415,23 @@ class PlaceActionsCard extends StatelessWidget {
               onPressed: onDelete,
             ),
           ],
+          if (canReport) ...[
+            SizedBox(height: tokens.spaceSm),
+            DesignButton(
+              variant: DesignButtonVariant.outlined,
+              icon: Icons.flag_rounded,
+              label: 'Ort melden',
+              onPressed: onReport,
+            ),
+          ],
         ],
       ),
     );
   }
 }
+
+/// No-op für optionale Callbacks.
+void _noop() {}
 
 class PlaceReviewsSection extends StatelessWidget {
   final List<Review>? reviews;

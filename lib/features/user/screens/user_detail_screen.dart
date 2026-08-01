@@ -13,6 +13,8 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/user_models.dart';
 
 class UserDetailScreen extends StatefulWidget {
@@ -208,6 +210,17 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   padding: EdgeInsets.only(top: tokens.spaceXs),
                   child: const Center(child: DesignBadge(label: 'Das bist du')),
                 ),
+              if (!_isSelf) ...[
+                SizedBox(height: tokens.spaceLg),
+                Center(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    icon: Icons.flag_rounded,
+                    label: 'Benutzer melden',
+                    onPressed: _report,
+                  ),
+                ),
+              ],
               SizedBox(height: tokens.spaceXl),
               DesignCard.list(children: infoTiles),
               if (socialTiles.isNotEmpty) ...<Widget>[
@@ -229,6 +242,18 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _report() async {
+    final user = _user;
+    if (user == null) return;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.user,
+      objectId: widget.id,
+      objectName: user.base.displayName,
+      isOwn: false,
     );
   }
 

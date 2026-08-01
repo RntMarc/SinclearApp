@@ -39,6 +39,7 @@ import '../features/forum/screens/forum_list_screen.dart';
 import '../features/forum/screens/forum_detail_screen.dart';
 import '../features/forum/screens/post_detail_screen.dart';
 import '../features/forum/screens/create_post_screen.dart';
+import '../features/moderation/screens/moderation_requests_screen.dart';
 import '../features/showcase/screens/design_showcase_screen.dart';
 import '../features/subscription/screens/subscription_list_screen.dart';
 
@@ -58,6 +59,7 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/kontakte') ||
           location.startsWith('/einstellungen') ||
           location.startsWith('/feedback') ||
+          location.startsWith('/mod-anfragen') ||
           location.startsWith('/forum') ||
           (location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
           location.startsWith('/abos') ||
@@ -189,6 +191,10 @@ GoRouter createRouter(AuthService auth) {
                     FeedbackDetailScreen(id: state.pathParameters['id']!),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/mod-anfragen',
+            builder: (context, state) => const ModerationRequestsScreen(),
           ),
           GoRoute(
             path: '/forum',

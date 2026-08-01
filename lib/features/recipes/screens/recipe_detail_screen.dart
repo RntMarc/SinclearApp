@@ -10,6 +10,8 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../../user/models/user_models.dart';
 import '../models/recipes_models.dart';
 import '../widgets/recipe_detail_widgets.dart';
@@ -105,6 +107,20 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       if (!mounted) return;
       setState(() => _bookmarkToggling = false);
     }
+  }
+
+  Future<void> _requestModeration() async {
+    final recipe = _recipe;
+    if (recipe == null) return;
+    final isOwn =
+        recipe.creatorId != null && recipe.creatorId == _currentUserId;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.recipe,
+      objectId: recipe.id,
+      objectName: recipe.title,
+      isOwn: isOwn,
+    );
   }
 
   Future<void> _loadReviews() async {
@@ -278,13 +294,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             ),
             title: _recipe?.title ?? 'Rezept',
             actions: [
-              if (!guest)
+              if (!guest) ...[
                 DesignIconButton(
                   icon: _bookmarked == true
                       ? Icons.bookmark_rounded
                       : Icons.bookmark_border_rounded,
                   onPressed: _bookmarkToggling ? null : _toggleBookmark,
                 ),
+                DesignIconButton(
+                  icon: Icons.flag_rounded,
+                  onPressed: _requestModeration,
+                ),
+              ],
             ],
           ),
           Expanded(child: _buildBody(tokens, guest)),

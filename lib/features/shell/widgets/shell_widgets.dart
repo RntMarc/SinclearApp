@@ -21,6 +21,7 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/kontakte')) return 'KONTAKTE';
   if (location.startsWith('/einstellungen')) return 'EINSTELLUNGEN';
   if (location.startsWith('/feedback')) return 'FEEDBACK';
+  if (location.startsWith('/mod-anfragen')) return 'MOD-ANFRAGEN';
   if (location.startsWith('/forum')) return 'FORUM';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
   if (location.startsWith('/abos')) return 'ABOS';
@@ -36,7 +37,8 @@ enum ShellNavCategory { system, gemeinschaft, home, unterwegs, organisation }
 
 ShellNavCategory shellCategoryForLocation(String location) {
   if (location.startsWith('/einstellungen') ||
-      location.startsWith('/feedback')) {
+      location.startsWith('/feedback') ||
+      location.startsWith('/mod-anfragen')) {
     return ShellNavCategory.system;
   }
   if (location.startsWith('/kontakte') ||
@@ -197,6 +199,13 @@ class ShellNavContent extends StatelessWidget {
               label: 'Einstellungen',
               active: _isActive('/einstellungen'),
               onTap: () => onNavigate('/einstellungen'),
+            ),
+            _tile(
+              context,
+              icon: Icons.flag_rounded,
+              label: 'Mod-Anfragen',
+              active: _isActive('/mod-anfragen'),
+              onTap: () => onNavigate('/mod-anfragen'),
             ),
             _tile(
               context,
@@ -517,6 +526,7 @@ class ShellMobileBottomNav extends StatelessWidget {
               '/einstellungen',
             ),
             const ShellSheetItem('Admin', Icons.admin_panel_settings_rounded, null),
+            const ShellSheetItem('Mod-Anfragen', Icons.flag_rounded, '/mod-anfragen'),
             const ShellSheetItem('Feedback', Icons.feedback_rounded, '/feedback'),
             const ShellSheetItem('Changelog', Icons.history_rounded, null),
           ],

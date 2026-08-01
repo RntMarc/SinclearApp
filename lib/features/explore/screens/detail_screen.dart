@@ -2,12 +2,15 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/network/api_client.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../../user/models/user_models.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../models/explore_models.dart';
@@ -190,6 +193,17 @@ class _DetailScreenState extends State<DetailScreen> {
       ).showSnackBar(const SnackBar(content: Text('Ort gelöscht.')));
       if (!mounted) return;
       context.pop();
+    } on ApiException catch (e) {
+      developer.log('Failed to delete place', error: e);
+      if (!mounted) return;
+      if (e.errorCode == 'edit_window_expired') {
+        await _requestDeletion();
+        return;
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Löschen fehlgeschlagen.')));
     } catch (e, st) {
       developer.log('Failed to delete place', error: e, stackTrace: st);
       if (!mounted) return;
@@ -197,6 +211,28 @@ class _DetailScreenState extends State<DetailScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Löschen fehlgeschlagen.')));
     }
+  }
+
+  Future<void> _requestDeletion() async {
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.explorePlace,
+      objectId: widget.id,
+      objectName: _place?.name ?? 'Ort',
+      isOwn: true,
+    );
+  }
+
+  Future<void> _report() async {
+    final place = _place;
+    if (place == null) return;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.explorePlace,
+      objectId: place.id,
+      objectName: place.name,
+      isOwn: false,
+    );
   }
 
   Future<void> _loadReviewUsers(List<Review> reviews) async {
@@ -421,6 +457,7 @@ class _DetailScreenState extends State<DetailScreen> {
     final isOwner =
         currentUserId.isNotEmpty && currentUserId == place.creatorId;
     final canDelete = isOwner || auth.isAdmin;
+    final canReport = auth.isLoggedIn && !isOwner;
 
     if (isWide) {
       return RefreshIndicator(
@@ -429,11 +466,13 @@ class _DetailScreenState extends State<DetailScreen> {
           place: place,
           guest: guest,
           canDelete: canDelete,
+          canReport: canReport,
           refreshing: _refreshing,
           bookmarked: _bookmarked ?? false,
           bookmarkToggling: _bookmarkToggling,
           onRefresh: _refresh,
           onDelete: _delete,
+          onReport: _report,
           onToggleBookmark: _toggleBookmark,
           reviews: _reviews,
           loadingReviews: _loadingReviews,
@@ -453,11 +492,13 @@ class _DetailScreenState extends State<DetailScreen> {
         place: place,
         guest: guest,
         canDelete: canDelete,
+        canReport: canReport,
         refreshing: _refreshing,
         bookmarked: _bookmarked ?? false,
         bookmarkToggling: _bookmarkToggling,
         onRefresh: _refresh,
         onDelete: _delete,
+        onReport: _report,
         onToggleBookmark: _toggleBookmark,
         reviews: _reviews,
         loadingReviews: _loadingReviews,
