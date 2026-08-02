@@ -27,6 +27,10 @@ DateTime parseApiDate(String value) {
   if (hasTzIndicator) {
     return DateTime.parse(trimmed).toLocal();
   }
+  // Date-only strings (YYYY-MM-DD) need a time component for DateTime.parse.
+  if (trimmed.length == 10) {
+    return DateTime.parse('${trimmed}T00:00:00Z').toLocal();
+  }
   return DateTime.parse('${trimmed}Z').toLocal();
 }
 
