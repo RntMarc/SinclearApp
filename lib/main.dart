@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/deep_link_handler.dart';
 import 'design/theme/design_preferences.dart';
 import 'core/config/osm_config.dart';
 import 'core/logging.dart';
@@ -121,6 +122,10 @@ Future<void> _bootstrap() async {
   }
 
   final router = createRouter(auth);
+
+  if (!kIsWeb) {
+    DeepLinkHandler().init(router, appBaseUrl: appBaseUrl);
+  }
 
   final initialDesign = await DesignPreferences.load();
 
