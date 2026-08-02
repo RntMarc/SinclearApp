@@ -1,5 +1,5 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
@@ -28,6 +28,7 @@ class TripDetailScreen extends StatefulWidget {
 
 class _TripDetailScreenState extends State<TripDetailScreen>
     with TickerProviderStateMixin {
+  static final _log = Logger('trip_detail');
   TravelService get _service => AppScope.of(context).travel;
 
   bool _loading = true;
@@ -105,7 +106,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         _loading = false;
       });
     } catch (e, st) {
-      developer.log('Failed to load trip detail', error: e, stackTrace: st);
+      _log.severe('Failed to load trip detail', e, st);
       if (!mounted) return;
       setState(() {
         _error = e.toString();
