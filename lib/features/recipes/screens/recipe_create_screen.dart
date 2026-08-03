@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_compressor.dart';
+import '../../../core/image/image_provider_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_picker_field.dart';
@@ -18,9 +19,18 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/recipes_models.dart';
+import '../widgets/recipe_detail_widgets.dart' show formatAmount;
 
+/// Formular zum Erstellen und Bearbeiten von Rezepten.
+///
+/// Ohne [recipeId] wird ein neues Rezept angelegt; mit [recipeId] wird das
+/// bestehende Rezept geladen, vorbelegt und per PATCH aktualisiert.
 class RecipeCreateScreen extends StatefulWidget {
-  const RecipeCreateScreen({super.key});
+  final String? recipeId;
+
+  const RecipeCreateScreen({super.key, this.recipeId});
+
+  bool get isEdit => recipeId != null;
 
   @override
   State<RecipeCreateScreen> createState() => _RecipeCreateScreenState();
@@ -35,6 +45,14 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
   final List<_StepEntry> _steps = [];
   String? _category;
   Uint8List? _imageBytes;
+
+  /// Bestehendes Rezeptbild (Edit-Modus); unverändert, bis der Nutzer ein
+  /// neues Bild wählt oder das Bild entfernt.
+  String? _serverImage;
+  bool _removeImage = false;
+  bool _loading = false;
+  String? _loadError;
+  bool _hasLoaded = false;
   bool _submitting = false;
   String? _error;
 
@@ -109,10 +127,13 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
             'Aus Gallery wählen',
             () => Navigator.pop(context, ImageSource.gallery),
           ),
-          if (_imageBytes != null)
+          if (_currentImage != null)
             _sheetOption(Icons.delete_rounded, 'Bild entfernen', () {
               Navigator.pop(context);
-              setState(() => _imageBytes = null);
+              setState(() {
+                _imageBytes = null;
+                _removeImage = true;
+              });
             }, danger: true),
         ],
       ),
@@ -161,6 +182,68 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
   }
 
   void _setError(String message) => setState(() => _error = message);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded && widget.isEdit) {
+      _hasLoaded = true;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    try {
+      final recipe = await AppScope.of(context).recipes.get(widget.recipeId!);
+      if (!mounted) return;
+      setState(() {
+        _titleController.text = recipe.title;
+        _descriptionController.text = recipe.description ?? '';
+        _category = recipe.category;
+        _servingsController.text = recipe.servings.toString();
+        _dietaryTagsController.text = recipe.dietaryTags ?? '';
+        _serverImage = recipe.image;
+        for (final ingredient in recipe.ingredients) {
+          final entry = _IngredientEntry();
+          entry.amountController.text = formatAmount(ingredient.amount);
+          entry.nameController.text = ingredient.name;
+          entry.unit = ingredient.unit;
+          _ingredients.add(entry);
+        }
+        for (final step in recipe.steps) {
+          final entry = _StepEntry();
+          entry.titleController.text = step.title ?? '';
+          entry.descriptionController.text = step.description;
+          entry.category = step.category;
+          _steps.add(entry);
+        }
+        _loading = false;
+      });
+    } catch (e, st) {
+      developer.log(
+        'Failed to load recipe for editing',
+        error: e,
+        stackTrace: st,
+      );
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = 'Rezept konnte nicht geladen werden.';
+      });
+    }
+  }
+
+  ImageProvider? get _currentImage {
+    if (_imageBytes != null) return MemoryImage(_imageBytes!);
+    if (_serverImage != null && !_removeImage) {
+      return resolveImageProvider(_serverImage);
+    }
+    return null;
+  }
 
   String? _validate() {
     if (_titleController.text.trim().isEmpty) {
@@ -228,27 +311,48 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
       _submitting = true;
     });
     try {
-      final request = RecipeCreateRequest(
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
-        category: _category!,
-        dietaryTags: _dietaryTagsController.text.trim().isEmpty
-            ? null
-            : _dietaryTagsController.text.trim(),
-        image: _imageBytes != null ? base64Encode(_imageBytes!) : null,
-        servings: int.parse(_servingsController.text.trim()),
-        ingredients: ingredients,
-        steps: steps,
-      );
-      final recipe = await AppScope.of(context).recipes.create(request);
-      if (!mounted) return;
-      context.go('/rezepte/${recipe.id}');
+      final scope = AppScope.of(context);
+      String? image;
+      if (_imageBytes != null) image = base64Encode(_imageBytes!);
+
+      if (widget.isEdit) {
+        final request = RecipeUpdateRequest(
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          category: _category!,
+          dietaryTags: _dietaryTagsController.text.trim(),
+          image: image,
+          removeImage: _removeImage,
+          servings: int.parse(_servingsController.text.trim()),
+          ingredients: ingredients,
+          steps: steps,
+        );
+        await scope.recipes.update(widget.recipeId!, request);
+        if (!mounted) return;
+        context.go('/rezepte/${widget.recipeId}');
+      } else {
+        final request = RecipeCreateRequest(
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+          category: _category!,
+          dietaryTags: _dietaryTagsController.text.trim().isEmpty
+              ? null
+              : _dietaryTagsController.text.trim(),
+          image: image,
+          servings: int.parse(_servingsController.text.trim()),
+          ingredients: ingredients,
+          steps: steps,
+        );
+        final recipe = await scope.recipes.create(request);
+        if (!mounted) return;
+        context.go('/rezepte/${recipe.id}');
+      }
     } catch (e, st) {
-      developer.log('Failed to create recipe', error: e, stackTrace: st);
+      developer.log('Failed to save recipe', error: e, stackTrace: st);
       if (!mounted) return;
-      _setError('Rezept konnte nicht erstellt werden.');
+      _setError('Rezept konnte nicht gespeichert werden.');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -266,167 +370,194 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
               icon: Icons.arrow_back_rounded,
               onPressed: () => context.pop(),
             ),
-            title: 'Neues Rezept',
+            title: widget.isEdit ? 'Rezept bearbeiten' : 'Neues Rezept',
             actions: [
               Padding(
                 padding: EdgeInsets.only(right: tokens.spaceSm),
                 child: DesignButton(
                   variant: DesignButtonVariant.filled,
-                  label: 'Erstellen',
+                  label: widget.isEdit ? 'Speichern' : 'Erstellen',
                   loading: _submitting,
-                  onPressed: _submitting ? null : _submit,
+                  onPressed: _submitting || _loading ? null : _submit,
                 ),
               ),
             ],
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(tokens.spaceLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (_error != null) ...[
-                    Container(
-                      padding: EdgeInsets.all(tokens.spaceMd),
-                      decoration: BoxDecoration(
-                        color: tokens.danger.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(tokens.radiusMd),
-                        border: Border.all(
-                          color: tokens.danger.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline_rounded,
-                            size: 20,
-                            color: tokens.danger,
+          if (_loading)
+            Expanded(
+              child: Center(
+                child: CircularProgressIndicator(color: tokens.primary),
+              ),
+            )
+          else if (_loadError != null)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                    SizedBox(height: tokens.spaceSm),
+                    DesignText(
+                      _loadError!,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceLg),
+                    DesignButton(
+                      variant: DesignButtonVariant.filled,
+                      label: 'Erneut versuchen',
+                      onPressed: _load,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(tokens.spaceLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_error != null) ...[
+                      Container(
+                        padding: EdgeInsets.all(tokens.spaceMd),
+                        decoration: BoxDecoration(
+                          color: tokens.danger.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(tokens.radiusMd),
+                          border: Border.all(
+                            color: tokens.danger.withValues(alpha: 0.4),
                           ),
-                          SizedBox(width: tokens.spaceSm),
-                          Expanded(
-                            child: DesignText(
-                              _error!,
-                              style: DesignTextStyle.body,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline_rounded,
+                              size: 20,
                               color: tokens.danger,
                             ),
-                          ),
-                        ],
+                            SizedBox(width: tokens.spaceSm),
+                            Expanded(
+                              child: DesignText(
+                                _error!,
+                                style: DesignTextStyle.body,
+                                color: tokens.danger,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      SizedBox(height: tokens.spaceMd),
+                    ],
+                    DesignTextField(
+                      controller: _titleController,
+                      hint: 'Titel',
+                      prefixIcon: Icons.edit_rounded,
                     ),
                     SizedBox(height: tokens.spaceMd),
+                    DesignTextField(
+                      controller: _descriptionController,
+                      hint: 'Beschreibung (optional)',
+                      maxLines: 3,
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    DesignPickerField(
+                      items: _categoryItems,
+                      value: _category,
+                      onChanged: (v) => setState(() => _category = v),
+                      hint: 'Kategorie wählen',
+                      prefixIcon: Icons.category_rounded,
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DesignTextField(
+                            controller: _servingsController,
+                            hint: 'Portionen',
+                            prefixIcon: Icons.restaurant_rounded,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        SizedBox(width: tokens.spaceMd),
+                        Expanded(
+                          flex: 2,
+                          child: DesignTextField(
+                            controller: _dietaryTagsController,
+                            hint: 'Ernährung (optional)',
+                            prefixIcon: Icons.spa_rounded,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    _ImageField(image: _currentImage, onPick: _showImagePicker),
+                    SizedBox(height: tokens.spaceXl),
+                    Row(
+                      children: [
+                        DesignText(
+                          'Zutaten',
+                          style: DesignTextStyle.subtitle,
+                          color: tokens.textHigh,
+                        ),
+                        const Spacer(),
+                        DesignIconButton(
+                          icon: Icons.add_circle_outline_rounded,
+                          onPressed: _addIngredient,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    if (_ingredients.isEmpty)
+                      DesignText(
+                        'Noch keine Zutaten.',
+                        style: DesignTextStyle.body,
+                        color: tokens.textLow,
+                      )
+                    else
+                      ..._ingredients.asMap().entries.map(
+                        (entry) => _IngredientRow(
+                          key: ValueKey('ingredient-${entry.key}'),
+                          entry: entry.value,
+                          unitItems: _unitItems,
+                          onRemove: () => _removeIngredient(entry.key),
+                        ),
+                      ),
+                    SizedBox(height: tokens.spaceXl),
+                    Row(
+                      children: [
+                        DesignText(
+                          'Schritte',
+                          style: DesignTextStyle.subtitle,
+                          color: tokens.textHigh,
+                        ),
+                        const Spacer(),
+                        DesignIconButton(
+                          icon: Icons.add_circle_outline_rounded,
+                          onPressed: _addStep,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    if (_steps.isEmpty)
+                      DesignText(
+                        'Noch keine Schritte.',
+                        style: DesignTextStyle.body,
+                        color: tokens.textLow,
+                      )
+                    else
+                      ..._steps.asMap().entries.map(
+                        (entry) => _StepRow(
+                          key: ValueKey('step-${entry.key}'),
+                          entry: entry.value,
+                          stepCategoryItems: _stepCategoryItems,
+                          onRemove: () => _removeStep(entry.key),
+                        ),
+                      ),
                   ],
-                  DesignTextField(
-                    controller: _titleController,
-                    hint: 'Titel',
-                    prefixIcon: Icons.edit_rounded,
-                  ),
-                  SizedBox(height: tokens.spaceMd),
-                  DesignTextField(
-                    controller: _descriptionController,
-                    hint: 'Beschreibung (optional)',
-                    maxLines: 3,
-                  ),
-                  SizedBox(height: tokens.spaceMd),
-                  DesignPickerField(
-                    items: _categoryItems,
-                    value: _category,
-                    onChanged: (v) => setState(() => _category = v),
-                    hint: 'Kategorie wählen',
-                    prefixIcon: Icons.category_rounded,
-                  ),
-                  SizedBox(height: tokens.spaceMd),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DesignTextField(
-                          controller: _servingsController,
-                          hint: 'Portionen',
-                          prefixIcon: Icons.restaurant_rounded,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      SizedBox(width: tokens.spaceMd),
-                      Expanded(
-                        flex: 2,
-                        child: DesignTextField(
-                          controller: _dietaryTagsController,
-                          hint: 'Ernährung (optional)',
-                          prefixIcon: Icons.spa_rounded,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: tokens.spaceMd),
-                  _ImageField(
-                    imageBytes: _imageBytes,
-                    onPick: _showImagePicker,
-                  ),
-                  SizedBox(height: tokens.spaceXl),
-                  Row(
-                    children: [
-                      DesignText(
-                        'Zutaten',
-                        style: DesignTextStyle.subtitle,
-                        color: tokens.textHigh,
-                      ),
-                      const Spacer(),
-                      DesignIconButton(
-                        icon: Icons.add_circle_outline_rounded,
-                        onPressed: _addIngredient,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: tokens.spaceSm),
-                  if (_ingredients.isEmpty)
-                    DesignText(
-                      'Noch keine Zutaten.',
-                      style: DesignTextStyle.body,
-                      color: tokens.textLow,
-                    )
-                  else
-                    ..._ingredients.asMap().entries.map(
-                      (entry) => _IngredientRow(
-                        key: ValueKey('ingredient-${entry.key}'),
-                        entry: entry.value,
-                        unitItems: _unitItems,
-                        onRemove: () => _removeIngredient(entry.key),
-                      ),
-                    ),
-                  SizedBox(height: tokens.spaceXl),
-                  Row(
-                    children: [
-                      DesignText(
-                        'Schritte',
-                        style: DesignTextStyle.subtitle,
-                        color: tokens.textHigh,
-                      ),
-                      const Spacer(),
-                      DesignIconButton(
-                        icon: Icons.add_circle_outline_rounded,
-                        onPressed: _addStep,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: tokens.spaceSm),
-                  if (_steps.isEmpty)
-                    DesignText(
-                      'Noch keine Schritte.',
-                      style: DesignTextStyle.body,
-                      color: tokens.textLow,
-                    )
-                  else
-                    ..._steps.asMap().entries.map(
-                      (entry) => _StepRow(
-                        key: ValueKey('step-${entry.key}'),
-                        entry: entry.value,
-                        stepCategoryItems: _stepCategoryItems,
-                        onRemove: () => _removeStep(entry.key),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -583,25 +714,25 @@ class _StepRowState extends State<_StepRow> {
 }
 
 class _ImageField extends StatelessWidget {
-  final Uint8List? imageBytes;
+  final ImageProvider? image;
   final VoidCallback onPick;
 
-  const _ImageField({required this.imageBytes, required this.onPick});
+  const _ImageField({required this.image, required this.onPick});
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final bytes = imageBytes;
+    final img = image;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (bytes != null)
+        if (img != null)
           Padding(
             padding: EdgeInsets.only(bottom: tokens.spaceSm),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(tokens.radiusLg),
-              child: Image.memory(
-                bytes,
+              child: Image(
+                image: img,
                 height: 160,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -614,13 +745,13 @@ class _ImageField extends StatelessWidget {
             ),
           ),
         DesignButton(
-          variant: bytes != null
+          variant: img != null
               ? DesignButtonVariant.outlined
               : DesignButtonVariant.filled,
-          icon: bytes != null
+          icon: img != null
               ? Icons.image_rounded
               : Icons.add_photo_alternate_rounded,
-          label: bytes != null ? 'Bild ändern' : 'Bild hinzufügen',
+          label: img != null ? 'Bild ändern' : 'Bild hinzufügen',
           onPressed: onPick,
         ),
       ],

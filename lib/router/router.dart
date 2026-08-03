@@ -249,6 +249,14 @@ GoRouter createRouter(AuthService auth) {
                 path: ':id',
                 builder: (context, state) =>
                     RecipeDetailScreen(id: state.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'bearbeiten',
+                    builder: (context, state) => RecipeCreateScreen(
+                      recipeId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -305,9 +313,10 @@ bool _isGuestExplore(String location) {
 }
 
 /// Rezepte-Seiten, die auch ohne Login erreichbar sind (Liste, Katalog,
-/// Details). Der Erstellen-Flow `/rezepte/neu` bleibt angemeldeten Nutzern
-/// vorbehalten.
+/// Details). Die Erstellen-/Bearbeiten-Flows (`/rezepte/neu`,
+/// `/rezepte/:id/bearbeiten`) bleiben angemeldeten Nutzern vorbehalten.
 bool _isGuestRecipes(String location) {
   return location.startsWith('/rezepte') &&
-      !location.startsWith('/rezepte/neu');
+      !location.startsWith('/rezepte/neu') &&
+      !location.endsWith('/bearbeiten');
 }
