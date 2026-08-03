@@ -1,3 +1,17 @@
+import '../../../core/utils/date_utils.dart';
+
+/// Prüft, ob die API eine direkte Löschung durch den Ersteller noch erlaubt:
+/// nur innerhalb von 30 Minuten nach dem Erstellen (siehe explore/readme.md).
+///
+/// Die API erzwingt das Fenster serverseitig; dieser Check ist nur eine
+/// UI-Schätzung, bei Abweichungen antwortet `DELETE /explore/{id}` mit
+/// `edit_window_expired`.
+bool canDeleteWithinWindow(String createdAt, {DateTime? now}) {
+  final created = parseApiDate(createdAt);
+  final reference = now ?? DateTime.now();
+  return reference.difference(created) <= const Duration(minutes: 30);
+}
+
 class ExplorePlace {
   final String id;
   final String name;

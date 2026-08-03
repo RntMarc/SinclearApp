@@ -17,17 +17,8 @@ import '../utils/cuisine_translations.dart';
 class PlaceDetailWide extends StatelessWidget {
   final ExplorePlace place;
 
-  /// Gast-Modus: Lesezeichen-/OSM-Aktionen und Bewertungen werden ausgeblendet.
+  /// Gast-Modus: Bewertungen werden ausgeblendet.
   final bool guest;
-  final bool canDelete;
-  final bool canReport;
-  final bool refreshing;
-  final bool bookmarked;
-  final bool bookmarkToggling;
-  final VoidCallback onRefresh;
-  final VoidCallback onDelete;
-  final VoidCallback onReport;
-  final VoidCallback onToggleBookmark;
   final List<Review>? reviews;
   final bool loadingReviews;
   final String? reviewsError;
@@ -42,15 +33,6 @@ class PlaceDetailWide extends StatelessWidget {
     super.key,
     required this.place,
     this.guest = false,
-    required this.canDelete,
-    this.canReport = false,
-    required this.refreshing,
-    required this.bookmarked,
-    required this.bookmarkToggling,
-    required this.onRefresh,
-    required this.onDelete,
-    this.onReport = _noop,
-    required this.onToggleBookmark,
     required this.reviews,
     required this.loadingReviews,
     this.reviewsError,
@@ -80,18 +62,6 @@ class PlaceDetailWide extends StatelessWidget {
                 child: Column(
                   children: [
                     SizedBox(height: 200, child: PlaceMapCard(place: place)),
-                    if (!guest) ...[
-                      SizedBox(height: tokens.spaceLg),
-                      PlaceActionsCard(
-                        canDelete: canDelete,
-                        refreshing: refreshing,
-                        bookmarked: bookmarked,
-                        bookmarkToggling: bookmarkToggling,
-                        onRefresh: onRefresh,
-                        onDelete: onDelete,
-                        onToggleBookmark: onToggleBookmark,
-                      ),
-                    ],
                     SizedBox(height: tokens.spaceLg),
                     PlaceReviewsSection(
                       reviews: reviews,
@@ -119,17 +89,8 @@ class PlaceDetailWide extends StatelessWidget {
 class PlaceDetailNarrow extends StatelessWidget {
   final ExplorePlace place;
 
-  /// Gast-Modus: Lesezeichen-/OSM-Aktionen und Bewertungen werden ausgeblendet.
+  /// Gast-Modus: Bewertungen werden ausgeblendet.
   final bool guest;
-  final bool canDelete;
-  final bool canReport;
-  final bool refreshing;
-  final bool bookmarked;
-  final bool bookmarkToggling;
-  final VoidCallback onRefresh;
-  final VoidCallback onDelete;
-  final VoidCallback onReport;
-  final VoidCallback onToggleBookmark;
   final List<Review>? reviews;
   final bool loadingReviews;
   final String? reviewsError;
@@ -144,15 +105,6 @@ class PlaceDetailNarrow extends StatelessWidget {
     super.key,
     required this.place,
     this.guest = false,
-    required this.canDelete,
-    this.canReport = false,
-    required this.refreshing,
-    required this.bookmarked,
-    required this.bookmarkToggling,
-    required this.onRefresh,
-    required this.onDelete,
-    this.onReport = _noop,
-    required this.onToggleBookmark,
     required this.reviews,
     required this.loadingReviews,
     this.reviewsError,
@@ -195,18 +147,6 @@ class PlaceDetailNarrow extends StatelessWidget {
                       PlaceInfoContent(place: place),
                       SizedBox(height: tokens.spaceLg),
                       SizedBox(height: 200, child: PlaceMapCard(place: place)),
-                      if (!guest) ...[
-                        SizedBox(height: tokens.spaceLg),
-                        PlaceActionsCard(
-                          canDelete: canDelete,
-                          refreshing: refreshing,
-                          bookmarked: bookmarked,
-                          bookmarkToggling: bookmarkToggling,
-                          onRefresh: onRefresh,
-                          onDelete: onDelete,
-                          onToggleBookmark: onToggleBookmark,
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -352,86 +292,6 @@ class PlaceMapCard extends StatelessWidget {
     );
   }
 }
-
-class PlaceActionsCard extends StatelessWidget {
-  final bool canDelete;
-  final bool canReport;
-  final bool refreshing;
-  final bool bookmarked;
-  final bool bookmarkToggling;
-  final VoidCallback onRefresh;
-  final VoidCallback onDelete;
-  final VoidCallback onReport;
-  final VoidCallback onToggleBookmark;
-
-  const PlaceActionsCard({
-    super.key,
-    required this.canDelete,
-    this.canReport = false,
-    required this.refreshing,
-    required this.bookmarked,
-    required this.bookmarkToggling,
-    required this.onRefresh,
-    required this.onDelete,
-    this.onReport = _noop,
-    required this.onToggleBookmark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-    return DesignCard(
-      padding: EdgeInsets.all(tokens.spaceLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DesignButton(
-            variant: DesignButtonVariant.filled,
-            icon: bookmarked
-                ? Icons.bookmark_rounded
-                : Icons.bookmark_border_rounded,
-            label: bookmarkToggling
-                ? '…'
-                : bookmarked
-                ? 'Lesezeichen entfernen'
-                : 'Lesezeichen setzen',
-            loading: bookmarkToggling,
-            onPressed: bookmarkToggling ? null : onToggleBookmark,
-          ),
-          SizedBox(height: tokens.spaceSm),
-          DesignButton(
-            variant: DesignButtonVariant.filled,
-            icon: Icons.refresh_rounded,
-            label: refreshing ? 'Aktualisiere…' : 'OSM-Daten aktualisieren',
-            loading: refreshing,
-            onPressed: refreshing ? null : onRefresh,
-          ),
-          if (canDelete) ...[
-            SizedBox(height: tokens.spaceSm),
-            DesignButton(
-              variant: DesignButtonVariant.outlined,
-              icon: Icons.delete_rounded,
-              label: 'Ort löschen',
-              onPressed: onDelete,
-            ),
-          ],
-          if (canReport) ...[
-            SizedBox(height: tokens.spaceSm),
-            DesignButton(
-              variant: DesignButtonVariant.outlined,
-              icon: Icons.flag_rounded,
-              label: 'Ort melden',
-              onPressed: onReport,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// No-op für optionale Callbacks.
-void _noop() {}
 
 class PlaceReviewsSection extends StatelessWidget {
   final List<Review>? reviews;
