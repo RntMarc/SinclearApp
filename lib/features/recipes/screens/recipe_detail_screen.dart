@@ -311,6 +311,14 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                       : Icons.bookmark_border_rounded,
                   onPressed: _bookmarkToggling ? null : _toggleBookmark,
                 ),
+                if (_recipe != null &&
+                    _recipe!.creatorId != null &&
+                    _recipe!.creatorId == _currentUserId)
+                  DesignIconButton(
+                    icon: Icons.edit_rounded,
+                    onPressed: () =>
+                        context.go('/rezepte/${widget.id}/bearbeiten'),
+                  ),
                 DesignIconButton(
                   icon: Icons.flag_rounded,
                   onPressed: _requestModeration,
