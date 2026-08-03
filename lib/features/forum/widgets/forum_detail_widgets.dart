@@ -114,6 +114,7 @@ class ForumPostList extends StatelessWidget {
   final void Function(FeedPost post) onVote;
   final void Function(FeedPost post) onDelete;
   final void Function(String forumId, String postId)? onPostTap;
+  final void Function(FeedPost post)? onReport;
 
   const ForumPostList({
     super.key,
@@ -127,6 +128,7 @@ class ForumPostList extends StatelessWidget {
     required this.onVote,
     required this.onDelete,
     this.onPostTap,
+    this.onReport,
   });
 
   @override
@@ -171,6 +173,7 @@ class ForumPostList extends StatelessWidget {
               onDelete: (post.userId == currentUserId || isAdmin)
                   ? () => onDelete(post)
                   : null,
+              onReport: onReport != null ? () => onReport!(post) : null,
             ),
           );
         }),

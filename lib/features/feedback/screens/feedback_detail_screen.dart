@@ -8,6 +8,8 @@ import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/feedback_models.dart';
 import '../widgets/feedback_detail_widgets.dart';
 
@@ -122,10 +124,12 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
       developer.log('Status update failed', error: e);
     }
   }
-
   Future<void> _delete() async {
     final s = _suggestion;
     if (s == null) return;
+
+    final auth = AppScope.of(context).auth;
+    final adminOnly = auth.isAdmin && s.userId != (auth.userId ?? '');
     final tokens = DesignTheme.of(context);
     final confirmed = await showDesignSheet<bool>(
       context: context,
@@ -133,7 +137,7 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DesignText(
-            'Vorschlag löschen',
+            adminOnly ? '👑 Vorschlag löschen' : 'Vorschlag löschen',
             style: DesignTextStyle.title,
             color: tokens.textHigh,
           ),
@@ -175,6 +179,28 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
     } catch (e) {
       developer.log('Delete failed', error: e);
     }
+  }
+
+  Future<void> _reportSuggestion() async {
+    final s = _suggestion;
+    if (s == null) return;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.feedbackSuggestion,
+      objectId: s.id,
+      objectName: s.title,
+      isOwn: false,
+    );
+  }
+
+  Future<void> _reportComment(String commentId) async {
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.feedbackComment,
+      objectId: commentId,
+      objectName: 'Kommentar zu ${_suggestion?.title ?? 'Vorschlag'}',
+      isOwn: false,
+    );
   }
 
   Future<void> _loadComments() async {
@@ -468,6 +494,8 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
+        if (_suggestion != null)
+          DesignIconButton(icon: Icons.flag_rounded, onPressed: _reportSuggestion),
         if (_suggestion != null &&
             (_suggestion!.userId == currentUserId || isAdmin))
           DesignIconButton(icon: Icons.more_vert_rounded, onPressed: _delete),
@@ -560,6 +588,7 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
                 }
               },
               onDelete: _deleteComment,
+              onReport: _reportComment,
               resolveUserName: _resolveUserName,
             ),
             SizedBox(height: tokens.spaceLg),

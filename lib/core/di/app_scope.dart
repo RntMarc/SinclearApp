@@ -10,6 +10,7 @@ import '../../features/forum/services/forum_service.dart';
 import '../../features/moderation/services/moderation_service.dart';
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
+import '../../features/settings/services/mcp_key_service.dart';
 import '../../features/subscription/services/subscription_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/travel/services/pt_service.dart';
@@ -29,6 +30,7 @@ class AppScope extends InheritedWidget {
   final RecipesService recipes;
   final ModerationService moderation;
   final SubscriptionService subscription;
+  final McpKeyService mcpKeys;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
   final String appBaseUrl;
@@ -49,6 +51,7 @@ class AppScope extends InheritedWidget {
     required this.recipes,
     required this.moderation,
     required this.subscription,
+    required this.mcpKeys,
     required this.androidUpdate,
     this.webUpdate,
     required this.appBaseUrl,

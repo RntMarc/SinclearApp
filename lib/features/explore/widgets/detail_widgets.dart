@@ -1,9 +1,15 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/image/image_compressor.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
@@ -28,6 +34,7 @@ class PlaceDetailWide extends StatelessWidget {
   final VoidCallback onCreateReview;
   final void Function(Review) onEditReview;
   final void Function(Review) onDeleteReview;
+  final void Function(Review) onReportReview;
 
   const PlaceDetailWide({
     super.key,
@@ -42,6 +49,7 @@ class PlaceDetailWide extends StatelessWidget {
     required this.onCreateReview,
     required this.onEditReview,
     required this.onDeleteReview,
+    required this.onReportReview,
   });
 
   @override
@@ -74,6 +82,7 @@ class PlaceDetailWide extends StatelessWidget {
                       onCreateReview: onCreateReview,
                       onEditReview: onEditReview,
                       onDeleteReview: onDeleteReview,
+                      onReportReview: onReportReview,
                     ),
                   ],
                 ),
@@ -100,6 +109,7 @@ class PlaceDetailNarrow extends StatelessWidget {
   final VoidCallback onCreateReview;
   final void Function(Review) onEditReview;
   final void Function(Review) onDeleteReview;
+  final void Function(Review) onReportReview;
 
   const PlaceDetailNarrow({
     super.key,
@@ -114,6 +124,7 @@ class PlaceDetailNarrow extends StatelessWidget {
     required this.onCreateReview,
     required this.onEditReview,
     required this.onDeleteReview,
+    required this.onReportReview,
   });
 
   @override
@@ -163,6 +174,7 @@ class PlaceDetailNarrow extends StatelessWidget {
                     onCreateReview: onCreateReview,
                     onEditReview: onEditReview,
                     onDeleteReview: onDeleteReview,
+                    onReportReview: onReportReview,
                   ),
                 ),
               ],
@@ -306,6 +318,7 @@ class PlaceReviewsSection extends StatelessWidget {
   final VoidCallback onCreateReview;
   final void Function(Review) onEditReview;
   final void Function(Review) onDeleteReview;
+  final void Function(Review) onReportReview;
 
   const PlaceReviewsSection({
     super.key,
@@ -319,6 +332,7 @@ class PlaceReviewsSection extends StatelessWidget {
     required this.onCreateReview,
     required this.onEditReview,
     required this.onDeleteReview,
+    required this.onReportReview,
   });
 
   @override
@@ -420,6 +434,7 @@ class PlaceReviewsSection extends StatelessWidget {
                 reviewUser: reviewUsers[review.userId],
                 onEdit: () => onEditReview(review),
                 onDelete: () => onDeleteReview(review),
+                onReport: () => onReportReview(review),
               ),
             ),
           ),
@@ -434,6 +449,7 @@ class PlaceReviewCard extends StatelessWidget {
   final UserBasePublic? reviewUser;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onReport;
 
   const PlaceReviewCard({
     super.key,
@@ -442,6 +458,7 @@ class PlaceReviewCard extends StatelessWidget {
     this.reviewUser,
     required this.onEdit,
     required this.onDelete,
+    required this.onReport,
   });
 
   @override
@@ -479,6 +496,7 @@ class PlaceReviewCard extends StatelessWidget {
             children: [
               PlaceStarRating(rating: review.rating, size: 16),
               const Spacer(),
+              DesignIconButton(icon: Icons.flag_rounded, onPressed: onReport),
               if (isOwn) ...[
                 DesignIconButton(icon: Icons.edit_rounded, onPressed: onEdit),
                 DesignIconButton(
@@ -495,6 +513,10 @@ class PlaceReviewCard extends StatelessWidget {
               style: DesignTextStyle.body,
               color: tokens.textHigh,
             ),
+          ],
+          if (review.photo != null) ...[
+            SizedBox(height: tokens.spaceSm),
+            _ReviewPhoto(photo: review.photo!),
           ],
           SizedBox(height: tokens.spaceXs),
           DesignText(
@@ -513,6 +535,31 @@ class PlaceReviewCard extends StatelessWidget {
       return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
     } catch (_) {
       return iso.substring(0, 10);
+    }
+  }
+}
+
+/// Zeigt das Base64-Foto einer Bewertung; bei ungültigen Daten nichts.
+class _ReviewPhoto extends StatelessWidget {
+  final String photo;
+
+  const _ReviewPhoto({required this.photo});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    try {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+        child: Image.memory(
+          base64Decode(photo),
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+      );
+    } catch (_) {
+      return const SizedBox.shrink();
     }
   }
 }
@@ -552,6 +599,7 @@ class PlaceReviewForm extends StatefulWidget {
 
 class _PlaceReviewFormState extends State<PlaceReviewForm> {
   int _rating = 0;
+  Uint8List? _photoBytes;
   late final TextEditingController _commentController;
 
   @override
@@ -567,6 +615,69 @@ class _PlaceReviewFormState extends State<PlaceReviewForm> {
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: source,
+      maxWidth: 1000,
+      maxHeight: 1000,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    final rawBytes = await picked.readAsBytes();
+    final compressed = compressImage(rawBytes);
+    if (compressed == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bild konnte nicht verarbeitet werden.')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _photoBytes = compressed);
+  }
+
+  void _showImagePicker() {
+    final tokens = DesignTheme.of(context);
+    showDesignSheet<bool>(
+      context: context,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DesignText(
+              'Foto hinzufügen',
+              style: DesignTextStyle.title,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceLg),
+            DesignButton(
+              variant: DesignButtonVariant.outlined,
+              icon: Icons.camera_alt_rounded,
+              label: 'Kamera',
+              fullWidth: true,
+              onPressed: () => Navigator.pop(context, true),
+            ),
+            SizedBox(height: tokens.spaceSm),
+            DesignButton(
+              variant: DesignButtonVariant.outlined,
+              icon: Icons.photo_library_rounded,
+              label: 'Galerie',
+              fullWidth: true,
+              onPressed: () => Navigator.pop(context, false),
+            ),
+          ],
+        ),
+      ),
+    ).then((useCamera) {
+      if (useCamera == null || !mounted) return;
+      _pickImage(useCamera ? ImageSource.camera : ImageSource.gallery);
+    });
   }
 
   @override
@@ -637,6 +748,45 @@ class _PlaceReviewFormState extends State<PlaceReviewForm> {
               ),
             ),
           ),
+          SizedBox(height: tokens.spaceMd),
+          if (_photoBytes != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(tokens.radiusMd),
+              child: Stack(
+                children: [
+                  Image.memory(
+                    _photoBytes!,
+                    width: double.infinity,
+                    height: 160,
+                    fit: BoxFit.cover,
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: DesignIconButton(
+                      icon: Icons.close_rounded,
+                      onPressed: () => setState(() => _photoBytes = null),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: tokens.spaceSm),
+          ],
+          DesignButton(
+            variant: DesignButtonVariant.outlined,
+            icon: Icons.add_a_photo_outlined,
+            label: _photoBytes == null ? 'Foto hinzufügen' : 'Foto ändern',
+            fullWidth: true,
+            onPressed: _showImagePicker,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
+            'Max. 200 KB, JPEG/PNG/WebP. Das Foto kann nur innerhalb von '
+            '24 Stunden nach dem Erstellen der Bewertung hinzugefügt werden.',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
           SizedBox(height: tokens.spaceLg),
           DesignButton(
             variant: DesignButtonVariant.filled,
@@ -649,6 +799,7 @@ class _PlaceReviewFormState extends State<PlaceReviewForm> {
                     comment: _commentController.text.trim().isEmpty
                         ? null
                         : _commentController.text.trim(),
+                    photo: _photoBytes,
                   )),
           ),
         ],

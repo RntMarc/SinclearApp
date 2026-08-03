@@ -60,17 +60,25 @@ class CommentTreeTile extends StatelessWidget {
                     color: tokens.textLow.withValues(alpha: 0.6),
                   ),
                   const Spacer(),
+                  if (onReport != null && !comment.isDeleted)
+                    DesignIconButton(
+                      icon: Icons.flag_rounded,
+                      onPressed: () => onReport!(comment.id),
+                    ),
                   if (isOwner || isAdmin)
                     DesignIconButton(
                       icon: Icons.more_vert_rounded,
                       onPressed: () {
+                        final adminOnly = isAdmin && !isOwner;
                         showDesignSheet<bool>(
                           context: context,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               DesignText(
-                                'Kommentar löschen',
+                                adminOnly
+                                    ? '👑 Kommentar löschen'
+                                    : 'Kommentar löschen',
                                 style: DesignTextStyle.subtitle,
                                 color: tokens.textHigh,
                               ),
@@ -100,11 +108,6 @@ class CommentTreeTile extends StatelessWidget {
                           if (confirmed == true) onDelete(comment.id);
                         });
                       },
-                    )
-                  else if (onReport != null && !comment.isDeleted)
-                    DesignIconButton(
-                      icon: Icons.flag_rounded,
-                      onPressed: () => onReport!(comment.id),
                     ),
                 ],
               ),

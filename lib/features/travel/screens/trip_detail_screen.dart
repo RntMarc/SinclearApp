@@ -8,6 +8,8 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../services/trip_data_controller.dart';
@@ -122,6 +124,18 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     if (result == true && mounted) _refresh();
   }
 
+  Future<void> _report() async {
+    final trip = _trip;
+    if (trip == null) return;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.travelTrip,
+      objectId: trip.id,
+      objectName: trip.name,
+      isOwn: false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DesignSurface(
@@ -133,6 +147,10 @@ class _TripDetailScreenState extends State<TripDetailScreen>
               onPressed: () => context.pop(),
             ),
             title: _trip?.name ?? 'Reise',
+            actions: [
+              if (_trip != null)
+                DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
+            ],
           ),
           Expanded(child: _buildBodyWithFab()),
         ],

@@ -18,6 +18,7 @@ class SuggestionCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onVote;
   final VoidCallback onDelete;
+  final VoidCallback? onReport;
 
   const SuggestionCard({
     super.key,
@@ -27,6 +28,7 @@ class SuggestionCard extends StatelessWidget {
     required this.onTap,
     required this.onVote,
     required this.onDelete,
+    this.onReport,
   });
 
   Color _statusColor(DesignTokens tokens, FeedbackStatus status) {
@@ -49,7 +51,7 @@ class SuggestionCard extends StatelessWidget {
     }
   }
 
-  void _openMenu(BuildContext context) {
+  void _openMenu(BuildContext context, {required bool adminOnly}) {
     final tokens = DesignTheme.of(context);
     showDesignSheet(
       context: context,
@@ -59,7 +61,7 @@ class SuggestionCard extends StatelessWidget {
           color: tokens.danger,
           size: 20,
         ),
-        title: 'Löschen',
+        title: adminOnly ? '👑 Löschen' : 'Löschen',
         onTap: () {
           Navigator.of(context).pop();
           onDelete();
@@ -150,10 +152,16 @@ class SuggestionCard extends StatelessWidget {
                 color: tokens.textLow.withValues(alpha: 0.7),
               ),
               const Spacer(),
+              if (onReport != null)
+                DesignIconButton(
+                  icon: Icons.flag_rounded,
+                  onPressed: onReport,
+                ),
               if (isOwner || isAdmin)
                 DesignIconButton(
                   icon: Icons.more_vert_rounded,
-                  onPressed: () => _openMenu(context),
+                  onPressed: () =>
+                      _openMenu(context, adminOnly: isAdmin && !isOwner),
                 ),
             ],
           ),

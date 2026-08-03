@@ -148,6 +148,10 @@ class Review {
   final String userId;
   final int rating;
   final String? comment;
+
+  /// Base64-kodiertes Foto (JPEG/PNG/WebP), falls der Ersteller innerhalb
+  /// von 24 Stunden nach der Erstellung eines hinzugefügt hat.
+  final String? photo;
   final String createdAt;
 
   const Review({
@@ -156,6 +160,7 @@ class Review {
     required this.userId,
     required this.rating,
     this.comment,
+    this.photo,
     required this.createdAt,
   });
 
@@ -166,6 +171,7 @@ class Review {
       userId: json['userId'] as String,
       rating: json['rating'] as int,
       comment: json['comment'] as String?,
+      photo: json['photo'] as String?,
       createdAt: json['createdAt'] as String,
     );
   }

@@ -6,6 +6,9 @@ import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/subscription_models.dart';
 import '../widgets/subscription_member_row.dart';
 
@@ -75,10 +78,23 @@ class _SubscriptionDetailScreenState extends State<SubscriptionDetailScreen> {
                 size: 24,
               ),
             ),
+            actions: [
+              DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
+            ],
           ),
           Expanded(child: _buildBody(tokens, sub)),
         ],
       ),
+    );
+  }
+
+  Future<void> _report() async {
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.subscription,
+      objectId: widget.subscription.id,
+      objectName: widget.subscription.name,
+      isOwn: false,
     );
   }
 

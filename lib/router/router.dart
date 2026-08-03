@@ -29,6 +29,7 @@ import '../features/settings/screens/edit_social_screen.dart';
 import '../features/settings/screens/edit_contact_screen.dart';
 import '../features/settings/screens/email_change_screen.dart';
 import '../features/settings/screens/discord_relink_screen.dart';
+import '../features/settings/screens/mcp_keys_screen.dart';
 import '../features/feedback/screens/feedback_screen.dart';
 import '../features/feedback/screens/feedback_detail_screen.dart';
 import '../features/recipes/screens/recipe_list_screen.dart';
@@ -69,6 +70,11 @@ GoRouter createRouter(AuthService auth) {
         return '/onboarding';
       }
       if (loggedIn && auth.onboardingCompleted && location == '/onboarding') {
+        return '/home';
+      }
+      if (loggedIn &&
+          location.startsWith('/design-showcase') &&
+          !auth.isAdmin) {
         return '/home';
       }
       if (loggedIn && location == '/') return '/home';
@@ -269,6 +275,10 @@ GoRouter createRouter(AuthService auth) {
               GoRoute(
                 path: 'discord',
                 builder: (context, state) => const DiscordRelinkScreen(),
+              ),
+              GoRoute(
+                path: 'mcp',
+                builder: (context, state) => const McpKeysScreen(),
               ),
             ],
           ),

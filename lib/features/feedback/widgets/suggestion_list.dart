@@ -12,6 +12,7 @@ class SuggestionList extends StatelessWidget {
   final bool isAdmin;
   final ValueChanged<FeedbackSuggestion> onVote;
   final ValueChanged<FeedbackSuggestion> onDelete;
+  final ValueChanged<FeedbackSuggestion> onReport;
 
   const SuggestionList({
     super.key,
@@ -20,6 +21,7 @@ class SuggestionList extends StatelessWidget {
     required this.isAdmin,
     required this.onVote,
     required this.onDelete,
+    required this.onReport,
   });
 
   @override
@@ -70,6 +72,7 @@ class SuggestionList extends StatelessWidget {
           onTap: () => context.push('/feedback/${suggestion.id}'),
           onVote: () => onVote(suggestion),
           onDelete: () => onDelete(suggestion),
+          onReport: () => onReport(suggestion),
         );
       },
     );

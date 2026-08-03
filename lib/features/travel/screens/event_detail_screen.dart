@@ -16,6 +16,8 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../widgets/ticket_form_sheet.dart';
@@ -82,6 +84,10 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
               onPressed: () => context.pop(),
             ),
             title: _event?.name ?? 'Event',
+            actions: [
+              if (_event != null)
+                DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
+            ],
           ),
           Expanded(child: _buildBodyWithFab()),
         ],
@@ -298,6 +304,18 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
       eventId: widget.id,
     );
     if (result == true && mounted) _load();
+  }
+
+  Future<void> _report() async {
+    final event = _event;
+    if (event == null) return;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.travelEvent,
+      objectId: event.id,
+      objectName: event.name,
+      isOwn: false,
+    );
   }
 
   Widget _buildBodyWithFab() {

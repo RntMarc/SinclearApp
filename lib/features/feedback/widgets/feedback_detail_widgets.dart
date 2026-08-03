@@ -117,7 +117,7 @@ class FeedbackAdminActions extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DesignText(
-            'Admin-Aktionen',
+            '👑 Admin-Aktionen',
             style: DesignTextStyle.subtitle,
             color: tokens.primary,
           ),
@@ -151,6 +151,7 @@ class FeedbackCommentsCard extends StatelessWidget {
   final void Function(String text, {String? parentId}) onAddComment;
   final void Function(String id) onEdit;
   final void Function(String id) onDelete;
+  final void Function(String id) onReport;
   final String Function(String userId) resolveUserName;
 
   const FeedbackCommentsCard({
@@ -165,6 +166,7 @@ class FeedbackCommentsCard extends StatelessWidget {
     required this.onAddComment,
     required this.onEdit,
     required this.onDelete,
+    required this.onReport,
     required this.resolveUserName,
   });
 
@@ -227,6 +229,7 @@ class FeedbackCommentsCard extends StatelessWidget {
                   onReply: onReply,
                   onEdit: onEdit,
                   onDelete: onDelete,
+                  onReport: () => onReport(comment.id),
                 ),
               ),
             ),

@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
@@ -232,6 +235,16 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
+  Future<void> _reportReview(Review review) async {
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.exploreComment,
+      objectId: review.id,
+      objectName: 'Bewertung zu ${_place?.name ?? 'Ort'}',
+      isOwn: false,
+    );
+  }
+
   bool get _isOwner {
     final place = _place;
     if (place == null) return false;
@@ -239,14 +252,11 @@ class _DetailScreenState extends State<DetailScreen> {
     return userId != null && userId == place.creatorId;
   }
 
-  /// Direkte Löschung erlaubt die API nur Admins oder dem Ersteller
-  /// ohne Bewertungen innerhalb des 30-Minuten-Fensters.
-  bool get _canDeleteDirectly {
+  /// Löschen wie ein normaler Ersteller: nur ohne Bewertungen und innerhalb
+  /// des 30-Minuten-Fensters (die API erzwingt beides serverseitig).
+  bool get _canDeleteAsOwner {
     final place = _place;
-    if (place == null) return false;
-    final auth = AppScope.of(context).auth;
-    if (auth.isAdmin) return true;
-    if (!_isOwner) return false;
+    if (place == null || !_isOwner) return false;
     if ((_reviews ?? const []).isNotEmpty) return false;
     // ponytail: Client-Uhr schätzt das 30-Minuten-Fenster; die API erzwingt
     // es serverseitig, bei Drift greift der edit_window_expired-Fallback.
@@ -274,34 +284,46 @@ class _DetailScreenState extends State<DetailScreen> {
             color: tokens.textHigh,
           ),
         ),
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: _PlaceMenuAction.refresh,
-            child: _PlaceMenuEntry(
-              icon: Icons.refresh_rounded,
-              label: 'OSM-Daten aktualisieren',
-            ),
-          ),
-          if (_canDeleteDirectly)
+        itemBuilder: (context) {
+          final admin = AppScope.of(context).auth.isAdmin;
+          final adminDelete = admin && !_canDeleteAsOwner;
+          return [
             const PopupMenuItem(
-              value: _PlaceMenuAction.delete,
+              value: _PlaceMenuAction.refresh,
               child: _PlaceMenuEntry(
-                icon: Icons.delete_rounded,
-                label: 'Ort löschen',
-                danger: true,
+                icon: Icons.refresh_rounded,
+                label: 'OSM-Daten aktualisieren',
               ),
-            )
-          else
+            ),
+            if (adminDelete)
+              const PopupMenuItem(
+                value: _PlaceMenuAction.delete,
+                child: _PlaceMenuEntry(
+                  icon: Icons.delete_rounded,
+                  label: '👑 Ort löschen',
+                  danger: true,
+                ),
+              ),
             PopupMenuItem(
-              value: _isOwner
+              value: _canDeleteAsOwner
+                  ? _PlaceMenuAction.delete
+                  : _isOwner
                   ? _PlaceMenuAction.requestDeletion
                   : _PlaceMenuAction.report,
               child: _PlaceMenuEntry(
-                icon: Icons.flag_rounded,
-                label: _isOwner ? 'Löschung beantragen' : 'Ort melden',
+                icon: _canDeleteAsOwner
+                    ? Icons.delete_rounded
+                    : Icons.flag_rounded,
+                label: _canDeleteAsOwner
+                    ? 'Ort löschen'
+                    : _isOwner
+                    ? 'Löschung beantragen'
+                    : 'Ort melden',
+                danger: _canDeleteAsOwner,
               ),
             ),
-        ],
+          ];
+        },
       ),
     );
   }
@@ -357,11 +379,12 @@ class _DetailScreenState extends State<DetailScreen> {
     );
     if (result == null || !mounted) return;
     try {
-      await AppScope.of(context).explore.createReview(
+      final review = await AppScope.of(context).explore.createReview(
         widget.id,
         rating: result.rating,
         comment: result.comment,
       );
+      await _uploadReviewPhotoIfPicked(review.id, result.photo);
       if (!mounted) return;
       setState(() => _reviews = null);
       _loadReviewsIfNeeded();
@@ -381,12 +404,13 @@ class _DetailScreenState extends State<DetailScreen> {
     );
     if (result == null || !mounted) return;
     try {
-      await AppScope.of(context).explore.updateReview(
+      final updated = await AppScope.of(context).explore.updateReview(
         widget.id,
         review.id,
         rating: result.rating,
         comment: result.comment,
       );
+      await _uploadReviewPhotoIfPicked(updated.id, result.photo);
       if (!mounted) return;
       setState(() => _reviews = null);
       _loadReviewsIfNeeded();
@@ -399,11 +423,40 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
-  Future<({int rating, String? comment})?> _showReviewSheet({
+  /// Lädt ein in der Bewertungsform gewähltes Foto zur Bewertung hoch.
+  ///
+  /// Fehler werden nur gemeldet, wenn das Foto-Fenster (24 h) oder die
+  /// Berechtigung das Hochladen verweigern; Bewertung selbst bleibt gespeichert.
+  Future<void> _uploadReviewPhotoIfPicked(
+    String reviewId,
+    Uint8List? photo,
+  ) async {
+    if (photo == null || !mounted) return;
+    try {
+      await AppScope.of(
+        context,
+      ).explore.setReviewPhoto(widget.id, reviewId, photo: base64Encode(photo));
+    } catch (e, st) {
+      developer.log('Failed to upload review photo', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e is ApiException
+                ? 'Bewertung gespeichert, aber das Foto konnte nicht '
+                      'hochgeladen werden.'
+                : 'Bewertung gespeichert, Foto-Fehler: $e',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<({int rating, String? comment, Uint8List? photo})?> _showReviewSheet({
     int? initialRating,
     String? initialComment,
   }) {
-    return showDesignSheet<({int rating, String? comment})>(
+    return showDesignSheet<({int rating, String? comment, Uint8List? photo})>(
       context: context,
       child: PlaceReviewForm(
         initialRating: initialRating,
@@ -565,6 +618,7 @@ class _DetailScreenState extends State<DetailScreen> {
           onCreateReview: _showCreateReviewDialog,
           onEditReview: _showEditReviewDialog,
           onDeleteReview: _confirmDeleteReview,
+          onReportReview: _reportReview,
         ),
       );
     }
@@ -582,6 +636,7 @@ class _DetailScreenState extends State<DetailScreen> {
         onCreateReview: _showCreateReviewDialog,
         onEditReview: _showEditReviewDialog,
         onDeleteReview: _confirmDeleteReview,
+        onReportReview: _reportReview,
       ),
     );
   }

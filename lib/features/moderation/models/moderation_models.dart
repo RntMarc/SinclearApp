@@ -23,7 +23,18 @@ enum ModerationObjectType {
   user('user', 'Benutzer'),
   forumPost('forum_post', 'Forumsbeitrag'),
   recipe('recipe', 'Rezept'),
-  explorePlace('explore_place', 'Ort');
+  explorePlace('explore_place', 'Ort'),
+  recipeReview('recipe_review', 'Rezept-Bewertung'),
+  forumComment('forum_comment', 'Forum-Kommentar'),
+  exploreComment('explore_comment', 'Orts-Bewertung'),
+  feedbackSuggestion('feedback_suggestion', 'Feedback-Vorschlag'),
+  feedbackComment('feedback_comment', 'Feedback-Kommentar'),
+  travelTrip('travel_trip', 'Reise'),
+  travelEvent('travel_event', 'Reise-Event'),
+  travelAccommodation('travel_accommodation', 'Unterkunft'),
+  travelTicket('travel_ticket', 'Ticket'),
+  subscription('subscription', 'Abonnement'),
+  calendarEvent('calendar_event', 'Kalender-Event');
 
   final String apiValue;
   final String label;

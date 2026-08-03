@@ -17,6 +17,7 @@ class CommentTile extends StatelessWidget {
   final ValueChanged<String> onReply;
   final ValueChanged<String> onEdit;
   final ValueChanged<String> onDelete;
+  final VoidCallback? onReport;
 
   const CommentTile({
     super.key,
@@ -27,10 +28,12 @@ class CommentTile extends StatelessWidget {
     required this.onReply,
     required this.onEdit,
     required this.onDelete,
+    this.onReport,
   });
 
   void _openMenu(BuildContext context, bool canEdit) {
     final tokens = DesignTheme.of(context);
+    final adminOnly = isAdmin && comment.userId != currentUserId;
     showDesignSheet(
       context: context,
       child: Column(
@@ -50,7 +53,7 @@ class CommentTile extends StatelessWidget {
               color: tokens.danger,
               size: 20,
             ),
-            title: 'Löschen',
+            title: adminOnly ? '👑 Löschen' : 'Löschen',
             onTap: () {
               Navigator.of(context).pop();
               onDelete(comment.id);
@@ -80,6 +83,10 @@ class CommentTile extends StatelessWidget {
           )
         : null;
 
+    final reportAction = (onReport != null && !comment.isDeleted)
+        ? DesignIconButton(icon: Icons.flag_rounded, onPressed: onReport)
+        : null;
+
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -103,6 +110,7 @@ class CommentTile extends StatelessWidget {
               color: tokens.textLow,
             ),
             const Spacer(),
+            reportAction ?? const SizedBox.shrink(),
             menuAction ?? const SizedBox.shrink(),
           ],
         ),
@@ -154,6 +162,7 @@ class CommentTile extends StatelessWidget {
                     onReply: onReply,
                     onEdit: onEdit,
                     onDelete: onDelete,
+                    onReport: onReport,
                   ),
                 )
                 .toList(),
