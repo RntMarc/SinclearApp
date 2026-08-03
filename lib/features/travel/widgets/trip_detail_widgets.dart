@@ -4,30 +4,35 @@ import 'package:latlong2/latlong.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/async_section.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../subscription/models/subscription_models.dart';
+import '../../subscription/screens/subscription_detail_screen.dart';
+import '../../subscription/widgets/subscription_card.dart';
 import '../models/travel_models.dart';
 import '../screens/accommodation_detail_screen.dart';
 import '../screens/event_detail_screen.dart';
+import '../services/trip_data_controller.dart';
 import '../widgets/ticket_preview_page.dart';
 import '../widgets/user_tile.dart';
 
-class TripOverviewTab extends StatelessWidget {
+/// Overview tab: loads accommodations and participants independently, so a
+/// failure in one only replaces that part with an inline error.
+class TripOverviewSection extends StatelessWidget {
   final TravelTrip trip;
-  final List<TravelAccommodation> accommodations;
-  final List<TravelParticipant> participants;
+  final TripDataController controller;
   final String? currentUserId;
   final VoidCallback? onSelectMapTab;
 
-  const TripOverviewTab({
+  const TripOverviewSection({
     super.key,
     required this.trip,
-    required this.accommodations,
-    required this.participants,
+    required this.controller,
     this.currentUserId,
     this.onSelectMapTab,
   });
@@ -59,47 +64,69 @@ class TripOverviewTab extends StatelessWidget {
             color: tokens.textLow,
           ),
           SizedBox(height: tokens.spaceLg),
-          if (accommodations.isNotEmpty) ...[
-            SizedBox(
-              height: 200,
-              child: TripAccommodationMap(
-                accommodations: accommodations,
-                currentUserId: currentUserId,
-                onTap: onSelectMapTab,
-              ),
-            ),
-            SizedBox(height: tokens.spaceLg),
-            DesignText(
-              'Unterkünfte',
-              style: DesignTextStyle.subtitle,
-              color: tokens.textHigh,
-            ),
-            SizedBox(height: tokens.spaceSm),
-            ...accommodations.map(
-              (a) => TripAccommodationCard(
-                accommodation: a,
-                isMine:
-                    currentUserId != null &&
-                    a.users.any((u) => u.id == currentUserId),
-                tripId: trip.id,
-              ),
-            ),
-          ],
-          if (participants.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceXl),
-            DesignText(
-              'Teilnehmer',
-              style: DesignTextStyle.subtitle,
-              color: tokens.textHigh,
-            ),
-            SizedBox(height: tokens.spaceSm),
-            ...participants.map(
-              (p) => Padding(
-                padding: EdgeInsets.only(bottom: tokens.spaceSm),
-                child: UserTile(displayName: p.displayName, imageUrl: p.image),
-              ),
-            ),
-          ],
+          AsyncSection<List<TravelAccommodation>>(
+            future: controller.accommodations,
+            keepAlive: true,
+            skeleton: const _AccommodationsSkeleton(),
+            builder: (context, accommodations) {
+              if (accommodations.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TripAccommodationMap(
+                    accommodations: accommodations,
+                    currentUserId: currentUserId,
+                    onTap: onSelectMapTab,
+                  ),
+                  SizedBox(height: tokens.spaceLg),
+                  DesignText(
+                    'Unterkünfte',
+                    style: DesignTextStyle.subtitle,
+                    color: tokens.textHigh,
+                  ),
+                  SizedBox(height: tokens.spaceSm),
+                  ...accommodations.map(
+                    (a) => TripAccommodationCard(
+                      accommodation: a,
+                      isMine:
+                          currentUserId != null &&
+                          a.users.any((u) => u.id == currentUserId),
+                      tripId: trip.id,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          AsyncSection<List<TravelParticipant>>(
+            future: controller.participants,
+            keepAlive: true,
+            skeleton: const _ParticipantsSkeleton(),
+            builder: (context, participants) {
+              if (participants.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: tokens.spaceXl),
+                  DesignText(
+                    'Teilnehmer',
+                    style: DesignTextStyle.subtitle,
+                    color: tokens.textHigh,
+                  ),
+                  SizedBox(height: tokens.spaceSm),
+                  ...participants.map(
+                    (p) => Padding(
+                      padding: EdgeInsets.only(bottom: tokens.spaceSm),
+                      child: UserTile(
+                        displayName: p.displayName,
+                        imageUrl: p.image,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -479,7 +506,9 @@ class TripTicketsTab extends StatelessWidget {
               color: tokens.textHigh,
             ),
             SizedBox(height: tokens.spaceSm),
-            ...tripTickets.map((t) => _ticketCard(context, tokens, t, 'Reise-Ticket')),
+            ...tripTickets.map(
+              (t) => _ticketCard(context, tokens, t, 'Reise-Ticket'),
+            ),
             SizedBox(height: tokens.spaceLg),
           ],
           if (eventTickets.isNotEmpty) ...[
@@ -491,7 +520,11 @@ class TripTicketsTab extends StatelessWidget {
             SizedBox(height: tokens.spaceSm),
             ...eventTickets.map(
               (t) => _ticketCard(
-                context, tokens, t, 'Event: ${_eventName(t.event ?? '')}'),
+                context,
+                tokens,
+                t,
+                'Event: ${_eventName(t.event ?? '')}',
+              ),
             ),
             SizedBox(height: tokens.spaceLg),
           ],
@@ -506,7 +539,9 @@ class TripTicketsTab extends StatelessWidget {
               color: tokens.textHigh,
             ),
             SizedBox(height: tokens.spaceSm),
-            ...userTickets.map((t) => _ticketCard(context, tokens, t, 'Mein Ticket')),
+            ...userTickets.map(
+              (t) => _ticketCard(context, tokens, t, 'Mein Ticket'),
+            ),
           ],
         ],
       ),
@@ -589,7 +624,11 @@ class TripTicketsTab extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
+              Icon(
+                Icons.confirmation_number_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
               SizedBox(width: tokens.spaceSm),
               Expanded(
                 child: DesignText(
@@ -618,7 +657,11 @@ class TripTicketsTab extends StatelessWidget {
                             ),
                           ),
                         ),
-                        child: QrImageView(data: t.qrcode!, size: 120, backgroundColor: Colors.white),
+                        child: QrImageView(
+                          data: t.qrcode!,
+                          size: 120,
+                          backgroundColor: Colors.white,
+                        ),
                       ),
                     ),
                   if (hasQr && hasImg) SizedBox(width: tokens.spaceSm),
@@ -641,7 +684,8 @@ class TripTicketsTab extends StatelessWidget {
                             height: 120,
                             width: double.infinity,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            errorBuilder: (_, __, ___) =>
+                                const SizedBox.shrink(),
                           ),
                         ),
                       ),
@@ -717,6 +761,389 @@ class TripMapTab extends StatelessWidget {
       markers: markers,
       margin: EdgeInsets.all(tokens.spaceLg),
       interactive: true,
+    );
+  }
+}
+
+/// Events tab: loads the trip events on its own, so a failure only replaces
+/// this tab with an inline error instead of breaking the whole screen.
+class TripEventsSection extends StatelessWidget {
+  final TripDataController controller;
+  final String? currentUserId;
+
+  const TripEventsSection({
+    super.key,
+    required this.controller,
+    this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AsyncSection<List<TravelEvent>>(
+      future: controller.events,
+      keepAlive: true,
+      skeleton: const _EventsSkeleton(),
+      builder: (context, events) =>
+          TripEventsTab(events: events, currentUserId: currentUserId),
+    );
+  }
+}
+
+/// Tickets tab: loads trip and own event tickets on its own.
+class TripTicketsSection extends StatelessWidget {
+  final TripDataController controller;
+  final String? ticket;
+  final String? ticketUrl;
+
+  const TripTicketsSection({
+    super.key,
+    required this.controller,
+    this.ticket,
+    this.ticketUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AsyncSection<
+      ({List<TravelEventTicket> tickets, List<TravelEvent> events})
+    >(
+      future: controller.ticketSection,
+      keepAlive: true,
+      skeleton: const _TicketsSkeleton(),
+      builder: (context, section) => TripTicketsTab(
+        tickets: section.tickets,
+        events: section.events,
+        ticket: ticket,
+        ticketUrl: ticketUrl,
+      ),
+    );
+  }
+}
+
+/// Payments tab: loads the trip subscriptions on its own. A malformed
+/// subscription only surfaces here, never in the rest of the screen.
+class TripPaymentsSection extends StatelessWidget {
+  final TripDataController controller;
+
+  const TripPaymentsSection({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return AsyncSection<List<Subscription>>(
+      future: controller.subscriptions,
+      keepAlive: true,
+      skeleton: const _PaymentsSkeleton(),
+      builder: (context, subscriptions) {
+        final tokens = DesignTheme.of(context);
+        if (subscriptions.isEmpty) {
+          return Center(
+            child: DesignText(
+              'Keine Zahlungen verfügbar',
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(tokens.spaceLg),
+          child: Column(
+            children: subscriptions.map((sub) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: tokens.spaceSm),
+                child: SubscriptionCard(
+                  subscription: sub,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            SubscriptionDetailScreen(subscription: sub),
+                      ),
+                    );
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Map tab: loads accommodations and events (shared, single fetch each) on
+/// its own.
+class TripMapSection extends StatelessWidget {
+  final TripDataController controller;
+  final String? currentUserId;
+
+  const TripMapSection({
+    super.key,
+    required this.controller,
+    this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AsyncSection<
+      ({List<TravelAccommodation> accommodations, List<TravelEvent> events})
+    >(
+      future: controller.mapSection,
+      keepAlive: true,
+      skeleton: const _MapSkeleton(),
+      builder: (context, section) => TripMapTab(
+        accommodations: section.accommodations,
+        events: section.events,
+        currentUserId: currentUserId,
+      ),
+    );
+  }
+}
+
+/// Rounded placeholder bar used by the section skeletons.
+class _SkeletonBar extends StatelessWidget {
+  const _SkeletonBar({this.height = 14, this.widthFactor = 1});
+
+  final double height;
+  final double widthFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return FractionallySizedBox(
+      widthFactor: widthFactor,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: tokens.surfaceVariant.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(tokens.radiusSm),
+        ),
+      ),
+    );
+  }
+}
+
+/// Mirrors the accommodation section (map, headline, one card) so the layout
+/// does not jump when the data arrives.
+class _AccommodationsSkeleton extends StatelessWidget {
+  const _AccommodationsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: tokens.surfaceVariant.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(tokens.radiusLg),
+          ),
+        ),
+        SizedBox(height: tokens.spaceLg),
+        const _SkeletonBar(widthFactor: 0.4),
+        SizedBox(height: tokens.spaceSm),
+        const _SkeletonBar(),
+        SizedBox(height: tokens.spaceSm),
+        const _SkeletonBar(widthFactor: 0.8),
+      ],
+    );
+  }
+}
+
+/// Mirrors the payments list (three grid cards) so the layout does not jump
+/// when the data arrives.
+class _PaymentsSkeleton extends StatelessWidget {
+  const _PaymentsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        children: List.generate(
+          3,
+          (index) => Padding(
+            padding: EdgeInsets.only(bottom: tokens.spaceSm),
+            child: const DesignCard(
+              margin: EdgeInsets.zero,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _SkeletonBar(widthFactor: 0.5),
+                  SizedBox(height: 8),
+                  _SkeletonBar(widthFactor: 0.8),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Mirrors the participant list (avatar + name rows) so the layout does not
+/// jump when the data arrives.
+class _ParticipantsSkeleton extends StatelessWidget {
+  const _ParticipantsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    Widget row() => Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: tokens.surfaceVariant.withValues(alpha: 0.8),
+            shape: BoxShape.circle,
+          ),
+        ),
+        SizedBox(width: tokens.spaceSm),
+        const Flexible(child: _SkeletonBar(widthFactor: 0.5)),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: tokens.spaceXl),
+        const _SkeletonBar(widthFactor: 0.35),
+        SizedBox(height: tokens.spaceSm),
+        row(),
+        SizedBox(height: tokens.spaceSm),
+        row(),
+      ],
+    );
+  }
+}
+
+/// Mirrors the event list (two event cards) so the layout does not jump when
+/// the data arrives.
+class _EventsSkeleton extends StatelessWidget {
+  const _EventsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    Widget card() => DesignCard(
+      margin: EdgeInsets.fromLTRB(
+        tokens.spaceLg,
+        0,
+        tokens.spaceLg,
+        tokens.spaceSm,
+      ),
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              _SkeletonCircle(size: 20),
+              SizedBox(width: 8),
+              Expanded(child: _SkeletonBar(widthFactor: 0.6)),
+            ],
+          ),
+          SizedBox(height: 4),
+          _SkeletonBar(widthFactor: 0.5),
+          SizedBox(height: 4),
+          _SkeletonBar(widthFactor: 0.35),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              _SkeletonCircle(size: 24),
+              SizedBox(width: 6),
+              _SkeletonCircle(size: 24),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return Column(children: [card(), card()]);
+  }
+}
+
+/// Mirrors the ticket cards (title row plus QR/image block) so the layout
+/// does not jump when the data arrives.
+class _TicketsSkeleton extends StatelessWidget {
+  const _TicketsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    Widget card() => DesignCard(
+      useGlass: false,
+      margin: EdgeInsets.only(bottom: tokens.spaceSm),
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              _SkeletonCircle(size: 20),
+              SizedBox(width: 8),
+              Expanded(child: _SkeletonBar(widthFactor: 0.5)),
+            ],
+          ),
+          SizedBox(height: 8),
+          _SkeletonBar(height: 120),
+        ],
+      ),
+    );
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(children: [card(), card()]),
+    );
+  }
+}
+
+/// Mirrors the map card (rounded box with screen-edge margin) so the layout
+/// does not jump when the data arrives.
+class _MapSkeleton extends StatelessWidget {
+  const _MapSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Padding(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: tokens.surfaceVariant.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(tokens.radiusLg),
+        ),
+      ),
+    );
+  }
+}
+
+/// Round placeholder circle used by the section skeletons.
+class _SkeletonCircle extends StatelessWidget {
+  const _SkeletonCircle({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: tokens.surfaceVariant.withValues(alpha: 0.8),
+        shape: BoxShape.circle,
+      ),
     );
   }
 }
