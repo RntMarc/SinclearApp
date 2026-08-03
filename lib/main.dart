@@ -29,6 +29,7 @@ import 'features/forum/services/forum_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/recipes/services/recipes_service.dart';
+import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/travel/services/pt_service.dart';
@@ -100,6 +101,7 @@ Future<void> _bootstrap() async {
   final recipes = RecipesService(api: api, auth: auth);
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
+  final mcpKeys = McpKeyService(api: api, auth: auth);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
   final webUpdate = WebUpdateService(
     currentBuildNumber: packageInfo.buildNumber,
@@ -155,6 +157,7 @@ Future<void> _bootstrap() async {
       recipes: recipes,
       moderation: moderation,
       subscription: subscription,
+      mcpKeys: mcpKeys,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       initialDesignVariant: initialDesign,

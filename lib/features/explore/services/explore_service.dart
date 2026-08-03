@@ -205,6 +205,24 @@ class ExploreService {
     );
   }
 
+  /// Setzt oder aktualisiert das Foto einer Bewertung.
+  ///
+  /// [photo] ist Base64-kodiert (JPEG/PNG/WebP, max. 200 KB, 1000×1000 px).
+  /// Die API erlaubt das nur dem Ersteller und nur innerhalb von 24 Stunden
+  /// nach der Erstellung der Bewertung.
+  Future<Review> setReviewPhoto(
+    String placeId,
+    String reviewId, {
+    required String photo,
+  }) async {
+    final data = await _api.put(
+      '/explore/$placeId/reviews/$reviewId/photo',
+      body: {'photo': photo},
+      token: await _token(),
+    );
+    return Review.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
   Future<ExploreSubmission> createSubmission(
     ExploreSubmissionCreateRequest request,
   ) async {

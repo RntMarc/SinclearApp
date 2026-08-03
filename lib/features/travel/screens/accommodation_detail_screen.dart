@@ -12,6 +12,8 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 
@@ -79,10 +81,26 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
               onPressed: () => context.pop(),
             ),
             title: _accommodation?.name ?? 'Unterkunft',
+            actions: [
+              if (_accommodation != null)
+                DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
+            ],
           ),
           Expanded(child: _buildBody()),
         ],
       ),
+    );
+  }
+
+  Future<void> _report() async {
+    final acc = _accommodation;
+    if (acc == null) return;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.travelAccommodation,
+      objectId: acc.id,
+      objectName: acc.name,
+      isOwn: false,
     );
   }
 

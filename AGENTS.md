@@ -42,6 +42,18 @@ The commit message should focus on what you have done during the prompt given to
 Keep it short and precise and keep correct git commit message formatting in mind.
 English only.
 
+## Moderation & Reporting
+
+* **Report buttons for all users:** The report flag button (`Icons.flag_rounded`)
+  must be visible on **every** piece of user-generated content, regardless of
+  whether the current user is the creator. Reporting is not only for ToS
+  violations — it also covers bug reports, concerns, or general feedback to
+  admins.
+* **isOwn logic in the sheet:** The `showModerationRequestSheet` already
+  handles `isOwn`: creators cannot choose `report` (only `deletion` or `other`).
+  The UI must **not** hide the flag button based on ownership — ownership is
+  handled inside the moderation sheet itself.
+
 ## Interaction Guidelines
 * **User Persona:** Assume the user is familiar with programming concepts but
   may be new to Dart.

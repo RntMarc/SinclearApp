@@ -304,6 +304,16 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     }
   }
 
+  void _reportPost(FeedPost post) {
+    showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.forumPost,
+      objectId: post.id,
+      objectName: post.title ?? post.text ?? 'Beitrag',
+      isOwn: post.userId == AppScope.of(context).auth.userId,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
@@ -404,6 +414,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
               forumId: widget.id,
               onVote: _votePost,
               onDelete: _deletePost,
+              onReport: _reportPost,
             ),
           ],
         ),

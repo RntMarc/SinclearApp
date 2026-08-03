@@ -16,6 +16,7 @@ import 'features/forum/services/forum_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/recipes/services/recipes_service.dart';
+import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/travel/services/pt_service.dart';
@@ -35,6 +36,7 @@ class SinclearApp extends StatelessWidget {
   final RecipesService recipes;
   final ModerationService moderation;
   final SubscriptionService subscription;
+  final McpKeyService mcpKeys;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService webUpdate;
   final GoRouter router;
@@ -63,6 +65,7 @@ class SinclearApp extends StatelessWidget {
     required this.recipes,
     required this.moderation,
     required this.subscription,
+    required this.mcpKeys,
     required this.androidUpdate,
     required this.webUpdate,
     required this.router,
@@ -86,6 +89,7 @@ class SinclearApp extends StatelessWidget {
       recipes: recipes,
       moderation: moderation,
       subscription: subscription,
+      mcpKeys: mcpKeys,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       appBaseUrl: appBaseUrl,

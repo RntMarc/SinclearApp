@@ -123,6 +123,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     );
   }
 
+  Future<void> _reportReview(RecipeReview review) async {
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.recipeReview,
+      objectId: review.id,
+      objectName: 'Bewertung zu ${_recipe?.title ?? 'Rezept'}',
+      isOwn: false,
+    );
+  }
+
   Future<void> _loadReviews() async {
     setState(() => _loadingReviews = true);
     try {
@@ -388,6 +398,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     onCreateReview: _showCreateReviewDialog,
                     onEditReview: _showEditReviewDialog,
                     onDeleteReview: _confirmDeleteReview,
+                    onReportReview: _reportReview,
                   ),
                 ],
               ),

@@ -13,6 +13,8 @@ import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../user/models/user_models.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/calendar_models.dart';
 import '../services/calendar_service.dart';
 import '../widgets/event_form_sheet.dart';
@@ -255,6 +257,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     }
   }
 
+  Future<void> _report() async {
+    final event = _event;
+    if (event == null) return;
+    final isOwn = event.creatorId == AppScope.of(context).auth.userId;
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.calendarEvent,
+      objectId: event.id,
+      objectName: event.title,
+      isOwn: isOwn,
+    );
+  }
+
   String _visibilityLabel(int visibility) {
     switch (visibility) {
       case 0:
@@ -346,6 +361,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
             ),
             title: event.title,
             actions: [
+              DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
               if (_canEdit(event))
                 DesignIconButton(icon: Icons.edit_rounded, onPressed: _edit),
               if (_canEdit(event))

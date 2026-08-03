@@ -58,7 +58,9 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     if (kDebugMode) {
-      _log.fine('POST $uri body=${body != null ? _truncateJson(body) : 'null'}');
+      _log.fine(
+        'POST $uri body=${body != null ? _truncateJson(body) : 'null'}',
+      );
     }
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
       try {
@@ -82,7 +84,9 @@ class ApiClient {
         if (attempt == maxGetAttempts) rethrow;
       } on http.ClientException {
         if (kDebugMode) {
-          _log.fine('POST $uri client error (attempt $attempt/$maxGetAttempts)');
+          _log.fine(
+            'POST $uri client error (attempt $attempt/$maxGetAttempts)',
+          );
         }
         if (attempt == maxGetAttempts) rethrow;
       }
@@ -165,7 +169,8 @@ class ApiClient {
       if (!first) buffer.write(', ');
       first = false;
       buffer.write('"${entry.key}": ');
-      if (entry.key == 'image' && entry.value is String) {
+      if ((entry.key == 'image' || entry.key == 'photo') &&
+          entry.value is String) {
         final str = entry.value as String;
         final preview = str.length > 80 ? '${str.substring(0, 80)}...' : str;
         buffer.write('"<base64: len=${str.length}, preview=$preview>"');
@@ -235,7 +240,9 @@ class ApiClient {
         if (attempt == maxGetAttempts) rethrow;
       } on http.ClientException {
         if (kDebugMode) {
-          _log.fine('DELETE $uri client error (attempt $attempt/$maxGetAttempts)');
+          _log.fine(
+            'DELETE $uri client error (attempt $attempt/$maxGetAttempts)',
+          );
         }
         if (attempt == maxGetAttempts) rethrow;
       }

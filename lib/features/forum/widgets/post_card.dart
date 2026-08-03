@@ -19,6 +19,7 @@ class PostCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onVote;
   final VoidCallback? onDelete;
+  final VoidCallback? onReport;
 
   const PostCard({
     super.key,
@@ -27,6 +28,7 @@ class PostCard extends StatelessWidget {
     required this.onTap,
     required this.onVote,
     this.onDelete,
+    this.onReport,
   });
 
   @override
@@ -74,6 +76,8 @@ class PostCard extends StatelessWidget {
                 style: DesignTextStyle.label,
                 color: tokens.primary,
               ),
+              if (onReport != null)
+                DesignIconButton(icon: Icons.flag_rounded, onPressed: onReport),
               if (post.userId == currentUserId && onDelete != null)
                 DesignIconButton(
                   icon: Icons.more_vert_rounded,

@@ -441,6 +441,7 @@ class RecipeReviewsSection extends StatelessWidget {
   final VoidCallback onCreateReview;
   final void Function(RecipeReview) onEditReview;
   final void Function(RecipeReview) onDeleteReview;
+  final void Function(RecipeReview) onReportReview;
 
   const RecipeReviewsSection({
     super.key,
@@ -454,6 +455,7 @@ class RecipeReviewsSection extends StatelessWidget {
     required this.onCreateReview,
     required this.onEditReview,
     required this.onDeleteReview,
+    required this.onReportReview,
   });
 
   @override
@@ -557,6 +559,7 @@ class RecipeReviewsSection extends StatelessWidget {
                   reviewUser: reviewUsers[review.userId],
                   onEdit: () => onEditReview(review),
                   onDelete: () => onDeleteReview(review),
+                  onReport: () => onReportReview(review),
                 ),
               ),
             ),
@@ -572,6 +575,7 @@ class RecipeReviewCard extends StatelessWidget {
   final UserBasePublic? reviewUser;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onReport;
 
   const RecipeReviewCard({
     super.key,
@@ -580,6 +584,7 @@ class RecipeReviewCard extends StatelessWidget {
     this.reviewUser,
     required this.onEdit,
     required this.onDelete,
+    required this.onReport,
   });
 
   @override
@@ -617,6 +622,7 @@ class RecipeReviewCard extends StatelessWidget {
             children: [
               RecipeStarRating(rating: review.rating, size: 16),
               const Spacer(),
+              DesignIconButton(icon: Icons.flag_rounded, onPressed: onReport),
               if (isOwn) ...[
                 DesignIconButton(icon: Icons.edit_rounded, onPressed: onEdit),
                 DesignIconButton(

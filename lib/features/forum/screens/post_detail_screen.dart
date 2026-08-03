@@ -246,7 +246,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Future<void> _reportComment(String commentId) async {
     await showModerationRequestSheet(
       context,
-      objectType: ModerationObjectType.forumPost,
+      objectType: ModerationObjectType.forumComment,
       objectId: commentId,
       objectName: 'Kommentar',
       isOwn: false,

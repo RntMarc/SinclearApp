@@ -185,13 +185,14 @@ class ShellNavContent extends StatelessWidget {
               active: _isActive('/home'),
               onTap: () => onNavigate('/home'),
             ),
-            _tile(
-              context,
-              icon: Icons.palette_rounded,
-              label: 'Design Showcase',
-              active: _isActive('/design-showcase'),
-              onTap: () => onNavigate('/design-showcase'),
-            ),
+            if (AppScope.of(context).auth.isAdmin)
+              _tile(
+                context,
+                icon: Icons.palette_rounded,
+                label: '👑 Design Showcase',
+                active: _isActive('/design-showcase'),
+                onTap: () => onNavigate('/design-showcase'),
+              ),
             _header(context, 'SYSTEM'),
             _tile(
               context,
@@ -515,11 +516,12 @@ class ShellMobileBottomNav extends StatelessWidget {
           context,
           category: 'System',
           items: [
-            const ShellSheetItem(
-              'Design Showcase',
-              Icons.palette_rounded,
-              '/design-showcase',
-            ),
+            if (AppScope.of(context).auth.isAdmin)
+              const ShellSheetItem(
+                '👑 Design Showcase',
+                Icons.palette_rounded,
+                '/design-showcase',
+              ),
             const ShellSheetItem(
               'Einstellungen',
               Icons.settings_rounded,

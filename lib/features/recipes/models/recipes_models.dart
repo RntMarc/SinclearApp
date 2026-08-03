@@ -77,6 +77,7 @@ class Recipe {
   /// Nur bei authentifizierten Aufrufen gesetzt; die öffentlichen Endpunkte
   /// blenden `creatorId` für anonyme Nutzer aus.
   final String? creatorId;
+  final bool isDraft;
   final String createdAt;
   final String updatedAt;
 
@@ -89,6 +90,7 @@ class Recipe {
     this.image,
     required this.servings,
     this.creatorId,
+    this.isDraft = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -103,6 +105,7 @@ class Recipe {
       image: json['image'] as String?,
       servings: json['servings'] as int,
       creatorId: json['creatorId'] as String?,
+      isDraft: json['isDraft'] as bool? ?? false,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
     );
@@ -124,6 +127,7 @@ class RecipeListItem extends Recipe {
     super.image,
     required super.servings,
     super.creatorId,
+    super.isDraft,
     required super.createdAt,
     required super.updatedAt,
     this.avgRating,
@@ -140,6 +144,7 @@ class RecipeListItem extends Recipe {
       image: json['image'] as String?,
       servings: json['servings'] as int,
       creatorId: json['creatorId'] as String?,
+      isDraft: json['isDraft'] as bool? ?? false,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
       avgRating: (json['avgRating'] as num?)?.toDouble(),
@@ -164,6 +169,7 @@ class RecipeDetail extends Recipe {
     super.image,
     required super.servings,
     super.creatorId,
+    super.isDraft,
     required super.createdAt,
     required super.updatedAt,
     this.avgRating,
@@ -183,6 +189,7 @@ class RecipeDetail extends Recipe {
       image: json['image'] as String?,
       servings: json['servings'] as int,
       creatorId: json['creatorId'] as String?,
+      isDraft: json['isDraft'] as bool? ?? false,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
       avgRating: (json['avgRating'] as num?)?.toDouble(),

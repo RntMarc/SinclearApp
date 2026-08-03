@@ -45,6 +45,18 @@ damit Font, Weight und Farbe aus den aktiven `DesignTokens` kommen:
   Nie `Colors.white`/`Colors.black` für Text nutzen – immer
   `tokens.textHigh` oder `tokens.textLow`.
 
+## Admin-Kennzeichnung
+
+- Aktionen, die ein Nutzer **nur** als Administrator ausführen kann (normale
+  Nutzer hätten an dieser Stelle keine solche Option), werden mit dem Emoji
+  **👑** vor dem Text gekennzeichnet: `👑 Ort löschen`.
+- Die Krone steht immer direkt vor dem Aktions-Label – in Menü-Einträgen,
+  Sheet-Titeln und Dialog-Titeln. Ist die Aktion auch für normale Nutzer
+  möglich (z.B. eigenes Objekt löschen), entfällt die Krone.
+- Admins sehen neben ihren Admin-Aktionen immer auch die Optionen, die ein
+  normaler Nutzer an dieser Stelle hätte (z.B. neben `👑 Ort löschen` auch
+  `Löschung beantragen` bzw. `Ort melden`).
+
 ## Navigation
 
 ### Mobile (Bottom Navigation Bar)

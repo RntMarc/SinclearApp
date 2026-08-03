@@ -11,6 +11,8 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/feedback_models.dart';
 import '../services/feedback_service.dart';
 import '../widgets/suggestion_list.dart';
@@ -111,6 +113,16 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ).showSnackBar(SnackBar(content: Text('Löschen fehlgeschlagen: $e')));
       }
     }
+  }
+
+  Future<void> _reportSuggestion(FeedbackSuggestion s) async {
+    await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.feedbackSuggestion,
+      objectId: s.id,
+      objectName: s.title,
+      isOwn: false,
+    );
   }
 
   Future<void> _submitSuggestion() async {
@@ -274,6 +286,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   isAdmin: isAdmin,
                   onVote: (s) => _vote(s.id),
                   onDelete: (s) => _deleteSuggestion(s.id),
+                  onReport: _reportSuggestion,
                 ),
                 SizedBox(height: tokens.spaceXl + 44),
               ],
