@@ -8,11 +8,9 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
-import '../../subscription/models/subscription_models.dart';
-import '../../subscription/widgets/subscription_card.dart';
-import '../../subscription/screens/subscription_detail_screen.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
+import '../services/trip_data_controller.dart';
 import '../widgets/ticket_form_sheet.dart';
 import '../widgets/trip_detail_widgets.dart';
 import '../widgets/embedded_forum_view.dart';
@@ -35,11 +33,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   String? _error;
 
   TravelTrip? _trip;
-  List<TravelEvent> _events = [];
-  List<TravelAccommodation> _accommodations = [];
-  List<TravelParticipant> _participants = [];
-  List<TravelEventTicket> _tickets = [];
-  List<Subscription> _subscriptions = [];
+  TripDataController? _controller;
   bool _hasLoaded = false;
 
   TabController? _tabController;
@@ -54,55 +48,20 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     }
   }
 
+  /// Loads only the trip itself; every tab section loads its own data via
+  /// [TripDataController] and fails independently.
   Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
     });
 
-    final currentUserId = AppScope.of(context).auth.userId;
-
     try {
       final trip = await _service.getTrip(widget.id);
-
-      final futures = <Future>[
-        _service.getEvents(widget.id),
-        _service.getAccommodations(widget.id),
-        _service.getParticipants(widget.id),
-        _service.getTripTickets(widget.id),
-      ];
-
-      if (trip.subscriptionCount > 0) {
-        futures.add(_service.getTripSubscriptions(widget.id));
-      }
-
-      final results = await Future.wait(futures);
-      final events = (results[0] as TravelEventListResponse).data;
-
-      final myEventIds = currentUserId != null
-          ? events
-                .where((e) => e.participants.any((p) => p.id == currentUserId))
-                .map((e) => e.id)
-                .toList()
-          : <String>[];
-
-      final eventTicketLists = await Future.wait(
-        myEventIds.map((eid) => _service.getEventTickets(eid)),
-      );
-      final eventTickets = eventTicketLists.expand((l) => l).toList();
-      final tripTickets = results[3] as List<TravelEventTicket>;
-
       if (!mounted) return;
-
       setState(() {
         _trip = trip;
-        _events = events;
-        _accommodations = (results[1] as TravelAccommodationListResponse).data;
-        _participants = (results[2] as TravelParticipantListResponse).data;
-        _tickets = [...tripTickets, ...eventTickets];
-        if (trip.subscriptionCount > 0 && results.length > 4) {
-          _subscriptions = results[4] as List<Subscription>;
-        }
+        _controller = _createController();
         _loading = false;
       });
     } catch (e, st) {
@@ -115,8 +74,31 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     }
   }
 
+  /// Pull-to-refresh and post-action reload: keeps the current UI when the
+  /// trip request fails and refetches every section via the controller.
+  Future<void> _refresh() async {
+    _controller?.refresh();
+    if (mounted) setState(() {});
+    try {
+      final trip = await _service.getTrip(widget.id);
+      if (!mounted) return;
+      setState(() => _trip = trip);
+    } catch (e, st) {
+      _log.warning('Trip refresh failed; keeping current data', e, st);
+    }
+  }
+
+  TripDataController _createController() {
+    return TripDataController(
+      service: _service,
+      tripId: widget.id,
+      currentUserId: AppScope.of(context).auth.userId,
+    );
+  }
+
   @override
   void dispose() {
+    _controller?.dispose();
     _tabController?.dispose();
     super.dispose();
   }
@@ -137,7 +119,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       service: _service,
       tripId: widget.id,
     );
-    if (result == true && mounted) _load();
+    if (result == true && mounted) _refresh();
   }
 
   @override
@@ -191,7 +173,8 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     }
 
     final trip = _trip;
-    if (trip == null) {
+    final controller = _controller;
+    if (trip == null || controller == null) {
       return Center(
         child: DesignText(
           'Reise nicht gefunden',
@@ -215,10 +198,9 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       switch (title) {
         case 'Übersicht':
           tabViews.add(
-            TripOverviewTab(
+            TripOverviewSection(
               trip: trip,
-              accommodations: _accommodations,
-              participants: _participants,
+              controller: controller,
               currentUserId: currentUserId,
               onSelectMapTab: mapTabIndex != -1
                   ? () => _tabController?.animateTo(mapTabIndex)
@@ -230,26 +212,29 @@ class _TripDetailScreenState extends State<TripDetailScreen>
           tabViews.add(EmbeddedForumView(forumId: trip.forumId!));
           break;
         case 'Events':
-          tabViews.add(TripEventsTab(events: _events, currentUserId: currentUserId));
+          tabViews.add(
+            TripEventsSection(
+              controller: controller,
+              currentUserId: currentUserId,
+            ),
+          );
           break;
         case 'Tickets':
           tabViews.add(
-            TripTicketsTab(
-              tickets: _tickets,
-              events: _events,
+            TripTicketsSection(
+              controller: controller,
               ticket: trip.ticket,
               ticketUrl: trip.ticketUrl,
             ),
           );
           break;
         case 'Zahlungen':
-          tabViews.add(_buildPaymentsTab(tokens));
+          tabViews.add(TripPaymentsSection(controller: controller));
           break;
         case 'Karte':
           tabViews.add(
-            TripMapTab(
-              accommodations: _accommodations,
-              events: _events,
+            TripMapSection(
+              controller: controller,
               currentUserId: currentUserId,
             ),
           );
@@ -260,7 +245,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     _ensureTabController(tabs.length);
 
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: _refresh,
       child: Column(
         children: [
           TabBar(
@@ -281,77 +266,57 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     );
   }
 
+  /// Tab structure derives from trip metadata only, so no tab appears or
+  /// disappears when the section data arrives.
   List<String> _getTabTitles(TravelTrip trip) {
     final titles = <String>['Übersicht'];
     if (trip.forumId != null) titles.add('Forum');
     titles.add('Events');
-    final hasTicketInfo = (trip.ticket != null && trip.ticket!.isNotEmpty) ||
+    final hasTicketInfo =
+        (trip.ticket != null && trip.ticket!.isNotEmpty) ||
         (trip.ticketUrl != null && trip.ticketUrl!.isNotEmpty) ||
         trip.hastickets == '1';
-    if (_tickets.isNotEmpty || hasTicketInfo) titles.add('Tickets');
-    if (_subscriptions.isNotEmpty) titles.add('Zahlungen');
+    // ponytail: ticket visibility relies on trip metadata only (the trip has
+    // no ticket count); trips whose tickets exist only via the tickets
+    // endpoint hide the tab until the API exposes a count.
+    if (hasTicketInfo) titles.add('Tickets');
+    if (trip.subscriptionCount > 0) titles.add('Zahlungen');
     titles.add('Karte');
     return titles;
   }
 
   Widget _buildBodyWithFab() {
-    if (_loading || _error != null || _trip == null) return _buildBody();
-    final tabTitles = _getTabTitles(_trip!);
-    final ticketsTabIndex = tabTitles.indexOf('Tickets');
-    final showFab = ticketsTabIndex != -1 &&
-        _currentTabIndex == ticketsTabIndex &&
-        _trip!.hastickets == '1';
-
-    return Stack(
-      children: [
-        _buildBody(),
-        if (showFab)
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              heroTag: 'trip_ticket_fab',
-              onPressed: _addTicket,
-              tooltip: 'Ticket hinzufügen',
-              child: const Icon(Icons.qr_code_scanner_rounded),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentsTab(DesignTokens tokens) {
-    if (_subscriptions.isEmpty) {
-      return Center(
-        child: DesignText(
-          'Keine Zahlungen verfügbar',
-          style: DesignTextStyle.body,
-          color: tokens.textLow,
-        ),
-      );
+    if (_loading || _error != null || _trip == null || _controller == null) {
+      return _buildBody();
     }
+    final controller = _controller!;
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final tabTitles = _getTabTitles(_trip!);
+        final ticketsTabIndex = tabTitles.indexOf('Tickets');
+        final showFab =
+            ticketsTabIndex != -1 &&
+            _currentTabIndex == ticketsTabIndex &&
+            _trip!.hastickets == '1';
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(tokens.spaceLg),
-      child: Column(
-        children: _subscriptions.map((sub) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: tokens.spaceSm),
-            child: SubscriptionCard(
-              subscription: sub,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        SubscriptionDetailScreen(subscription: sub),
-                  ),
-                );
-              },
-            ),
-          );
-        }).toList(),
-      ),
+        return Stack(
+          children: [
+            _buildBody(),
+            if (showFab)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton(
+                  heroTag: 'trip_ticket_fab',
+                  onPressed: _addTicket,
+                  tooltip: 'Ticket hinzufügen',
+                  child: const Icon(Icons.qr_code_scanner_rounded),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
