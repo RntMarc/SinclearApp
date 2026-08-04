@@ -44,7 +44,7 @@ void main() {
   });
 
   test('create-Request serialisiert die API-Enum-Werte', () {
-    final body = ModerationRequestCreateRequest(
+    final body = const ModerationRequestCreateRequest(
       requestType: ModerationRequestType.deletion,
       objectType: ModerationObjectType.forumPost,
       objectId: 'post-1',

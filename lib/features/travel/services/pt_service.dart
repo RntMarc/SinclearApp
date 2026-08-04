@@ -138,7 +138,7 @@ class PublicTransportService {
     final data = await _api.patch(
       '/public-transport/journeys/$journeyId',
       body: {
-        if (tripId != null) 'tripId': tripId,
+        'tripId': ?tripId,
       },
       token: await _token(),
     );

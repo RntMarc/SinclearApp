@@ -8,9 +8,7 @@ class McpKeyService {
   final ApiClient _api;
   final AuthService _auth;
 
-  McpKeyService({required ApiClient api, required AuthService auth})
-    : _api = api,
-      _auth = auth;
+  McpKeyService({required this._api, required this._auth});
 
   /// Liste aller eigenen API-Keys (maximal 3 aktive Keys pro Nutzer).
   Future<List<McpApiKey>> list() async {

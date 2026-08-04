@@ -109,7 +109,7 @@ class _McpKeysScreenState extends State<McpKeysScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DesignText('API-Key erstellt', style: DesignTextStyle.title),
+            const DesignText('API-Key erstellt', style: DesignTextStyle.title),
             const SizedBox(height: 8),
             DesignText(
               'Der Key wird aus Sicherheitsgründen nur einmal angezeigt. '
@@ -167,7 +167,7 @@ class _McpKeysScreenState extends State<McpKeysScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            DesignText('Key löschen', style: DesignTextStyle.title),
+            const DesignText('Key löschen', style: DesignTextStyle.title),
             const SizedBox(height: 8),
             DesignText(
               '„${key.label}" wird gelöscht und kann danach nicht mehr '

@@ -98,6 +98,26 @@ class RecipesService {
     return RecipeBookmarkListResponse.fromJson(data);
   }
 
+  Future<RecipeListResponse> getDrafts({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    final data = await _api.get(
+      '/recipes/drafts',
+      queryParams: params,
+      token: await _token(),
+    );
+    return RecipeListResponse.fromJson(data);
+  }
+
+  Future<void> publish(String id) async {
+    await _api.post('/recipes/$id/publish', token: await _token());
+  }
+
   Future<RecipeReviewListResponse> getReviews(
     String recipeId, {
     int page = 1,
