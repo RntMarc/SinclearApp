@@ -388,13 +388,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             Expanded(
               child: TabBarView(
                 children: [
-                  RecipeContent(
-                    recipe: _recipe!,
-                    bookmarked: _bookmarked ?? false,
-                    bookmarkToggling: _bookmarkToggling,
-                    guest: guest,
-                    onToggleBookmark: _toggleBookmark,
-                  ),
+                  RecipeContent(recipe: _recipe!),
                   RecipeReviewsSection(
                     reviews: _reviews,
                     loading: _loadingReviews,
