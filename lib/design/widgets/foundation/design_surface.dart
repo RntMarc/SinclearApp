@@ -26,7 +26,12 @@ class DesignSurface extends StatelessWidget {
     );
     final expanded = _expandToViewport(gradient);
     if (!withGrain) return expanded;
-    return GrainOverlay(opacity: tokens.grainOpacity, child: expanded);
+    final grainFraction = DesignTheme.grainOpacityOf(context);
+    if (grainFraction <= 0) return expanded;
+    return GrainOverlay(
+      opacity: grainFraction * tokens.grainOpacity,
+      child: expanded,
+    );
   }
 
   /// Forces the surface to fill the available height when the parent provides

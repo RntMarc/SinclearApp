@@ -133,6 +133,8 @@ Future<void> _bootstrap() async {
   }
 
   final initialDesign = await DesignPreferences.load();
+  final initialGrainOpacity = await DesignPreferences.loadGrainOpacity();
+  final initialThemeMode = await DesignPreferences.loadThemeMode();
 
   final dashboardLayoutStore = SharedPreferencesDashboardLayoutStore();
   final dashboardController = DashboardController(
@@ -172,6 +174,8 @@ Future<void> _bootstrap() async {
       webUpdate: webUpdate,
       dashboardController: dashboardController,
       initialDesignVariant: initialDesign,
+      initialGrainOpacity: initialGrainOpacity,
+      initialThemeMode: initialThemeMode,
       router: router,
       appBaseUrl: appBaseUrl,
       apiBaseUrl: baseUrl,

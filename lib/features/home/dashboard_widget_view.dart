@@ -43,7 +43,7 @@ class DashboardWidgetView extends StatefulWidget {
 }
 
 class _DashboardWidgetViewState extends State<DashboardWidgetView>
-    with TickerProviderStateMixin
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin
     implements DashboardRefreshable {
   List<DashboardRow>? _rows;
   Object? _error;
@@ -57,6 +57,11 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
       widget.controller.configFor(widget.spec.type);
 
   bool get _editing => widget.controller.editing;
+
+  /// Widgets bleiben beim Scrollen am Leben, damit kein State-Verlust,
+  /// Skeleton-Flackern oder erneute Datenabrufe entstehen.
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -138,6 +143,7 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final config = _config;
     final editing = _editing;
     final rows = _rows;
@@ -178,16 +184,14 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
           if (showSkeleton)
             _buildSkeleton(tokens, config.count)
           else if (error != null)
-            _buildErrorBox(tokens, config.count)
+            _buildErrorBox(tokens)
           else if (rows!.isEmpty)
-            _buildEmptyBox(tokens, config.count)
+            _buildEmptyBox(tokens)
           else
-            for (var i = 0; i < config.count; i++)
+            for (var i = 0; i < rows.length; i++)
               SizedBox(
                 height: _rowHeight,
-                child: i < rows.length
-                    ? Center(child: _rowTile(rows[i], editing))
-                    : null,
+                child: Center(child: _rowTile(rows[i], editing)),
               ),
         ],
       ),
@@ -304,9 +308,9 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
     );
   }
 
-  Widget _buildEmptyBox(DesignTokens tokens, int count) {
+  Widget _buildEmptyBox(DesignTokens tokens) {
     return SizedBox(
-      height: count * _rowHeight,
+      height: _rowHeight,
       child: Center(
         child: DesignText(
           widget.spec.type.emptyText,
@@ -317,9 +321,9 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
     );
   }
 
-  Widget _buildErrorBox(DesignTokens tokens, int count) {
+  Widget _buildErrorBox(DesignTokens tokens) {
     return SizedBox(
-      height: count * _rowHeight,
+      height: _rowHeight,
       child: Center(
         child: Row(
           mainAxisSize: MainAxisSize.min,

@@ -50,12 +50,26 @@ class SinclearApp extends StatelessWidget {
 
   /// Active design selection; changes are persisted via [DesignController].
   final ValueNotifier<DesignVariant> designVariant;
+
+  /// Initial, locally persisted grain opacity fraction (0..1).
+  final double initialGrainOpacity;
+
+  /// Active grain intensity; changes are persisted via [GrainController].
+  final ValueNotifier<double> grainOpacity;
+
+  /// Initial, locally persisted theme mode.
+  final ThemeMode initialThemeMode;
+
+  /// Active theme mode; changes are persisted via [ThemeModeController].
+  final ValueNotifier<ThemeMode> themeMode;
   final String appBaseUrl;
   final String apiBaseUrl;
 
   SinclearApp({
     super.key,
     required this.initialDesignVariant,
+    required this.initialGrainOpacity,
+    required this.initialThemeMode,
     required this.auth,
     required this.explore,
     required this.nominatim,
@@ -83,7 +97,9 @@ class SinclearApp extends StatelessWidget {
          forum: forum,
          subscription: subscription,
        ),
-       designVariant = DesignController(initialDesignVariant);
+       designVariant = DesignController(initialDesignVariant),
+       grainOpacity = GrainController(initialGrainOpacity),
+       themeMode = ThemeModeController(initialThemeMode);
 
   @override
   Widget build(BuildContext context) {
@@ -112,25 +128,30 @@ class SinclearApp extends StatelessWidget {
         service: webUpdate,
         child: DesignScope(
           variant: designVariant,
-          child: MaterialApp.router(
-            title: 'Sinclear Beyond',
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF0064EA),
-                brightness: Brightness.light,
+          grain: grainOpacity,
+          themeMode: themeMode,
+          child: ListenableBuilder(
+            listenable: themeMode,
+            builder: (context, _) => MaterialApp.router(
+              title: 'Sinclear Beyond',
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color(0xFF0064EA),
+                  brightness: Brightness.light,
+                ),
               ),
+              darkTheme: ThemeData(
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color(0xFF0064EA),
+                  brightness: Brightness.dark,
+                ).copyWith(surface: const Color(0xFF011219)),
+              ),
+              themeMode: themeMode.value,
+              routerConfig: router,
             ),
-            darkTheme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF0064EA),
-                brightness: Brightness.dark,
-              ).copyWith(surface: const Color(0xFF011219)),
-            ),
-            themeMode: ThemeMode.system,
-            routerConfig: router,
           ),
         ),
       ),
