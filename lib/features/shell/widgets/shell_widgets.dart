@@ -46,12 +46,10 @@ ShellNavCategory shellCategoryForLocation(String location) {
       location.startsWith('/rezepte')) {
     return ShellNavCategory.gemeinschaft;
   }
-  if (location.startsWith('/entdecken') ||
-      location.startsWith('/reisen')) {
+  if (location.startsWith('/entdecken') || location.startsWith('/reisen')) {
     return ShellNavCategory.unterwegs;
   }
-  if (location.startsWith('/kalender') ||
-      location.startsWith('/abos')) {
+  if (location.startsWith('/kalender') || location.startsWith('/abos')) {
     return ShellNavCategory.organisation;
   }
   return ShellNavCategory.home;
@@ -115,11 +113,8 @@ class ShellCategorySheet extends StatelessWidget {
                 trailing: showBadge
                     ? const DesignBadge(label: 'Bald')
                     : isActive
-                        ? DesignBadge(
-                            label: 'Aktiv',
-                            color: tokens.primary,
-                          )
-                        : null,
+                    ? DesignBadge(label: 'Aktiv', color: tokens.primary)
+                    : null,
                 padding: EdgeInsets.symmetric(
                   horizontal: tokens.spaceMd,
                   vertical: tokens.spaceSm,
@@ -304,8 +299,8 @@ class ShellNavContent extends StatelessWidget {
     final fg = active
         ? tokens.primary
         : enabled
-            ? tokens.textLow
-            : tokens.textLow.withValues(alpha: 0.4);
+        ? tokens.textLow
+        : tokens.textLow.withValues(alpha: 0.4);
 
     return PressScale(
       onTap: onTap,
@@ -327,11 +322,7 @@ class ShellNavContent extends StatelessWidget {
             Icon(icon, color: fg, size: 22),
             SizedBox(width: tokens.spaceMd),
             Expanded(
-              child: DesignText(
-                label,
-                style: DesignTextStyle.body,
-                color: fg,
-              ),
+              child: DesignText(label, style: DesignTextStyle.body, color: fg),
             ),
             trailing ?? const SizedBox.shrink(),
           ],
@@ -360,9 +351,10 @@ class ShellDesktop extends StatelessWidget {
         children: [
           DesignAppBar(
             title: shellTitleForLocation(location),
-            actions: const [
-              ShellShareButton(),
-              ShellNotificationBell(),
+            actions: [
+              if (location == '/home') const ShellDashboardEditButton(),
+              const ShellShareButton(),
+              const ShellNotificationBell(),
             ],
           ),
           Expanded(
@@ -407,10 +399,14 @@ class ShellMobile extends StatelessWidget {
     return DesignSurface(
       child: Column(
         children: [
-          DesignAppBar(title: title, actions: const [
-        ShellShareButton(),
-        ShellNotificationBell(),
-      ]),
+          DesignAppBar(
+            title: title,
+            actions: [
+              if (location == '/home') const ShellDashboardEditButton(),
+              const ShellShareButton(),
+              const ShellNotificationBell(),
+            ],
+          ),
           Expanded(child: child),
           ShellMobileBottomNav(currentLocation: location),
         ],
@@ -527,9 +523,21 @@ class ShellMobileBottomNav extends StatelessWidget {
               Icons.settings_rounded,
               '/einstellungen',
             ),
-            const ShellSheetItem('Admin', Icons.admin_panel_settings_rounded, null),
-            const ShellSheetItem('Mod-Anfragen', Icons.flag_rounded, '/mod-anfragen'),
-            const ShellSheetItem('Feedback', Icons.feedback_rounded, '/feedback'),
+            const ShellSheetItem(
+              'Admin',
+              Icons.admin_panel_settings_rounded,
+              null,
+            ),
+            const ShellSheetItem(
+              'Mod-Anfragen',
+              Icons.flag_rounded,
+              '/mod-anfragen',
+            ),
+            const ShellSheetItem(
+              'Feedback',
+              Icons.feedback_rounded,
+              '/feedback',
+            ),
             const ShellSheetItem('Changelog', Icons.history_rounded, null),
           ],
         );
@@ -540,7 +548,11 @@ class ShellMobileBottomNav extends StatelessWidget {
           items: [
             const ShellSheetItem('Forum', Icons.forum_rounded, '/forum'),
             const ShellSheetItem('Kritik', Icons.rate_review_rounded, null),
-            const ShellSheetItem('Rezepte', Icons.restaurant_rounded, '/rezepte'),
+            const ShellSheetItem(
+              'Rezepte',
+              Icons.restaurant_rounded,
+              '/rezepte',
+            ),
             const ShellSheetItem('Fotos', Icons.photo_library_rounded, null),
             const ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
           ],
@@ -550,7 +562,11 @@ class ShellMobileBottomNav extends StatelessWidget {
           context,
           category: 'Unterwegs',
           items: [
-            const ShellSheetItem('Entdecken', Icons.explore_rounded, '/entdecken'),
+            const ShellSheetItem(
+              'Entdecken',
+              Icons.explore_rounded,
+              '/entdecken',
+            ),
             const ShellSheetItem('Reisen', Icons.flight_rounded, '/reisen'),
           ],
         );
@@ -565,11 +581,7 @@ class ShellMobileBottomNav extends StatelessWidget {
               '/kalender',
             ),
             const ShellSheetItem('Umfrage', Icons.poll_rounded, null),
-            const ShellSheetItem(
-              'Abos',
-              Icons.subscriptions_rounded,
-              '/abos',
-            ),
+            const ShellSheetItem('Abos', Icons.subscriptions_rounded, '/abos'),
           ],
         );
     }
@@ -608,8 +620,28 @@ class ShellShareButton extends StatelessWidget {
 
     return DesignIconButton(
       icon: Icons.ios_share_rounded,
-      onPressed: () => SharePlus.instance.share(
-        ShareParams(text: url),
+      onPressed: () => SharePlus.instance.share(ShareParams(text: url)),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard Edit Toggle (nur auf der Start-Seite)
+// ---------------------------------------------------------------------------
+
+/// Schaltet den Bearbeitungsmodus des Dashboards um (nur auf `/home`).
+class ShellDashboardEditButton extends StatelessWidget {
+  const ShellDashboardEditButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final dashboard = AppScope.of(context).dashboard;
+    return ListenableBuilder(
+      listenable: dashboard,
+      builder: (context, _) => DesignIconButton(
+        icon: dashboard.editing ? Icons.check_rounded : Icons.edit_rounded,
+        tinted: dashboard.editing,
+        onPressed: dashboard.toggleEditing,
       ),
     );
   }
@@ -664,9 +696,7 @@ class _ShellNotificationBellState extends State<ShellNotificationBell> {
           Positioned(
             top: 2,
             right: 2,
-            child: DesignBadge(
-              label: unread > 99 ? '99+' : unread.toString(),
-            ),
+            child: DesignBadge(label: unread > 99 ? '99+' : unread.toString()),
           ),
       ],
     );

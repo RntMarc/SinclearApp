@@ -21,6 +21,8 @@ import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
+import 'features/home/dashboard_controller.dart';
+import 'features/home/dashboard_widget_repository.dart';
 
 class SinclearApp extends StatelessWidget {
   final AuthService auth;
@@ -39,6 +41,8 @@ class SinclearApp extends StatelessWidget {
   final McpKeyService mcpKeys;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService webUpdate;
+  final DashboardController dashboardController;
+  final DashboardWidgetRepository dashboardWidgets;
   final GoRouter router;
 
   /// Initial, locally persisted design variant (survives logout/login).
@@ -68,10 +72,18 @@ class SinclearApp extends StatelessWidget {
     required this.mcpKeys,
     required this.androidUpdate,
     required this.webUpdate,
+    required this.dashboardController,
     required this.router,
     required this.appBaseUrl,
     required this.apiBaseUrl,
-  }) : designVariant = DesignController(initialDesignVariant);
+  }) : dashboardWidgets = DashboardWidgetRepository(
+         recipes: recipes,
+         calendar: calendar,
+         travel: travel,
+         forum: forum,
+         subscription: subscription,
+       ),
+       designVariant = DesignController(initialDesignVariant);
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +103,8 @@ class SinclearApp extends StatelessWidget {
       subscription: subscription,
       mcpKeys: mcpKeys,
       androidUpdate: androidUpdate,
+      dashboard: dashboardController,
+      dashboardWidgets: dashboardWidgets,
       webUpdate: webUpdate,
       appBaseUrl: appBaseUrl,
       apiBaseUrl: apiBaseUrl,

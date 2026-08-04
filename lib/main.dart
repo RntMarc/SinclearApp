@@ -34,6 +34,9 @@ import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
+import 'features/home/dashboard_cache.dart';
+import 'features/home/dashboard_controller.dart';
+import 'features/home/dashboard_layout_store.dart';
 import 'firebase_options.dart';
 import 'router/router.dart';
 
@@ -131,6 +134,13 @@ Future<void> _bootstrap() async {
 
   final initialDesign = await DesignPreferences.load();
 
+  final dashboardLayoutStore = SharedPreferencesDashboardLayoutStore();
+  final dashboardController = DashboardController(
+    initialLayout: await dashboardLayoutStore.load(),
+    store: dashboardLayoutStore,
+    cache: DashboardCache(),
+  );
+
   notification.onNotificationTapped = (notificationId) {
     if (auth.isLoggedIn) {
       router.go('/home');
@@ -160,6 +170,7 @@ Future<void> _bootstrap() async {
       mcpKeys: mcpKeys,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
+      dashboardController: dashboardController,
       initialDesignVariant: initialDesign,
       router: router,
       appBaseUrl: appBaseUrl,
