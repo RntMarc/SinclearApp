@@ -252,6 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? null
                             : () => _toggleDiscordSync(!_syncAvatarFromDiscord),
                       ),
+                    const DesignDivider(),
                     DesignListTile(
                       leading: const Icon(Icons.key_rounded),
                       title: 'MCP-API-Keys',

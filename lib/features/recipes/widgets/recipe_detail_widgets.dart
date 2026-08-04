@@ -15,19 +15,8 @@ import '../models/recipes_models.dart';
 
 class RecipeContent extends StatelessWidget {
   final RecipeDetail recipe;
-  final bool bookmarked;
-  final bool bookmarkToggling;
-  final bool guest;
-  final VoidCallback onToggleBookmark;
 
-  const RecipeContent({
-    super.key,
-    required this.recipe,
-    required this.bookmarked,
-    required this.bookmarkToggling,
-    this.guest = false,
-    required this.onToggleBookmark,
-  });
+  const RecipeContent({super.key, required this.recipe});
 
   /// Builds the Bring deep link for the recipe's public HTML page.
   String bringDeepLink(BuildContext context) {
@@ -81,37 +70,6 @@ class RecipeContent extends StatelessWidget {
                 ),
             ],
           ),
-          SizedBox(height: tokens.spaceLg),
-          Row(
-            children: [
-              if (!guest) ...[
-                Expanded(
-                  child: DesignButton(
-                    variant: DesignButtonVariant.filled,
-                    icon: bookmarked
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_border_rounded,
-                    label: bookmarkToggling
-                        ? '…'
-                        : bookmarked
-                        ? 'Lesezeichen entfernen'
-                        : 'Lesezeichen setzen',
-                    loading: bookmarkToggling,
-                    onPressed: bookmarkToggling ? null : onToggleBookmark,
-                  ),
-                ),
-                SizedBox(width: tokens.spaceSm),
-              ],
-              Expanded(
-                child: DesignButton(
-                  variant: DesignButtonVariant.outlined,
-                  icon: Icons.shopping_basket_rounded,
-                  label: 'Zu Bring',
-                  onPressed: () => launchExternalUrl(bringDeepLink(context)),
-                ),
-              ),
-            ],
-          ),
           SizedBox(height: tokens.spaceXl),
           if (recipe.ingredients.isNotEmpty) ...[
             DesignText(
@@ -133,6 +91,20 @@ class RecipeContent extends StatelessWidget {
                       ),
                     ingredientRow(recipe.ingredients[i], tokens),
                   ],
+                  SizedBox(height: tokens.spaceLg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DesignButton(
+                          variant: DesignButtonVariant.outlined,
+                          icon: Icons.shopping_basket_rounded,
+                          label: 'Zu Bring',
+                          onPressed: () =>
+                              launchExternalUrl(bringDeepLink(context)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -360,26 +332,37 @@ class RecipeImageViewer extends StatelessWidget {
 Widget ingredientRow(RecipeIngredient ingredient, DesignTokens tokens) {
   return Padding(
     padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
-    child: Row(
-      children: [
-        SizedBox(
-          width: 64,
-          child: DesignText(
-            '${formatAmount(ingredient.amount)} '
-            '${recipeUnitLabel(ingredient.unit)}',
-            style: DesignTextStyle.body,
-            color: tokens.textHigh,
-          ),
-        ),
-        SizedBox(width: tokens.spaceMd),
-        Expanded(
-          child: DesignText(
-            ingredient.name,
-            style: DesignTextStyle.body,
-            color: tokens.textHigh,
-          ),
-        ),
-      ],
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        // Mengen-Spalte wächst proportional mit der Zeilenbreite, damit
+        // lange Einheiten ("Packung(en)") nicht umbrechen und Namen auf
+        // Desktop nicht übermäßig viel Platz bekommen.
+        final amountWidth = (constraints.maxWidth * 0.3).clamp(
+          96.0,
+          tokens.spaceXl * 6.0,
+        );
+        return Row(
+          children: [
+            SizedBox(
+              width: amountWidth,
+              child: DesignText(
+                '${formatAmount(ingredient.amount)} '
+                '${recipeUnitLabel(ingredient.unit)}',
+                style: DesignTextStyle.body,
+                color: tokens.textHigh,
+              ),
+            ),
+            SizedBox(width: tokens.spaceMd),
+            Expanded(
+              child: DesignText(
+                ingredient.name,
+                style: DesignTextStyle.body,
+                color: tokens.textHigh,
+              ),
+            ),
+          ],
+        );
+      },
     ),
   );
 }
