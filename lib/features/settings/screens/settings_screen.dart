@@ -17,6 +17,7 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
+import '../../../design/widgets/primitives/press_scale.dart';
 import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
 
@@ -286,6 +287,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 12),
                       const DesignSegmentedSwitch(),
+                      const SizedBox(height: 8),
+                      const DesignDivider(),
+                      const DesignText('Design-Modus',
+                          style: DesignTextStyle.title),
+                      const SizedBox(height: 4),
+                      DesignText(
+                        'Dunkel, hell oder Geräteeinstellung folgen.',
+                        style: DesignTextStyle.label,
+                        color: tokens.textLow,
+                      ),
+                      const SizedBox(height: 12),
+                      _ThemeModeSelector(),
+                      const SizedBox(height: 8),
+                      const DesignDivider(),
+                      const DesignText('Grain-Effekt',
+                          style: DesignTextStyle.title),
+                      const SizedBox(height: 4),
+                      DesignText(
+                        'Stärke der feinen Textur im Hintergrund.',
+                        style: DesignTextStyle.label,
+                        color: tokens.textLow,
+                      ),
+                      const SizedBox(height: 12),
+                      _GrainSlider(),
                     ],
                   ),
                 ),
@@ -536,5 +561,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
       developer.log('Settings: install error: $e');
       dialog.setError('Download fehlgeschlagen: $e');
     }
+  }
+}
+
+/// Three-way segmented selector for the theme mode (dark / light / sync).
+class _ThemeModeSelector extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final active = DesignScope.themeModeOf(context);
+    final notifier = DesignScope.themeModeNotifierOf(context);
+
+    const modes = [
+      (ThemeMode.dark, 'Dunkel'),
+      (ThemeMode.light, 'Hell'),
+      (ThemeMode.system, 'Sync'),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: tokens.surfaceVariant.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(tokens.radiusPill),
+        border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: modes.map((entry) {
+          final (mode, label) = entry;
+          final isActive = mode == active;
+          return Expanded(
+            child: PressScale(
+              onTap: () => notifier.value = mode,
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+                decoration: BoxDecoration(
+                  color: isActive ? tokens.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(tokens.radiusPill),
+                  boxShadow: isActive ? tokens.glowShadow : null,
+                ),
+                alignment: Alignment.center,
+                child: DesignText(
+                  label,
+                  style: DesignTextStyle.label,
+                  color: isActive ? tokens.textOnPrimary : tokens.textLow,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+/// Slider controlling the grain overlay intensity (0 = off, 1 = max).
+class _GrainSlider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final notifier = DesignScope.grainNotifierOf(context);
+    final grainOpacity = DesignScope.grainOpacityOf(context);
+
+    return Row(
+      children: [
+        Icon(
+          Icons.grain_rounded,
+          size: 20,
+          color: grainOpacity > 0 ? tokens.primary : tokens.textLow,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: tokens.primary,
+              thumbColor: tokens.primary,
+              overlayColor: tokens.primary.withValues(alpha: 0.15),
+            ),
+            child: Slider(
+              value: grainOpacity,
+              onChanged: (v) => notifier.value = v,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        SizedBox(
+          width: 36,
+          child: DesignText(
+            grainOpacity > 0
+                ? '${(grainOpacity * 100).round()}%'
+                : 'Aus',
+            style: DesignTextStyle.label,
+            color: grainOpacity > 0 ? tokens.textHigh : tokens.textLow,
+          ),
+        ),
+      ],
+    );
   }
 }

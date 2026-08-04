@@ -201,19 +201,84 @@ void main() {
 
         final skeletonHeight = tester.getSize(find.byType(DesignCard)).height;
         // Header (44) + 3 Zeilen (3 × 60) + Card-Padding (2 × 12) + Margin
-        // (2 × 4) + Border (2 × 1) – die feste Höhe des Widgets.
+        // (2 × 4) + Border (2 × 1) – das Skeleton folgt der Konfiguration.
         expect(skeletonHeight, 258);
 
         completer.complete([_TestRow('Ein Rezept')]);
         await tester.pump();
         await tester.pump();
 
-        expect(tester.getSize(find.byType(DesignCard)).height, skeletonHeight);
+        // Mit Daten nur so hoch wie nötig: Header + 1 Zeile.
+        expect(tester.getSize(find.byType(DesignCard)).height, 138);
         expect(find.text('Ein Rezept'), findsOneWidget);
 
         controller.dispose();
       },
     );
+
+    testWidgets('Scrollen erzeugt keinen neuen Datenabruf (Keep-Alive)', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      var fetchCalls = 0;
+      final controller = DashboardController(
+        initialLayout: const DashboardLayout(
+          widgets: [
+            DashboardWidgetConfig(
+              type: DashboardWidgetType.recipes,
+              count: 3,
+              emptyState: WidgetEmptyState.card,
+            ),
+          ],
+        ),
+        store: SharedPreferencesDashboardLayoutStore(),
+        cache: DashboardCache(),
+      );
+
+      // Leerer Cache (leere Antwort): ohne Keep-Alive würde jedes
+      // Zurückscrollen einen neuen Abruf auslösen.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DesignScope(
+              variant: ValueNotifier<DesignVariant>(DesignVariant.materiaPop),
+              child: ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) => ListView(
+                  children: [
+                    DashboardWidgetView(
+                      controller: controller,
+                      spec: _TestSpec(
+                        type: DashboardWidgetType.recipes,
+                        fetchFn: (count) async {
+                          fetchCalls++;
+                          return <DashboardRow>[];
+                        },
+                      ),
+                      index: 0,
+                      total: 1,
+                    ),
+                    const SizedBox(height: 1200),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(fetchCalls, 1);
+
+      // Wegscrollen (Widget verlässt Viewport) und zurück.
+      await tester.drag(find.byType(ListView), const Offset(0, -900));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, 900));
+      await tester.pumpAndSettle();
+
+      expect(fetchCalls, 1);
+
+      controller.dispose();
+    });
 
     testWidgets(
       'Leer + hide: im Normal-Modus unsichtbar, im Edit-Modus sichtbar',
