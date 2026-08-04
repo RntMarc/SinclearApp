@@ -13,7 +13,7 @@ import 'dashboard_widget.dart';
 import 'dashboard_widget_spec.dart';
 
 /// Feste Höhe der Widget-Headerzeile (inkl. Edit-Aktionen).
-const double _headerHeight = 52;
+const double _headerHeight = 44;
 
 /// Feste Höhe einer Inhaltszeile – identisch für Daten, Leer- und Fehlerzustand.
 const double _rowHeight = 60;
@@ -112,6 +112,12 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
 
   @override
   Future<void> refresh() async {
+    // Ohne vorhandene Daten (noch nie geladen) ist der Abruf nie limitiert,
+    // sonst bliebe das Skeleton hängen; das Slot wird trotzdem belegt.
+    // ponytail: Ein Abruf ohne Daten schlüpft durch das Rate-Limit, wenn das
+    // Fenster gerade belegt ist – selten (leerer Cache) und selbstheilend über
+    // den aufgeschobenen Sammel-Refresh. Upgrade: Abruf-Zeitstempel im Cache.
+    if (!widget.controller.claimFetchSlot() && _rows != null) return;
     final epoch = ++_refreshEpoch;
     try {
       final rows = await widget.spec.fetch(_config.count);
@@ -158,6 +164,7 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
         horizontal: tokens.spaceLg,
         vertical: tokens.spaceXs,
       ),
+      padding: EdgeInsets.all(tokens.spaceMd),
       onTap: editing
           ? _openSettings
           : widget.spec.listRoute.isEmpty
@@ -213,7 +220,7 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
           Expanded(
             child: DesignText(
               widget.spec.type.title,
-              style: DesignTextStyle.subtitle,
+              style: DesignTextStyle.body,
               color: tokens.textHigh,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
