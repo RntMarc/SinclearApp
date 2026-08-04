@@ -397,7 +397,7 @@ class TripEventCard extends StatelessWidget {
                 if (!participating) const DesignBadge(label: 'Nicht dabei'),
                 if (event.hastickets == '1')
                   Padding(
-                    padding: EdgeInsets.only(left: 4),
+                    padding: const EdgeInsets.only(left: 4),
                     child: Icon(
                       Icons.confirmation_number_rounded,
                       size: 16,
@@ -684,7 +684,7 @@ class TripTicketsTab extends StatelessWidget {
                             height: 120,
                             width: double.infinity,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
+                            errorBuilder: (_, _, _) =>
                                 const SizedBox.shrink(),
                           ),
                         ),

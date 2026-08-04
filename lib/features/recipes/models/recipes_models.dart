@@ -387,6 +387,7 @@ class RecipeCreateRequest {
   final String? dietaryTags;
   final String? image;
   final int servings;
+  final bool isDraft;
   final List<RecipeIngredientCreateRequest>? ingredients;
   final List<RecipeStepCreateRequest>? steps;
 
@@ -397,6 +398,7 @@ class RecipeCreateRequest {
     this.dietaryTags,
     this.image,
     this.servings = 4,
+    this.isDraft = false,
     this.ingredients,
     this.steps,
   });
@@ -406,6 +408,7 @@ class RecipeCreateRequest {
       'title': title,
       'category': category,
       'servings': servings,
+      'isDraft': isDraft,
     };
     if (description != null) map['description'] = description;
     if (dietaryTags != null) map['dietaryTags'] = dietaryTags;
@@ -428,6 +431,7 @@ class RecipeUpdateRequest {
   final String? image;
   final bool removeImage;
   final int? servings;
+  final bool? isDraft;
   final List<RecipeIngredientCreateRequest>? ingredients;
   final List<RecipeStepCreateRequest>? steps;
 
@@ -439,6 +443,7 @@ class RecipeUpdateRequest {
     this.image,
     this.removeImage = false,
     this.servings,
+    this.isDraft,
     this.ingredients,
     this.steps,
   });
@@ -455,6 +460,7 @@ class RecipeUpdateRequest {
       map['image'] = image;
     }
     if (servings != null) map['servings'] = servings;
+    if (isDraft != null) map['isDraft'] = isDraft;
     if (ingredients != null) {
       map['ingredients'] = ingredients!.map((e) => e.toJson()).toList();
     }

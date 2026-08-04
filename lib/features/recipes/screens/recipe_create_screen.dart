@@ -55,6 +55,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
   bool _hasLoaded = false;
   bool _submitting = false;
   String? _error;
+  bool _isDraft = false;
 
   @override
   void dispose() {
@@ -207,6 +208,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
         _servingsController.text = recipe.servings.toString();
         _dietaryTagsController.text = recipe.dietaryTags ?? '';
         _serverImage = recipe.image;
+        _isDraft = recipe.isDraft;
         for (final ingredient in recipe.ingredients) {
           final entry = _IngredientEntry();
           entry.amountController.text = formatAmount(ingredient.amount);
@@ -269,7 +271,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
     return null;
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({required bool publish}) async {
     final error = _validate();
     if (error != null) {
       _setError(error);
@@ -284,7 +286,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
       ingredients.add(
         RecipeIngredientCreateRequest(
           amount: amount,
-          unit: entry.unit!,
+          unit: entry.unit!.toLowerCase(),
           name: name,
           order: ingredients.length,
         ),
@@ -328,6 +330,9 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
           steps: steps,
         );
         await scope.recipes.update(widget.recipeId!, request);
+        if (publish) {
+          await scope.recipes.publish(widget.recipeId!);
+        }
         if (!mounted) return;
         context.go('/rezepte/${widget.recipeId}');
       } else {
@@ -342,6 +347,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
               : _dietaryTagsController.text.trim(),
           image: image,
           servings: int.parse(_servingsController.text.trim()),
+          isDraft: !publish,
           ingredients: ingredients,
           steps: steps,
         );
@@ -372,15 +378,55 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
             ),
             title: widget.isEdit ? 'Rezept bearbeiten' : 'Neues Rezept',
             actions: [
-              Padding(
-                padding: EdgeInsets.only(right: tokens.spaceSm),
-                child: DesignButton(
-                  variant: DesignButtonVariant.filled,
-                  label: widget.isEdit ? 'Speichern' : 'Erstellen',
-                  loading: _submitting,
-                  onPressed: _submitting || _loading ? null : _submit,
+              if (!widget.isEdit) ...[
+                Padding(
+                  padding: EdgeInsets.only(right: tokens.spaceSm),
+                  child: DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    label: 'Veröffentlichen',
+                    loading: _submitting,
+                    onPressed: _submitting || _loading
+                        ? null
+                        : () => _submit(publish: true),
+                  ),
                 ),
-              ),
+                Padding(
+                  padding: EdgeInsets.only(right: tokens.spaceSm),
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Erstellen',
+                    loading: _submitting,
+                    onPressed: _submitting || _loading
+                        ? null
+                        : () => _submit(publish: false),
+                  ),
+                ),
+              ],
+              if (widget.isEdit) ...[
+                if (_isDraft)
+                  Padding(
+                    padding: EdgeInsets.only(right: tokens.spaceSm),
+                    child: DesignButton(
+                      variant: DesignButtonVariant.outlined,
+                      label: 'Veröffentlichen',
+                      loading: _submitting,
+                      onPressed: _submitting || _loading
+                          ? null
+                          : () => _submit(publish: true),
+                    ),
+                  ),
+                Padding(
+                  padding: EdgeInsets.only(right: tokens.spaceSm),
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Speichern',
+                    loading: _submitting,
+                    onPressed: _submitting || _loading
+                        ? null
+                        : () => _submit(publish: false),
+                  ),
+                ),
+              ],
             ],
           ),
           if (_loading)

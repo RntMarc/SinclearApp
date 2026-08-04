@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
@@ -24,10 +25,13 @@ class RecipeListScreen extends StatefulWidget {
 class _RecipeListScreenState extends State<RecipeListScreen> {
   List<RecipeListItem> _recentRecipes = [];
   List<RecipeListItem> _bookmarks = [];
+  List<RecipeListItem> _drafts = [];
   bool _loadingRecent = true;
   bool _loadingBookmarks = true;
+  bool _loadingDrafts = true;
   String? _recentError;
   String? _bookmarksError;
+  String? _draftsError;
   bool _hasLoaded = false;
 
   @override
@@ -37,6 +41,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       _hasLoaded = true;
       _loadRecent();
       _loadBookmarks();
+      _loadDrafts();
     }
   }
 
@@ -69,7 +74,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   }
 
   Future<void> _refresh() async {
-    await Future.wait([_loadRecent(), _loadBookmarks()]);
+    await Future.wait([_loadRecent(), _loadBookmarks(), _loadDrafts()]);
   }
 
   Future<void> _loadBookmarks() async {
@@ -100,6 +105,113 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
         _bookmarksError = 'Lesezeichen konnten nicht geladen werden.';
       });
     }
+  }
+
+  Future<void> _loadDrafts() async {
+    if (!AppScope.of(context).auth.isLoggedIn) {
+      setState(() {
+        _loadingDrafts = false;
+        _draftsError = null;
+      });
+      return;
+    }
+    setState(() {
+      _loadingDrafts = true;
+      _draftsError = null;
+    });
+    try {
+      final recipes = AppScope.of(context).recipes;
+      final response = await recipes.getDrafts(limit: 20);
+      if (!mounted) return;
+      setState(() {
+        _drafts = response.data.where((r) => r.isDraft).toList();
+        _loadingDrafts = false;
+      });
+    } catch (e, st) {
+      developer.log('Failed to load drafts', error: e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _loadingDrafts = false;
+        _draftsError = 'Entwürfe konnten nicht geladen werden.';
+      });
+    }
+  }
+
+  void _showDraftsSheet() {
+    showDesignSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DesignText('Entwürfe', style: DesignTextStyle.title),
+          SizedBox(height: DesignTheme.of(context).spaceMd),
+          if (_loadingDrafts)
+            Padding(
+              padding: EdgeInsets.all(DesignTheme.of(context).spaceLg),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: DesignTheme.of(context).primary,
+                ),
+              ),
+            )
+          else if (_drafts.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: DesignTheme.of(context).spaceLg),
+              child: Center(
+                child: DesignText(
+                  'Keine Entwürfe vorhanden.',
+                  color: DesignTheme.of(context).textLow,
+                ),
+              ),
+            )
+          else
+            ..._drafts.map((draft) => _draftTile(draft)),
+        ],
+      ),
+    );
+  }
+
+  Widget _draftTile(RecipeListItem draft) {
+    final tokens = DesignTheme.of(context);
+    return DesignCard(
+      margin: EdgeInsets.only(bottom: tokens.spaceSm),
+      useGlass: false,
+      onTap: () {
+        Navigator.pop(context);
+        context.go('/rezepte/${draft.id}/bearbeiten');
+      },
+      child: Padding(
+        padding: EdgeInsets.all(tokens.spaceSm),
+        child: Row(
+          children: [
+            _recipeThumb(draft, tokens, 48),
+            SizedBox(width: tokens.spaceSm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignText(
+                    draft.title,
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: tokens.spaceXs),
+                  DesignText(
+                    draft.categoryLabel,
+                    style: DesignTextStyle.label,
+                    color: tokens.textLow,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: tokens.textLow),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _recipeThumb(RecipeListItem recipe, DesignTokens tokens, double size) {
@@ -394,7 +506,15 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
               ),
             ),
           ),
-          if (!guest)
+          if (!guest) ...[
+            Positioned(
+              bottom: tokens.spaceLg + 56,
+              right: tokens.spaceLg,
+              child: DesignIconButton(
+                icon: Icons.edit_note_rounded,
+                onPressed: _showDraftsSheet,
+              ),
+            ),
             Positioned(
               bottom: tokens.spaceLg,
               right: tokens.spaceLg,
@@ -403,6 +523,7 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
                 onPressed: () => context.go('/rezepte/neu'),
               ),
             ),
+          ],
         ],
       ),
     );

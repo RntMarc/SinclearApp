@@ -45,7 +45,7 @@ class _TicketPreviewPageState extends State<TicketPreviewPage> {
                 child: Image(
                   image: resolveImageProvider(widget.image!)!,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               )
             : widget.qrcode != null
