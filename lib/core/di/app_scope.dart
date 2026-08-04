@@ -15,6 +15,8 @@ import '../../features/subscription/services/subscription_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/travel/services/pt_service.dart';
 import '../../features/user/services/user_service.dart';
+import '../../features/home/dashboard_controller.dart';
+import '../../features/home/dashboard_widget_repository.dart';
 
 class AppScope extends InheritedWidget {
   final AuthService auth;
@@ -33,6 +35,8 @@ class AppScope extends InheritedWidget {
   final McpKeyService mcpKeys;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
+  final DashboardController dashboard;
+  final DashboardWidgetRepository dashboardWidgets;
   final String appBaseUrl;
   final String apiBaseUrl;
 
@@ -53,6 +57,8 @@ class AppScope extends InheritedWidget {
     required this.subscription,
     required this.mcpKeys,
     required this.androidUpdate,
+    required this.dashboard,
+    required this.dashboardWidgets,
     this.webUpdate,
     required this.appBaseUrl,
     required this.apiBaseUrl,
