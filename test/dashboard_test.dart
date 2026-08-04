@@ -200,9 +200,9 @@ void main() {
         await tester.pump();
 
         final skeletonHeight = tester.getSize(find.byType(DesignCard)).height;
-        // Header (52) + 3 Zeilen (3 × 60) + Card-Padding (2 × 16) + Margin
+        // Header (44) + 3 Zeilen (3 × 60) + Card-Padding (2 × 12) + Margin
         // (2 × 4) + Border (2 × 1) – die feste Höhe des Widgets.
-        expect(skeletonHeight, 274);
+        expect(skeletonHeight, 258);
 
         completer.complete([_TestRow('Ein Rezept')]);
         await tester.pump();
@@ -254,6 +254,63 @@ void main() {
         controller.dispose();
       },
     );
+
+    testWidgets('Rate-Limit: max. 1 Datenabruf pro 20 s', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      var fetchCalls = 0;
+      var fakeNow = DateTime(2026, 1, 1, 12);
+      final controller = DashboardController(
+        initialLayout: const DashboardLayout(
+          widgets: [
+            DashboardWidgetConfig(
+              type: DashboardWidgetType.recipes,
+              count: 3,
+              emptyState: WidgetEmptyState.card,
+            ),
+          ],
+        ),
+        store: SharedPreferencesDashboardLayoutStore(),
+        cache: DashboardCache(),
+        clock: () => fakeNow,
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          controller,
+          _TestSpec(
+            type: DashboardWidgetType.recipes,
+            fetchFn: (count) async {
+              fetchCalls++;
+              return [_TestRow('Ein Rezept')];
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(fetchCalls, 1);
+
+      // Zweiter Abruf innerhalb von 20 s wird nicht ausgeführt, aber als
+      // aufgeschobener Sammel-Refresh vorgemerkt.
+      await controller.refreshAll();
+      await tester.pump();
+      expect(fetchCalls, 1);
+
+      // Nach Ablauf des Limits holt der aufgeschobene Refresh nach.
+      fakeNow = fakeNow.add(const Duration(seconds: 21));
+      await tester.pump(const Duration(seconds: 21));
+      await tester.pump();
+      expect(fetchCalls, 2);
+
+      // Frisch abgerufen: ein weiterer Abruf innerhalb des Fensters bleibt
+      // aus, ein aufgeschobener ist nur einmalig geplant.
+      fakeNow = fakeNow.add(const Duration(seconds: 5));
+      await controller.refreshAll();
+      await tester.pump();
+      expect(fetchCalls, 2);
+
+      controller.dispose();
+    });
   });
 }
 

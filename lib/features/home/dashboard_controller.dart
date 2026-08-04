@@ -14,23 +14,34 @@ abstract class DashboardRefreshable {
 /// Zentraler Zustand des Dashboards: Layout, Edit-Modus, Refresh-Takt.
 ///
 /// Läuft im [AppScope] über die App-Lebensdauer. Der Auto-Refresh-Timer
-/// pausiert im Hintergrund und lädt beim Zurückkehren einmal nach, wenn der
-/// letzte Refresh länger zurückliegt als das Intervall.
+/// pausiert im Hintergrund und lädt beim Zurückkehren einmal nach. Alle
+/// Datenabrufe unterliegen einem Rate-Limit von [minRefreshInterval] –
+/// unabhängig davon, wie oft gewechselt oder gezogen wird, wird höchstens
+/// einmal im Fenster tatsächlich geladen.
 class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
   DashboardController({
     required DashboardLayout initialLayout,
     required this.store,
     required this.cache,
     this.refreshInterval = const Duration(minutes: 5),
-  }) : _layout = initialLayout {
+    this.minRefreshInterval = const Duration(seconds: 20),
+    DateTime Function() clock = DateTime.now,
+  }) : // private Felder sind nicht als benannte Parameter erlaubt.
+       // ignore: prefer_initializing_formals
+       _clock = clock,
+       _layout = initialLayout {
     WidgetsBinding.instance.addObserver(this);
-    _lastRefresh = DateTime.now();
     _timer = Timer.periodic(refreshInterval, (_) => refreshAll());
   }
 
   final DashboardLayoutStore store;
   final DashboardCache cache;
   final Duration refreshInterval;
+
+  /// Minimaler Abstand zwischen zwei Datenabrufen (Rate-Limit).
+  final Duration minRefreshInterval;
+
+  final DateTime Function() _clock;
 
   DashboardLayout _layout;
   DashboardLayout get layout => _layout;
@@ -40,7 +51,12 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
 
   final List<DashboardRefreshable> _refreshables = [];
   Timer? _timer;
-  DateTime? _lastRefresh;
+
+  /// Zeitpunkt des letzten Datenabrufs; `epoch` = noch nie abgerufen.
+  DateTime _lastFetch = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Einmaliger Sammel-Refresh, sobald das Rate-Limit es wieder erlaubt.
+  Timer? _pendingFetch;
 
   DashboardWidgetConfig configFor(DashboardWidgetType type) {
     for (final config in _layout.widgets) {
@@ -103,12 +119,37 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
     _refreshables.remove(refreshable);
   }
 
+  /// Reserviert das Rate-Limit-Slot für einen Datenabruf und liefert `true`,
+  /// wenn jetzt geladen werden darf. Bei aktivem Limit wird ein einmaliger
+  /// Sammel-Refresh auf den frühesten erlaubten Zeitpunkt aufgeschoben.
+  bool claimFetchSlot() {
+    final now = _clock();
+    if (now.difference(_lastFetch) >= minRefreshInterval) {
+      _lastFetch = now;
+      _pendingFetch?.cancel();
+      _pendingFetch = null;
+      return true;
+    }
+    _pendingFetch ??= Timer(
+      minRefreshInterval - now.difference(_lastFetch),
+      refreshAll,
+    );
+    return false;
+  }
+
   /// Lädt alle registrierten Widgets parallel neu (in-place, ohne Skeleton).
+  /// Die Widgets selbst prüfen das Rate-Limit. Wurde in diesem Durchlauf
+  /// nichts abgerufen (alle Widgets noch limitiert), bleibt der
+  /// aufgeschobene Refresh bestehen und holt den Abruf nach.
   Future<void> refreshAll() async {
-    _lastRefresh = DateTime.now();
+    final lastFetchBefore = _lastFetch;
     await Future.wait([
       for (final refreshable in _refreshables) refreshable.refresh(),
     ]);
+    if (_lastFetch != lastFetchBefore) {
+      _pendingFetch?.cancel();
+      _pendingFetch = null;
+    }
   }
 
   void _persist() {
@@ -125,11 +166,9 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
         _timer?.cancel();
         _timer = null;
       case AppLifecycleState.resumed:
-        final last = _lastRefresh;
-        if (last == null ||
-            DateTime.now().difference(last) >= refreshInterval) {
-          refreshAll();
-        }
+        // refreshAll unterliegt selbst dem Rate-Limit (max. 1 Abruf pro
+        // minRefreshInterval), ein Stale-Check ist daher nicht nötig.
+        refreshAll();
         _timer ??= Timer.periodic(refreshInterval, (_) => refreshAll());
       case AppLifecycleState.detached:
         break;
@@ -140,6 +179,7 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _pendingFetch?.cancel();
     super.dispose();
   }
 }
