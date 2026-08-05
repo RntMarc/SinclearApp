@@ -6,6 +6,7 @@ import 'package:sinclear_beyond/design/effects/grain_painter.dart'
     show GrainOverlay;
 import 'package:sinclear_beyond/design/theme/design_preferences.dart';
 import 'package:sinclear_beyond/design/theme/design_theme.dart';
+import 'package:sinclear_beyond/design/tokens/custom_tokens.dart';
 import 'package:sinclear_beyond/design/widgets/foundation/design_surface.dart';
 
 void main() {
@@ -33,6 +34,17 @@ void main() {
 
       await DesignPreferences.saveThemeMode(ThemeMode.system);
       expect(await DesignPreferences.loadThemeMode(), ThemeMode.system);
+    });
+
+    test('custom accent defaults to blue and roundtrips', () async {
+      SharedPreferences.setMockInitialValues({});
+      final loaded = await DesignPreferences.loadCustomAccent();
+      expect(loaded.toARGB32(), const Color(0xFF0064EA).toARGB32());
+
+      const red = Color(0xFFE53935);
+      await DesignPreferences.saveCustomAccent(red);
+      final loaded2 = await DesignPreferences.loadCustomAccent();
+      expect(loaded2.toARGB32(), red.toARGB32());
     });
   });
 
@@ -130,6 +142,49 @@ void main() {
       mode.value = ThemeMode.light;
       await tester.pump();
       expect(captured, ThemeMode.light);
+    });
+  });
+
+  group('CustomTokens contrast', () {
+    test('black on white has high contrast (not blocked)', () {
+      expect(CustomTokens.isBlocked(Colors.black, Colors.white), isFalse);
+    });
+
+    test('white on white is blocked', () {
+      expect(CustomTokens.isBlocked(Colors.white, Colors.white), isTrue);
+    });
+
+    test('contrast ratio for black on white is ~21:1', () {
+      final ratio = CustomTokens.contrastRatio(Colors.black, Colors.white);
+      expect(ratio, closeTo(21.0, 0.5));
+    });
+
+    test('bestOnColor picks white for dark accent', () {
+      final result = CustomTokens.bestOnColor(const Color(0xFF1A1A2E));
+      expect(result, Colors.white);
+    });
+
+    test('bestOnColor picks dark for light accent', () {
+      final result = CustomTokens.bestOnColor(const Color(0xFFFFCA28));
+      expect(result, const Color(0xFF1A1A2E));
+    });
+  });
+
+  group('CustomAccentController', () {
+    test('does not notify when color unchanged', () {
+      final c = CustomAccentController(const Color(0xFF0064EA));
+      var notifyCount = 0;
+      c.addListener(() => notifyCount++);
+      c.value = const Color(0xFF0064EA);
+      expect(notifyCount, 0);
+    });
+
+    test('notifies when color changes', () {
+      final c = CustomAccentController(const Color(0xFF0064EA));
+      var notifyCount = 0;
+      c.addListener(() => notifyCount++);
+      c.value = const Color(0xFFE53935);
+      expect(notifyCount, 1);
     });
   });
 }

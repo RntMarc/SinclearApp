@@ -8,7 +8,10 @@ import '../../../core/di/app_scope.dart';
 import '../../../core/models/app_update_info.dart';
 import '../../../core/services/android_update_service.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/design_variant.dart';
+import '../../../design/tokens/custom_tokens.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/composite/design_color_picker.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/composite/design_segmented_switch.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
@@ -287,6 +290,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 12),
                       const DesignSegmentedSwitch(),
+                      if (DesignScope.variantOf(context) ==
+                          DesignVariant.custom) ...<Widget>[
+                        const SizedBox(height: 8),
+                        const DesignDivider(),
+                        const DesignText('Akzentfarbe',
+                            style: DesignTextStyle.title),
+                        const SizedBox(height: 4),
+                        DesignText(
+                          'Wähle eine Akzentfarbe für dein Theme.',
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
+                        ),
+                        const SizedBox(height: 12),
+                        const _AccentColorPicker(),
+                      ],
                       const SizedBox(height: 8),
                       const DesignDivider(),
                       const DesignText('Design-Modus',
@@ -654,6 +672,217 @@ class _GrainSlider extends StatelessWidget {
             color: grainOpacity > 0 ? tokens.textHigh : tokens.textLow,
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Grid of preset accent colors for the custom theme, with contrast feedback.
+class _AccentColorPicker extends StatelessWidget {
+  const _AccentColorPicker();
+
+  static const _presetColors = <Color>[
+    Color(0xFF0064EA), // Blue
+    Color(0xFFE53935), // Red
+    Color(0xFF43A047), // Green
+    Color(0xFF8E24AA), // Purple
+    Color(0xFFF57C00), // Orange
+    Color(0xFFD81B60), // Pink
+    Color(0xFF00897B), // Teal
+    Color(0xFF3949AB), // Indigo
+    Color(0xFFFFB300), // Amber
+    Color(0xFF00ACC1), // Cyan
+    Color(0xFF7CB342), // Light Green
+    Color(0xFF5C6BC0), // Indigo (lighter)
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final notifier = DesignScope.customAccentNotifierOf(context);
+    final current = DesignScope.customAccentOf(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            ..._presetColors.map((color) {
+              final isSelected = color.toARGB32() == current.toARGB32();
+              return GestureDetector(
+                onTap: () => notifier.value = color,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? tokens.textHigh : Colors.transparent,
+                      width: 2.5,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.5),
+                              blurRadius: 8,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 18)
+                      : null,
+                ),
+              );
+            }),
+            const _CustomPickerTile(),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Tile that opens the freely configurable HSV color picker.
+class _CustomPickerTile extends StatelessWidget {
+  const _CustomPickerTile();
+
+  static const _hueGradient = LinearGradient(
+    colors: [
+      Color(0xFFFF0000),
+      Color(0xFFFFFF00),
+      Color(0xFF00FF00),
+      Color(0xFF00FFFF),
+      Color(0xFF0000FF),
+      Color(0xFFFF00FF),
+      Color(0xFFFF0000),
+    ],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final accent = DesignScope.customAccentOf(context);
+    final notifier = DesignScope.customAccentNotifierOf(context);
+
+    return GestureDetector(
+      onTap: () => showDesignSheet<void>(
+        context: context,
+        child: _CustomColorSheet(initial: accent, notifier: notifier),
+      ),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: _hueGradient,
+          border: Border.all(
+            color: tokens.textLow.withValues(alpha: 0.4),
+            width: 1.5,
+          ),
+        ),
+        child: const Icon(
+          Icons.add_rounded,
+          color: Colors.white,
+          size: 20,
+          shadows: [Shadow(color: Colors.black45, blurRadius: 3)],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom-sheet content that hosts the color picker and enforces the accent
+/// contrast policy: completely unreadable values are not applied, hard-to-read
+/// ones are applied with a warning.
+class _CustomColorSheet extends StatefulWidget {
+  const _CustomColorSheet({required this.initial, required this.notifier});
+
+  final Color initial;
+  final ValueNotifier<Color> notifier;
+
+  @override
+  State<_CustomColorSheet> createState() => _CustomColorSheetState();
+}
+
+class _CustomColorSheetState extends State<_CustomColorSheet> {
+  late Color _pending;
+
+  @override
+  void initState() {
+    super.initState();
+    _pending = widget.initial;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final onPrimary = CustomTokens.bestOnColor(_pending);
+    final ratio = CustomTokens.contrastRatio(onPrimary, _pending);
+    final blocked = CustomTokens.isBlocked(onPrimary, _pending);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const DesignText('Eigene Farbe', style: DesignTextStyle.subtitle),
+        const SizedBox(height: 4),
+        DesignText(
+          'Wähle frei über den Farbraum oder gib einen HEX-Wert ein.',
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
+        ),
+        const SizedBox(height: 16),
+        DesignColorPicker(
+          initialColor: _pending,
+          onChanged: (color) {
+            final on = CustomTokens.bestOnColor(color);
+            setState(() => _pending = color);
+            if (!CustomTokens.isBlocked(on, color)) {
+              widget.notifier.value = color;
+            }
+          },
+        ),
+        if (blocked) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.block_rounded, size: 16, color: tokens.danger),
+              const SizedBox(width: 6),
+              Expanded(
+                child: DesignText(
+                  'Fast unlesbar (${ratio.toStringAsFixed(1)}:1) – '
+                  'Text auf Buttons wäre kaum zu erkennen. '
+                  'Dieser Wert wird nicht übernommen.',
+                  style: DesignTextStyle.label,
+                  color: tokens.danger,
+                ),
+              ),
+            ],
+          ),
+        ] else if (ratio < 3.0) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 16, color: tokens.warning),
+              const SizedBox(width: 6),
+              Expanded(
+                child: DesignText(
+                  'Etwas wenig Kontrast (${ratio.toStringAsFixed(1)}:1) '
+                  '– aber wenn du es so willst, ist das OK.',
+                  style: DesignTextStyle.label,
+                  color: tokens.warning,
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

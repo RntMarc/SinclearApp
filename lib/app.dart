@@ -62,6 +62,13 @@ class SinclearApp extends StatelessWidget {
 
   /// Active theme mode; changes are persisted via [ThemeModeController].
   final ValueNotifier<ThemeMode> themeMode;
+
+  /// Initial, locally persisted custom accent color.
+  final Color initialCustomAccent;
+
+  /// Active custom accent color; changes are persisted via
+  /// [CustomAccentController].
+  final ValueNotifier<Color> customAccent;
   final String appBaseUrl;
   final String apiBaseUrl;
 
@@ -70,6 +77,7 @@ class SinclearApp extends StatelessWidget {
     required this.initialDesignVariant,
     required this.initialGrainOpacity,
     required this.initialThemeMode,
+    required this.initialCustomAccent,
     required this.auth,
     required this.explore,
     required this.nominatim,
@@ -99,7 +107,8 @@ class SinclearApp extends StatelessWidget {
        ),
        designVariant = DesignController(initialDesignVariant),
        grainOpacity = GrainController(initialGrainOpacity),
-       themeMode = ThemeModeController(initialThemeMode);
+       themeMode = ThemeModeController(initialThemeMode),
+       customAccent = CustomAccentController(initialCustomAccent);
 
   @override
   Widget build(BuildContext context) {
@@ -130,6 +139,7 @@ class SinclearApp extends StatelessWidget {
           variant: designVariant,
           grain: grainOpacity,
           themeMode: themeMode,
+          customAccent: customAccent,
           child: ListenableBuilder(
             listenable: themeMode,
             builder: (context, _) => MaterialApp.router(

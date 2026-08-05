@@ -6,8 +6,8 @@ import '../tokens/design_tokens.dart';
 export '../tokens/design_tokens.dart';
 
 /// Provides the active [DesignVariant], resolved [DesignTokens], grain overlay
-/// intensity and theme mode to the widget catalog. Changing any notifier
-/// rebuilds every catalog widget that depends on it.
+/// intensity, theme mode and custom accent color to the widget catalog.
+/// Changing any notifier rebuilds every catalog widget that depends on it.
 ///
 /// The scope is mounted once, near the app root (see [SinclearApp]), so the
 /// selections survive navigation within a session. It intentionally does not
@@ -17,6 +17,7 @@ class DesignScope extends StatefulWidget {
     required this.variant,
     this.grain,
     this.themeMode,
+    this.customAccent,
     required this.child,
     super.key,
   });
@@ -32,6 +33,10 @@ class DesignScope extends StatefulWidget {
   /// In-memory notifier holding the chosen [ThemeMode].
   /// Defaults to [ThemeMode.system] when omitted.
   final ValueNotifier<ThemeMode>? themeMode;
+
+  /// In-memory notifier holding the user's custom accent color.
+  /// Only used when [variant] is [DesignVariant.custom].
+  final ValueNotifier<Color>? customAccent;
 
   /// The widget tree that should consume the active design.
   final Widget child;
@@ -74,12 +79,32 @@ class DesignScope extends StatefulWidget {
         .themeModeNotifier;
   }
 
+  /// The current custom accent color (only meaningful when variant is
+  /// [DesignVariant.custom]).
+  static Color customAccentOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<_DesignInherited>()!
+        .customAccent;
+  }
+
+  /// The underlying custom accent notifier, so controls (e.g. the color
+  /// picker in settings) can update the color.
+  static ValueNotifier<Color> customAccentNotifierOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<_DesignInherited>()!
+        .customAccentNotifier;
+  }
+
   /// The resolved tokens for the active variant and current brightness.
   static DesignTokens of(BuildContext context) {
     final inherited =
         context.dependOnInheritedWidgetOfExactType<_DesignInherited>()!;
     final brightness = Theme.of(context).brightness;
-    return AppDesign.resolve(inherited.variant, brightness);
+    return AppDesign.resolve(
+      inherited.variant,
+      brightness,
+      customAccent: inherited.customAccent,
+    );
   }
 
   /// The underlying notifier, so controls (e.g. the showcase switcher) can
@@ -97,15 +122,20 @@ class DesignScope extends StatefulWidget {
 class _DesignScopeState extends State<DesignScope> {
   late ValueNotifier<double> _grain;
   late ValueNotifier<ThemeMode> _themeMode;
+  late ValueNotifier<Color> _customAccent;
 
   @override
   void initState() {
     super.initState();
     _grain = widget.grain ?? ValueNotifier<double>(0.0);
-    _themeMode = widget.themeMode ?? ValueNotifier<ThemeMode>(ThemeMode.system);
+    _themeMode = widget.themeMode ??
+        ValueNotifier<ThemeMode>(ThemeMode.system);
+    _customAccent = widget.customAccent ??
+        ValueNotifier<Color>(const Color(0xFF0064EA));
     widget.variant.addListener(_onChanged);
     _grain.addListener(_onChanged);
     _themeMode.addListener(_onChanged);
+    _customAccent.addListener(_onChanged);
   }
 
   @override
@@ -126,6 +156,12 @@ class _DesignScopeState extends State<DesignScope> {
           ValueNotifier<ThemeMode>(ThemeMode.system);
       _themeMode.addListener(_onChanged);
     }
+    if (oldWidget.customAccent != widget.customAccent) {
+      _customAccent.removeListener(_onChanged);
+      _customAccent = widget.customAccent ??
+          ValueNotifier<Color>(const Color(0xFF0064EA));
+      _customAccent.addListener(_onChanged);
+    }
     _onChanged();
   }
 
@@ -134,6 +170,7 @@ class _DesignScopeState extends State<DesignScope> {
     widget.variant.removeListener(_onChanged);
     _grain.removeListener(_onChanged);
     _themeMode.removeListener(_onChanged);
+    _customAccent.removeListener(_onChanged);
     super.dispose();
   }
 
@@ -148,6 +185,8 @@ class _DesignScopeState extends State<DesignScope> {
       grain: _grain,
       themeMode: _themeMode.value,
       themeModeNotifier: _themeMode,
+      customAccent: _customAccent.value,
+      customAccentNotifier: _customAccent,
       child: widget.child,
     );
   }
@@ -161,6 +200,8 @@ class _DesignInherited extends InheritedWidget {
     required this.grain,
     required this.themeMode,
     required this.themeModeNotifier,
+    required this.customAccent,
+    required this.customAccentNotifier,
     required super.child,
   });
 
@@ -170,12 +211,15 @@ class _DesignInherited extends InheritedWidget {
   final ValueNotifier<double> grain;
   final ThemeMode themeMode;
   final ValueNotifier<ThemeMode> themeModeNotifier;
+  final Color customAccent;
+  final ValueNotifier<Color> customAccentNotifier;
 
   @override
   bool updateShouldNotify(covariant _DesignInherited old) =>
       old.variant != variant ||
       old.grainOpacity != grainOpacity ||
-      old.themeMode != themeMode;
+      old.themeMode != themeMode ||
+      old.customAccent != customAccent;
 }
 
 /// Convenience alias. Catalog widgets read the active design via

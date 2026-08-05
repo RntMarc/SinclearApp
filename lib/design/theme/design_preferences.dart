@@ -1,6 +1,5 @@
 import 'dart:async' show unawaited;
 import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../design_variant.dart';
@@ -13,6 +12,7 @@ class DesignPreferences {
   static const String _key = 'beyond.design_variant';
   static const String _grainKey = 'beyond.grain_opacity';
   static const String _themeModeKey = 'beyond.theme_mode';
+  static const String _customAccentKey = 'beyond.custom_accent';
 
   /// Loads the persisted variant, falling back to [DesignVariant.materiaPop].
   static Future<DesignVariant> load() async {
@@ -77,6 +77,26 @@ class DesignPreferences {
           error: e, stackTrace: st);
     }
   }
+
+  /// Loads the persisted custom accent color, falling back to the app's
+  /// default blue.
+  static Future<Color> loadCustomAccent() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_customAccentKey);
+    return value != null ? Color(value) : const Color(0xFF0064EA);
+  }
+
+  /// Persists the custom accent color. Errors are swallowed so a failing
+  /// store (e.g. in tests) never breaks the UI.
+  static Future<void> saveCustomAccent(Color color) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_customAccentKey, color.toARGB32());
+    } catch (e, st) {
+      developer.log('DesignPreferences.saveCustomAccent failed',
+          error: e, stackTrace: st);
+    }
+  }
 }
 
 /// A [ValueNotifier] that automatically persists every change via
@@ -119,5 +139,18 @@ class ThemeModeController extends ValueNotifier<ThemeMode> {
     if (newValue == value) return;
     super.value = newValue;
     unawaited(DesignPreferences.saveThemeMode(newValue));
+  }
+}
+
+/// A [ValueNotifier] that automatically persists every change via
+/// [DesignPreferences]. Holds the user's chosen custom accent color.
+class CustomAccentController extends ValueNotifier<Color> {
+  CustomAccentController(super.value);
+
+  @override
+  set value(Color newValue) {
+    if (newValue.toARGB32() == value.toARGB32()) return;
+    super.value = newValue;
+    unawaited(DesignPreferences.saveCustomAccent(newValue));
   }
 }
