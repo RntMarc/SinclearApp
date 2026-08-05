@@ -19,15 +19,23 @@ void main() {
 
     expect(notifier.value, DesignVariant.materiaPop);
 
-    await tester.tap(find.text('Aurora Glass'));
+    await tester.tap(find.text('Aurora'));
     await tester.pumpAndSettle();
     expect(notifier.value, DesignVariant.auroraGlass);
 
-    await tester.tap(find.text('Liquid Pulse'));
+    await tester.tap(find.text('Pulse'));
     await tester.pumpAndSettle();
     expect(notifier.value, DesignVariant.liquidPulse);
 
-    await tester.tap(find.text('Materia Pop'));
+    await tester.tap(find.text('Gold'));
+    await tester.pumpAndSettle();
+    expect(notifier.value, DesignVariant.solstice);
+
+    await tester.tap(find.text('Farbe'));
+    await tester.pumpAndSettle();
+    expect(notifier.value, DesignVariant.custom);
+
+    await tester.tap(find.text('Pop'));
     await tester.pumpAndSettle();
     expect(notifier.value, DesignVariant.materiaPop);
   });
@@ -47,7 +55,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Beyond'), findsWidgets);
-    expect(find.text('Materia Pop'), findsWidgets);
+    expect(find.text('Pop'), findsWidgets);
     expect(find.byType(DesignSegmentedSwitch), findsOneWidget);
   });
 }

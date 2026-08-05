@@ -40,7 +40,7 @@ class DesignSegmentedSwitch extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: DesignText(
-                  variant.label,
+                  variant.shortLabel,
                   style: DesignTextStyle.label,
                   color: isActive ? tokens.textOnPrimary : tokens.textLow,
                 ),

@@ -135,6 +135,7 @@ Future<void> _bootstrap() async {
   final initialDesign = await DesignPreferences.load();
   final initialGrainOpacity = await DesignPreferences.loadGrainOpacity();
   final initialThemeMode = await DesignPreferences.loadThemeMode();
+  final initialCustomAccent = await DesignPreferences.loadCustomAccent();
 
   final dashboardLayoutStore = SharedPreferencesDashboardLayoutStore();
   final dashboardController = DashboardController(
@@ -176,6 +177,7 @@ Future<void> _bootstrap() async {
       initialDesignVariant: initialDesign,
       initialGrainOpacity: initialGrainOpacity,
       initialThemeMode: initialThemeMode,
+      initialCustomAccent: initialCustomAccent,
       router: router,
       appBaseUrl: appBaseUrl,
       apiBaseUrl: baseUrl,
