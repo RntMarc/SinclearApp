@@ -66,13 +66,9 @@ class ForumRow implements DashboardRow {
   };
 }
 
-/// Widget „Neue Beiträge“ – die neuesten Beiträge aller Foren, in denen der
-/// Nutzer Mitglied ist, gemischt und nach Zeit sortiert.
-///
-/// Die API bietet noch keinen aggregierten Feed; bis `GET /forums/feed`
-/// existiert, werden Mitgliedschaft und Beiträge per Fan-out geladen.
-/// ponytail: N+1-Requests (Detail je Forum für `isMember` + Posts je Forum);
-/// Upgrade-Pfad = neuer Endpunkt `/forums/feed`, dann Ein-Zeilen-Wechsel.
+/// Widget „Neue Beiträge“ – die neuesten Beiträge aller sichtbaren Foren
+/// (öffentliche plus Mitgliedschaften), gemischt und sortiert über den
+/// aggregierten Feed-Endpunkt `GET /forums/feed` (ein Request statt N+1).
 class ForumWidgetSpec extends DashboardWidgetSpec {
   ForumWidgetSpec(this._service);
 
@@ -86,29 +82,10 @@ class ForumWidgetSpec extends DashboardWidgetSpec {
 
   @override
   Future<List<DashboardRow>> fetch(int count) async {
-    final forums = (await _service.list(page: 1, limit: 100)).data;
-    final memberForums = <Forum>[];
-    for (final forum in forums) {
-      try {
-        final detail = await _service.get(forum.id);
-        if (detail.isMember) memberForums.add(detail);
-      } catch (_) {
-        // Ein nicht ladbares Forum überspringen, andere nicht blockieren.
-      }
-    }
-    final nameById = {for (final forum in memberForums) forum.id: forum.name};
-    final lists = await Future.wait([
-      for (final forum in memberForums)
-        _service.listPosts(forum.id, page: 1, limit: 5),
-    ]);
-    final posts = lists.expand((list) => list.data).toList()
-      ..sort(
-        (a, b) =>
-            parseApiDate(b.createdAt).compareTo(parseApiDate(a.createdAt)),
-      );
+    final response = await _service.getFeed(page: 1, limit: count);
     return [
-      for (final post in posts.take(count))
-        ForumRow.fromPost(post, nameById[post.forumId] ?? ''),
+      for (final post in response.data)
+        ForumRow.fromPost(post, post.forumName ?? ''),
     ];
   }
 
