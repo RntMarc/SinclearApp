@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../theme/design_theme.dart';
 import '../foundation/design_text.dart';
-import '../primitives/design_text_field.dart';
+import '../primitives/design_slider.dart';
 
-/// A compact HSV color picker in the catalog style.
+/// An HSL color picker built from three labeled [DesignSlider]s.
 ///
-/// Lets the user freely choose any color via a saturation/value pane, a hue
-/// slider and a hexadecimal input. The picked color is reported through
-/// [onChanged] on every interaction, so callers can preview live.
+/// Lets the user freely choose hue and saturation, while the lightness
+/// slider is restricted to [minLightness]..[maxLightness] so the result can
+/// never be near-white or near-black and stays readable in the UI. The picked
+/// color is reported through [onChanged] on every interaction.
 class DesignColorPicker extends StatefulWidget {
   const DesignColorPicker({
     required this.initialColor,
@@ -15,7 +16,14 @@ class DesignColorPicker extends StatefulWidget {
     super.key,
   });
 
-  /// The color the picker starts from.
+  /// Lightness floor of selectable colors (readable range).
+  static const double minLightness = 0.28;
+
+  /// Lightness ceil of selectable colors (readable range).
+  static const double maxLightness = 0.72;
+
+  /// The color the picker starts from. Its lightness outside the readable
+  /// range is clamped on first build.
   final Color initialColor;
 
   /// Called with the currently picked color.
@@ -26,215 +34,112 @@ class DesignColorPicker extends StatefulWidget {
 }
 
 class _DesignColorPickerState extends State<DesignColorPicker> {
-  late HSVColor _hsv;
-  late final TextEditingController _hexController;
+  late HSLColor _hsl;
 
   @override
   void initState() {
     super.initState();
-    _hsv = HSVColor.fromColor(widget.initialColor);
-    _hexController = TextEditingController(
-      text: _hexString(widget.initialColor),
+    _hsl = _clampLightness(HSLColor.fromColor(widget.initialColor));
+  }
+
+  HSLColor _clampLightness(HSLColor hsl) {
+    final lightness = hsl.lightness.clamp(
+      DesignColorPicker.minLightness,
+      DesignColorPicker.maxLightness,
     );
-    _hexController.addListener(_onHexChanged);
+    return hsl.withLightness(lightness);
   }
 
-  @override
-  void dispose() {
-    _hexController.dispose();
-    super.dispose();
-  }
+  Color _colorAt(double lightness) => _hsl
+      .withLightness(lightness.clamp(0.0, 1.0))
+      .toColor();
 
-  static String _hexString(Color c) =>
-      '#${c.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
-
-  void _emit(Color color) {
-    widget.onChanged(color);
-  }
-
-  void _updateHsv(HSVColor hsv) {
-    setState(() => _hsv = hsv);
-    final color = hsv.toColor();
-    _hexController.text = _hexString(color);
-    _emit(color);
-  }
-
-  /// Applies a user-entered HEX value. Ignored while the text was written
-  /// programmatically (feedback from [_updateHsv]).
-  void _onHexChanged() {
-    final text = _hexController.text;
-    if (text == _hexString(_hsv.toColor())) return;
-    final cleaned = text.replaceAll('#', '');
-    if (cleaned.length != 6) return;
-    final value = int.tryParse(cleaned, radix: 16);
-    if (value == null) return;
-    _updateHsv(HSVColor.fromColor(Color(0xFF000000 | value)));
+  void _update(HSLColor next) {
+    setState(() => _hsl = next);
+    widget.onChanged(next.toColor());
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final hue = _hsv.hue;
+    final hueColor = HSLColor.fromAHSL(
+      1,
+      _hsl.hue,
+      1,
+      (DesignColorPicker.minLightness + DesignColorPicker.maxLightness) / 2,
+    ).toColor();
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _SatValuePane(
-          hsv: _hsv,
-          onChanged: _updateHsv,
-        ),
-        const SizedBox(height: 16),
-        _HueSlider(
-          hue: hue,
-          onChanged: (h) => _updateHsv(_hsv.withHue(h)),
-        ),
-        const SizedBox(height: 16),
         Row(
           children: <Widget>[
             Container(
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: _hsv.toColor(),
+                color: _hsl.toColor(),
                 shape: BoxShape.circle,
                 border: Border.all(color: tokens.border, width: 1.5),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: DesignTextField(
-                controller: _hexController,
-                hint: '#RRGGBB',
-                keyboardType: TextInputType.text,
-                prefixIcon: Icons.tag_rounded,
+              child: DesignText(
+                _hexString(_hsl.toColor()),
+                style: DesignTextStyle.label,
+                color: tokens.textLow,
               ),
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        DesignSlider(
+          label: 'Farbton',
+          value: _hsl.hue,
+          min: 0,
+          max: 360,
+          valueText: '${_hsl.hue.round()}°',
+          gradient: const LinearGradient(colors: _hueColors),
+          onChanged: (h) => _update(_hsl.withHue(h)),
+        ),
+        const SizedBox(height: 12),
+        DesignSlider(
+          label: 'Sättigung',
+          value: _hsl.saturation,
+          min: 0,
+          max: 1,
+          valueText: '${(_hsl.saturation * 100).round()}%',
+          gradient: LinearGradient(colors: [Colors.white, hueColor]),
+          onChanged: (s) => _update(_hsl.withSaturation(s)),
+        ),
+        const SizedBox(height: 12),
+        DesignSlider(
+          label: 'Helligkeit',
+          value: _hsl.lightness,
+          min: DesignColorPicker.minLightness,
+          max: DesignColorPicker.maxLightness,
+          valueText: '${(_hsl.lightness * 100).round()}%',
+          gradient: LinearGradient(
+            colors: [
+              _colorAt(DesignColorPicker.minLightness),
+              _colorAt(DesignColorPicker.maxLightness),
+            ],
+          ),
+          onChanged: (l) => _update(_hsl.withLightness(l)),
+        ),
         const SizedBox(height: 8),
         DesignText(
-          'Live-Vorschau oder HEX-Wert eingeben.',
+          'Die Helligkeit ist so begrenzt, dass die Farbe immer gut lesbar bleibt.',
           style: DesignTextStyle.label,
           color: tokens.textLow,
         ),
       ],
     );
   }
-}
 
-class _SatValuePane extends StatelessWidget {
-  const _SatValuePane({required this.hsv, required this.onChanged});
-
-  final HSVColor hsv;
-  final ValueChanged<HSVColor> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final hueColor = HSVColor.fromAHSV(1, hsv.hue, 1, 1).toColor();
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        const height = 160.0;
-        final sat = (hsv.saturation * width).clamp(0.0, width);
-        final val = ((1 - hsv.value) * height).clamp(0.0, height);
-
-        return GestureDetector(
-          onPanDown: (d) => _pick(d.localPosition, width, height),
-          onPanUpdate: (d) => _pick(d.localPosition, width, height),
-          child: Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                colors: [Colors.white, hueColor],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-            child: Stack(
-              children: <Widget>[
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: const LinearGradient(
-                        colors: [Colors.transparent, Colors.black],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: sat - 7,
-                  top: val - 7,
-                  child: _Thumb(color: hsv.toColor()),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _pick(Offset offset, double width, double height) {
-    final saturation = (offset.dx / width).clamp(0.0, 1.0);
-    final value = (1 - offset.dy / height).clamp(0.0, 1.0);
-    onChanged(hsv.withSaturation(saturation).withValue(value));
-  }
-}
-
-class _HueSlider extends StatelessWidget {
-  const _HueSlider({required this.hue, required this.onChanged});
-
-  final double hue;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        const height = 20.0;
-        final x = (hue / 360 * width).clamp(0.0, width);
-
-        return GestureDetector(
-          onPanDown: (d) => _pick(d.localPosition.dx, width),
-          onPanUpdate: (d) => _pick(d.localPosition.dx, width),
-          child: Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              gradient: const LinearGradient(
-                colors: _hueColors,
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-            child: Stack(
-              alignment: Alignment.centerLeft,
-              children: <Widget>[
-                Positioned(
-                  left: x - 7,
-                  child: const _Thumb(),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _pick(double dx, double width) {
-    final h = (dx / width * 360).clamp(0.0, 359.0);
-    onChanged(h);
-  }
+  static String _hexString(Color c) =>
+      '#${c.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
 }
 
 const List<Color> _hueColors = <Color>[
@@ -246,23 +151,3 @@ const List<Color> _hueColors = <Color>[
   Color(0xFFFF00FF),
   Color(0xFFFF0000),
 ];
-
-class _Thumb extends StatelessWidget {
-  const _Thumb({this.color});
-
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        color: color ?? Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-      ),
-    );
-  }
-}

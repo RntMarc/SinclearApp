@@ -328,6 +328,18 @@ Design-Tokens bekommt.
   blendet den Button aus und zeigt einen `CircularProgressIndicator` an Stelle
   des `icon` (kein lokaler Spinner nötig). `fullWidth` spannt den Button über
   die gesamte Breite.
+- **`DesignSlider`** (`primitives`) – Katalog-Slider mit `label`,
+  `valueText`-Readout (deutsch) und gradientfähiger Track. `min`/`max`/
+  `onChanged` steuern den Wert; der Thumb ist ein token-typischer Glow-Kreis.
+  Der Track-Gradient wird vom Aufrufer gesetzt, sodass nicht wählbare
+  Bereiche ausgeblendet werden können (z.B. Near-White/Near-Black bei einer
+  Helligkeitsrampe).
+- **`DesignColorPicker`** (`composite`) – HSL-Farbwähler aus drei
+  `DesignSlider` (Farbton · Sättigung · Helligkeit). Die Helligkeit ist auf
+  `minLightness 0.28 … maxLightness 0.72` begrenzt, damit die gewählte
+  Akzentfarbe nie fast weiß oder fast schwarz und damit unlesbar wird.
+  Farbton und Sättigung sind frei wählbar; gemeldet wird die Farbe live über
+  `onChanged`.
 - **`DesignAppBar`** (`composite`) – Globale, nicht-Material AppBar aus
   `DesignText`. Ist eine `PreferredSizeWidget`, status-bar-sicher und rendert
   einen transparenten Strip mit `kToolbarHeight` + Status-bar-Inset als Höhe;

@@ -9,7 +9,6 @@ import '../../../core/models/app_update_info.dart';
 import '../../../core/services/android_update_service.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/design_variant.dart';
-import '../../../design/tokens/custom_tokens.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_color_picker.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
@@ -677,7 +676,7 @@ class _GrainSlider extends StatelessWidget {
   }
 }
 
-/// Grid of preset accent colors for the custom theme, with contrast feedback.
+/// Grid of preset accent colors for the custom theme.
 class _AccentColorPicker extends StatelessWidget {
   const _AccentColorPicker();
 
@@ -746,7 +745,7 @@ class _AccentColorPicker extends StatelessWidget {
   }
 }
 
-/// Tile that opens the freely configurable HSV color picker.
+/// Tile that opens the configurable HSL color picker.
 class _CustomPickerTile extends StatelessWidget {
   const _CustomPickerTile();
 
@@ -767,13 +766,12 @@ class _CustomPickerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final accent = DesignScope.customAccentOf(context);
     final notifier = DesignScope.customAccentNotifierOf(context);
 
     return GestureDetector(
       onTap: () => showDesignSheet<void>(
         context: context,
-        child: _CustomColorSheet(initial: accent, notifier: notifier),
+        child: _CustomColorSheet(notifier: notifier),
       ),
       child: Container(
         width: 36,
@@ -797,34 +795,15 @@ class _CustomPickerTile extends StatelessWidget {
   }
 }
 
-/// Bottom-sheet content that hosts the color picker and enforces the accent
-/// contrast policy: completely unreadable values are not applied, hard-to-read
-/// ones are applied with a warning.
-class _CustomColorSheet extends StatefulWidget {
-  const _CustomColorSheet({required this.initial, required this.notifier});
+/// Bottom-sheet content hosting the HSL color picker.
+class _CustomColorSheet extends StatelessWidget {
+  const _CustomColorSheet({required this.notifier});
 
-  final Color initial;
   final ValueNotifier<Color> notifier;
-
-  @override
-  State<_CustomColorSheet> createState() => _CustomColorSheetState();
-}
-
-class _CustomColorSheetState extends State<_CustomColorSheet> {
-  late Color _pending;
-
-  @override
-  void initState() {
-    super.initState();
-    _pending = widget.initial;
-  }
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final onPrimary = CustomTokens.bestOnColor(_pending);
-    final ratio = CustomTokens.contrastRatio(onPrimary, _pending);
-    final blocked = CustomTokens.isBlocked(onPrimary, _pending);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -833,56 +812,15 @@ class _CustomColorSheetState extends State<_CustomColorSheet> {
         const DesignText('Eigene Farbe', style: DesignTextStyle.subtitle),
         const SizedBox(height: 4),
         DesignText(
-          'Wähle frei über den Farbraum oder gib einen HEX-Wert ein.',
+          'Stelle den Farbton, die Sättigung und die Helligkeit ein.',
           style: DesignTextStyle.body,
           color: tokens.textLow,
         ),
         const SizedBox(height: 16),
         DesignColorPicker(
-          initialColor: _pending,
-          onChanged: (color) {
-            final on = CustomTokens.bestOnColor(color);
-            setState(() => _pending = color);
-            if (!CustomTokens.isBlocked(on, color)) {
-              widget.notifier.value = color;
-            }
-          },
+          initialColor: notifier.value,
+          onChanged: (color) => notifier.value = color,
         ),
-        if (blocked) ...[
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.block_rounded, size: 16, color: tokens.danger),
-              const SizedBox(width: 6),
-              Expanded(
-                child: DesignText(
-                  'Fast unlesbar (${ratio.toStringAsFixed(1)}:1) – '
-                  'Text auf Buttons wäre kaum zu erkennen. '
-                  'Dieser Wert wird nicht übernommen.',
-                  style: DesignTextStyle.label,
-                  color: tokens.danger,
-                ),
-              ),
-            ],
-          ),
-        ] else if (ratio < 3.0) ...[
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.info_outline_rounded,
-                  size: 16, color: tokens.warning),
-              const SizedBox(width: 6),
-              Expanded(
-                child: DesignText(
-                  'Etwas wenig Kontrast (${ratio.toStringAsFixed(1)}:1) '
-                  '– aber wenn du es so willst, ist das OK.',
-                  style: DesignTextStyle.label,
-                  color: tokens.warning,
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
