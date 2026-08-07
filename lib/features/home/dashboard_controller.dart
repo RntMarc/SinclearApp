@@ -14,10 +14,10 @@ abstract class DashboardRefreshable {
 /// Zentraler Zustand des Dashboards: Layout, Edit-Modus, Refresh-Takt.
 ///
 /// Läuft im [AppScope] über die App-Lebensdauer. Der Auto-Refresh-Timer
-/// pausiert im Hintergrund und lädt beim Zurückkehren einmal nach. Alle
-/// Datenabrufe unterliegen einem Rate-Limit von [minRefreshInterval] –
-/// unabhängig davon, wie oft gewechselt oder gezogen wird, wird höchstens
-/// einmal im Fenster tatsächlich geladen.
+/// pausiert im Hintergrund und lädt beim Zurückkehren einmal nach. Die
+/// Datenabrufe unterliegen einem Rate-Limit von [minRefreshInterval]: Ein
+/// Refresh-Durchlauf (= alle Widgets parallel) darf höchstens einmal im
+/// Fenster starten, egal wie oft gewechselt oder gezogen wird.
 class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
   DashboardController({
     required DashboardLayout initialLayout,
@@ -52,11 +52,16 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
   final List<DashboardRefreshable> _refreshables = [];
   Timer? _timer;
 
-  /// Zeitpunkt des letzten Datenabrufs; `epoch` = noch nie abgerufen.
-  DateTime _lastFetch = DateTime.fromMillisecondsSinceEpoch(0);
+  /// Zeitpunkt des letzten Refresh-Durchlaufs.
+  DateTime _lastRefresh = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// Einmaliger Sammel-Refresh, sobald das Rate-Limit es wieder erlaubt.
-  Timer? _pendingFetch;
+  Timer? _pendingRefresh;
+
+  /// True, während [refreshAll] die registrierten Widgets abruft. Widgets
+  /// belegen dann kein eigenes Slot, sondern nutzen den Durchlauf.
+  bool _inRefreshPass = false;
+  bool get inRefreshPass => _inRefreshPass;
 
   DashboardWidgetConfig configFor(DashboardWidgetType type) {
     for (final config in _layout.widgets) {
@@ -119,36 +124,40 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
     _refreshables.remove(refreshable);
   }
 
-  /// Reserviert das Rate-Limit-Slot für einen Datenabruf und liefert `true`,
-  /// wenn jetzt geladen werden darf. Bei aktivem Limit wird ein einmaliger
-  /// Sammel-Refresh auf den frühesten erlaubten Zeitpunkt aufgeschoben.
-  bool claimFetchSlot() {
+  /// Reserviert das Rate-Limit-Slot für einen Refresh-Durchlauf und liefert
+  /// `true`, wenn jetzt geladen werden darf. Bei aktivem Limit wird ein
+  /// einmaliger Sammel-Refresh auf den frühesten erlaubten Zeitpunkt
+  /// aufgeschoben.
+  bool claimRefreshPass() {
     final now = _clock();
-    if (now.difference(_lastFetch) >= minRefreshInterval) {
-      _lastFetch = now;
-      _pendingFetch?.cancel();
-      _pendingFetch = null;
+    if (now.difference(_lastRefresh) >= minRefreshInterval) {
+      _lastRefresh = now;
+      _pendingRefresh?.cancel();
+      _pendingRefresh = null;
       return true;
     }
-    _pendingFetch ??= Timer(
-      minRefreshInterval - now.difference(_lastFetch),
+    _pendingRefresh ??= Timer(
+      minRefreshInterval - now.difference(_lastRefresh),
       refreshAll,
     );
     return false;
   }
 
-  /// Lädt alle registrierten Widgets parallel neu (in-place, ohne Skeleton).
-  /// Die Widgets selbst prüfen das Rate-Limit. Wurde in diesem Durchlauf
-  /// nichts abgerufen (alle Widgets noch limitiert), bleibt der
-  /// aufgeschobene Refresh bestehen und holt den Abruf nach.
+  /// Lädt alle registrierten Widgets parallel nach und unterliegt dabei dem
+  /// Rate-Limit: startet ein Durchlauf, laden ausnahmslos alle Widgets; ein
+  /// Versuch innerhalb von [minRefreshInterval] wird aufgeschoben statt
+  /// ausgeführt, bleibt aber als Sammel-Refresh bestehen.
   Future<void> refreshAll() async {
-    final lastFetchBefore = _lastFetch;
-    await Future.wait([
-      for (final refreshable in _refreshables) refreshable.refresh(),
-    ]);
-    if (_lastFetch != lastFetchBefore) {
-      _pendingFetch?.cancel();
-      _pendingFetch = null;
+    _pendingRefresh?.cancel();
+    _pendingRefresh = null;
+    if (!claimRefreshPass()) return;
+    _inRefreshPass = true;
+    try {
+      await Future.wait([
+        for (final refreshable in _refreshables) refreshable.refresh(),
+      ]);
+    } finally {
+      _inRefreshPass = false;
     }
   }
 
@@ -166,7 +175,7 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
         _timer?.cancel();
         _timer = null;
       case AppLifecycleState.resumed:
-        // refreshAll unterliegt selbst dem Rate-Limit (max. 1 Abruf pro
+        // refreshAll unterliegt selbst dem Rate-Limit (max. 1 Durchlauf pro
         // minRefreshInterval), ein Stale-Check ist daher nicht nötig.
         refreshAll();
         _timer ??= Timer.periodic(refreshInterval, (_) => refreshAll());
@@ -179,7 +188,7 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
-    _pendingFetch?.cancel();
+    _pendingRefresh?.cancel();
     super.dispose();
   }
 }

@@ -280,6 +280,88 @@ void main() {
       controller.dispose();
     });
 
+    testWidgets('Refresh-Durchlauf lädt alle Widgets, nicht nur das erste', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      var recipesCalls = 0;
+      var agendaCalls = 0;
+      var fakeNow = DateTime(2026, 1, 1, 12);
+      final controller = DashboardController(
+        initialLayout: const DashboardLayout(
+          widgets: [
+            DashboardWidgetConfig(
+              type: DashboardWidgetType.recipes,
+              count: 2,
+              emptyState: WidgetEmptyState.card,
+            ),
+            DashboardWidgetConfig(
+              type: DashboardWidgetType.calendarAgenda,
+              count: 2,
+              emptyState: WidgetEmptyState.card,
+            ),
+          ],
+        ),
+        store: SharedPreferencesDashboardLayoutStore(),
+        cache: DashboardCache(),
+        clock: () => fakeNow,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DesignScope(
+              variant: ValueNotifier<DesignVariant>(DesignVariant.materiaPop),
+              child: ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) => ListView(
+                  children: [
+                    DashboardWidgetView(
+                      controller: controller,
+                      spec: _TestSpec(
+                        type: DashboardWidgetType.recipes,
+                        fetchFn: (count) async {
+                          recipesCalls++;
+                          return [_TestRow('R')];
+                        },
+                      ),
+                      index: 0,
+                      total: 2,
+                    ),
+                    DashboardWidgetView(
+                      controller: controller,
+                      spec: _TestSpec(
+                        type: DashboardWidgetType.calendarAgenda,
+                        fetchFn: (count) async {
+                          agendaCalls++;
+                          return [_TestRow('A')];
+                        },
+                      ),
+                      index: 1,
+                      total: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(recipesCalls, 1);
+      expect(agendaCalls, 1);
+
+      // Ein erlaubter Refresh-Durchlauf lädt beide Widgets nach, nicht nur
+      // das zuerst registrierte.
+      fakeNow = fakeNow.add(const Duration(seconds: 21));
+      await controller.refreshAll();
+      await tester.pumpAndSettle();
+      expect(recipesCalls, 2);
+      expect(agendaCalls, 2);
+
+      controller.dispose();
+    });
+
     testWidgets(
       'Leer + hide: im Normal-Modus unsichtbar, im Edit-Modus sichtbar',
       (tester) async {

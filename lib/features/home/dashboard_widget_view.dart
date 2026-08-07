@@ -117,12 +117,16 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
 
   @override
   Future<void> refresh() async {
-    // Ohne vorhandene Daten (noch nie geladen) ist der Abruf nie limitiert,
-    // sonst bliebe das Skeleton hängen; das Slot wird trotzdem belegt.
-    // ponytail: Ein Abruf ohne Daten schlüpft durch das Rate-Limit, wenn das
-    // Fenster gerade belegt ist – selten (leerer Cache) und selbstheilend über
-    // den aufgeschobenen Sammel-Refresh. Upgrade: Abruf-Zeitstempel im Cache.
-    if (!widget.controller.claimFetchSlot() && _rows != null) return;
+    // Ein laufender [DashboardController.refreshAll]-Durchlauf erlaubt den
+    // Abruf ohne eigenes Slot; außerhalb davon gilt das globale Rate-Limit.
+    // Ohne vorhandene Daten (noch nie geladen) wird nie unterbunden, sonst
+    // bliebe das Skeleton hängen – selten und selbstheilend über den
+    // aufgeschobenen Sammel-Refresh des Controllers.
+    final mayFetch =
+        widget.controller.inRefreshPass ||
+        widget.controller.claimRefreshPass() ||
+        _rows == null;
+    if (!mayFetch) return;
     final epoch = ++_refreshEpoch;
     try {
       final rows = await widget.spec.fetch(_config.count);
