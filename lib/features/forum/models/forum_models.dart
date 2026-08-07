@@ -77,9 +77,7 @@ class ForumListResponse {
     final forums = (json['data'] as List)
         .map((e) => Forum.fromJson(e as Map<String, dynamic>))
         .toList();
-    final meta = PaginationMeta.fromJson(
-      json['meta'] as Map<String, dynamic>,
-    );
+    final meta = PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>);
     return ForumListResponse(data: forums, meta: meta);
   }
 }
@@ -160,6 +158,7 @@ class ForumMemberListResponse {
 class FeedPost {
   final String id;
   final String forumId;
+  final String? forumName;
   final String userId;
   final String? userName;
   final String? userImage;
@@ -174,6 +173,7 @@ class FeedPost {
   const FeedPost({
     required this.id,
     required this.forumId,
+    this.forumName,
     required this.userId,
     this.userName,
     this.userImage,
@@ -190,6 +190,7 @@ class FeedPost {
     return FeedPost(
       id: json['id'] as String,
       forumId: json['forumId'] as String,
+      forumName: json['forumName'] as String?,
       userId: json['userId'] as String,
       userName: json['userDisplayName'] as String?,
       userImage: json['userImage'] as String?,
@@ -214,8 +215,7 @@ class FeedPost {
   }
 
   /// True when the API sent plain-string URLs (web post type).
-  bool get _hasStringUrls =>
-      _rawUrls.isNotEmpty && _rawUrls.first is String;
+  bool get _hasStringUrls => _rawUrls.isNotEmpty && _rawUrls.first is String;
 
   /// Music/video posts: list of {platform, url} objects.
   List<MusicUrl> get urls {
@@ -233,10 +233,7 @@ class FeedPost {
 
   /// YouTube video IDs extracted from web URLs.
   List<String> get youtubeIds =>
-      webUrls
-          .map(YoutubeHelper.extractVideoId)
-          .whereType<String>()
-          .toList();
+      webUrls.map(YoutubeHelper.extractVideoId).whereType<String>().toList();
 
   /// Spotify IDs (track/album/playlist) extracted from web URLs.
   List<SpotifyItem> get spotifyItems =>
@@ -298,9 +295,7 @@ class FeedPostListResponse {
     final posts = (json['data'] as List)
         .map((e) => FeedPost.fromJson(e as Map<String, dynamic>))
         .toList();
-    final meta = PaginationMeta.fromJson(
-      json['meta'] as Map<String, dynamic>,
-    );
+    final meta = PaginationMeta.fromJson(json['meta'] as Map<String, dynamic>);
     return FeedPostListResponse(data: posts, meta: meta);
   }
 }
@@ -343,7 +338,8 @@ class FeedPostComment {
       text: json['text'] as String?,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
-      children: (json['children'] as List<dynamic>?)
+      children:
+          (json['children'] as List<dynamic>?)
               ?.map((e) => FeedPostComment.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],

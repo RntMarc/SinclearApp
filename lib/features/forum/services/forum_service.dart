@@ -59,6 +59,22 @@ class ForumService {
 
   // --- Posts ---
 
+  /// Aggregierter Feed: neueste Beiträge aller sichtbaren Foren (öffentliche
+  /// plus Mitgliedschaften), sortiert nach Erstellzeit. Trägt bei jedem
+  /// Beitrag `forumName` mit.
+  Future<FeedPostListResponse> getFeed({int page = 1, int limit = 20}) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    final data = await _api.get(
+      '/forums/feed',
+      queryParams: params,
+      token: await _token(),
+    );
+    return FeedPostListResponse.fromJson(data);
+  }
+
   Future<FeedPostListResponse> listPosts(
     String forumId, {
     int page = 1,
