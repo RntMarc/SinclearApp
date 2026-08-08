@@ -77,7 +77,8 @@ Future<void> showLocalNotification(AppNotification notification) async {
     title: title,
     body: body,
     notificationDetails: details,
-    payload: '${notification.code}|${jsonEncode(notification.payload)}',
+    payload:
+        '${notification.code}|${notification.id}|${jsonEncode(notification.payload)}',
   );
 }
 

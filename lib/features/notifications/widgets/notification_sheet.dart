@@ -168,12 +168,13 @@ class _NotificationSheetState extends State<NotificationSheet> {
     await notifService.markAsRead(notification.id);
     if (!context.mounted) return;
 
+    final route = NotificationTypeLabel.route(
+      notification.code,
+      notification.payload,
+    );
+    if (route == null) return; // no target — stay in the inbox sheet
     Navigator.pop(context);
-
-    final deepLink = notification.payload['deepLink'] as String?;
-    if (deepLink != null) {
-      context.go(deepLink);
-    }
+    context.go(route);
   }
 }
 
@@ -200,10 +201,7 @@ class _NotificationItem extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
         color: tokens.surfaceVariant,
-        child: Icon(
-          Icons.done_rounded,
-          color: tokens.primary,
-        ),
+        child: Icon(Icons.done_rounded, color: tokens.primary),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -216,13 +214,22 @@ class _NotificationItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
-              NotificationTypeLabel.icon(notification.code, notification.payload),
+              NotificationTypeLabel.icon(
+                notification.code,
+                notification.payload,
+              ),
               color: tokens.primary,
               size: 20,
             ),
           ),
-          title: NotificationTypeLabel.title(notification.code, notification.payload),
-          subtitle: NotificationTypeLabel.body(notification.code, notification.payload),
+          title: NotificationTypeLabel.title(
+            notification.code,
+            notification.payload,
+          ),
+          subtitle: NotificationTypeLabel.body(
+            notification.code,
+            notification.payload,
+          ),
           trailing: DesignText(
             _timeAgo(notification.createdAt),
             style: DesignTextStyle.label,

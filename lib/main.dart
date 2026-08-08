@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/config/notification_config.dart';
 import 'core/deep_link_handler.dart';
 import 'design/theme/design_preferences.dart';
 import 'core/config/osm_config.dart';
@@ -144,15 +145,23 @@ Future<void> _bootstrap() async {
     cache: DashboardCache(),
   );
 
-  notification.onNotificationTapped = (notificationId) {
-    if (auth.isLoggedIn) {
-      router.go('/home');
+  notification.onNotificationOpened = (opened) {
+    if (!auth.isLoggedIn) return;
+    final route = opened == null
+        ? null
+        : NotificationTypeLabel.route(opened.code, opened.payload);
+    if (route != null) {
+      router.go(route);
+    } else {
+      // Unresolvable (offline, unknown code): let the user look it up in
+      // the in-app notification area instead.
+      notification.requestOpenInbox();
     }
   };
 
   final initialNotifId = notification.consumePendingNotificationId();
   if (initialNotifId != null && auth.isLoggedIn) {
-    router.go('/home');
+    unawaited(notification.handleNotificationTap(initialNotifId));
   }
 
   runApp(

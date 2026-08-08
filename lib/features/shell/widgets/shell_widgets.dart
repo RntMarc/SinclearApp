@@ -666,6 +666,7 @@ class _ShellNotificationBellState extends State<ShellNotificationBell> {
     super.didChangeDependencies();
     _notification ??= AppScope.of(context).notification;
     _notification!.addListener(_onChange);
+    _maybeOpenInbox();
   }
 
   @override
@@ -675,7 +676,18 @@ class _ShellNotificationBellState extends State<ShellNotificationBell> {
   }
 
   void _onChange() {
+    _maybeOpenInbox();
     if (mounted) setState(() {});
+  }
+
+  /// Opens the inbox sheet when the notification service asked for it
+  /// (unresolvable notification deep link, e.g. cold start while offline).
+  void _maybeOpenInbox() {
+    final notif = _notification;
+    if (notif == null || !notif.consumeOpenInboxRequest()) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _showSheet(context);
+    });
   }
 
   @override

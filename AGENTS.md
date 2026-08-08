@@ -54,6 +54,32 @@ English only.
   The UI must **not** hide the flag button based on ownership — ownership is
   handled inside the moderation sheet itself.
 
+## Notifications & Deep Links
+
+* **Regular compatibility check:** Whenever the Sinclear API docs change
+  (check via the SinclearAPI MCP `get_documentation` tool, topic
+  `notifications`), verify that the client is still fully compatible with the
+  notification system: notification codes, payloads, delivery mechanisms
+  (FCM push, polling), and endpoints. New or changed codes must be handled in
+  `NotificationTypeLabel` (title/body/icon) and in the deep-link resolution.
+* **Deep links from notifications:** The client must always be able to open
+  the correct screen and the correct object when a notification is tapped —
+  no matter whether the notification arrives natively (Android/iOS local or
+  FCM), in the browser (web service worker), or in-app (inbox sheet). Each
+  notification code with an object id (`calendarEventId`, …) must resolve to
+  the matching route with that id.
+* **Cold start:** Opening a notification from the OS tray / browser while the
+  app is not running must resolve the target too: fetch the notification by
+  `notificationId` (or reuse cached payload), then navigate. If the target
+  cannot be resolved or fetched (offline, phone off, unknown code), the
+  in-app notification area (the inbox sheet) must be opened instead so the
+  user can look it up themselves. Never silently drop a tapped notification
+  to a generic screen.
+* **API deep-link values** (`home`, `travel`, `events`, `profile`,
+  `settings`, `friends`, `discover`, `news`, `chat`, `feedback`) are English
+  keys, not client routes: map them to the German route paths (`/home`,
+  `/reisen`, `/kalender`, …) instead of passing them through.
+
 ## Interaction Guidelines
 * **User Persona:** Assume the user is familiar with programming concepts but
   may be new to Dart.
