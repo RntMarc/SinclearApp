@@ -19,3 +19,19 @@ messaging.onBackgroundMessage((payload) => {
     data: payload.data,
   });
 });
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const notificationId = (event.notification.data || {}).notificationId;
+  const url = notificationId ? `/?notification=${notificationId}` : '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ('navigate' in client) {
+          return client.navigate(url).then(() => client.focus());
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});

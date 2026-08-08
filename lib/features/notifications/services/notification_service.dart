@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_initializing_formals
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,6 +12,8 @@ import '../../../core/utils/date_utils.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/notification_models.dart';
 import 'notification_display.dart';
+import 'notification_helper_stub.dart'
+    if (dart.library.html) 'notification_helper_web.dart';
 
 class NotificationService extends ChangeNotifier {
   final ApiClient _api;
@@ -23,7 +26,13 @@ class NotificationService extends ChangeNotifier {
   Timer? _pollTimer;
   bool _initialized = false;
   String? _pendingNotificationId;
-  void Function(String notificationId)? onNotificationTapped;
+  bool _openInboxRequested = false;
+
+  /// Called when a notification is opened outside the inbox sheet (native,
+  /// browser, cold start). `opened` is the resolved notification or `null`
+  /// when it could not be fetched (offline, deleted). The app decides where
+  /// to navigate and falls back to [requestOpenInbox] if needed.
+  void Function(AppNotification? opened)? onNotificationOpened;
 
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
   int get unreadCount => _unreadCount;
@@ -35,6 +44,20 @@ class NotificationService extends ChangeNotifier {
     return id;
   }
 
+  /// Requests that the in-app notification area (the inbox sheet) is opened,
+  /// e.g. as fallback for an unresolvable notification deep link.
+  void requestOpenInbox() {
+    _openInboxRequested = true;
+    notifyListeners();
+  }
+
+  /// Returns and consumes a pending inbox-open request.
+  bool consumeOpenInboxRequest() {
+    final requested = _openInboxRequested;
+    _openInboxRequested = false;
+    return requested;
+  }
+
   NotificationService({required ApiClient api, required AuthService auth})
     : _api = api,
       _auth = auth;
@@ -44,6 +67,10 @@ class NotificationService extends ChangeNotifier {
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
+
+    if (kIsWeb) {
+      _pendingNotificationId ??= takeNotificationIdFromUrl();
+    }
 
     if (!kIsWeb) {
       await localNotifications
@@ -76,6 +103,15 @@ class NotificationService extends ChangeNotifier {
         settings: initSettings,
         onDidReceiveNotificationResponse: _onLocalNotificationTap,
       );
+
+      final launchDetails = await localNotifications
+          .getNotificationAppLaunchDetails();
+      if (launchDetails?.didNotificationLaunchApp ?? false) {
+        final launchPayload = launchDetails?.notificationResponse?.payload;
+        if (launchPayload != null && launchPayload.isNotEmpty) {
+          _pendingNotificationId ??= _handleLocalPayload(launchPayload);
+        }
+      }
     }
 
     final isDesktop =
@@ -139,7 +175,7 @@ class NotificationService extends ChangeNotifier {
         );
         final notificationId = message.data['notificationId'] as String?;
         if (notificationId != null) {
-          onNotificationTapped?.call(notificationId);
+          unawaited(handleNotificationTap(notificationId));
         }
       });
 
@@ -159,14 +195,76 @@ class NotificationService extends ChangeNotifier {
     _setupPolling();
   }
 
+  /// Parses a local-notification payload. Handles `fallback|<id>` and
+  /// `<code>|<id>|<json>`. For the latter the deep link can be derived
+  /// offline, so the notification is dispatched directly. Returns a
+  /// notification id to open by fetch, or `null`.
+  String? _handleLocalPayload(String payload) {
+    if (payload.startsWith('fallback|')) {
+      return payload.substring('fallback|'.length);
+    }
+    final parts = payload.split('|');
+    if (parts.length < 2) return null;
+    final code = parts[0];
+    try {
+      final jsonText = parts.length >= 3 ? parts[2] : parts[1];
+      final json = jsonDecode(jsonText) as Map<String, dynamic>;
+      final id = parts.length >= 3 ? parts[1] : null;
+      if (id != null && id.isNotEmpty) unawaited(markAsRead(id));
+      final opened = AppNotification(
+        id: id ?? '',
+        code: code,
+        payload: json,
+        createdAt: '',
+      );
+      onNotificationOpened?.call(opened);
+    } catch (e, s) {
+      developer.log(
+        'Failed to parse local notification payload: $payload',
+        name: 'notifications',
+        error: e,
+        stackTrace: s,
+      );
+    }
+    return null;
+  }
+
   void _onLocalNotificationTap(NotificationResponse response) {
     final payload = response.payload;
-    if (payload == null) return;
+    if (payload == null || payload.isEmpty) return;
     developer.log('Local notification tapped: $payload', name: 'notifications');
 
-    if (payload.startsWith('fallback|')) {
-      final notificationId = payload.substring('fallback|'.length);
-      onNotificationTapped?.call(notificationId);
+    final notificationId = _handleLocalPayload(payload);
+    if (notificationId != null && notificationId.isNotEmpty) {
+      unawaited(handleNotificationTap(notificationId));
+    }
+  }
+
+  /// Resolves and dispatches a notification tap (native, browser or cold
+  /// start): fetch by id, mark as read and hand the notification to
+  /// [onNotificationOpened] for navigation.
+  Future<void> handleNotificationTap(String notificationId) async {
+    final opened = await resolveNotification(notificationId);
+    if (opened != null) unawaited(markAsRead(opened.id));
+    onNotificationOpened?.call(opened);
+  }
+
+  /// Fetches the notification by id, preferring the already loaded inbox
+  /// cache. Returns `null` when it cannot be fetched (offline, deleted).
+  Future<AppNotification?> resolveNotification(String notificationId) async {
+    for (final n in _notifications) {
+      if (n.id == notificationId) return n;
+    }
+    try {
+      return await getNotification(notificationId);
+    } catch (e, s) {
+      developer.log(
+        'Failed to resolve notification $notificationId',
+        name: 'notifications.tap',
+        error: e,
+        stackTrace: s,
+      );
+      return null;
     }
   }
 
@@ -330,10 +428,7 @@ class NotificationService extends ChangeNotifier {
         }
       }
       _unreadCount = response.meta.unreadCount;
-      await prefs.setString(
-        'last_polled_at',
-        toApiDate(DateTime.now()),
-      );
+      await prefs.setString('last_polled_at', toApiDate(DateTime.now()));
       notifyListeners();
     } catch (e, s) {
       developer.log(
@@ -395,10 +490,7 @@ class NotificationService extends ChangeNotifier {
           _unreadCount = response.meta.unreadCount;
           notifyListeners();
         }
-        await prefs.setString(
-          'last_polled_at',
-          toApiDate(DateTime.now()),
-        );
+        await prefs.setString('last_polled_at', toApiDate(DateTime.now()));
       } catch (e, s) {
         developer.log(
           'Polling failed: $e',
