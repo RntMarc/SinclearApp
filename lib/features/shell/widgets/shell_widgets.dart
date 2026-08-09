@@ -396,20 +396,24 @@ class ShellMobile extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final title = shellTitleForLocation(location);
 
-    return DesignSurface(
-      child: Column(
-        children: [
-          DesignAppBar(
-            title: title,
-            actions: [
-              if (location == '/home') const ShellDashboardEditButton(),
-              const ShellShareButton(),
-              const ShellNotificationBell(),
-            ],
-          ),
-          Expanded(child: child),
-          ShellMobileBottomNav(currentLocation: location),
-        ],
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true,
+      body: DesignSurface(
+        child: Column(
+          children: [
+            DesignAppBar(
+              title: title,
+              actions: [
+                if (location == '/home') const ShellDashboardEditButton(),
+                const ShellShareButton(),
+                const ShellNotificationBell(),
+              ],
+            ),
+            Expanded(child: child),
+            ShellMobileBottomNav(currentLocation: location),
+          ],
+        ),
       ),
     );
   }
