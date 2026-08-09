@@ -14,6 +14,7 @@ class DesignTextField extends StatefulWidget {
     this.maxLength,
     this.prefixIcon,
     this.suffix,
+    this.scrollPadding = const EdgeInsets.only(bottom: 140.0),
     super.key,
   });
 
@@ -30,6 +31,10 @@ class DesignTextField extends StatefulWidget {
   /// [VisibilityBadge]). The suffix sits inside the field's border, aligned
   /// to the trailing edge, so it stays visually part of the same input row.
   final Widget? suffix;
+
+  /// Configures the padding for the edges surrounding a Scrollable when the
+  /// text field scrolls into view. Defaults to [EdgeInsets.only(bottom: 140.0)].
+  final EdgeInsets scrollPadding;
 
   @override
   State<DesignTextField> createState() => _DesignTextFieldState();
@@ -55,6 +60,7 @@ class _DesignTextFieldState extends State<DesignTextField> {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final borderColor = _focused ? tokens.primary : tokens.border;
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: tokens.spaceMd,
@@ -63,7 +69,10 @@ class _DesignTextFieldState extends State<DesignTextField> {
       decoration: BoxDecoration(
         color: tokens.surface,
         borderRadius: BorderRadius.circular(tokens.radiusMd),
-        border: Border.all(color: borderColor.withValues(alpha: 0.8), width: 1.5),
+        border: Border.all(
+          color: borderColor.withValues(alpha: 0.8),
+          width: 1.5,
+        ),
         boxShadow: _focused ? tokens.glowShadow : null,
       ),
       child: Row(
@@ -84,6 +93,7 @@ class _DesignTextFieldState extends State<DesignTextField> {
                 maxLines: widget.maxLines,
                 maxLength: widget.maxLength,
                 style: tokens.bodyStyle(tokens.textHigh),
+                scrollPadding: widget.scrollPadding,
                 decoration: InputDecoration(
                   hintText: widget.hint,
                   hintStyle: tokens.bodyStyle(tokens.textLow),

@@ -105,7 +105,10 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
           title: const Text('Hinweis'),
           content: const Text('Kamera nicht verfügbar'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
           ],
         ),
       );
@@ -139,7 +142,10 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
           title: const Text('Fehler'),
           content: Text('Fehler beim Speichern: $e'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
           ],
         ),
       );
@@ -149,8 +155,14 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
   @override
   Widget build(BuildContext context) {
     final t = widget.tokens;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: EdgeInsets.all(t.spaceLg),
+      padding: EdgeInsets.fromLTRB(
+        t.spaceLg,
+        t.spaceLg,
+        t.spaceLg,
+        t.spaceLg + bottomInset,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,6 +184,7 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
           SizedBox(height: t.spaceMd),
           TextField(
             controller: _titleController,
+            scrollPadding: const EdgeInsets.only(bottom: 140.0),
             decoration: const InputDecoration(
               labelText: 'Titel (optional)',
               hintText: 'z.B. Messe, Fahrschein',
@@ -184,6 +197,7 @@ class _TicketFormSheetState extends State<_TicketFormSheet> {
               Expanded(
                 child: TextField(
                   controller: _qrController,
+                  scrollPadding: const EdgeInsets.only(bottom: 140.0),
                   decoration: const InputDecoration(
                     labelText: 'QR-Code',
                     hintText: 'Scannen oder manuell eingeben',
