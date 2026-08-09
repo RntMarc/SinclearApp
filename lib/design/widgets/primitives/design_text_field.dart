@@ -60,55 +60,65 @@ class _DesignTextFieldState extends State<DesignTextField> {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final borderColor = _focused ? tokens.primary : tokens.border;
+    final keyboardHeight = MediaQuery.maybeOf(context)?.viewInsets.bottom ?? 0;
+    // Apply bottom padding matching the touch keyboard height only when focused
+    final double bottomPadding = (_focused && keyboardHeight > 0)
+        ? keyboardHeight
+        : 0.0;
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: tokens.spaceMd,
-        vertical: tokens.spaceSm,
-      ),
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: BorderRadius.circular(tokens.radiusMd),
-        border: Border.all(
-          color: borderColor.withValues(alpha: 0.8),
-          width: 1.5,
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomPadding),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: tokens.spaceMd,
+          vertical: tokens.spaceSm,
         ),
-        boxShadow: _focused ? tokens.glowShadow : null,
-      ),
-      child: Row(
-        children: <Widget>[
-          if (widget.prefixIcon != null) ...<Widget>[
-            Icon(widget.prefixIcon, color: tokens.textLow, size: 20),
-            SizedBox(width: tokens.spaceSm),
-          ],
-          Expanded(
-            child: Material(
-              type: MaterialType.transparency,
-              child: TextField(
-                controller: widget.controller,
-                focusNode: _focus,
-                obscureText: widget.obscure,
-                keyboardType: widget.keyboardType,
-                textAlign: widget.textAlign,
-                maxLines: widget.maxLines,
-                maxLength: widget.maxLength,
-                style: tokens.bodyStyle(tokens.textHigh),
-                scrollPadding: widget.scrollPadding,
-                decoration: InputDecoration(
-                  hintText: widget.hint,
-                  hintStyle: tokens.bodyStyle(tokens.textLow),
-                  border: InputBorder.none,
-                  isCollapsed: true,
-                  counterText: widget.maxLength != null ? '' : null,
+        decoration: BoxDecoration(
+          color: tokens.surface,
+          borderRadius: BorderRadius.circular(tokens.radiusMd),
+          border: Border.all(
+            color: borderColor.withValues(alpha: 0.8),
+            width: 1.5,
+          ),
+          boxShadow: _focused ? tokens.glowShadow : null,
+        ),
+        child: Row(
+          children: <Widget>[
+            if (widget.prefixIcon != null) ...<Widget>[
+              Icon(widget.prefixIcon, color: tokens.textLow, size: 20),
+              SizedBox(width: tokens.spaceSm),
+            ],
+            Expanded(
+              child: Material(
+                type: MaterialType.transparency,
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: _focus,
+                  obscureText: widget.obscure,
+                  keyboardType: widget.keyboardType,
+                  textAlign: widget.textAlign,
+                  maxLines: widget.maxLines,
+                  maxLength: widget.maxLength,
+                  style: tokens.bodyStyle(tokens.textHigh),
+                  scrollPadding: widget.scrollPadding,
+                  decoration: InputDecoration(
+                    hintText: widget.hint,
+                    hintStyle: tokens.bodyStyle(tokens.textLow),
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                    counterText: widget.maxLength != null ? '' : null,
+                  ),
                 ),
               ),
             ),
-          ),
-          if (widget.suffix != null) ...<Widget>[
-            SizedBox(width: tokens.spaceSm),
-            widget.suffix!,
+            if (widget.suffix != null) ...<Widget>[
+              SizedBox(width: tokens.spaceSm),
+              widget.suffix!,
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
