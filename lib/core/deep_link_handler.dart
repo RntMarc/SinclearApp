@@ -39,6 +39,13 @@ class DeepLinkHandler {
   void _handleUri(Uri? uri) {
     if (uri == null) return;
 
+    final urlString = uri.toString();
+    // Intercept internal API URLs matching https://sinclear.de/api/v2 and forward them back to the browser
+    if (urlString.startsWith('https://sinclear.de/api/v2')) {
+      _openInBrowser(uri);
+      return;
+    }
+
     final path = uri.path;
 
     if (_isDiscordCallback(path)) {
