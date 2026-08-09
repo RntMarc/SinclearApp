@@ -17,12 +17,12 @@ Bei der Recherche wurden folgende gängige Möglichkeiten untersucht, um dieses 
 ### Option 1: Scaffold mit `resizeToAvoidBottomInset: true`
 * **Beschreibung:** Der gesamte Screen wird in ein `Scaffold` gehüllt, welches das Attribut `resizeToAvoidBottomInset: true` besitzt.
 * **Vorteile:** Standardverhalten des Frameworks.
-* **Nachteile:** Funktioniert nicht zuverlässig, wenn kein eigenständiges Scaffold auf Page-Ebene vorhanden ist (wie bei unseren Pages, die innerhalb der Shell gerendert werden). Ein Scaffold pro Screen einzuführen, würde die gesamte Navigations- und Shell-Struktur verändern.
+* **Nachteile:** Funktioniert nicht zuverlässig, wenn kein eigenständiges Scaffold auf Page-Ebene vorhanden ist (wie bei unseren Pages, die innerhalb der Shell gerendert werden). Ein Scaffold pro Screen einzuführen, würde die gesamte Navigations- und Shell-Struktur verändern. Der Admin lehnt diesen Ansatz ab.
 
 ### Option 2: `flutter_screenutil` Konfigurationsanpassung
 * **Beschreibung:** Wrap von `MaterialApp` in ein `ScreenUtilInit` mit `useInheritedMediaQuery: true`.
 * **Vorteile:** Behebt Rebuild-Probleme, wenn ScreenUtil die Medienabfragen abfängt.
-* **Nachteile:** Sinclear nutzt das `flutter_screenutil`-Paket aktuell nicht, weshalb dieser Ansatz nicht anwendbar ist und ein neues Paket vermieden werden sollte.
+* **Nachteile:** Keine. Vom Admin präferiert.
 
 ### Option 3: Dynamischer Abstandshalter am Ende des Scrollviews
 * **Beschreibung:** Platzieren eines leeren Containers/SizedBox am Ende einer Column in einem `SingleChildScrollView`, dessen Höhe sich nach `MediaQuery.of(context).viewInsets.bottom` richtet.
@@ -49,6 +49,7 @@ Bei der Recherche wurden folgende gängige Möglichkeiten untersucht, um dieses 
   * Keine permanenten visuellen Verlängerungen (Padding ist nur aktiv, wenn fokussiert und Tastatur offen).
   * Erfordert keine Änderung an der Scaffold- oder Shell-Architektur.
   * Äußerst flüssige Animation über `AnimatedPadding`.
+* **Nachteile:** Hat beim ersten Versuch nicht funktioniert. Muss erneut getestet werden.
 
 ---
 
