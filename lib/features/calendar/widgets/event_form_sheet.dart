@@ -89,7 +89,6 @@ class _EventFormSheetState extends State<EventFormSheet> {
               type: MaterialType.transparency,
               child: TextField(
                 controller: _descriptionController,
-                scrollPadding: const EdgeInsets.only(bottom: 140.0),
                 decoration: InputDecoration(
                   labelText: 'Beschreibung',
                   border: OutlineInputBorder(

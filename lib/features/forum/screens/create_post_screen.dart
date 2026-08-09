@@ -67,14 +67,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       final urlList = _urls
           .where((e) => e.urlController.text.trim().isNotEmpty)
           .map((e) {
-            final platform = _selectedType == 'music'
-                ? e.selectedPlatform ?? 'other'
-                : _selectedType == 'video'
+        final platform = _selectedType == 'music'
+            ? e.selectedPlatform ?? 'other'
+            : _selectedType == 'video'
                 ? e.selectedPlatform ?? 'other'
                 : 'other';
-            return {'platform': platform, 'url': e.urlController.text.trim()};
-          })
-          .toList();
+        return {
+          'platform': platform,
+          'url': e.urlController.text.trim(),
+        };
+      }).toList();
       if (urlList.isNotEmpty) content['urls'] = urlList;
     }
 
@@ -185,7 +187,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       controller: _titleController,
                       textCapitalization: TextCapitalization.words,
                       maxLines: 1,
-                      scrollPadding: const EdgeInsets.only(bottom: 140.0),
                       style: TextStyle(
                         color: tokens.textHigh,
                         fontSize: 15,
@@ -200,22 +201,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(
-                            color: tokens.border.withValues(alpha: 0.8),
-                          ),
+                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(
-                            color: tokens.border.withValues(alpha: 0.8),
-                          ),
+                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(
-                            color: tokens.primary,
-                            width: 1.5,
-                          ),
+                          borderSide: BorderSide(color: tokens.primary, width: 1.5),
                         ),
                         contentPadding: EdgeInsets.all(tokens.spaceMd),
                         filled: true,
@@ -231,7 +225,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       textCapitalization: TextCapitalization.sentences,
                       maxLines: null,
                       minLines: 3,
-                      scrollPadding: const EdgeInsets.only(bottom: 140.0),
                       style: TextStyle(
                         color: tokens.textHigh,
                         fontSize: 15,
@@ -246,22 +239,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(
-                            color: tokens.border.withValues(alpha: 0.8),
-                          ),
+                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(
-                            color: tokens.border.withValues(alpha: 0.8),
-                          ),
+                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(
-                            color: tokens.primary,
-                            width: 1.5,
-                          ),
+                          borderSide: BorderSide(color: tokens.primary, width: 1.5),
                         ),
                         contentPadding: EdgeInsets.all(tokens.spaceMd),
                         filled: true,
@@ -277,8 +263,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           _selectedType == 'music'
                               ? 'Streaming-Links'
                               : _selectedType == 'video'
-                              ? 'Video-Links'
-                              : 'Links',
+                                  ? 'Video-Links'
+                                  : 'Links',
                           style: DesignTextStyle.subtitle,
                           color: tokens.textHigh,
                         ),
@@ -372,15 +358,11 @@ class _UrlFieldState extends State<_UrlField> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(
-                        color: tokens.border.withValues(alpha: 0.8),
-                      ),
+                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(
-                        color: tokens.border.withValues(alpha: 0.8),
-                      ),
+                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
@@ -402,8 +384,9 @@ class _UrlFieldState extends State<_UrlField> {
                     DropdownMenuItem(value: 'youtube', child: Text('YouTube')),
                     DropdownMenuItem(value: 'other', child: Text('Sonstige')),
                   ],
-                  onChanged: (v) =>
-                      setState(() => widget.entry.selectedPlatform = v),
+                  onChanged: (v) => setState(
+                    () => widget.entry.selectedPlatform = v,
+                  ),
                 ),
               ),
             )
@@ -427,15 +410,11 @@ class _UrlFieldState extends State<_UrlField> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(
-                        color: tokens.border.withValues(alpha: 0.8),
-                      ),
+                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(
-                        color: tokens.border.withValues(alpha: 0.8),
-                      ),
+                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
@@ -446,10 +425,7 @@ class _UrlFieldState extends State<_UrlField> {
                   ),
                   items: const [
                     DropdownMenuItem(value: 'youtube', child: Text('YouTube')),
-                    DropdownMenuItem(
-                      value: 'peertube',
-                      child: Text('PeerTube'),
-                    ),
+                    DropdownMenuItem(value: 'peertube', child: Text('PeerTube')),
                     DropdownMenuItem(value: 'odysee', child: Text('Odysee')),
                     DropdownMenuItem(
                       value: 'tv_mediathek',
@@ -457,8 +433,9 @@ class _UrlFieldState extends State<_UrlField> {
                     ),
                     DropdownMenuItem(value: 'other', child: Text('Sonstige')),
                   ],
-                  onChanged: (v) =>
-                      setState(() => widget.entry.selectedPlatform = v),
+                  onChanged: (v) => setState(
+                    () => widget.entry.selectedPlatform = v,
+                  ),
                 ),
               ),
             ),
@@ -469,7 +446,6 @@ class _UrlFieldState extends State<_UrlField> {
               child: TextField(
                 controller: widget.entry.urlController,
                 keyboardType: TextInputType.url,
-                scrollPadding: const EdgeInsets.only(bottom: 140.0),
                 style: TextStyle(
                   color: tokens.textHigh,
                   fontSize: 15,
@@ -484,15 +460,11 @@ class _UrlFieldState extends State<_UrlField> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(tokens.radiusMd),
-                    borderSide: BorderSide(
-                      color: tokens.border.withValues(alpha: 0.8),
-                    ),
+                    borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(tokens.radiusMd),
-                    borderSide: BorderSide(
-                      color: tokens.border.withValues(alpha: 0.8),
-                    ),
+                    borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(tokens.radiusMd),

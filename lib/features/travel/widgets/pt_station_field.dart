@@ -115,7 +115,6 @@ class _PtStationFieldState extends State<PtStationField> {
           children: [
             TextField(
               controller: _controller,
-              scrollPadding: const EdgeInsets.only(bottom: 140.0),
               decoration: InputDecoration(
                 labelText: widget.label,
                 border: OutlineInputBorder(
@@ -184,7 +183,8 @@ class _PtStationFieldState extends State<PtStationField> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => PtDepartureBoardScreen(
+                                  builder: (context) =>
+                                      PtDepartureBoardScreen(
                                     stationId: station.id,
                                     stationName: station.name,
                                   ),
