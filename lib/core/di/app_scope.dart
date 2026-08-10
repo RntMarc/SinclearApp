@@ -8,7 +8,6 @@ import '../../features/explore/services/nominatim_service.dart';
 import '../../features/feedback/services/feedback_service.dart';
 import '../../features/forum/services/forum_service.dart';
 import '../../features/moderation/services/moderation_service.dart';
-import '../../features/notifications/services/notification_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
 import '../../features/settings/services/mcp_key_service.dart';
 import '../../features/subscription/services/subscription_service.dart';
@@ -25,7 +24,6 @@ class AppScope extends InheritedWidget {
   final TravelService travel;
   final PublicTransportService publicTransport;
   final UserService user;
-  final NotificationService notification;
   final CalendarService calendar;
   final FeedbackService feedback;
   final ForumService forum;
@@ -48,7 +46,6 @@ class AppScope extends InheritedWidget {
     required this.travel,
     required this.publicTransport,
     required this.user,
-    required this.notification,
     required this.calendar,
     required this.feedback,
     required this.forum,

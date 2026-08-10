@@ -1,17 +1,14 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
-import 'core/config/notification_config.dart';
 import 'core/deep_link_handler.dart';
 import 'design/theme/design_preferences.dart';
 import 'core/config/osm_config.dart';
@@ -28,7 +25,6 @@ import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/moderation/services/moderation_service.dart';
-import 'features/notifications/services/notification_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
@@ -38,7 +34,6 @@ import 'features/user/services/user_service.dart';
 import 'features/home/dashboard_cache.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_layout_store.dart';
-import 'firebase_options.dart';
 import 'router/router.dart';
 
 void main() {
@@ -53,7 +48,6 @@ Future<void> _bootstrap() async {
   setupUrlStrategy();
   setupLogging();
   setupGlobalErrorHandling();
-  final log = Logger('main');
 
   if (!kIsWeb) {
     final view = WidgetsBinding.instance.platformDispatcher.views.first;
@@ -67,13 +61,6 @@ Future<void> _bootstrap() async {
   }
 
   await initializeDateFormatting('de');
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (e, s) {
-    log.severe('Firebase initialization failed', e, s);
-  }
   await dotenv.load();
 
   final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v2';
@@ -99,7 +86,6 @@ Future<void> _bootstrap() async {
   final publicTransport = PublicTransportService(api: api, auth: auth);
   final user = UserService(api: api, auth: auth);
   final calendar = CalendarService(api: api, auth: auth);
-  final notification = NotificationService(api: api, auth: auth);
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
@@ -110,19 +96,6 @@ Future<void> _bootstrap() async {
   final webUpdate = WebUpdateService(
     currentBuildNumber: packageInfo.buildNumber,
   );
-  try {
-    await notification.init();
-    if (auth.isLoggedIn) notification.onLoggedIn();
-  } catch (e, s) {
-    log.severe('Notification service initialization failed', e, s);
-  }
-  auth.addListener(() {
-    if (auth.isLoggedIn) {
-      notification.onLoggedIn();
-    } else {
-      notification.onLoggedOut();
-    }
-  });
   if (kIsWeb) {
     webUpdate.init();
   }
@@ -145,25 +118,6 @@ Future<void> _bootstrap() async {
     cache: DashboardCache(),
   );
 
-  notification.onNotificationOpened = (opened) {
-    if (!auth.isLoggedIn) return;
-    final route = opened == null
-        ? null
-        : NotificationTypeLabel.route(opened.code, opened.payload);
-    if (route != null) {
-      router.go(route);
-    } else {
-      // Unresolvable (offline, unknown code): let the user look it up in
-      // the in-app notification area instead.
-      notification.requestOpenInbox();
-    }
-  };
-
-  final initialNotifId = notification.consumePendingNotificationId();
-  if (initialNotifId != null && auth.isLoggedIn) {
-    unawaited(notification.handleNotificationTap(initialNotifId));
-  }
-
   runApp(
     SinclearApp(
       auth: auth,
@@ -173,7 +127,6 @@ Future<void> _bootstrap() async {
       publicTransport: publicTransport,
       user: user,
       calendar: calendar,
-      notification: notification,
       feedback: feedback,
       forum: forum,
       recipes: recipes,
