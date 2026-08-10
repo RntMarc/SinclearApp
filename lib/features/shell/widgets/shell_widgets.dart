@@ -4,7 +4,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
-import '../../notifications/services/notification_service.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/composite/design_app_bar.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
@@ -12,7 +11,6 @@ import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
-import '../../notifications/widgets/notification_sheet.dart';
 
 String shellTitleForLocation(String location) {
   if (location.startsWith('/kalender')) return 'KALENDER';
@@ -354,7 +352,6 @@ class ShellDesktop extends StatelessWidget {
             actions: [
               if (location == '/home') const ShellDashboardEditButton(),
               const ShellShareButton(),
-              const ShellNotificationBell(),
             ],
           ),
           Expanded(
@@ -407,7 +404,6 @@ class ShellMobile extends StatelessWidget {
               actions: [
                 if (location == '/home') const ShellDashboardEditButton(),
                 const ShellShareButton(),
-                const ShellNotificationBell(),
               ],
             ),
             Expanded(child: child),
@@ -651,79 +647,3 @@ class ShellDashboardEditButton extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Notification Bell
-// ---------------------------------------------------------------------------
-
-class ShellNotificationBell extends StatefulWidget {
-  const ShellNotificationBell({super.key});
-
-  @override
-  State<ShellNotificationBell> createState() => _ShellNotificationBellState();
-}
-
-class _ShellNotificationBellState extends State<ShellNotificationBell> {
-  NotificationService? _notification;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _notification ??= AppScope.of(context).notification;
-    _notification!.addListener(_onChange);
-    _maybeOpenInbox();
-  }
-
-  @override
-  void dispose() {
-    _notification?.removeListener(_onChange);
-    super.dispose();
-  }
-
-  void _onChange() {
-    _maybeOpenInbox();
-    if (mounted) setState(() {});
-  }
-
-  /// Opens the inbox sheet when the notification service asked for it
-  /// (unresolvable notification deep link, e.g. cold start while offline).
-  void _maybeOpenInbox() {
-    final notif = _notification;
-    if (notif == null || !notif.consumeOpenInboxRequest()) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _showSheet(context);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final notif = AppScope.of(context).notification;
-    final unread = notif.unreadCount;
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        DesignIconButton(
-          icon: unread > 0
-              ? Icons.notifications_rounded
-              : Icons.notifications_outlined,
-          onPressed: () => _showSheet(context),
-        ),
-        if (unread > 0)
-          Positioned(
-            top: 2,
-            right: 2,
-            child: DesignBadge(label: unread > 99 ? '99+' : unread.toString()),
-          ),
-      ],
-    );
-  }
-
-  void _showSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const NotificationSheet(),
-    );
-  }
-}
