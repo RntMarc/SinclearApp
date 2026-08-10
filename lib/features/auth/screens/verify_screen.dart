@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -71,6 +72,19 @@ class _VerifyScreenState extends State<VerifyScreen> {
         code: code,
       );
       if (!mounted) return;
+
+      if (!kIsWeb) {
+        try {
+          final token = await auth.getAccessToken();
+          AppScope.of(context).notification.startPolling(token: token);
+        } catch (e) {
+          developer.log(
+            'Failed to start polling: $e',
+            name: 'auth.verify',
+          );
+        }
+      }
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(

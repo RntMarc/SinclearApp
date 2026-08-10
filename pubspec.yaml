@@ -36,6 +36,8 @@ dependencies:
   screen_brightness: ^2.1.11
   share_plus: ^13.3.0
   app_links: ^7.2.1
+  flutter_local_notifications: ^18.0.1
+  unifiedpush: ^5.0.0
 
 dev_dependencies:
   flutter_test:

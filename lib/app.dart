@@ -22,6 +22,8 @@ import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_widget_repository.dart';
+import 'features/notifications/services/notification_service.dart';
+import 'core/notifications/notification_lifecycle_observer.dart';
 
 class SinclearApp extends StatelessWidget {
   final AuthService auth;
@@ -41,6 +43,7 @@ class SinclearApp extends StatelessWidget {
   final WebUpdateService webUpdate;
   final DashboardController dashboardController;
   final DashboardWidgetRepository dashboardWidgets;
+  final NotificationService notification;
   final GoRouter router;
 
   /// Initial, locally persisted design variant (survives logout/login).
@@ -92,6 +95,7 @@ class SinclearApp extends StatelessWidget {
     required this.androidUpdate,
     required this.webUpdate,
     required this.dashboardController,
+    required this.notification,
     required this.router,
     required this.appBaseUrl,
     required this.apiBaseUrl,
@@ -126,6 +130,7 @@ class SinclearApp extends StatelessWidget {
       androidUpdate: androidUpdate,
       dashboard: dashboardController,
       dashboardWidgets: dashboardWidgets,
+      notification: notification,
       webUpdate: webUpdate,
       appBaseUrl: appBaseUrl,
       apiBaseUrl: apiBaseUrl,
@@ -136,6 +141,9 @@ class SinclearApp extends StatelessWidget {
           grain: grainOpacity,
           themeMode: themeMode,
           customAccent: customAccent,
+          child: NotificationLifecycleObserver(
+          notificationService: notification,
+          getToken: () => auth.getAccessToken(),
           child: ListenableBuilder(
             listenable: themeMode,
             builder: (context, _) => MaterialApp.router(
@@ -159,6 +167,7 @@ class SinclearApp extends StatelessWidget {
               routerConfig: router,
             ),
           ),
+        ),
         ),
       ),
     );
