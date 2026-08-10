@@ -17,6 +17,8 @@ class NotificationTypeLabel {
         'travel.event_updated' => 'Reise-Event geändert',
         'travel.ticket_created' => 'Neues Ticket',
         'travel.member_added' => 'Neues Reisemitglied',
+        'travel.participant_added' => 'Neuer Reise-Teilnehmer',
+        'travel.accommodation_changed' => 'Unterkunft geändert',
         _ => 'Reise-Benachrichtigung',
       };
     }
@@ -30,8 +32,10 @@ class NotificationTypeLabel {
     }
     if (code.startsWith('forum.')) {
       return switch (code) {
-        'forum.post_created' => 'Neuer Forumsbeitrag',
-        'forum.reply_created' => 'Neue Antwort',
+        'forum.new_post' => 'Neuer Forumsbeitrag',
+        'forum.post_commented' => 'Neuer Kommentar',
+        'forum.comment_replied' => 'Neue Antwort',
+        'forum.post_upvoted' => 'Beitrag geliked',
         'forum.mention' => 'Erwähnung im Forum',
         _ => 'Forum-Benachrichtigung',
       };
@@ -40,6 +44,7 @@ class NotificationTypeLabel {
       return switch (code) {
         'recipe.comment' => 'Neuer Kommentar',
         'recipe.fork' => 'Rezept geforkt',
+        'recipe.review_created' => 'Neue Bewertung',
         _ => 'Rezept-Benachrichtigung',
       };
     }
@@ -52,6 +57,41 @@ class NotificationTypeLabel {
         'admin.test' => 'Test',
         'admin.custom' => payload['title'] ?? 'Admin-Nachricht',
         _ => 'Admin-Benachrichtigung',
+      };
+    }
+    if (code.startsWith('explore.')) {
+      return switch (code) {
+        'explore.place_reviewed' => 'Neue Ortsbewertung',
+        _ => 'Entdecken-Benachrichtigung',
+      };
+    }
+    if (code.startsWith('feedback.')) {
+      return switch (code) {
+        'feedback.status_changed' => 'Status geändert',
+        'feedback.suggestion_commented' => 'Neuer Kommentar',
+        'feedback.suggestion_comment_replied' => 'Neue Antwort',
+        _ => 'Feedback-Benachrichtigung',
+      };
+    }
+    if (code.startsWith('subscription.')) {
+      return switch (code) {
+        'subscription.participant_added' => 'Neuer Abo-Teilnehmer',
+        'subscription.billing_updated' => 'Abrechnung aktualisiert',
+        _ => 'Abo-Benachrichtigung',
+      };
+    }
+    if (code.startsWith('moderation.')) {
+      return switch (code) {
+        'moderation.request_resolved' => 'Meldung bearbeitet',
+        _ => 'Moderation-Benachrichtigung',
+      };
+    }
+    if (code.startsWith('submission.')) {
+      return switch (code) {
+        'submission.created' => 'Einreichung erstellt',
+        'submission.new' => 'Neue Einreichung',
+        'submission.status_changed' => 'Status geändert',
+        _ => 'Einreichungs-Benachrichtigung',
       };
     }
     return switch (code) {
@@ -110,18 +150,26 @@ class NotificationTypeLabel {
 
     // Forum
     if (code.startsWith('forum.')) {
-      final forumTitle = payload['forumTitle'] as String?;
-      final postTitle = payload['postTitle'] as String?;
-      final actorName = payload['actorDisplayName'] as String?;
+      final actorName =
+          payload['authorDisplayName'] as String? ??
+          payload['commenterDisplayName'] as String? ??
+          payload['voterDisplayName'] as String? ??
+          payload['actorDisplayName'] as String?;
       return switch (code) {
-        'forum.post_created' =>
-          forumTitle != null
-              ? 'In "$forumTitle": $postTitle'
+        'forum.new_post' =>
+          actorName != null
+              ? '$actorName hat einen neuen Beitrag erstellt.'
               : 'Ein neuer Beitrag wurde erstellt.',
-        'forum.reply_created' =>
-          postTitle != null
-              ? '$actorName hat geantwortet: $postTitle'
-              : '$actorName hat geantwortet.',
+        'forum.post_commented' =>
+          actorName != null
+              ? '$actorName hat einen Kommentar geschrieben.'
+              : 'Neuer Kommentar.',
+        'forum.comment_replied' =>
+          actorName != null ? '$actorName hat geantwortet.' : 'Neue Antwort.',
+        'forum.post_upvoted' =>
+          actorName != null
+              ? '$actorName hat deinen Beitrag geliked.'
+              : 'Beitrag geliked.',
         'forum.mention' =>
           actorName != null
               ? '$actorName hat dich erwähnt.'
@@ -194,8 +242,10 @@ class NotificationTypeLabel {
     }
     if (code.startsWith('forum.')) {
       return switch (code) {
-        'forum.post_created' => Icons.forum_rounded,
-        'forum.reply_created' => Icons.reply_rounded,
+        'forum.new_post' => Icons.forum_rounded,
+        'forum.post_commented' => Icons.comment_rounded,
+        'forum.comment_replied' => Icons.reply_rounded,
+        'forum.post_upvoted' => Icons.favorite_rounded,
         'forum.mention' => Icons.alternate_email_rounded,
         _ => Icons.forum_rounded,
       };

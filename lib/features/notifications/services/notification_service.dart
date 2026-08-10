@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -15,7 +16,7 @@ import 'notification_display.dart';
 import 'notification_helper_stub.dart'
     if (dart.library.html) 'notification_helper_web.dart';
 
-class NotificationService extends ChangeNotifier {
+class NotificationService extends ChangeNotifier with WidgetsBindingObserver {
   final ApiClient _api;
   final AuthService _auth;
 
@@ -67,6 +68,8 @@ class NotificationService extends ChangeNotifier {
   Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
+
+    WidgetsBinding.instance.addObserver(this);
 
     if (kIsWeb) {
       _pendingNotificationId ??= takeNotificationIdFromUrl();
@@ -509,7 +512,15 @@ class NotificationService extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _stopPolling();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _auth.isLoggedIn) {
+      _fetchNotifications();
+    }
   }
 }

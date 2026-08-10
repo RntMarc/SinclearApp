@@ -57,11 +57,11 @@ void main() {
 
     test('forum.* Codes navigieren zum Forum/Beitrag', () {
       expect(
-        NotificationTypeLabel.route('forum.post_created', {'forumId': 'f1'}),
+        NotificationTypeLabel.route('forum.new_post', {'forumId': 'f1'}),
         '/forum/f1',
       );
       expect(
-        NotificationTypeLabel.route('forum.reply_created', {
+        NotificationTypeLabel.route('forum.post_commented', {
           'forumId': 'f1',
           'postId': 'p1',
         }),
@@ -74,7 +74,7 @@ void main() {
         }),
         '/forum/f1/beitrag/p1',
       );
-      expect(NotificationTypeLabel.route('forum.post_created', {}), isNull);
+      expect(NotificationTypeLabel.route('forum.new_post', {}), isNull);
     });
 
     test('recipe.* Codes navigieren zum Rezept-Detail (/rezepte/{id})', () {
@@ -215,18 +215,30 @@ void main() {
 
     test('Forum-Codes rendern korrekt', () {
       expect(
-        NotificationTypeLabel.title('forum.post_created', {}),
+        NotificationTypeLabel.title('forum.new_post', {}),
         'Neuer Forumsbeitrag',
       );
       expect(
-        NotificationTypeLabel.title('forum.reply_created', {}),
+        NotificationTypeLabel.title('forum.comment_replied', {}),
         'Neue Antwort',
       );
       expect(
-        NotificationTypeLabel.body('forum.mention', {
-          'actorDisplayName': 'Max',
+        NotificationTypeLabel.body('forum.new_post', {
+          'authorDisplayName': 'Max',
         }),
         contains('Max'),
+      );
+      expect(
+        NotificationTypeLabel.body('forum.post_commented', {
+          'commenterDisplayName': 'Anna',
+        }),
+        contains('Anna'),
+      );
+      expect(
+        NotificationTypeLabel.body('forum.mention', {
+          'actorDisplayName': 'Tom',
+        }),
+        contains('Tom'),
       );
     });
 

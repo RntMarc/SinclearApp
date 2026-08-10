@@ -112,7 +112,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(refreshBody),
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 8));
     if (refreshResp.statusCode != 200) {
       developer.log(
         'BG handler: refresh failed ${refreshResp.statusCode}',
@@ -133,7 +133,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           Uri.parse('$baseUrl/notifications/$notificationId'),
           headers: {'Authorization': 'Bearer $accessToken'},
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(const Duration(seconds: 5));
 
     if (notifResp.statusCode != 200) {
       developer.log(
