@@ -9,6 +9,8 @@ import '../../features/feedback/services/feedback_service.dart';
 import '../../features/forum/services/forum_service.dart';
 import '../../features/moderation/services/moderation_service.dart';
 import '../../features/notifications/services/notification_service.dart';
+import '../../features/notifications/services/unified_push_service.dart';
+import '../../features/notifications/services/web_push_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
 import '../../features/settings/services/mcp_key_service.dart';
 import '../../features/subscription/services/subscription_service.dart';
@@ -37,6 +39,8 @@ class AppScope extends InheritedWidget {
   final DashboardController dashboard;
   final DashboardWidgetRepository dashboardWidgets;
   final NotificationService notification;
+  final UnifiedPushService unifiedPush;
+  final WebPushService webPush;
   final String appBaseUrl;
   final String apiBaseUrl;
 
@@ -59,6 +63,8 @@ class AppScope extends InheritedWidget {
     required this.dashboard,
     required this.dashboardWidgets,
     required this.notification,
+    required this.unifiedPush,
+    required this.webPush,
     this.webUpdate,
     required this.appBaseUrl,
     required this.apiBaseUrl,

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/models/app_update_info.dart';
+import '../../../core/notifications/local_notification_helper.dart';
 import '../../../core/services/android_update_service.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/design_variant.dart';
@@ -22,6 +24,8 @@ import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
+import '../../notifications/screens/push_setup_screens.dart';
+import '../../notifications/services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -293,8 +297,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           DesignVariant.custom) ...<Widget>[
                         const SizedBox(height: 8),
                         const DesignDivider(),
-                        const DesignText('Akzentfarbe',
-                            style: DesignTextStyle.title),
+                        const DesignText(
+                          'Akzentfarbe',
+                          style: DesignTextStyle.title,
+                        ),
                         const SizedBox(height: 4),
                         DesignText(
                           'Wähle eine Akzentfarbe für dein Theme.',
@@ -306,8 +312,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                       const SizedBox(height: 8),
                       const DesignDivider(),
-                      const DesignText('Design-Modus',
-                          style: DesignTextStyle.title),
+                      const DesignText(
+                        'Design-Modus',
+                        style: DesignTextStyle.title,
+                      ),
                       const SizedBox(height: 4),
                       DesignText(
                         'Dunkel, hell oder Geräteeinstellung folgen.',
@@ -318,8 +326,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _ThemeModeSelector(),
                       const SizedBox(height: 8),
                       const DesignDivider(),
-                      const DesignText('Grain-Effekt',
-                          style: DesignTextStyle.title),
+                      const DesignText(
+                        'Grain-Effekt',
+                        style: DesignTextStyle.title,
+                      ),
                       const SizedBox(height: 4),
                       DesignText(
                         'Stärke der feinen Textur im Hintergrund.',
@@ -346,6 +356,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 DesignCard.list(
                   children: [
+                    if (!kIsWeb)
+                      DesignListTile(
+                        leading: const Icon(Icons.notifications_rounded),
+                        title: 'Push-Benachrichtigungen',
+                        subtitle: 'Distributor wählen oder neu einrichten',
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: _setupPush,
+                      ),
                     DesignListTile(
                       leading: const Icon(Icons.info_outline_rounded),
                       title: 'Version',
@@ -459,6 +477,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return '$count Kontakt${count == 1 ? '' : 'e'} hinterlegt';
   }
 
+  Future<void> _setupPush() async {
+    final scope = AppScope.of(context);
+    await LocalNotificationHelper.requestPermission();
+    scope.unifiedPush.init(
+      token: await scope.auth.getAccessToken(),
+      onMessage: (item) {
+        LocalNotificationHelper.show(
+          id: localNotificationId(item.id),
+          title: item.title,
+          body: item.body,
+          payload: jsonEncode({'type': item.type, 'data': item.data}),
+        );
+      },
+    );
+    if (!mounted) return;
+    await scope.unifiedPush.checkAndSetup(
+      context: context,
+      onDistributorsFound: (distributors) async {
+        if (!mounted) return;
+        await showDistributorPickerSheet(
+          context: context,
+          distributors: distributors,
+          onSelect: scope.unifiedPush.selectDistributor,
+        );
+      },
+      onNoDistributor: () async {
+        if (!mounted) return;
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const NoDistributorScreen()));
+      },
+    );
+  }
+
   Future<void> _confirmLogout() async {
     final confirmed = await showDesignSheet<bool>(
       context: context,
@@ -498,8 +550,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (confirmed == true) {
       if (!mounted) return;
-      AppScope.of(context).notification.stopPolling();
-      await AppScope.of(context).auth.logout();
+      final scope = AppScope.of(context);
+      scope.notification.stopPolling();
+      try {
+        if (kIsWeb) {
+          final token = await scope.auth.getAccessToken();
+          await scope.webPush.unsubscribe(token: token);
+        } else {
+          await scope.unifiedPush.unregister();
+        }
+      } catch (e) {
+        developer.log('Push unregister failed: $e', name: 'settings.logout');
+      }
+      await scope.auth.logout();
       if (!mounted) return;
       context.go('/');
     }
@@ -665,9 +728,7 @@ class _GrainSlider extends StatelessWidget {
         SizedBox(
           width: 36,
           child: DesignText(
-            grainOpacity > 0
-                ? '${(grainOpacity * 100).round()}%'
-                : 'Aus',
+            grainOpacity > 0 ? '${(grainOpacity * 100).round()}%' : 'Aus',
             style: DesignTextStyle.label,
             color: grainOpacity > 0 ? tokens.textHigh : tokens.textLow,
           ),

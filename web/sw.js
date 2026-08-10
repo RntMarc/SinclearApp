@@ -3,8 +3,8 @@ self.addEventListener('push', (event) {
   const title = data.title || 'Sinclear';
   const options = {
     body: data.body || '',
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
+    icon: '/pwa-icons/icon-192x192.png',
+    badge: '/pwa-icons/icon-192x192.png',
     data: data.data || {},
   };
   event.waitUntil(self.registration.showNotification(title, options));

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';
-import 'package:sinclear_beyond/features/notifications/services/notification_service.dart';
 import 'package:sinclear_beyond/features/notifications/services/unified_push_service.dart';
 
 class MockApiClient extends ApiClient {
@@ -10,19 +9,13 @@ class MockApiClient extends ApiClient {
 void main() {
   late UnifiedPushService service;
   late MockApiClient mockApi;
-  late NotificationService notificationService;
 
   setUp(() {
     mockApi = MockApiClient();
-    notificationService = NotificationService(api: mockApi);
-    service = UnifiedPushService(
-      api: mockApi,
-      notificationService: notificationService,
-    );
+    service = UnifiedPushService(api: mockApi);
   });
 
   tearDown(() {
-    notificationService.dispose();
     service.dispose();
   });
 

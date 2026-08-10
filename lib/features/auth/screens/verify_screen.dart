@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/notifications/local_notification_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_app_bar.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
@@ -14,6 +16,8 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
+import '../../notifications/screens/push_setup_screens.dart';
+import '../../notifications/services/notification_service.dart';
 
 class VerifyScreen extends StatefulWidget {
   const VerifyScreen({super.key});
@@ -66,7 +70,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
     });
 
     try {
-      final auth = AppScope.of(context).auth;
+      final scope = AppScope.of(context);
+      final auth = scope.auth;
       await auth.verifyCode(
         email: _method == 'email' ? _email : null,
         code: code,
@@ -76,18 +81,15 @@ class _VerifyScreenState extends State<VerifyScreen> {
       if (!kIsWeb) {
         try {
           final token = await auth.getAccessToken();
-          AppScope.of(context).notification.startPolling(token: token);
+          scope.notification.startPolling(token: token);
+          await _setupPush(token: token);
         } catch (e) {
-          developer.log(
-            'Failed to start polling: $e',
-            name: 'auth.verify',
-          );
+          developer.log('Failed to start polling: $e', name: 'auth.verify');
         }
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             _method == 'discord_register'
@@ -96,8 +98,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
           ),
         ),
       );
-      final target =
-          auth.onboardingCompleted ? '/home' : '/onboarding';
+      final target = auth.onboardingCompleted ? '/home' : '/onboarding';
       context.go(target);
     } on ApiException catch (e) {
       developer.log(
@@ -121,6 +122,45 @@ class _VerifyScreenState extends State<VerifyScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _setupPush({required String token}) async {
+    final scope = AppScope.of(context);
+    if (kIsWeb) {
+      scope.webPush.setup(token: token);
+      return;
+    }
+
+    await LocalNotificationHelper.requestPermission();
+    scope.unifiedPush.init(
+      token: token,
+      onMessage: (item) {
+        LocalNotificationHelper.show(
+          id: localNotificationId(item.id),
+          title: item.title,
+          body: item.body,
+          payload: jsonEncode({'type': item.type, 'data': item.data}),
+        );
+      },
+    );
+    if (!mounted) return;
+    await scope.unifiedPush.checkAndSetup(
+      context: context,
+      onDistributorsFound: (distributors) async {
+        if (!mounted) return;
+        await showDistributorPickerSheet(
+          context: context,
+          distributors: distributors,
+          onSelect: scope.unifiedPush.selectDistributor,
+        );
+      },
+      onNoDistributor: () async {
+        if (!mounted) return;
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const NoDistributorScreen()));
+      },
+    );
   }
 
   void _copyDiscordUrl() {

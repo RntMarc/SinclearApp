@@ -5,10 +5,13 @@ class LocalNotificationHelper {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static void Function(String? payload)? _onTap;
 
   static const _channelId = 'sinclear_main';
   static const _channelName = 'Sinclear Benachrichtigungen';
 
+  /// Einmalige Initialisierung. Muss nach [setNotificationTapHandler]
+  /// aufgerufen werden, damit der Handler auch Cold-Starts abfängt.
   static Future<bool> init() async {
     if (kIsWeb || _initialized) return false;
 
@@ -17,17 +20,22 @@ class LocalNotificationHelper {
     );
     const initSettings = InitializationSettings(android: androidSettings);
 
-    final result = await _plugin.initialize(initSettings);
+    final result = await _plugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _handleResponse,
+    );
     _initialized = result ?? false;
+    if (_initialized) await _checkAppLaunchDetails();
     return _initialized;
   }
 
   static Future<bool> requestPermission() async {
     if (kIsWeb || !_initialized) return false;
 
-    final androidPlugin =
-        _plugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
 
     if (androidPlugin == null) return false;
 
@@ -54,24 +62,25 @@ class LocalNotificationHelper {
     await _plugin.show(id, title, body, details, payload: payload);
   }
 
-  static void setNotificationTapHandler(
-    void Function(String? payload) onTap,
-  ) {
+  /// Registriert den Tap-Handler. Muss vor [init] aufgerufen werden, damit
+  /// ein Kaltstart (App wurde durch die Notification gestartet) erkannt wird.
+  static void setNotificationTapHandler(void Function(String? payload) onTap) {
+    _onTap = onTap;
     if (kIsWeb || !_initialized) return;
+    _checkAppLaunchDetails();
+  }
 
-    _plugin.getNotificationAppLaunchDetails().then((details) {
-      if (details?.didNotificationLaunchApp == true) {
-        onTap(details!.notificationResponse?.payload);
-      }
-    });
+  static void _handleResponse(NotificationResponse response) {
+    _onTap?.call(response.payload);
+  }
 
-    _plugin.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      ),
-      onDidReceiveNotificationResponse: (response) {
-        onTap(response.payload);
-      },
-    );
+  static Future<void> _checkAppLaunchDetails() async {
+    final onTap = _onTap;
+    if (onTap == null) return;
+
+    final details = await _plugin.getNotificationAppLaunchDetails();
+    if (details?.didNotificationLaunchApp == true) {
+      onTap(details!.notificationResponse?.payload);
+    }
   }
 }

@@ -49,6 +49,19 @@ void main() {
     service.dispose();
   });
 
+  group('localNotificationId', () {
+    test('liefert nicht-negative IDs für UUIDs', () {
+      const ids = [
+        '01923456-7890-7abc-def0-123456789012',
+        '00000000-0000-0000-0000-000000000000',
+        'abc-xyz',
+      ];
+      for (final id in ids) {
+        expect(localNotificationId(id), greaterThanOrEqualTo(0));
+      }
+    });
+  });
+
   group('startPolling', () {
     test('triggers poll immediately', () async {
       mockApi.responses.add({
@@ -94,9 +107,7 @@ void main() {
 
       service.startPolling(token: 'test-token');
 
-      final items = await completer.future.timeout(
-        const Duration(seconds: 1),
-      );
+      final items = await completer.future.timeout(const Duration(seconds: 1));
 
       expect(items.length, 1);
       expect(items.first.id, '1');

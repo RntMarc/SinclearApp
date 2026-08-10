@@ -4,7 +4,12 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/notifications/local_notification_helper.dart';
+import '../../../core/utils/date_utils.dart';
 import '../models/notification_item.dart';
+
+/// Stabile, nicht-negative Android-Notification-ID, abgeleitet aus der
+/// Notification-UUID (Android akzeptiert nur ints >= 0).
+int localNotificationId(String id) => id.hashCode & 0x7fffffff;
 
 class NotificationService extends ChangeNotifier {
   final ApiClient _api;
@@ -47,23 +52,24 @@ class NotificationService extends ChangeNotifier {
 
       final notificationsList = response['notifications'] as List? ?? [];
       final items = notificationsList
-          .map((json) => NotificationItem.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => NotificationItem.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
 
       if (items.isNotEmpty) {
-        _lastSeen = items.first.createdAt.toIso8601String();
+        _lastSeen = toApiDate(items.first.createdAt);
         _controller.add(items);
         notifyListeners();
 
         if (!kIsWeb) {
           final toShow = items.take(3).toList();
           for (final item in toShow) {
-            final payload = item.data != null ? jsonEncode(item.data) : null;
             await LocalNotificationHelper.show(
-              id: item.id.hashCode,
+              id: localNotificationId(item.id),
               title: item.title,
               body: item.body,
-              payload: payload,
+              payload: jsonEncode({'type': item.type, 'data': item.data}),
             );
           }
         }
@@ -76,11 +82,7 @@ class NotificationService extends ChangeNotifier {
   Future<void> markRead(List<String> ids, {required String token}) async {
     if (ids.isEmpty) return;
     try {
-      await _api.post(
-        '/notifications/read',
-        body: {'ids': ids},
-        token: token,
-      );
+      await _api.post('/notifications/read', body: {'ids': ids}, token: token);
     } catch (e) {
       developer.log('markRead error: $e', name: 'notification_service');
     }

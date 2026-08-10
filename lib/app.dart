@@ -23,6 +23,8 @@ import 'features/user/services/user_service.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_widget_repository.dart';
 import 'features/notifications/services/notification_service.dart';
+import 'features/notifications/services/unified_push_service.dart';
+import 'features/notifications/services/web_push_service.dart';
 import 'core/notifications/notification_lifecycle_observer.dart';
 
 class SinclearApp extends StatelessWidget {
@@ -44,6 +46,8 @@ class SinclearApp extends StatelessWidget {
   final DashboardController dashboardController;
   final DashboardWidgetRepository dashboardWidgets;
   final NotificationService notification;
+  final UnifiedPushService unifiedPush;
+  final WebPushService webPush;
   final GoRouter router;
 
   /// Initial, locally persisted design variant (survives logout/login).
@@ -96,6 +100,8 @@ class SinclearApp extends StatelessWidget {
     required this.webUpdate,
     required this.dashboardController,
     required this.notification,
+    required this.unifiedPush,
+    required this.webPush,
     required this.router,
     required this.appBaseUrl,
     required this.apiBaseUrl,
@@ -131,6 +137,8 @@ class SinclearApp extends StatelessWidget {
       dashboard: dashboardController,
       dashboardWidgets: dashboardWidgets,
       notification: notification,
+      unifiedPush: unifiedPush,
+      webPush: webPush,
       webUpdate: webUpdate,
       appBaseUrl: appBaseUrl,
       apiBaseUrl: apiBaseUrl,
@@ -142,32 +150,32 @@ class SinclearApp extends StatelessWidget {
           themeMode: themeMode,
           customAccent: customAccent,
           child: NotificationLifecycleObserver(
-          notificationService: notification,
-          getToken: () => auth.getAccessToken(),
-          child: ListenableBuilder(
-            listenable: themeMode,
-            builder: (context, _) => MaterialApp.router(
-              title: 'Sinclear Beyond',
-              debugShowCheckedModeBanner: false,
-              theme: ThemeData(
-                useMaterial3: true,
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: const Color(0xFF0064EA),
-                  brightness: Brightness.light,
+            notificationService: notification,
+            getToken: () => auth.getAccessToken(),
+            child: ListenableBuilder(
+              listenable: themeMode,
+              builder: (context, _) => MaterialApp.router(
+                title: 'Sinclear Beyond',
+                debugShowCheckedModeBanner: false,
+                theme: ThemeData(
+                  useMaterial3: true,
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color(0xFF0064EA),
+                    brightness: Brightness.light,
+                  ),
                 ),
+                darkTheme: ThemeData(
+                  useMaterial3: true,
+                  colorScheme: ColorScheme.fromSeed(
+                    seedColor: const Color(0xFF0064EA),
+                    brightness: Brightness.dark,
+                  ).copyWith(surface: const Color(0xFF011219)),
+                ),
+                themeMode: themeMode.value,
+                routerConfig: router,
               ),
-              darkTheme: ThemeData(
-                useMaterial3: true,
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: const Color(0xFF0064EA),
-                  brightness: Brightness.dark,
-                ).copyWith(surface: const Color(0xFF011219)),
-              ),
-              themeMode: themeMode.value,
-              routerConfig: router,
             ),
           ),
-        ),
         ),
       ),
     );

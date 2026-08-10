@@ -1,18 +1,22 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/config/notification_config.dart';
 import 'core/deep_link_handler.dart';
 import 'design/theme/design_preferences.dart';
 import 'core/config/osm_config.dart';
 import 'core/logging.dart';
+import 'core/notifications/local_notification_helper.dart';
 import 'core/url_strategy.dart';
 import 'core/network/api_client.dart';
 import 'core/services/android_update_service.dart';
@@ -25,6 +29,8 @@ import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/moderation/services/moderation_service.dart';
+import 'features/notifications/services/unified_push_service.dart';
+import 'features/notifications/services/web_push_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
@@ -94,6 +100,8 @@ Future<void> _bootstrap() async {
   final subscription = SubscriptionService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
   final notification = NotificationService(api: api);
+  final unifiedPush = UnifiedPushService(api: api);
+  final webPush = WebPushService(api: api);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
   final webUpdate = WebUpdateService(
     currentBuildNumber: packageInfo.buildNumber,
@@ -106,6 +114,10 @@ Future<void> _bootstrap() async {
 
   if (!kIsWeb) {
     DeepLinkHandler().init(router, appBaseUrl: appBaseUrl);
+    LocalNotificationHelper.setNotificationTapHandler(
+      (payload) => _handleNotificationTap(router, payload),
+    );
+    await LocalNotificationHelper.init();
   }
 
   final initialDesign = await DesignPreferences.load();
@@ -139,6 +151,8 @@ Future<void> _bootstrap() async {
       webUpdate: webUpdate,
       dashboardController: dashboardController,
       notification: notification,
+      unifiedPush: unifiedPush,
+      webPush: webPush,
       initialDesignVariant: initialDesign,
       initialGrainOpacity: initialGrainOpacity,
       initialThemeMode: initialThemeMode,
@@ -148,4 +162,28 @@ Future<void> _bootstrap() async {
       apiBaseUrl: baseUrl,
     ),
   );
+}
+
+void _handleNotificationTap(GoRouter router, String? payload) {
+  if (payload == null) {
+    router.go('/home');
+    return;
+  }
+
+  String type;
+  Map<String, dynamic>? data;
+  try {
+    final decoded = jsonDecode(payload);
+    type = decoded is Map<String, dynamic> && decoded['type'] is String
+        ? decoded['type'] as String
+        : '';
+    final rawData = decoded is Map<String, dynamic> ? decoded['data'] : null;
+    data = rawData is Map<String, dynamic> ? rawData : null;
+  } catch (_) {
+    type = '';
+    data = null;
+  }
+
+  final route = data == null ? null : NotificationTypeLabel.route(type, data);
+  router.go(route ?? '/home');
 }
