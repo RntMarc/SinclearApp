@@ -1,30 +1,27 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:unifiedpush/unifiedpush.dart';
 import '../../../core/network/api_client.dart';
 import '../models/notification_item.dart';
-import 'notification_service.dart';
 
 class UnifiedPushService extends ChangeNotifier {
   final ApiClient _api;
-  final NotificationService _notificationService;
   String? _token;
   String? _savedEndpoint;
 
-  UnifiedPushService({
-    required this._api,
-    required this._notificationService,
-  });
+  bool _initialized = false;
+
+  UnifiedPushService({required this._api});
 
   void init({
     required String token,
     void Function(NotificationItem item)? onMessage,
   }) {
     _token = token;
+    if (_initialized) return;
 
     UnifiedPush.initialize(
       onNewEndpoint: (endpoint, instance) {
@@ -32,10 +29,7 @@ class UnifiedPushService extends ChangeNotifier {
         _registerEndpoint(endpoint);
       },
       onRegistrationFailed: (instance) {
-        developer.log(
-          'UnifiedPush registration failed',
-          name: 'unifiedpush',
-        );
+        developer.log('UnifiedPush registration failed', name: 'unifiedpush');
       },
       onUnregistered: (instance) {
         if (_savedEndpoint != null) {
@@ -46,24 +40,21 @@ class UnifiedPushService extends ChangeNotifier {
       onMessage: (Uint8List message, String instance) {
         try {
           final json = jsonDecode(String.fromCharCodes(message));
-          final item = NotificationItem.fromJson(
-            json as Map<String, dynamic>,
-          );
+          final item = NotificationItem.fromJson(json as Map<String, dynamic>);
           onMessage?.call(item);
         } catch (e) {
-          developer.log(
-            'Failed to parse UP message: $e',
-            name: 'unifiedpush',
-          );
+          developer.log('Failed to parse UP message: $e', name: 'unifiedpush');
         }
       },
     );
+    _initialized = true;
   }
 
   Future<void> checkAndSetup({
     required BuildContext context,
-    required void Function(List<String> distributors) onDistributorsFound,
-    required void Function() onNoDistributor,
+    required Future<void> Function(List<String> distributors)
+    onDistributorsFound,
+    required Future<void> Function() onNoDistributor,
   }) async {
     if (kIsWeb) return;
 
@@ -75,9 +66,9 @@ class UnifiedPushService extends ChangeNotifier {
 
     final distributors = await UnifiedPush.getDistributors();
     if (distributors.isNotEmpty) {
-      onDistributorsFound(distributors);
+      await onDistributorsFound(distributors);
     } else {
-      onNoDistributor();
+      await onNoDistributor();
     }
   }
 
@@ -92,17 +83,11 @@ class UnifiedPushService extends ChangeNotifier {
     try {
       await _api.post(
         '/notifications/push-subscription',
-        body: {
-          'type': 'unifiedpush',
-          'endpoint': endpoint,
-        },
+        body: {'type': 'unifiedpush', 'endpoint': endpoint},
         token: _token,
       );
     } catch (e) {
-      developer.log(
-        'Failed to register UP endpoint: $e',
-        name: 'unifiedpush',
-      );
+      developer.log('Failed to register UP endpoint: $e', name: 'unifiedpush');
     }
   }
 
