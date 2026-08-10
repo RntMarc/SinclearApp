@@ -34,6 +34,7 @@ import 'features/user/services/user_service.dart';
 import 'features/home/dashboard_cache.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_layout_store.dart';
+import 'features/notifications/services/notification_service.dart';
 import 'router/router.dart';
 
 void main() {
@@ -92,6 +93,7 @@ Future<void> _bootstrap() async {
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
+  final notification = NotificationService(api: api);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
   final webUpdate = WebUpdateService(
     currentBuildNumber: packageInfo.buildNumber,
@@ -136,6 +138,7 @@ Future<void> _bootstrap() async {
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       dashboardController: dashboardController,
+      notification: notification,
       initialDesignVariant: initialDesign,
       initialGrainOpacity: initialGrainOpacity,
       initialThemeMode: initialThemeMode,

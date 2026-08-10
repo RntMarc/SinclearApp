@@ -498,6 +498,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     if (confirmed == true) {
       if (!mounted) return;
+      AppScope.of(context).notification.stopPolling();
       await AppScope.of(context).auth.logout();
       if (!mounted) return;
       context.go('/');

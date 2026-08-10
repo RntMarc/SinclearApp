@@ -88,6 +88,7 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
     try {
       final scope = AppScope.of(context);
       await scope.user.verifyEmailChange(code, email);
+      scope.notification.stopPolling();
       await scope.auth.logout();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
