@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -18,7 +20,13 @@ class LocalNotificationHelper {
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
-    const initSettings = InitializationSettings(android: androidSettings);
+    const linuxSettings = LinuxInitializationSettings(
+      defaultActionName: 'Open',
+    );
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      linux: linuxSettings,
+    );
 
     final result = await _plugin.initialize(
       settings: initSettings,
@@ -83,6 +91,7 @@ class LocalNotificationHelper {
   static Future<void> _checkAppLaunchDetails() async {
     final onTap = _onTap;
     if (onTap == null) return;
+    if (kIsWeb || Platform.isLinux) return;
 
     final details = await _plugin.getNotificationAppLaunchDetails();
     if (details?.didNotificationLaunchApp == true) {
