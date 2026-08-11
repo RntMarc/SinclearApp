@@ -21,7 +21,7 @@ class LocalNotificationHelper {
     const initSettings = InitializationSettings(android: androidSettings);
 
     final result = await _plugin.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _handleResponse,
     );
     _initialized = result ?? false;
@@ -59,7 +59,13 @@ class LocalNotificationHelper {
     );
     const details = NotificationDetails(android: androidDetails);
 
-    await _plugin.show(id, title, body, details, payload: payload);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: details,
+      payload: payload,
+    );
   }
 
   /// Registriert den Tap-Handler. Muss vor [init] aufgerufen werden, damit
