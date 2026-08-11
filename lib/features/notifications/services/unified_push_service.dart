@@ -24,22 +24,22 @@ class UnifiedPushService extends ChangeNotifier {
     if (_initialized) return;
 
     UnifiedPush.initialize(
-      onNewEndpoint: (endpoint, instance) {
-        _savedEndpoint = endpoint;
-        _registerEndpoint(endpoint);
+      onNewEndpoint: (PushEndpoint endpoint, String instance) {
+        _savedEndpoint = endpoint.url;
+        _registerEndpoint(endpoint.url);
       },
-      onRegistrationFailed: (instance) {
-        developer.log('UnifiedPush registration failed', name: 'unifiedpush');
+      onRegistrationFailed: (FailedReason reason, String? instance) {
+        developer.log('UnifiedPush registration failed: $reason', name: 'unifiedpush');
       },
-      onUnregistered: (instance) {
+      onUnregistered: (String instance) {
         if (_savedEndpoint != null) {
           _unregisterEndpoint(_savedEndpoint!);
           _savedEndpoint = null;
         }
       },
-      onMessage: (Uint8List message, String instance) {
+      onMessage: (PushMessage message, String instance) {
         try {
-          final json = jsonDecode(String.fromCharCodes(message));
+          final json = jsonDecode(String.fromCharCodes(message.content));
           final item = NotificationItem.fromJson(json as Map<String, dynamic>);
           onMessage?.call(item);
         } catch (e) {
@@ -60,7 +60,7 @@ class UnifiedPushService extends ChangeNotifier {
 
     final distributor = await UnifiedPush.getDistributor();
     if (distributor != null) {
-      await UnifiedPush.registerApp();
+      await UnifiedPush.register();
       return;
     }
 
@@ -74,7 +74,7 @@ class UnifiedPushService extends ChangeNotifier {
 
   Future<void> selectDistributor(String distributor) async {
     await UnifiedPush.saveDistributor(distributor);
-    await UnifiedPush.registerApp();
+    await UnifiedPush.register();
   }
 
   Future<void> _registerEndpoint(String endpoint) async {
