@@ -18,6 +18,7 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../notifications/screens/push_setup_screens.dart';
 import '../../notifications/services/notification_service.dart';
+import '../../settings/models/notification_preference.dart';
 
 class VerifyScreen extends StatefulWidget {
   const VerifyScreen({super.key});
@@ -78,16 +79,20 @@ class _VerifyScreenState extends State<VerifyScreen> {
       );
       if (!mounted) return;
 
-      if (!kIsWeb) {
+      final method = scope.notificationMethod.value;
+      if (kIsWeb) {
+        await _setupPush(token: await auth.getAccessToken());
+      } else if (method == NotificationMethod.polling) {
+        await LocalNotificationHelper.requestPermission();
         try {
           final token = await auth.getAccessToken();
           scope.notification.startPolling(token: token);
         } catch (e) {
           developer.log('Failed to start polling: $e', name: 'auth.verify');
         }
+      } else {
+        await _setupPush(token: await auth.getAccessToken());
       }
-
-      await _setupPush(token: await auth.getAccessToken());
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -4,9 +4,18 @@ import 'package:intl/intl.dart';
 const _apiDateFormat = 'yyyy-MM-dd HH:mm:ss';
 final _apiFormatter = DateFormat(_apiDateFormat);
 
+/// API-Zeitformat mit Millisekunden für exklusive Vergleiche.
+const _apiDateFormatMs = 'yyyy-MM-dd HH:mm:ss.SSS';
+final _apiFormatterMs = DateFormat(_apiDateFormatMs);
+
 /// Formatiert ein DateTime als UTC-String im API-Format: `YYYY-MM-DD HH:MM:SS`.
-String toApiDate(DateTime date) {
-  return _apiFormatter.format(date.toUtc());
+///
+/// Mit [withMilliseconds] wird die API-`since`-Grenze exklusiv: Die API
+/// filtert `createdAt > since`, ohne Millisekunden fallen mehrere
+/// Benachrichtigungen in derselben Sekunde erneut durch den Filter.
+String toApiDate(DateTime date, {bool withMilliseconds = false}) {
+  final formatter = withMilliseconds ? _apiFormatterMs : _apiFormatter;
+  return formatter.format(date.toUtc());
 }
 
 /// Parst einen API-String `YYYY-MM-DD HH:MM:SS` als UTC und konvertiert

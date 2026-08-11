@@ -16,6 +16,12 @@ class NotificationService extends ChangeNotifier {
 
   Timer? _pollingTimer;
   String? _lastSeen;
+
+  /// IDs aller bereits angezeigten Benachrichtigungen dieser Session.
+  /// Bewusst nicht bei `startPolling`/`stopPolling` zurückgesetzt, damit
+  /// Resume/Cold-Start-Restarts keine Duplikate anzeigen.
+  final Set<String> _seenIds = {};
+
   final StreamController<List<NotificationItem>> _controller =
       StreamController<List<NotificationItem>>.broadcast();
 
@@ -27,6 +33,7 @@ class NotificationService extends ChangeNotifier {
     required String token,
     Duration interval = const Duration(seconds: 60),
   }) {
+    if (_pollingTimer != null && _lastSeen != null) return;
     stopPolling();
     _poll(token);
     _pollingTimer = Timer.periodic(interval, (_) => _poll(token));
@@ -58,12 +65,14 @@ class NotificationService extends ChangeNotifier {
           .toList();
 
       if (items.isNotEmpty) {
-        _lastSeen = toApiDate(items.first.createdAt);
-        _controller.add(items);
+        _lastSeen = toApiDate(items.first.createdAt, withMilliseconds: true);
+        final newItems = items.where((item) => _seenIds.add(item.id)).toList();
+        if (newItems.isEmpty) return;
+        _controller.add(newItems);
         notifyListeners();
 
         if (!kIsWeb) {
-          final toShow = items.take(3).toList();
+          final toShow = newItems.take(3).toList();
           for (final item in toShow) {
             await LocalNotificationHelper.show(
               id: localNotificationId(item.id),
@@ -74,8 +83,13 @@ class NotificationService extends ChangeNotifier {
           }
         }
       }
-    } catch (e) {
-      developer.log('Poll error: $e', name: 'notification_service');
+    } catch (e, st) {
+      developer.log(
+        'Poll error',
+        error: e,
+        stackTrace: st,
+        name: 'notification_service',
+      );
     }
   }
 
@@ -83,8 +97,13 @@ class NotificationService extends ChangeNotifier {
     if (ids.isEmpty) return;
     try {
       await _api.post('/notifications/read', body: {'ids': ids}, token: token);
-    } catch (e) {
-      developer.log('markRead error: $e', name: 'notification_service');
+    } catch (e, st) {
+      developer.log(
+        'markRead error',
+        error: e,
+        stackTrace: st,
+        name: 'notification_service',
+      );
     }
   }
 

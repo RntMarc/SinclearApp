@@ -149,6 +149,84 @@ void main() {
       expect(mockApi.calledQueryParams[1], isNotNull);
       expect(mockApi.calledQueryParams[1]!['since'], isNotNull);
     });
+
+    test('since keeps millisecond precision (exclusive boundary)', () async {
+      mockApi.responses.add({
+        'notifications': [
+          {
+            'id': '1',
+            'type': 'forum_reply',
+            'title': 'Test',
+            'body': 'Body',
+            'data': null,
+            'createdAt': '2026-08-10 14:30:00.495',
+          },
+        ],
+      });
+      mockApi.responses.add({'notifications': []});
+
+      service.startPolling(
+        token: 'test-token',
+        interval: const Duration(milliseconds: 50),
+      );
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      final since = mockApi.calledQueryParams[1]!['since']!;
+      expect(since, matches(RegExp(r'\.\d{3}$')));
+      expect(since, contains('14:30:00.495'));
+    });
+
+    test('already shown notification is not emitted twice', () async {
+      final item = {
+        'id': '1',
+        'type': 'forum_reply',
+        'title': 'Test',
+        'body': 'Body',
+        'data': null,
+        'createdAt': '2026-08-10 14:30:00',
+      };
+      mockApi.responses.add({
+        'notifications': [item],
+      });
+      mockApi.responses.add({
+        'notifications': [item],
+      });
+
+      final emitted = <int>[];
+      service.notifications.listen((items) => emitted.add(items.length));
+
+      service.startPolling(
+        token: 'test-token',
+        interval: const Duration(milliseconds: 50),
+      );
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      expect(emitted, [1]);
+    });
+
+    test('startPolling does not restart an active poller', () async {
+      mockApi.responses.add({
+        'notifications': [
+          {
+            'id': '1',
+            'type': 'forum_reply',
+            'title': 'Test',
+            'body': 'Body',
+            'data': null,
+            'createdAt': '2026-08-10 14:30:00',
+          },
+        ],
+      });
+
+      service.startPolling(token: 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+      final callCount = mockApi.calledPaths.length;
+
+      service.startPolling(token: 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(mockApi.calledPaths.length, callCount);
+    });
   });
 
   group('stopPolling', () {

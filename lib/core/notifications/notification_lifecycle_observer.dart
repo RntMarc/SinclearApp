@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../features/notifications/services/notification_service.dart';
+import '../../features/settings/models/notification_preference.dart';
 
 class NotificationLifecycleObserver extends StatefulWidget {
   final Widget child;
   final NotificationService notificationService;
   final Future<String> Function() getToken;
 
+  /// Liefert die aktuell gewählte Benachrichtigungs-Methode; nur bei
+  /// [NotificationMethod.polling] wird bei Resume neu gepollt.
+  final NotificationMethod Function() getNotificationMethod;
+
   const NotificationLifecycleObserver({
     super.key,
     required this.child,
     required this.notificationService,
     required this.getToken,
+    required this.getNotificationMethod,
   });
 
   @override
@@ -20,7 +26,10 @@ class NotificationLifecycleObserver extends StatefulWidget {
 }
 
 class _NotificationLifecycleObserverState
-    extends State<NotificationLifecycleObserver> with WidgetsBindingObserver {
+    extends State<NotificationLifecycleObserver>
+    with WidgetsBindingObserver {
+  bool _wasPaused = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,10 +48,20 @@ class _NotificationLifecycleObserverState
 
     switch (state) {
       case AppLifecycleState.resumed:
-        _startPolling();
+        // Nur auf Resume reagieren, wenn die App tatsächlich pausiert war —
+        // verhindert mehrfaches startPolling beim Tap auf eine Notification.
+        if (_wasPaused) {
+          _wasPaused = false;
+          if (widget.getNotificationMethod() == NotificationMethod.polling) {
+            _startPolling();
+          }
+        }
         break;
       case AppLifecycleState.paused:
-        widget.notificationService.stopPolling();
+        if (!_wasPaused) {
+          _wasPaused = true;
+          widget.notificationService.stopPolling();
+        }
         break;
       default:
         break;
