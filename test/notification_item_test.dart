@@ -20,7 +20,7 @@ void main() {
       expect(item.title, 'Neue Antwort');
       expect(item.body, 'Jemand hat auf deinen Beitrag geantwortet.');
       expect(item.data, {'route': '/forum/42'});
-      expect(item.createdAt, DateTime(2026, 8, 10, 14, 30, 0));
+      expect(item.createdAt.toUtc(), DateTime.utc(2026, 8, 10, 14, 30, 0));
     });
 
     test('handles null data field', () {

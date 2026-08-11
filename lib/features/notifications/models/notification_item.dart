@@ -1,3 +1,5 @@
+import '../../../core/utils/date_utils.dart';
+
 class NotificationItem {
   final String id;
   final String type;
@@ -22,7 +24,7 @@ class NotificationItem {
       title: json['title'] as String,
       body: json['body'] as String,
       data: json['data'] as Map<String, dynamic>?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: parseApiDate(json['createdAt'] as String),
     );
   }
 }

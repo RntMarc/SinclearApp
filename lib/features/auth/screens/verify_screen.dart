@@ -82,11 +82,12 @@ class _VerifyScreenState extends State<VerifyScreen> {
         try {
           final token = await auth.getAccessToken();
           scope.notification.startPolling(token: token);
-          await _setupPush(token: token);
         } catch (e) {
           developer.log('Failed to start polling: $e', name: 'auth.verify');
         }
       }
+
+      await _setupPush(token: await auth.getAccessToken());
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
