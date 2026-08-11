@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/notifications/notification_lifecycle_observer.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';
 import 'package:sinclear_beyond/features/notifications/services/notification_service.dart';
+import 'package:sinclear_beyond/features/settings/models/notification_preference.dart';
 
 class MockApiClient extends ApiClient {
   MockApiClient() : super(baseUrl: 'http://localhost');
@@ -18,25 +19,25 @@ class MockApiClient extends ApiClient {
 }
 
 void main() {
-  testWidgets(
-    'NotificationLifecycleObserver is created and can be disposed',
-    (tester) async {
-      final mockApi = MockApiClient();
-      final notificationService = NotificationService(api: mockApi);
+  testWidgets('NotificationLifecycleObserver is created and can be disposed', (
+    tester,
+  ) async {
+    final mockApi = MockApiClient();
+    final notificationService = NotificationService(api: mockApi);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: NotificationLifecycleObserver(
-            notificationService: notificationService,
-            getToken: () async => 'test-token',
-            child: const Scaffold(body: Text('Test')),
-          ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NotificationLifecycleObserver(
+          notificationService: notificationService,
+          getToken: () async => 'test-token',
+          getNotificationMethod: () => NotificationMethod.polling,
+          child: const Scaffold(body: Text('Test')),
         ),
-      );
+      ),
+    );
 
-      expect(find.text('Test'), findsOneWidget);
+    expect(find.text('Test'), findsOneWidget);
 
-      notificationService.dispose();
-    },
-  );
+    notificationService.dispose();
+  });
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +19,7 @@ import '../../../design/widgets/composite/design_segmented_switch.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
+import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
@@ -26,6 +28,7 @@ import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
 import '../../notifications/screens/push_setup_screens.dart';
 import '../../notifications/services/notification_service.dart';
+import '../models/notification_preference.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _updateError;
   bool _syncAvatarFromDiscord = true;
   bool _savingSync = false;
+  bool _savingNotificationMethod = false;
 
   @override
   void didChangeDependencies() {
@@ -345,6 +349,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 16),
                 const DesignDivider(),
 
+                // Notification section
+                if (!kIsWeb) ...<Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DesignText(
+                          'Benachrichtigungen',
+                          style: DesignTextStyle.label,
+                          color: tokens.primary,
+                        ),
+                        const SizedBox(height: 2),
+                        DesignText(
+                          'Aktiv: '
+                          '${AppScope.of(context).notificationMethod.value.label}',
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
+                        ),
+                      ],
+                    ),
+                  ),
+                  DesignCard.list(
+                    children: [
+                      for (final method in NotificationMethodX.availableFor())
+                        DesignListTile(
+                          leading: Icon(
+                            method == NotificationMethod.unifiedPush
+                                ? Icons.push_pin_rounded
+                                : Icons.sync_rounded,
+                            color: tokens.textHigh,
+                          ),
+                          title: method.label,
+                          subtitle: method.description,
+                          trailing: _savingNotificationMethod
+                              ? SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: tokens.primary,
+                                  ),
+                                )
+                              : Icon(
+                                  AppScope.of(
+                                            context,
+                                          ).notificationMethod.value ==
+                                          method
+                                      ? Icons.radio_button_checked_rounded
+                                      : Icons.radio_button_unchecked_rounded,
+                                  color:
+                                      AppScope.of(
+                                            context,
+                                          ).notificationMethod.value ==
+                                          method
+                                      ? tokens.primary
+                                      : tokens.textLow,
+                                ),
+                          onTap: _savingNotificationMethod
+                              ? null
+                              : () => _applyNotificationMethod(method),
+                        ),
+                      if (Platform.isAndroid)
+                        const DesignListTile(
+                          leading: Icon(Icons.cloud_rounded),
+                          title: 'FCM',
+                          subtitle: 'Google Firebase Cloud Messaging – geplant',
+                          trailing: DesignBadge(label: 'Bald verfügbar'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
                 // App section
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -356,14 +434,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 DesignCard.list(
                   children: [
-                    if (!kIsWeb)
-                      DesignListTile(
-                        leading: const Icon(Icons.notifications_rounded),
-                        title: 'Push-Benachrichtigungen',
-                        subtitle: 'Distributor wählen oder neu einrichten',
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                        onTap: _setupPush,
-                      ),
                     DesignListTile(
                       leading: const Icon(Icons.info_outline_rounded),
                       title: 'Version',
@@ -511,6 +581,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// Stoppt den bisherigen Service und startet die gewählte Methode.
+  Future<void> _applyNotificationMethod(NotificationMethod method) async {
+    final scope = AppScope.of(context);
+    final previous = scope.notificationMethod.value;
+    if (method == previous) return;
+
+    setState(() => _savingNotificationMethod = true);
+    try {
+      switch (method) {
+        case NotificationMethod.polling:
+          if (previous == NotificationMethod.unifiedPush) {
+            await scope.unifiedPush.unregister();
+          }
+          await LocalNotificationHelper.requestPermission();
+          scope.notification.startPolling(
+            token: await scope.auth.getAccessToken(),
+          );
+        case NotificationMethod.unifiedPush:
+          scope.notification.stopPolling();
+          await _setupPush();
+        case NotificationMethod.fcm:
+          break;
+      }
+      scope.notificationMethod.value = method;
+      await NotificationPreference.save(method);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Benachrichtigungs-Methode: ${method.label}')),
+      );
+    } catch (e) {
+      developer.log(
+        'Notification method switch failed',
+        error: e,
+        name: 'settings.notifications',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Methode konnte nicht gewechselt werden')),
+      );
+    } finally {
+      if (mounted) setState(() => _savingNotificationMethod = false);
+    }
+  }
+
   Future<void> _confirmLogout() async {
     final confirmed = await showDesignSheet<bool>(
       context: context,
@@ -556,7 +670,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (kIsWeb) {
           final token = await scope.auth.getAccessToken();
           await scope.webPush.unsubscribe(token: token);
-        } else {
+        } else if (scope.notificationMethod.value ==
+            NotificationMethod.unifiedPush) {
           await scope.unifiedPush.unregister();
         }
       } catch (e) {

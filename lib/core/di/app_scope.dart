@@ -12,6 +12,7 @@ import '../../features/notifications/services/notification_service.dart';
 import '../../features/notifications/services/unified_push_service.dart';
 import '../../features/notifications/services/web_push_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
+import '../../features/settings/models/notification_preference.dart';
 import '../../features/settings/services/mcp_key_service.dart';
 import '../../features/subscription/services/subscription_service.dart';
 import '../../features/travel/services/travel_service.dart';
@@ -41,6 +42,10 @@ class AppScope extends InheritedWidget {
   final NotificationService notification;
   final UnifiedPushService unifiedPush;
   final WebPushService webPush;
+
+  /// Aktuell gewählte Benachrichtigungs-Methode (lokal persistiert).
+  final ValueNotifier<NotificationMethod> notificationMethod;
+
   final String appBaseUrl;
   final String apiBaseUrl;
 
@@ -65,6 +70,7 @@ class AppScope extends InheritedWidget {
     required this.notification,
     required this.unifiedPush,
     required this.webPush,
+    required this.notificationMethod,
     this.webUpdate,
     required this.appBaseUrl,
     required this.apiBaseUrl,

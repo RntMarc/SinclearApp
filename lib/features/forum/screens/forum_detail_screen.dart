@@ -88,7 +88,12 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
       });
       _loadPosts();
     } catch (e, st) {
-      developer.log('Failed to load forum', error: e, stackTrace: st);
+      developer.log(
+        'Forum load error',
+        error: e,
+        stackTrace: st,
+        name: 'forum_detail',
+      );
       if (!mounted) return;
       setState(() {
         _loading = false;

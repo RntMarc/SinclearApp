@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/forum_models.dart';
@@ -30,8 +32,27 @@ class ForumService {
   }
 
   Future<ForumDetail> get(String id) async {
-    final data = await _api.get('/forums/$id', token: await _token());
-    return ForumDetail.fromJson(data['data'] as Map<String, dynamic>);
+    try {
+      final data = await _api.get('/forums/$id', token: await _token());
+      return ForumDetail.fromJson(data['data'] as Map<String, dynamic>);
+    } on ApiException catch (e) {
+      developer.log(
+        'ForumService.get($id) failed',
+        error: e,
+        name: 'forum_service',
+        level: 1000,
+      );
+      rethrow;
+    } catch (e, st) {
+      developer.log(
+        'ForumService.get($id) failed',
+        error: e,
+        stackTrace: st,
+        name: 'forum_service',
+        level: 1000,
+      );
+      rethrow;
+    }
   }
 
   // --- Members ---

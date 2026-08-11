@@ -25,6 +25,7 @@ import 'features/home/dashboard_widget_repository.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
+import 'features/settings/models/notification_preference.dart';
 import 'core/notifications/notification_lifecycle_observer.dart';
 
 class SinclearApp extends StatelessWidget {
@@ -49,6 +50,13 @@ class SinclearApp extends StatelessWidget {
   final UnifiedPushService unifiedPush;
   final WebPushService webPush;
   final GoRouter router;
+
+  /// Initial, lokal gespeicherte Benachrichtigungs-Methode.
+  final NotificationMethod initialNotificationMethod;
+
+  /// Aktive Zustell-Methode; Änderungen werden in der UI sofort wirksam
+  /// (z. B. Lifecycle-Observer pollt nur bei [NotificationMethod.polling]).
+  final ValueNotifier<NotificationMethod> notificationMethod;
 
   /// Initial, locally persisted design variant (survives logout/login).
   final DesignVariant initialDesignVariant;
@@ -102,6 +110,7 @@ class SinclearApp extends StatelessWidget {
     required this.notification,
     required this.unifiedPush,
     required this.webPush,
+    required this.initialNotificationMethod,
     required this.router,
     required this.appBaseUrl,
     required this.apiBaseUrl,
@@ -115,7 +124,10 @@ class SinclearApp extends StatelessWidget {
        designVariant = DesignController(initialDesignVariant),
        grainOpacity = GrainController(initialGrainOpacity),
        themeMode = ThemeModeController(initialThemeMode),
-       customAccent = CustomAccentController(initialCustomAccent);
+       customAccent = CustomAccentController(initialCustomAccent),
+       notificationMethod = ValueNotifier<NotificationMethod>(
+         initialNotificationMethod,
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +151,7 @@ class SinclearApp extends StatelessWidget {
       notification: notification,
       unifiedPush: unifiedPush,
       webPush: webPush,
+      notificationMethod: notificationMethod,
       webUpdate: webUpdate,
       appBaseUrl: appBaseUrl,
       apiBaseUrl: apiBaseUrl,
@@ -152,6 +165,7 @@ class SinclearApp extends StatelessWidget {
           child: NotificationLifecycleObserver(
             notificationService: notification,
             getToken: () => auth.getAccessToken(),
+            getNotificationMethod: () => notificationMethod.value,
             child: ListenableBuilder(
               listenable: themeMode,
               builder: (context, _) => MaterialApp.router(

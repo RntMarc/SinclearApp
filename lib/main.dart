@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,7 @@ import 'features/moderation/services/moderation_service.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
 import 'features/recipes/services/recipes_service.dart';
+import 'features/settings/models/notification_preference.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
@@ -41,6 +43,7 @@ import 'features/home/dashboard_cache.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_layout_store.dart';
 import 'features/notifications/services/notification_service.dart';
+import 'features/notifications/models/notification_item.dart';
 import 'router/router.dart';
 
 void main() {
@@ -111,13 +114,42 @@ Future<void> _bootstrap() async {
   }
 
   final router = createRouter(auth);
+  final initialNotificationMethod = await NotificationPreference.load();
 
   if (!kIsWeb) {
     DeepLinkHandler().init(router, appBaseUrl: appBaseUrl);
     LocalNotificationHelper.setNotificationTapHandler(
-      (payload) => _handleNotificationTap(router, payload),
+      (payload) => _handleNotificationTap(
+        router,
+        payload,
+        auth: auth,
+        notification: notification,
+      ),
     );
     await LocalNotificationHelper.init();
+
+    // Gespeicherte Zustell-Methode beim App-Start aktivieren (Cold-Start
+    // liefert sonst erst nach einem Resume wieder Benachrichtigungen).
+    if (auth.isLoggedIn) {
+      try {
+        final token = await auth.getAccessToken();
+        switch (initialNotificationMethod) {
+          case NotificationMethod.polling:
+            notification.startPolling(token: token);
+          case NotificationMethod.unifiedPush:
+            unifiedPush.init(token: token, onMessage: _showLocalNotification);
+          case NotificationMethod.fcm:
+            break;
+        }
+      } catch (e, st) {
+        developer.log(
+          'Failed to start notification method at bootstrap',
+          error: e,
+          stackTrace: st,
+          name: 'bootstrap',
+        );
+      }
+    }
   }
 
   final initialDesign = await DesignPreferences.load();
@@ -153,6 +185,7 @@ Future<void> _bootstrap() async {
       notification: notification,
       unifiedPush: unifiedPush,
       webPush: webPush,
+      initialNotificationMethod: initialNotificationMethod,
       initialDesignVariant: initialDesign,
       initialGrainOpacity: initialGrainOpacity,
       initialThemeMode: initialThemeMode,
@@ -164,14 +197,20 @@ Future<void> _bootstrap() async {
   );
 }
 
-void _handleNotificationTap(GoRouter router, String? payload) {
+void _handleNotificationTap(
+  GoRouter router,
+  String? payload, {
+  required AuthService auth,
+  required NotificationService notification,
+}) {
   if (payload == null) {
-    router.go('/home');
+    _navigate(router, '/home');
     return;
   }
 
   String type;
   Map<String, dynamic>? data;
+  String? id;
   try {
     final decoded = jsonDecode(payload);
     type = decoded is Map<String, dynamic> && decoded['type'] is String
@@ -179,11 +218,65 @@ void _handleNotificationTap(GoRouter router, String? payload) {
         : '';
     final rawData = decoded is Map<String, dynamic> ? decoded['data'] : null;
     data = rawData is Map<String, dynamic> ? rawData : null;
-  } catch (_) {
+    id = decoded is Map<String, dynamic> ? decoded['id'] as String? : null;
+  } catch (e, st) {
+    developer.log(
+      'Notification tap payload invalid',
+      error: e,
+      stackTrace: st,
+      name: 'notification_tap',
+    );
     type = '';
     data = null;
+    id = null;
   }
 
   final route = data == null ? null : NotificationTypeLabel.route(type, data);
-  router.go(route ?? '/home');
+  _navigate(router, route ?? '/home');
+
+  if (id != null && id.isNotEmpty) {
+    unawaited(_markNotificationRead(notification, auth, id));
+  }
+}
+
+/// Navigiert Cold-Start-sicher: Läuft die App noch nicht (der Tap-Handler
+/// feuert vor `runApp`, z. B. beim Start durch eine Notification), wird die
+/// Navigation in den ersten Frame verschoben.
+void _navigate(GoRouter router, String route) {
+  if (router.routerDelegate.navigatorKey.currentContext != null) {
+    router.go(route);
+    return;
+  }
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (router.routerDelegate.navigatorKey.currentContext != null) {
+      router.go(route);
+    }
+  });
+}
+
+Future<void> _markNotificationRead(
+  NotificationService notification,
+  AuthService auth,
+  String id,
+) async {
+  try {
+    await notification.markRead([id], token: await auth.getAccessToken());
+  } catch (e, st) {
+    developer.log(
+      'markRead after tap failed',
+      error: e,
+      stackTrace: st,
+      name: 'notification_tap',
+    );
+  }
+}
+
+/// Zeigt eine eingegangene Benachrichtigung als lokale System-Notification.
+void _showLocalNotification(NotificationItem item) {
+  LocalNotificationHelper.show(
+    id: localNotificationId(item.id),
+    title: item.title,
+    body: item.body,
+    payload: jsonEncode({'type': item.type, 'data': item.data}),
+  );
 }
