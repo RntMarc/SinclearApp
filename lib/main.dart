@@ -46,6 +46,11 @@ import 'features/notifications/services/notification_service.dart';
 import 'features/notifications/models/notification_item.dart';
 import 'router/router.dart';
 
+/// Pending cold-start notification route. Set when the notification tap
+/// fires before `MaterialApp.router` has built its navigator. Cleared after
+/// the route is executed exactly once.
+String? _pendingNotificationRoute;
+
 void main() {
   runZonedGuarded(
     _bootstrap,
@@ -195,6 +200,11 @@ Future<void> _bootstrap() async {
       apiBaseUrl: baseUrl,
     ),
   );
+
+  // Nach runApp() ist der erste Frame geplant. Falls eine Notification den
+  // Cold-Start ausgelöst hat und die Route noch pending ist, jetzt die
+  // Navigation starten, sobald der Navigator-Context verfügbar ist.
+  _tryNavigatePendingNavigation(router);
 }
 
 void _handleNotificationTap(
@@ -241,15 +251,39 @@ void _handleNotificationTap(
 
 /// Navigiert Cold-Start-sicher: Läuft die App noch nicht (der Tap-Handler
 /// feuert vor `runApp`, z. B. beim Start durch eine Notification), wird die
-/// Navigation in den ersten Frame verschoben.
+/// Navigation in den post-`runApp`-Frame verschoben.
 void _navigate(GoRouter router, String route) {
   if (router.routerDelegate.navigatorKey.currentContext != null) {
     router.go(route);
     return;
   }
+  // Router ist noch nicht bereit (Cold-Start). Route speichern; wird nach
+  // dem ersten Frame via [_tryNavigatePendingNavigation] ausgeführt.
+  _pendingNotificationRoute = route;
+  developer.log(
+    'Router context not ready, pending route stored: $route',
+    name: 'notification_tap',
+  );
+}
+
+/// Wird einmalig nach `runApp()` aufgerufen. Wartet mittels
+/// [addPostFrameCallback]-Kette, bis der Navigator-Context verfügbar ist,
+/// und führt dann die Pending-Route aus. Maximal 10 Frames (~160 ms).
+void _tryNavigatePendingNavigation(GoRouter router, [int attempt = 0]) {
+  if (_pendingNotificationRoute == null || attempt >= 10) return;
   WidgetsBinding.instance.addPostFrameCallback((_) {
+    final pending = _pendingNotificationRoute;
+    if (pending == null) return;
     if (router.routerDelegate.navigatorKey.currentContext != null) {
-      router.go(route);
+      _pendingNotificationRoute = null;
+      developer.log(
+        'Executing pending notification route: $pending '
+        '(attempt $attempt)',
+        name: 'notification_tap',
+      );
+      router.go(pending);
+    } else {
+      _tryNavigatePendingNavigation(router, attempt + 1);
     }
   });
 }
@@ -277,6 +311,10 @@ void _showLocalNotification(NotificationItem item) {
     id: localNotificationId(item.id),
     title: item.title,
     body: item.body,
-    payload: jsonEncode({'type': item.type, 'data': item.data}),
+    payload: jsonEncode({
+      'id': item.id,
+      'type': item.type,
+      'data': item.data,
+    }),
   );
 }
