@@ -37,6 +37,7 @@ class NotificationTypeLabel {
       'forum' => _idRoute(forumId, '/forum/'),
       'recipe' => _idRoute(data['recipeId'], '/rezepte/'),
       'friend' => _idRoute(actorId, '/kontakte/'),
+      'feedback' => _idRoute(data['feedbackId'], '/feedback/'),
       'admin' => _deepLinkFromAdmin(data),
       _ => null,
     };
@@ -67,6 +68,7 @@ class NotificationTypeLabel {
       'changelog.new_entry' => 'Neuer Changelog-Eintrag',
       'like.received' => 'Like erhalten',
       'friend.request' => 'Freundschaftsanfrage',
+      'feedback.status_changed' => 'Feedback-Status aktualisiert',
       _ => 'Neue Mitteilung',
     };
   }
@@ -105,6 +107,8 @@ class NotificationTypeLabel {
         '${_name(data, 'actorDisplayName')} hat deinen Beitrag geliked',
       'friend.request' =>
         '${_name(data, 'actorDisplayName')} möchte dich als Freund hinzufügen',
+      'feedback.status_changed' =>
+          'Dein Feedback „${_name(data, 'title')}“: ${_name(data, 'status')}',
       _ => '',
     };
   }
@@ -121,6 +125,7 @@ class NotificationTypeLabel {
       'changelog' => Icons.description_rounded,
       'like' => Icons.favorite_rounded,
       'friend' => Icons.person_add_rounded,
+      'feedback' => Icons.feedback_rounded,
       _ => Icons.notifications_rounded,
     };
   }
