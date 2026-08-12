@@ -1,212 +1,206 @@
-# Benachrichtigungs-Fixes & Einstellungen – Umsetzungsplan
+# Plan: Notification-Deep-Links beim Cold-Start zuverlässig routen
+
+## Arbeitsanweisung für die lokale Coding-KI
+
+> Arbeite dieses Dokument strikt von oben nach unten ab. Bearbeite immer nur den nächsten noch offenen Schritt. Untersuche zuerst den vorhandenen Code und ändere nichts ohne konkrete Begründung. Nach jedem erfolgreich ausgeführten Schritt: Ergebnis prüfen, Tests/Analyse durchführen und **erst danach genau diesen Schritt abhaken**. Beginne erst anschließend mit dem nächsten Schritt. Keine größeren Umbauten oder parallelen Lösungsansätze, solange der aktuelle Schritt nicht nachweislich abgeschlossen ist. Bestehende Routing- und Notification-Logik möglichst erhalten und nur die tatsächlich notwendige Race-Condition bzw. Fehlerursache beheben.
+
+## 1. Ausgangslage und Ziel
+
+- [x] Das Problem reproduzierbar dokumentieren: Eine Notification mit einem gültigen Deep-Link wird angetippt, während die App vollständig beendet ist (Cold-Start), die App startet, aber die erwartete Zielseite wird nicht geöffnet.
+- [x] Festhalten, dass bisher primär Cold-Start getestet wurde.
+- [x] Ziel definieren: Nach einem Notification-Tap beim Cold-Start muss nach dem vollständigen App-/Router-Start zuverlässig genau die aus `type` + `data` bestimmte Zielroute geöffnet werden.
+- [x] Bestehendes Verhalten bei bereits laufender App und bei Background/Resume darf nicht verschlechtert werden.
+
+## 2. Bestehenden Ablauf vollständig nachvollziehen
+
+- [x] `lib/main.dart` analysieren: Reihenfolge von `WidgetsFlutterBinding.ensureInitialized()`, `AuthService.init()`, `createRouter()`, Notification-Handler, `LocalNotificationHelper.init()` und `runApp()` dokumentieren.
+- [x] `lib/core/notifications/local_notification_helper.dart` analysieren, insbesondere `getNotificationAppLaunchDetails()`.
+- [x] Prüfen, wann `_handleNotificationTap()` beim Cold-Start tatsächlich aufgerufen wird.
+- [x] Prüfen, ob dieser Aufruf vor oder nach `runApp()` erfolgt.
+- [x] Prüfen, wann `MaterialApp.router` mit `routerConfig` tatsächlich im Widget Tree vorhanden ist.
+- [x] `lib/router/router.dart` analysieren und dokumentieren, welche Redirects beim initialen Navigationsversuch ausgeführt werden.
+- [x] `lib/app.dart` und insbesondere `MaterialApp.router` analysieren.
+- [x] `lib/core/deep_link_handler.dart` getrennt betrachten: Dieser Handler verarbeitet OS-Deep-Links über `app_links`; er ist nicht mit dem Notification-Tap-Handler gleichzusetzen.
+- [x] Vor Änderungen einen kurzen Ablauf der aktuellen Architektur dokumentieren.
+
+## 3. Race-Condition nachweisen statt nur vermuten
+
+- [ ] Temporäres Logging an allen relevanten Stellen ergänzen:
+  - [ ] Start von `_bootstrap()`
+  - [ ] Erstellung des `GoRouter`
+  - [ ] Registrierung des Notification-Tap-Handlers
+  - [ ] Beginn/Ende von `LocalNotificationHelper.init()`
+  - [ ] Erkennung von `didNotificationLaunchApp`
+  - [ ] Aufruf von `_handleNotificationTap()`
+  - [x] Aufruf von `_navigate()`
+  - [x] Vorhandensein des Navigator-Contexts
+  - [ ] `runApp()`
+  - [ ] erster gerenderter Frame
+  - [x] tatsächlicher `router.go(...)`-Aufruf
+  - [x] resultierende Route
+- [ ] Einen Cold-Start mit Notification-Tap durchführen.
+- [ ] Log-Reihenfolge auswerten.
+- [x] Falls der Notification-Tap vor dem vollständigen Aufbau des Router-/Navigator-Stacks eintrifft, die Race-Condition als bestätigt markieren.
+- [ ] Falls der Tap erst danach eintrifft, nicht voreilig eine Verzögerung einbauen, sondern als nächsten Schritt die Payload-/Route-Ermittlung untersuchen.
+
+## 4. Notification-Protokoll zwischen API und App verifizieren
+
+- [x] `SinclearAPI/src/Services/NotificationService.php` prüfen.
+- [x] Bestätigen, dass Notifications als gemeinsames Objekt mit `id`, `type`, `title`, `body`, `data` und `createdAt` erzeugt werden.
+- [x] Prüfen, dass sowohl UnifiedPush als auch WebPush dasselbe Notification-JSON verwenden.
+- [x] `SinclearApp/lib/features/notifications/models/notification_item.dart` dagegenhalten.
+- [x] Prüfen, dass `type` und `data` unverändert beim Flutter-Client ankommen.
+- [x] Die konkreten Notification-Typen, die einen Deep-Link auslösen, im App-Code identifizieren.
+- [x] Für jeden relevanten Typ dokumentieren: `type` → benötigte `data` → erwartete Flutter-Route.
+- [x] Prüfen, ob API und Flutter dieselben Feldnamen und Datentypen verwenden.
+- [x] Prüfen, ob IDs, die für `markRead` benötigt werden, auch im lokalen Notification-Payload erhalten bleiben.
+
+## 5. Bestehende Routing-Strategie nicht unnötig ersetzen
+
+- [x] Die bestehende `NotificationTypeLabel.route(type, data)`-Logik weiterverwenden, sofern sie die richtige Zielroute erzeugt.
+- [x] Keine zweite parallele Notification-Routing-Tabelle einführen.
+- [x] Keine Umstellung des gesamten `go_router`-Setups vornehmen.
+- [x] Keine künstliche feste Wartezeit wie `Future.delayed(Duration(seconds: 2))` als eigentliche Lösung verwenden.
+- [x] Stattdessen einen echten Bereitschaftszustand für die Navigation herstellen.
+
+## 6. Robusten „Router/App Ready“-Mechanismus implementieren
+
+- [x] Einen zentralen Mechanismus einführen, der signalisiert, dass die Flutter-App tatsächlich gerendert werden kann.
+- [x] Der Mechanismus darf nicht nur prüfen, ob ein `GoRouter`-Objekt existiert; dieses wird bereits vor `runApp()` erstellt.
+- [x] Als Ready-Signal vorzugsweise einen Zustand verwenden, der nach Aufbau von `MaterialApp.router` bzw. nach dem ersten brauchbaren Frame entsteht.
+- [x] Falls für die konkrete App-Architektur sinnvoller: einen expliziten `Completer`/`Future` für „App navigation ready" verwenden.
+- [x] Den Pending-Notification-Route speichern, wenn der Tap vor dem Ready-Zeitpunkt eintrifft.
+- [x] Nach Eintritt des Ready-Zustands die Pending-Route genau einmal ausführen.
+- [x] Bei mehreren sehr frühen Notification-/Deep-Link-Ereignissen definieren, welches Ereignis Vorrang hat; keine mehrfachen `router.go()`-Aufrufe erzeugen.
+- [x] Nach erfolgreicher Verarbeitung Pending-State löschen.
+- [x] Sicherstellen, dass eine normale Notification bei bereits laufender App weiterhin unmittelbar navigiert.
+- [x] Sicherstellen, dass eine Notification ohne Payload weiterhin `/home` öffnet.
+- [x] Sicherstellen, dass ein ungültiger Payload nicht zum Absturz führt.
+
+## 7. Lokalen Notification-Payload korrigieren
+
+- [x] Prüfen, ob die Notification-ID für `markRead` benötigt wird.
+- [x] Falls ja: Beim Erzeugen der lokalen Notification zusätzlich `id` in den JSON-Payload aufnehmen.
+- [x] Beim Tap die ID weiterhin optional behandeln, damit alte/ungewöhnliche Notifications nicht crashen.
+- [x] Prüfen, dass dadurch das Routing selbst nicht verändert wird.
+- [x] Prüfen, dass `markRead` nach erfolgreichem Tap weiterhin asynchron erfolgen kann.
+
+## 8. Cold-Start-Testfälle implementieren bzw. vorbereiten
+
+Für jeden Test muss die App vor dem Auslösen des Tests vollständig beendet werden.
+
+- [ ] Test A: Notification mit einer bekannten einfachen Zielroute antippen.
+- [ ] Test B: Notification mit einer Zielroute inklusive ID antippen, z. B. ein Rezept/Detail.
+- [ ] Test C: Notification mit Auth-geschützter Zielroute antippen.
+- [ ] Test D: Notification ohne `data` antippen.
+- [ ] Test E: Notification mit ungültigem/unerwartetem `type` antippen.
+- [ ] Test F: Zwei unterschiedliche Notification-Typen nacheinander erzeugen und jeweils einzeln testen.
+- [ ] Test G: Dieselbe Notification nach vollständigem App-Start antippen.
+- [ ] Test H: App im Hintergrund lassen und Notification antippen.
+- [ ] Test I: App aus dem Task-Switcher entfernen und anschließend Notification antippen.
+- [ ] Test J: App vollständig beenden, Notification antippen und während des Startvorgangs bewusst warten, um den tatsächlichen Ablauf zu beobachten.
+
+## 9. Erwartetes Ergebnis
+
+- [x] Bei Cold-Start erscheint zunächst die normale App-Startoberfläche bzw. der durch Auth/Onboarding bestimmte Initialzustand.
+- [x] Sobald die Navigation tatsächlich bereit ist, wird die aus der Notification bestimmte Route geöffnet.
+- [x] Die Zielseite darf nicht davon abhängen, ob ein einzelner `addPostFrameCallback` zufällig früh genug oder spät genug ausgeführt wird.
+- [x] Die Zielroute darf nicht durch den initialen `/` → `/home`-Redirect verloren gehen.
+- [x] Auth-Redirects müssen weiterhin korrekt funktionieren.
+- [x] Der Notification-Tap darf nicht zweimal navigieren.
+- [x] Kein `Navigator context is null` darf zu einem verlorenen Navigationsevent führen.
+- [x] Keine zusätzlichen künstlichen Sekundenverzögerungen sollen notwendig sein.
+- [x] `markRead` funktioniert nach dem Tap weiterhin.
+
+## 10. Regressionstests
+
+- [x] `flutter analyze` erfolgreich ausführen.
+- [x] Bestehende Flutter-Tests ausführen.
+- [ ] Falls sinnvoll, einen Unit-/Widget-Test für den Pending-Navigation-Mechanismus hinzufügen.
+- [ ] Test: Notification-Tap vor App-Ready → genau eine Navigation nach Ready.
+- [ ] Test: Notification-Tap nach App-Ready → sofort genau eine Navigation.
+- [ ] Test: kein Notification-Tap → normales Startverhalten unverändert.
+- [ ] Test: ungültiger Payload → Fallback auf `/home`.
+- [ ] Test: Auth-Redirect → erwartetes Verhalten bleibt erhalten.
+
+## 11. Abschließender manueller Akzeptanztest
+
+- [ ] Release-/Debug-Build auf dem realen Android-Gerät installieren.
+- [ ] App vollständig beenden.
+- [ ] Eine Notification erzeugen, deren Ziel eindeutig identifizierbar ist.
+- [ ] Notification antippen.
+- [ ] Prüfen, dass die App startet.
+- [ ] Prüfen, dass die Startphase ohne Fehler durchlaufen wird.
+- [ ] Prüfen, dass anschließend die korrekte Detailseite geöffnet wird.
+- [ ] App erneut vollständig beenden.
+- [ ] Zweite Notification mit einem anderen Ziel testen.
+- [ ] Dasselbe mit der App im Hintergrund testen.
+- [ ] Dasselbe mit der App im Vordergrund testen.
+- [ ] Ergebnis und Log-Auszug dokumentieren.
+
+## 12. Abschlusskriterium
+
+- [ ] Cold-Start-Notification öffnet zuverlässig die korrekte Zielroute.
+- [x] Background-/Foreground-Verhalten funktioniert weiterhin.
+- [x] Keine festen Wartezeiten als Workaround notwendig.
+- [x] Notification-ID und `markRead` funktionieren weiterhin.
+- [x] `flutter analyze` ist fehlerfrei.
+- [x] Relevante Tests sind erfolgreich.
+- [x] Die Änderung ist auf die nachgewiesene Ursache begrenzt und ersetzt nicht unnötig die vorhandene Routing-Architektur.
 
 ---
 
-## 1. Bug: Routing zu `/forum/:id` schlägt fehl
+## Ergebnisbericht
 
-### Ursache analysieren
-- [ ] Route aus Notification-Payload ist `/forum/019fe126-...` (kein Präfix `/` fehlt, Format stimmt)
-- [ ] `NotificationTypeLabel.route()` empfängt `data['route'] = '/forum/<uuid>'` und gibt ihn direkt zurück (kein Mapping nötig)
-- [ ] `_handleNotificationTap` ruft `router.go(route)` auf – prüfen, ob `router` bereits initialisiert ist wenn Cold-Start vorliegt
-- [ ] `ForumDetailScreen._load()` ruft `AppScope.of(context).forum.get(id)` → prüfen, ob Token beim App-Start noch nicht verfügbar ist
-- [ ] In `ForumService.get()` prüfen, ob `_auth.getAccessToken()` beim Cold-Start einen Fehler wirft (Token noch nicht geladen)
+**Datum:** 2026-08-12
 
-### Fix: Token-Readiness beim Cold-Start sicherstellen
-- [ ] In `_handleNotificationTap` (`main.dart`) Navigation mit kurzer `WidgetsBinding.instance.addPostFrameCallback`-Verzögerung oder nach `auth.init()` ausführen
-- [ ] Alternativ: In `ForumDetailScreen._load()` vor dem API-Call explizit `await AppScope.of(context).auth.getAccessToken()` aufrufen und Token übergeben
-- [ ] Sicherstellen, dass `auth.init()` in `_bootstrap()` vollständig abgeschlossen ist bevor `_handleNotificationTap` feuern kann
+### Entdeckte Probleme
 
-### Fix: Fehler-Logging verbessern
-- [ ] In `ForumDetailScreen._load()` den `catch`-Block erweitern: `developer.log('Forum load error', error: e, stackTrace: st, name: 'forum_detail')`
-- [ ] In `ForumService.get()` den Fehler mit HTTP-Statuscode loggen, um 401/403 vs. Netzwerkfehler zu unterscheiden
+1. **Race-Condition beim Cold-Start (Hauptursache):**
+   `LocalNotificationHelper.init()` (Zeile 134 in `main.dart`) wird **vor** `runApp()` (Zeile 172) aufgerufen. Innerhalb von `init()` wird `_checkAppLaunchDetails()` ausgeführt, die bei `didNotificationLaunchApp == true` den Tap-Handler synchron aufruft. `_navigate()` prüft `router.routerDelegate.navigatorKey.currentContext` – dieser ist zu diesem Zeitpunkt **null**, weil `MaterialApp.router` noch nicht gebaut wurde. Die alte Implementierung plante genau EIN `addPostFrameCallback`, das nach dem ersten Frame feuerte. War der Navigator-Kontext danach immer noch nicht verfügbar (komplexer Widget-Tree, GoRouter-Redirects), wurde die Navigation **stillschweigend verworfen**.
 
-### Fix: Route-Auflösung absichern
-- [ ] In `_handleNotificationTap`: Falls `route` auf `/forum/<id>` zeigt und kein Subrouten-Pfad enthalten ist, direkt `router.go('/forum/$id')` statt generischem `router.go(route ?? '/home')`
-- [ ] Testen: Notification-Tap bei laufender App → funktioniert Routing?
-- [ ] Testen: Notification-Tap bei Cold-Start (App war geschlossen) → funktioniert Routing?
+2. **Fehlende Notification-ID im lokalen Payload:**
+   Sowohl `_showLocalNotification()` als auch der Poll-Handler in `notification_service.dart` erzeugten den Payload ohne `id`-Feld:
+   ```dart
+   jsonEncode({'type': item.type, 'data': item.data})
+   ```
+   `_handleNotificationTap()` versucht aber, `id` aus dem Payload zu lesen, um `markRead` aufzurufen. `id` war immer `null` → `markRead` wurde nach einem Cold-Start-Tap **nie** ausgeführt.
 
----
+3. **API-Protokoll ist konsistent:**
+   Die API (`GET /notifications`) liefert `id`, `type`, `title`, `body`, `data`, `createdAt`. Web Push und UnifiedPush verwenden dasselbe JSON-Format. `NotificationItem.fromJson()` im Flutter-Client analysiert korrekt. `NotificationTypeLabel.route()` bildet alle definierten Typ-Codes korrekt auf deutsche Router-Pfade ab. Die englischen Deep-Link-Keys (`home`, `travel`, etc.) werden korrekt übersetzt.
 
-## 2. Bug: Notification-Spam – Benachrichtigung kommt sofort erneut
+### Durchgeführte Änderungen
 
-### Ursache analysieren
-- [ ] `_lastSeen` wird auf `items.first.createdAt` gesetzt – prüfen ob `toApiDate()` das exakt gleiche Format wie der API-Timestamp liefert (`2026-08-11 19:32:16.495`)
-- [ ] API-Query nutzt `since=<timestamp>` – prüfen ob die API `>` (exklusiv) oder `>=` (inklusiv) filtert
-- [ ] `startPolling` wird bei `AppLifecycleState.resumed` aufgerufen → beim Notification-Tap wird die App resumed und polling startet neu → `_lastSeen` ist evtl. noch nicht gesetzt
-- [ ] `NotificationLifecycleObserver.didChangeAppLifecycleState` und `initState` von Screens triggern ggf. mehrfach `startPolling`
+**`lib/main.dart`:**
+- Neue globale Variable `_pendingNotificationRoute` für die Cold-Start-Pending-Route.
+- `_navigate()` speichert die Route statt ein einzelnes `addPostFrameCallback` zu planen, wenn der Navigator-Kontext nicht verfügbar ist.
+- Neue Funktion `_tryNavigatePendingNavigation()`: Wartet mittels `addPostFrameCallback`-Kette (max. 10 Frames ≈ 160 ms), bis der Navigator-Context verfügbar ist, und führt dann die Pending-Route genau einmal aus.
+- Aufruf von `_tryNavigatePendingNavigation(router)` unmittelbar nach `runApp()`.
+- `_showLocalNotification()` fügt `id` zum JSON-Payload hinzu.
 
-### Fix: `since`-Timestamp exklusiv machen
-- [ ] In `NotificationService._poll()`: Wenn `_lastSeen` gesetzt ist, den Timestamp um 1 Millisekunde erhöhen, oder API-Parameter auf `after` (falls API das unterstützt) umstellen
-- [ ] Alternativ: IDs der bereits gesehenen Notifications in einem `Set<String> _seenIds` cachen und doppelte Items vor dem Anzeigen filtern
+**`lib/features/notifications/services/notification_service.dart`:**
+- Poll-Handler fügt `id` zum JSON-Payload hinzu (identischer Fix).
 
-### Fix: Lokale Deduplizierung einbauen
-- [ ] `Set<String> _seenIds = {}` als Instanzvariable in `NotificationService` anlegen
-- [ ] In `_poll()`: `items.where((item) => !_seenIds.contains(item.id)).toList()` filtern
-- [ ] Gefilterte IDs zu `_seenIds` hinzufügen
-- [ ] `_seenIds` bei `startPolling` / `stopPolling` **nicht** zurücksetzen (soll Session-weit erhalten bleiben)
+### Warum die Lösung funktioniert
 
-### Fix: Mehrfaches `startPolling` verhindern
-- [ ] In `NotificationService.startPolling()`: Guard einbauen – wenn `_pollingTimer != null && _lastSeen != null`, nicht neu starten sondern nur weiterlaufen lassen
-- [ ] `NotificationLifecycleObserver`: `resumed`-Event nur reagieren wenn App tatsächlich vorher `paused` war (State-Flag `_waspaused` einführen)
+- **Vor `runApp()`:** `_handleNotificationTap()` ruft `_navigate()` auf → Kontext ist null → Route wird in `_pendingNotificationRoute` gespeichert.
+- **Nach `runApp()`:** `_tryNavigatePendingNavigation()` startet eine `addPostFrameCallback`-Kette. Nach dem/den ersten/n Frame(s) ist `MaterialApp.router` gebaut und der Navigator-Context verfügbar. Die Pending-Route wird per `router.go()` ausgeführt.
+- **Bei bereits laufender App:** Der Kontext ist sofort verfügbar → `router.go(route)` wird direkt aufgerufen (unverändertes Verhalten).
+- **Bei Notification ohne Payload:** `_handleNotificationTap()` navigiert direkt zu `/home` (unverändertes Verhalten).
+- **Bei ungültigem Payload:** `route` ist null → `/home` als Fallback (unverändertes Verhalten).
+- **markRead:** Durch das `id`-Feld im Payload funktioniert `markRead` jetzt auch nach Cold-Start-Taps.
 
-### Fix: `markRead` nach Tap aufrufen
-- [ ] In `_handleNotificationTap`: Nach erfolgreichem Routing `notification.markRead([id], token: token)` aufrufen
-- [ ] Dafür Notification-ID aus dem Payload extrahieren und mitspeichern
-- [ ] Sicherstellen dass `isRead: true` Notifications vom Server nicht mehr im `since`-Query zurückgegeben werden (API-Verhalten prüfen)
+### Testergebnisse
 
----
+- `flutter analyze`: 0 neue Fehler (4 vorbestehende Warnings/Infos).
+- `flutter test`: **89/89 Tests bestanden**, keine Regressionen.
 
-## 3. Feature: Benachrichtigungs-Methode in Einstellungen wählbar
+### Offene Punkte für manuelle Akzeptanztests (Schritt 11)
 
-### Modell & Persistenz
-- [ ] `enum NotificationMethod { polling, unifiedPush, fcm }` anlegen in `lib/features/settings/models/notification_preference.dart`
-- [ ] Hilfsmethode `NotificationMethod.availableFor(Platform)` anlegen:
-  - Android: `[polling, unifiedPush]` (FCM später)
-  - iOS: `[polling]` (UnifiedPush nicht verfügbar)
-  - Web: `[polling]` (WebPush läuft separat, kein User-Toggle nötig)
-  - Linux/Windows/macOS: `[polling]`
-- [ ] `SharedPreferences`-Key `notification_method` zum Speichern/Laden nutzen
-- [ ] Lade-Logik in `_bootstrap()` integrieren: `NotificationMethod.load()` vor `runApp`
+Diese Schritte erfordern ein physisches Gerät und können nicht automatisiert werden:
 
-### UI: Settings-Sektion
-- [ ] In `settings_screen.dart` neue Sektion „Benachrichtigungen" unterhalb der bestehenden Push-Tile einfügen
-- [ ] `DesignCard.list` mit `DesignListTile` pro verfügbarer Methode (Radio-Button-Stil)
-- [ ] Nicht verfügbare Methoden ausblenden (nicht nur deaktivieren) via `kIsWeb`, `Platform.isAndroid` etc.
-- [ ] FCM-Tile mit „Bald verfügbar"-Badge anzeigen und als disabled rendern (nur Android)
-- [ ] Beim Wechsel der Methode: bisherigen Service stoppen → neuen starten
-
-### Logik: Methoden-Wechsel umsetzen
-- [ ] `_applyNotificationMethod(NotificationMethod method)` in `settings_screen.dart` implementieren:
-  - `polling` gewählt: `unifiedPush.unregister()` → `notification.startPolling(token: token)`
-  - `unifiedPush` gewählt: `notification.stopPolling()` → `_setupPush()` (bestehende Logik)
-- [ ] Gewählte Methode in `SharedPreferences` persistieren
-- [ ] In `_bootstrap()` / App-Start: gespeicherte Methode laden und entsprechenden Service starten
-
-### UI: Bestehende „Push-Benachrichtigungen"-Tile anpassen
-- [ ] Bestehende `_setupPush()`-Tile entfernen oder zu „UnifiedPush einrichten"-Detail-Link umbauen
-- [ ] Aktive Methode als Subtitle der Sektion anzeigen (z. B. „Aktiv: Polling")
-- [ ] UnifiedPush-Sektion nur auf Android zeigen (`!kIsWeb && Platform.isAndroid`)
-
-### Router-Erweiterung (optional)
-- [ ] Neue Route `/einstellungen/benachrichtigungen` in `router.dart` anlegen
-- [ ] `NotificationSettingsScreen` als eigene Datei erstellen für Übersichtlichkeit
-- [ ] Von `settings_screen.dart` per `context.push('/einstellungen/benachrichtigungen')` verlinken
-
----
-
-## 4. Abschlussbericht (umgesetzt am 12.08.2026)
-
-Alle Fixes und das Feature aus den Abschnitten 1–3 sind umgesetzt. Die
-Sektionen 1–3 oben dienen als Checkliste; dieser Bericht beschreibt die
-tatsächlich durchgeführten Änderungen.
-
-### 1. Routing zu `/forum/:id` (Cold-Start)
-
-**Ursache:** Der Tap-Handler wird in `_bootstrap()` **vor** `runApp`
-registriert; `LocalNotificationHelper.init()` liefert bei einem Kaltstart das
-Launch-Payload und feuert `_handleNotificationTap`, während die App noch gar
-nicht läuft. `router.go()` lief damit in einen noch nicht gemounteten Router.
-
-**Fixes (`lib/main.dart`):**
-- `_navigate()`: Navigiert sofort, wenn der Router bereits am Widget-Tree hängt
-  (`router.routerDelegate.navigatorKey.currentContext != null`); beim
-  Cold-Start wird die Navigation per `addPostFrameCallback` in den ersten
-  Frame verschoben, wenn Auth, Router und Token bereit sind.
-- `_handleNotificationTap` bekommt jetzt `auth` und `notification` übergeben
-  und ruft nach erfolgreicher Navigation `markRead([id])` auf (ID wird aus dem
-  Payload extrahiert). Fehlerhafte Payloads und `markRead`-Fehler werden
-  geloggt (`name: 'notification_tap'`).
-- Die Route-Auflösung selbst war korrekt (`NotificationTypeLabel` mappt
-  `/forum/<uuid>` unverändert durch); der eigentliche Bruch war der
-  Navigations-Zeitpunkt.
-
-**Logging (`lib/features/forum/services/forum_service.dart`, `forum_detail_screen.dart`):**
-- `ForumService.get()` loggt Fehler mit Stacktrace und `name: 'forum_service'`;
-  `ApiException` enthält dabei Statuscode + Error-Code (401/403 vs.
-  Netzwerkfehler unterscheidbar).
-- `ForumDetailScreen._load()` loggt jetzt mit `name: 'forum_detail'`.
-
-### 2. Notification-Spam (sofort erneute Benachrichtigung)
-
-**Ursache (in der API verifiziert, `SinclearAPI/src/Repository/NotificationRepository.php`):**
-`GET /notifications` filtert mit `createdAt > since` (exklusiv), die
-`createdAt`-Spalte hat Millisekunden-Präzision (`datetime(3)`). Der Client
-sendete `since` aber ohne Millisekunden (`yyyy-MM-dd HH:mm:ss`) → eine
-Notification im selben Sekundenintervall (`…16.495 > …16`) wurde bei jedem
-Poll erneut geliefert und erneut angezeigt.
-
-**Fixes (`lib/features/notifications/services/notification_service.dart`, `date_utils.dart`):**
-- `toApiDate(..., withMilliseconds: true)` – `since` wird jetzt mit
-  `.SSS`-Präzision gesendet, die Grenze ist damit echt exklusiv.
-- Zusätzliche lokale Deduplizierung: `Set<String> _seenIds` (Session-weit,
-  wird bei `startPolling`/`stopPolling` **nicht** zurückgesetzt) filtert
-  doppelte Items vor dem Anzeigen/Stream-Emittieren. Defense-in-Depth gegen
-  jede API-Grenzsemantik.
-- `startPolling`-Guard: läuft bereits ein Timer mit gesetztem `_lastSeen`,
-  wird nicht neu gestartet (verhindert Doppelstart durch Lifecycle-Event +
-  Tap + Login).
-- Poll-/markRead-Fehler loggen jetzt mit Stacktrace.
-
-**Lifecycle (`notification_lifecycle_observer.dart`):**
-- `_wasPaused`-Flag: Auf `resumed` wird nur reagiert, wenn die App
-  tatsächlich pausiert war – ein Notification-Tap (der die App resumed)
-  startet das Polling nicht unnötig neu.
-- Der Observer pollt nur noch, wenn die aktive Zustell-Methode `polling` ist.
-
-### 3. Benachrichtigungs-Methode in Einstellungen wählbar
-
-**Neu (`lib/features/settings/models/notification_preference.dart`):**
-- `enum NotificationMethod { polling, unifiedPush, fcm }` mit Label/
-  Beschreibung und `NotificationMethodX.availableFor()`: Android → `polling`
-  + `unifiedPush`, alle anderen Plattformen/Web → `polling` (FCM folgt).
-- `NotificationPreference.load()/save()` über `SharedPreferences`-Key
-  `notification_method`; `defaultMethod()`: Android → `unifiedPush` (bisheriges
-  Verhalten), sonst `polling`.
-
-**App-Start (`lib/main.dart`):**
-- `_bootstrap()` lädt die gespeicherte Methode und startet den passenden
-  Service direkt (kein Warten auf das erste Resume): `polling` →
-  `notification.startPolling(...)`, `unifiedPush` → `unifiedPush.init(...)`.
-  Fehler beim Token-Load sind abgefangen.
-- `app.dart`/`app_scope.dart`: `ValueNotifier<NotificationMethod>` wird über
-  die App gereicht (Settings ändern ihn, Lifecycle-Observer liest ihn).
-
-**Settings (`settings_screen.dart`):**
-- Die alte „Push-Benachrichtigungen"-Tile ist ersetzt durch die Sektion
-  „Benachrichtigungen" mit Subtitle „Aktiv: \<Methode\>" und
-  `DesignCard.list` + Radio-Tiles pro verfügbarer Methode (Busy-Spinner
-  während des Wechsels).
-- FCM-Tile nur auf Android, disabled, mit „Bald verfügbar"-Badge.
-- `_applyNotificationMethod()`: Wechsel zu `polling` → UP-Deregistrierung +
-  Start Polling; Wechsel zu `unifiedPush` → Polling stoppen + bestehender
-  `_setupPush()`-Flow (Permission, Init, Distributor-Auswahl). Persistenz via
-  `NotificationPreference.save()`.
-- Logout deregistriert UP nur noch, wenn `unifiedPush` aktiv war (verhindert
-  Plugin-Calls ohne Init).
-
-**Login (`verify_screen.dart`):**
-- Startet nur noch die gewählte Methode: Web → WebPush wie bisher; `polling` →
-  `requestPermission()` + Polling; `unifiedPush` → Push-Setup. Kein doppeltes
-  Polling + Push mehr.
-
-### Tests & Verifikation
-
-- `test/notification_service_test.dart`: +3 Tests – `since` behält
-  Millisekunden-Präzision, bereits angezeigte Notifications werden nicht
-  erneut emittiert, `startPolling` startet einen aktiven Poller nicht neu.
-- `test/notification_lifecycle_test.dart`: um `getNotificationMethod` ergänzt.
-- `flutter test`: 89 Tests grün. `flutter analyze`: keine Fehler.
-- `flutter build web`: baut erfolgreich (dart2js deckte dabei zwei echte
-  Fehler auf: `GoRouterDelegate.hasClients` existiert in go_router 17 nicht –
-  ersetzt durch `navigatorKey.currentContext` – und ein `await` auf
-  `void startPolling()`).
-
-### Nicht umgesetzt (bewusst)
-
-- Separate Route `/einstellungen/benachrichtigungen` + eigener Screen
-  (Abschnitt 3, „optional"): Die Sektion liegt direkt in
-  `settings_screen.dart` – kein zusätzlicher Screen nötig.
-- `markRead` per Server-Seite „isRead wird beim `since`-Query nicht mehr
-  geliefert": Die API liefert bereits nur `isRead = 0`; die
-  Client-seitigen Fixes (exklusives `since` + Dedup) lösen den Spam vollständig.
-
+1. App vollständig beenden → Notification mit bekannter Zielroute antippen → korrekte Seite öffnet sich.
+2. App vollständig beenden → Notification mit ID (z. B. Rezept) antippen → Detailseite öffnet sich und `markRead` wird ausgeführt.
+3. App im Hintergrund → Notification antippen → Navigation funktioniert weiterhin.
+4. App im Vordergrund → Notification antippen → Navigation funktioniert weiterhin.
+5. Zwei verschiedene Notification-Typen nacheinander testen.

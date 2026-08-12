@@ -78,7 +78,11 @@ class NotificationService extends ChangeNotifier {
               id: localNotificationId(item.id),
               title: item.title,
               body: item.body,
-              payload: jsonEncode({'type': item.type, 'data': item.data}),
+              payload: jsonEncode({
+                'id': item.id,
+                'type': item.type,
+                'data': item.data,
+              }),
             );
           }
         }
