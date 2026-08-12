@@ -31,7 +31,8 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
        _clock = clock,
        _layout = initialLayout {
     WidgetsBinding.instance.addObserver(this);
-    _timer = Timer.periodic(refreshInterval, (_) => refreshAll());
+    // Timer wird erst gestartet, wenn sich das erste Widget registriert
+    // (Dashboard sichtbar) und die App bereit ist.
   }
 
   final DashboardLayoutStore store;
@@ -118,10 +119,21 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
 
   void register(DashboardRefreshable refreshable) {
     _refreshables.add(refreshable);
+    _maybeStartTimer();
   }
 
   void unregister(DashboardRefreshable refreshable) {
     _refreshables.remove(refreshable);
+    if (_refreshables.isEmpty) {
+      _timer?.cancel();
+      _timer = null;
+    }
+  }
+
+  void _maybeStartTimer() {
+    if (_timer == null && _refreshables.isNotEmpty) {
+      _timer = Timer.periodic(refreshInterval, (_) => refreshAll());
+    }
   }
 
   /// Reserviert das Rate-Limit-Slot für einen Refresh-Durchlauf und liefert
@@ -148,6 +160,7 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
   /// Versuch innerhalb von [minRefreshInterval] wird aufgeschoben statt
   /// ausgeführt, bleibt aber als Sammel-Refresh bestehen.
   Future<void> refreshAll() async {
+    if (_refreshables.isEmpty) return;
     _pendingRefresh?.cancel();
     _pendingRefresh = null;
     if (!claimRefreshPass()) return;
