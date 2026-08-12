@@ -113,6 +113,16 @@ class ForumService {
     return FeedPostListResponse.fromJson(data);
   }
 
+  /// Einzelnen Post abrufen, z. B. um aus einer Benachrichtigung heraus
+  /// den Post-Text anzuzeigen, ohne die ganze Liste zu laden.
+  Future<FeedPost> getPost(String forumId, String postId) async {
+    final data = await _api.get(
+      '/forums/$forumId/posts/$postId',
+      token: await _token(),
+    );
+    return FeedPost.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
   Future<FeedPost> createPost(
     String forumId, {
     String? type,

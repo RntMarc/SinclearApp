@@ -49,19 +49,6 @@ void main() {
     service.dispose();
   });
 
-  group('localNotificationId', () {
-    test('liefert nicht-negative IDs für UUIDs', () {
-      const ids = [
-        '01923456-7890-7abc-def0-123456789012',
-        '00000000-0000-0000-0000-000000000000',
-        'abc-xyz',
-      ];
-      for (final id in ids) {
-        expect(localNotificationId(id), greaterThanOrEqualTo(0));
-      }
-    });
-  });
-
   group('startPolling', () {
     test('triggers poll immediately', () async {
       mockApi.responses.add({
@@ -69,9 +56,7 @@ void main() {
           {
             'id': '1',
             'type': 'forum_reply',
-            'title': 'Test',
-            'body': 'Body',
-            'data': null,
+            'data': const <Map<String, dynamic>>[],
             'createdAt': '2026-08-10 14:30:00',
           },
         ],
@@ -93,9 +78,7 @@ void main() {
           {
             'id': '1',
             'type': 'forum_reply',
-            'title': 'Test',
-            'body': 'Body',
-            'data': {'route': '/forum/1'},
+            'data': const <Map<String, dynamic>>[],
             'createdAt': '2026-08-10 14:30:00',
           },
         ],
@@ -111,7 +94,7 @@ void main() {
 
       expect(items.length, 1);
       expect(items.first.id, '1');
-      expect(items.first.title, 'Test');
+      expect(items.first.type, 'forum_reply');
     });
 
     test('empty response adds nothing to stream', () async {
@@ -130,9 +113,7 @@ void main() {
           {
             'id': '1',
             'type': 'forum_reply',
-            'title': 'Test',
-            'body': 'Body',
-            'data': null,
+            'data': const <Map<String, dynamic>>[],
             'createdAt': '2026-08-10 14:30:00',
           },
         ],
@@ -156,9 +137,7 @@ void main() {
           {
             'id': '1',
             'type': 'forum_reply',
-            'title': 'Test',
-            'body': 'Body',
-            'data': null,
+            'data': const <Map<String, dynamic>>[],
             'createdAt': '2026-08-10 14:30:00.495',
           },
         ],
@@ -180,9 +159,7 @@ void main() {
       final item = {
         'id': '1',
         'type': 'forum_reply',
-        'title': 'Test',
-        'body': 'Body',
-        'data': null,
+        'data': const <Map<String, dynamic>>[],
         'createdAt': '2026-08-10 14:30:00',
       };
       mockApi.responses.add({
@@ -210,9 +187,7 @@ void main() {
           {
             'id': '1',
             'type': 'forum_reply',
-            'title': 'Test',
-            'body': 'Body',
-            'data': null,
+            'data': const <Map<String, dynamic>>[],
             'createdAt': '2026-08-10 14:30:00',
           },
         ],

@@ -8,6 +8,7 @@ import '../../features/explore/services/nominatim_service.dart';
 import '../../features/feedback/services/feedback_service.dart';
 import '../../features/forum/services/forum_service.dart';
 import '../../features/moderation/services/moderation_service.dart';
+import '../../features/notifications/services/notification_content_resolver.dart';
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/notifications/services/unified_push_service.dart';
 import '../../features/notifications/services/web_push_service.dart';
@@ -40,6 +41,10 @@ class AppScope extends InheritedWidget {
   final DashboardController dashboard;
   final DashboardWidgetRepository dashboardWidgets;
   final NotificationService notification;
+
+  /// Erzeugt aus rohen Benachrichtigungen (`type` + Relation-IDs) Titel,
+  /// Text und Deep-Link — einheitlich für Polling, Push und Inbox.
+  final NotificationContentResolver notificationContent;
   final UnifiedPushService unifiedPush;
   final WebPushService webPush;
 
@@ -68,6 +73,7 @@ class AppScope extends InheritedWidget {
     required this.dashboard,
     required this.dashboardWidgets,
     required this.notification,
+    required this.notificationContent,
     required this.unifiedPush,
     required this.webPush,
     required this.notificationMethod,
