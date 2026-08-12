@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +17,6 @@ import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../notifications/screens/push_setup_screens.dart';
-import '../../notifications/services/notification_service.dart';
 import '../../settings/models/notification_preference.dart';
 
 class VerifyScreen extends StatefulWidget {
@@ -140,14 +139,8 @@ class _VerifyScreenState extends State<VerifyScreen> {
     await LocalNotificationHelper.requestPermission();
     scope.unifiedPush.init(
       token: token,
-      onMessage: (item) {
-        LocalNotificationHelper.show(
-          id: localNotificationId(item.id),
-          title: item.title,
-          body: item.body,
-          payload: jsonEncode({'type': item.type, 'data': item.data}),
-        );
-      },
+      onMessage: (item) =>
+          unawaited(scope.notificationContent.showLocal(item)),
     );
     if (!mounted) return;
     await scope.unifiedPush.checkAndSetup(

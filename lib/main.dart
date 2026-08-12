@@ -42,6 +42,7 @@ import 'features/user/services/user_service.dart';
 import 'features/home/dashboard_cache.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_layout_store.dart';
+import 'features/notifications/services/notification_content_resolver.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/notifications/models/notification_item.dart';
 import 'router/router.dart';
@@ -107,7 +108,14 @@ Future<void> _bootstrap() async {
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
-  final notification = NotificationService(api: api);
+  final notificationContent = NotificationContentResolver(
+    user: user,
+    forum: forum,
+  );
+  final notification = NotificationService(
+    api: api,
+    contentResolver: notificationContent,
+  );
   final unifiedPush = UnifiedPushService(api: api);
   final webPush = WebPushService(api: api);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
@@ -142,7 +150,11 @@ Future<void> _bootstrap() async {
           case NotificationMethod.polling:
             notification.startPolling(token: token);
           case NotificationMethod.unifiedPush:
-            unifiedPush.init(token: token, onMessage: _showLocalNotification);
+            unifiedPush.init(
+              token: token,
+              onMessage: (item) =>
+                  unawaited(notificationContent.showLocal(item)),
+            );
           case NotificationMethod.fcm:
             break;
         }
@@ -188,6 +200,7 @@ Future<void> _bootstrap() async {
       webUpdate: webUpdate,
       dashboardController: dashboardController,
       notification: notification,
+      notificationContent: notificationContent,
       unifiedPush: unifiedPush,
       webPush: webPush,
       initialNotificationMethod: initialNotificationMethod,
@@ -213,37 +226,32 @@ void _handleNotificationTap(
   required AuthService auth,
   required NotificationService notification,
 }) {
-  if (payload == null) {
-    _navigate(router, '/home');
-    return;
+  NotificationItem? item;
+  if (payload != null) {
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is Map<String, dynamic>) {
+        item = NotificationItem.fromJson(decoded);
+      }
+    } catch (e, st) {
+      developer.log(
+        'Notification tap payload invalid',
+        error: e,
+        stackTrace: st,
+        name: 'notification_tap',
+      );
+    }
   }
 
-  String type;
-  Map<String, dynamic>? data;
-  String? id;
-  try {
-    final decoded = jsonDecode(payload);
-    type = decoded is Map<String, dynamic> && decoded['type'] is String
-        ? decoded['type'] as String
-        : '';
-    final rawData = decoded is Map<String, dynamic> ? decoded['data'] : null;
-    data = rawData is Map<String, dynamic> ? rawData : null;
-    id = decoded is Map<String, dynamic> ? decoded['id'] as String? : null;
-  } catch (e, st) {
-    developer.log(
-      'Notification tap payload invalid',
-      error: e,
-      stackTrace: st,
-      name: 'notification_tap',
-    );
-    type = '';
-    data = null;
-    id = null;
-  }
-
-  final route = data == null ? null : NotificationTypeLabel.route(type, data);
+  // Route lokal aus Typ + Relation-IDs aufbauen. Ohne auflösbares Ziel
+  // (unbekannter Typ, fehlende Relationen, ungültiges Payload) geht es zum
+  // Fallback — bis eine Inbox existiert, ist das `/home`.
+  final route = item == null
+      ? null
+      : NotificationTypeLabel.route(item.type, item.data);
   _navigate(router, route ?? '/home');
 
+  final id = item?.id;
   if (id != null && id.isNotEmpty) {
     unawaited(_markNotificationRead(notification, auth, id));
   }
@@ -303,18 +311,4 @@ Future<void> _markNotificationRead(
       name: 'notification_tap',
     );
   }
-}
-
-/// Zeigt eine eingegangene Benachrichtigung als lokale System-Notification.
-void _showLocalNotification(NotificationItem item) {
-  LocalNotificationHelper.show(
-    id: localNotificationId(item.id),
-    title: item.title,
-    body: item.body,
-    payload: jsonEncode({
-      'id': item.id,
-      'type': item.type,
-      'data': item.data,
-    }),
-  );
 }

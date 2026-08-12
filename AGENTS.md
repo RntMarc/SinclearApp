@@ -56,29 +56,47 @@ English only.
 
 ## Notifications & Deep Links
 
+* **The API sends no titles, texts, routes or deep links.** A notification
+  consists of `type` plus a relation list `data` of
+  `{ relation, object, identifier }` entries. The client interprets `type`
+  and `data`, fetches referenced resources itself and generates display text
+  and the deep link locally. The app adapts to the API — never the other way
+  around.
+* **Single place per concern:**
+  * `NotificationTypeLabel` (`lib/core/config/notification_config.dart`) maps
+    a `type` to the local fallback title/body/icon and to the German route
+    built from relation IDs (no API data, no network).
+  * `NotificationContentResolver`
+    (`lib/features/notifications/services/notification_content_resolver.dart`)
+    enriches a notification: it fetches the referenced objects (users, posts,
+    …) and generates the full display text, falling back to the generalized
+    `NotificationTypeLabel` text when fetching fails.
+  * `NotificationItem` (`…/models/notification_item.dart`) parses the
+    relation list and exposes `identifierFor(relation)`.
 * **Regular compatibility check:** Whenever the Sinclear API docs change
   (check via the SinclearAPI MCP `get_documentation` tool, topic
-  `notifications`), verify that the client is still fully compatible with the
-  notification system: notification codes, payloads, delivery mechanisms
-  (FCM push, polling), and endpoints. New or changed codes must be handled in
-  `NotificationTypeLabel` (title/body/icon) and in the deep-link resolution.
+  `notifications`), verify the client is still compatible: notification
+  types, the `data` relation structure per type, delivery mechanisms (web
+  push, UnifiedPush, polling) and endpoints. New or changed types must be
+  added in **both** `NotificationTypeLabel` (fallback title/body/icon, route)
+  and `NotificationContentResolver` (enrichment), plus the web service worker
+  (`web/sw.js`) which only supports the generalized fallback text. Currently
+  only `forum_reply` is supported; each additional type is agreed upon and
+  implemented one at a time.
 * **Deep links from notifications:** The client must always be able to open
   the correct screen and the correct object when a notification is tapped —
   no matter whether the notification arrives natively (Android/iOS local or
   FCM), in the browser (web service worker), or in-app (inbox sheet). Each
-  notification code with an object id (`calendarEventId`, …) must resolve to
-  the matching route with that id.
+  type with object IDs must resolve to the matching route with those IDs
+  (e.g. `forum_reply` → `/forum/{parent_forum}/beitrag/{parent_post}`).
 * **Cold start:** Opening a notification from the OS tray / browser while the
-  app is not running must resolve the target too: fetch the notification by
-  `notificationId` (or reuse cached payload), then navigate. If the target
-  cannot be resolved or fetched (offline, phone off, unknown code), the
-  in-app notification area (the inbox sheet) must be opened instead so the
-  user can look it up themselves. Never silently drop a tapped notification
-  to a generic screen.
-* **API deep-link values** (`home`, `travel`, `events`, `profile`,
-  `settings`, `friends`, `discover`, `news`, `chat`, `feedback`) are English
-  keys, not client routes: map them to the German route paths (`/home`,
-  `/reisen`, `/kalender`, …) instead of passing them through.
+  app is not running must resolve the target too: the tap payload carries the
+  full notification JSON (`NotificationItem.toJson`), which is enough to
+  resolve the route. If the target cannot be resolved (offline, unknown type,
+  missing relations), the in-app notification area (the inbox sheet) must be
+  opened instead so the user can look it up themselves. Never silently drop a
+  tapped notification to a generic screen. (Note: the inbox sheet is not yet
+  implemented — until then the fallback is `/home`.)
 
 ## Interaction Guidelines
 * **User Persona:** Assume the user is familiar with programming concepts but

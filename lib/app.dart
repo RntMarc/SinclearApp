@@ -22,6 +22,7 @@ import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_widget_repository.dart';
+import 'features/notifications/services/notification_content_resolver.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
@@ -47,6 +48,7 @@ class SinclearApp extends StatelessWidget {
   final DashboardController dashboardController;
   final DashboardWidgetRepository dashboardWidgets;
   final NotificationService notification;
+  final NotificationContentResolver notificationContent;
   final UnifiedPushService unifiedPush;
   final WebPushService webPush;
   final GoRouter router;
@@ -108,6 +110,7 @@ class SinclearApp extends StatelessWidget {
     required this.webUpdate,
     required this.dashboardController,
     required this.notification,
+    required this.notificationContent,
     required this.unifiedPush,
     required this.webPush,
     required this.initialNotificationMethod,
@@ -149,6 +152,7 @@ class SinclearApp extends StatelessWidget {
       dashboard: dashboardController,
       dashboardWidgets: dashboardWidgets,
       notification: notification,
+      notificationContent: notificationContent,
       unifiedPush: unifiedPush,
       webPush: webPush,
       notificationMethod: notificationMethod,

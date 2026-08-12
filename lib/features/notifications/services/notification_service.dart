@@ -1,18 +1,19 @@
+// ignore_for_file: prefer_initializing_formals
+
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
-import '../../../core/notifications/local_notification_helper.dart';
 import '../../../core/utils/date_utils.dart';
 import '../models/notification_item.dart';
-
-/// Stabile, nicht-negative Android-Notification-ID, abgeleitet aus der
-/// Notification-UUID (Android akzeptiert nur ints >= 0).
-int localNotificationId(String id) => id.hashCode & 0x7fffffff;
+import 'notification_content_resolver.dart';
 
 class NotificationService extends ChangeNotifier {
   final ApiClient _api;
+
+  /// Bereitet rohe Benachrichtigungen (nur `type` + Relation-IDs) für die
+  /// lokale Anzeige auf: lädt fehlende Daten nach und erzeugt Titel/Text.
+  final NotificationContentResolver? _contentResolver;
 
   Timer? _pollingTimer;
   String? _lastSeen;
@@ -27,7 +28,11 @@ class NotificationService extends ChangeNotifier {
 
   Stream<List<NotificationItem>> get notifications => _controller.stream;
 
-  NotificationService({required this._api});
+  NotificationService({
+    required ApiClient api,
+    NotificationContentResolver? contentResolver,
+  }) : _api = api,
+       _contentResolver = contentResolver;
 
   void startPolling({
     required String token,
@@ -72,18 +77,11 @@ class NotificationService extends ChangeNotifier {
         notifyListeners();
 
         if (!kIsWeb) {
-          final toShow = newItems.take(3).toList();
-          for (final item in toShow) {
-            await LocalNotificationHelper.show(
-              id: localNotificationId(item.id),
-              title: item.title,
-              body: item.body,
-              payload: jsonEncode({
-                'id': item.id,
-                'type': item.type,
-                'data': item.data,
-              }),
-            );
+          final resolver = _contentResolver;
+          if (resolver != null) {
+            for (final item in newItems.take(3)) {
+              await resolver.showLocal(item);
+            }
           }
         }
       }
