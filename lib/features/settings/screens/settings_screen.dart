@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
@@ -27,7 +27,6 @@ import '../../../design/widgets/primitives/press_scale.dart';
 import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
 import '../../notifications/screens/push_setup_screens.dart';
-import '../../notifications/services/notification_service.dart';
 import '../models/notification_preference.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -552,14 +551,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await LocalNotificationHelper.requestPermission();
     scope.unifiedPush.init(
       token: await scope.auth.getAccessToken(),
-      onMessage: (item) {
-        LocalNotificationHelper.show(
-          id: localNotificationId(item.id),
-          title: item.title,
-          body: item.body,
-          payload: jsonEncode({'type': item.type, 'data': item.data}),
-        );
-      },
+      onMessage: (item) =>
+          unawaited(scope.notificationContent.showLocal(item)),
     );
     if (!mounted) return;
     await scope.unifiedPush.checkAndSetup(
