@@ -4,7 +4,6 @@ import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../models/pt_models.dart';
-import '../screens/pt_departure_board_screen.dart';
 
 class PtStationField extends StatefulWidget {
   const PtStationField({
@@ -153,47 +152,17 @@ class _PtStationFieldState extends State<PtStationField> {
                   itemCount: _suggestions.length,
                   itemBuilder: (context, index) {
                     final station = _suggestions[index];
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => _select(station),
-                            child: Padding(
-                              padding: EdgeInsets.all(tokens.spaceMd),
-                              child: DesignText(
-                                station.name,
-                                style: DesignTextStyle.body,
-                                color: tokens.textHigh,
-                              ),
-                            ),
-                          ),
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _select(station),
+                      child: Padding(
+                        padding: EdgeInsets.all(tokens.spaceMd),
+                        child: DesignText(
+                          station.name,
+                          style: DesignTextStyle.body,
+                          color: tokens.textHigh,
                         ),
-                        Padding(
-                          padding: EdgeInsets.only(right: tokens.spaceXs),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.departure_board_rounded,
-                              size: 20,
-                              color: tokens.textLow,
-                            ),
-                            tooltip: 'Abfahrten',
-                            onPressed: () {
-                              _closeSuggestions();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      PtDepartureBoardScreen(
-                                    stationId: station.id,
-                                    stationName: station.name,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+                      ),
                     );
                   },
                 ),
