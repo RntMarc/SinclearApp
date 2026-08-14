@@ -331,48 +331,6 @@ class PtSavedJourneyListResponse {
   }
 }
 
-class PtDeparture {
-  final String lineName;
-  final String mode;
-  final DateTime? departure;
-  final String? platform;
-  final String? headsign;
-
-  const PtDeparture({
-    required this.lineName,
-    required this.mode,
-    this.departure,
-    this.platform,
-    this.headsign,
-  });
-
-  factory PtDeparture.fromJson(Map<String, dynamic> json) {
-    return PtDeparture(
-      lineName: json['lineName'] as String? ?? '',
-      mode: json['mode'] as String? ?? 'UNKNOWN',
-      departure: json['departure'] != null
-          ? parseApiDate(json['departure'] as String)
-          : null,
-      platform: json['platform'] as String?,
-      headsign: json['headsign'] as String?,
-    );
-  }
-}
-
-class PtDepartureListResponse {
-  final List<PtDeparture> data;
-
-  const PtDepartureListResponse({required this.data});
-
-  factory PtDepartureListResponse.fromJson(Map<String, dynamic> json) {
-    return PtDepartureListResponse(
-      data: (json['data'] as List)
-          .map((e) => PtDeparture.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-  }
-}
-
 class PtSaveJourneyRequest {
   String? tripId;
   String fromStationId;

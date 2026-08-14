@@ -14,7 +14,6 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../features/user/models/user_public_models.dart';
 import '../models/pt_models.dart';
 import '../models/travel_models.dart';
-import 'pt_departure_board_screen.dart';
 
 class PtJourneyDetailScreen extends StatefulWidget {
   final String journeyId;
@@ -404,18 +403,6 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
     );
   }
 
-  void _openDepartureBoard(String stationId, String stationName) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PtDepartureBoardScreen(
-          stationId: stationId,
-          stationName: stationName,
-        ),
-      ),
-    );
-  }
-
   Widget _buildParticipants(PtSavedJourney journey, DesignTokens tokens) {
     return Column(
       children: journey.participants.map((p) {
@@ -541,7 +528,6 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
         return _LegTile(
           leg: leg,
           isLast: isLast,
-          onStationTap: (id, name) => _openDepartureBoard(id, name),
         );
       }),
     );
@@ -556,11 +542,10 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
 }
 
 class _LegTile extends StatelessWidget {
-  const _LegTile({required this.leg, required this.isLast, this.onStationTap});
+  const _LegTile({required this.leg, required this.isLast});
 
   final PtLeg leg;
   final bool isLast;
-  final void Function(String stationId, String stationName)? onStationTap;
 
   @override
   Widget build(BuildContext context) {
@@ -618,32 +603,15 @@ class _LegTile extends StatelessWidget {
                   ),
                   SizedBox(height: tokens.spaceXs),
                   if (leg.fromStationName != null)
-                    GestureDetector(
-                      onTap: leg.fromStationId != null && onStationTap != null
-                          ? () => onStationTap!(
-                              leg.fromStationId!,
-                              leg.fromStationName!,
-                            )
-                          : null,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          DesignText(
-                            leg.fromStationName!,
-                            style: DesignTextStyle.label,
-                            color: tokens.textLow,
-                          ),
-                          if (leg.fromStationId != null &&
-                              onStationTap != null) ...[
-                            SizedBox(width: tokens.spaceXs),
-                            Icon(
-                              Icons.departure_board_rounded,
-                              size: 14,
-                              color: tokens.primary,
-                            ),
-                          ],
-                        ],
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DesignText(
+                          leg.fromStationName!,
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
+                        ),
+                      ],
                     ),
                   if (leg.plannedDeparture != null)
                     DesignText(
@@ -659,32 +627,15 @@ class _LegTile extends StatelessWidget {
                     ),
                   SizedBox(height: tokens.spaceXs),
                   if (leg.toStationName != null)
-                    GestureDetector(
-                      onTap: leg.toStationId != null && onStationTap != null
-                          ? () => onStationTap!(
-                              leg.toStationId!,
-                              leg.toStationName!,
-                            )
-                          : null,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          DesignText(
-                            leg.toStationName!,
-                            style: DesignTextStyle.label,
-                            color: tokens.textLow,
-                          ),
-                          if (leg.toStationId != null &&
-                              onStationTap != null) ...[
-                            SizedBox(width: tokens.spaceXs),
-                            Icon(
-                              Icons.departure_board_rounded,
-                              size: 14,
-                              color: tokens.primary,
-                            ),
-                          ],
-                        ],
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        DesignText(
+                          leg.toStationName!,
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
+                        ),
+                      ],
                     ),
                   if (leg.plannedArrival != null)
                     DesignText(

@@ -114,23 +114,6 @@ class PublicTransportService {
     );
   }
 
-  Future<List<PtDeparture>> getStationDepartures(
-    String stationId, {
-    int limit = 10,
-    bool arriveBy = false,
-  }) async {
-    final params = <String, String>{
-      'limit': limit.toString(),
-      if (arriveBy) 'arriveBy': 'true',
-    };
-    final data = await _api.get(
-      '/public-transport/stations/$stationId/departures',
-      queryParams: params,
-      token: await _token(),
-    );
-    return PtDepartureListResponse.fromJson(data).data;
-  }
-
   Future<PtSavedJourney> updateJourney(
     String journeyId, {
     String? tripId,
