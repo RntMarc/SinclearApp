@@ -270,6 +270,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => context.push('/einstellungen/mcp'),
                     ),
+                    DesignListTile(
+                      leading: const Icon(Icons.vpn_key_rounded),
+                      title: 'DAV-Tokens',
+                      subtitle: 'CalDAV- und CardDAV-Synchronisation',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/einstellungen/dav'),
+                    ),
                   ],
                 ),
 
@@ -551,8 +558,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await LocalNotificationHelper.requestPermission();
     scope.unifiedPush.init(
       token: await scope.auth.getAccessToken(),
-      onMessage: (item) =>
-          unawaited(scope.notificationContent.showLocal(item)),
+      onMessage: (item) => unawaited(scope.notificationContent.showLocal(item)),
     );
     if (!mounted) return;
     await scope.unifiedPush.checkAndSetup(

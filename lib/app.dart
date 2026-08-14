@@ -15,6 +15,7 @@ import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/recipes/services/recipes_service.dart';
+import 'features/settings/services/dav_token_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
@@ -43,6 +44,7 @@ class SinclearApp extends StatelessWidget {
   final ModerationService moderation;
   final SubscriptionService subscription;
   final McpKeyService mcpKeys;
+  final DavTokenService davTokens;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService webUpdate;
   final DashboardController dashboardController;
@@ -106,6 +108,7 @@ class SinclearApp extends StatelessWidget {
     required this.moderation,
     required this.subscription,
     required this.mcpKeys,
+    required this.davTokens,
     required this.androidUpdate,
     required this.webUpdate,
     required this.dashboardController,
@@ -148,6 +151,7 @@ class SinclearApp extends StatelessWidget {
       moderation: moderation,
       subscription: subscription,
       mcpKeys: mcpKeys,
+      davTokens: davTokens,
       androidUpdate: androidUpdate,
       dashboard: dashboardController,
       dashboardWidgets: dashboardWidgets,

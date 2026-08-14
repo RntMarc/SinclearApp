@@ -34,6 +34,7 @@ import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/settings/models/notification_preference.dart';
+import 'features/settings/services/dav_token_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
@@ -108,6 +109,7 @@ Future<void> _bootstrap() async {
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
+  final davTokens = DavTokenService(api: api, auth: auth);
   final notificationContent = NotificationContentResolver(
     user: user,
     forum: forum,
@@ -196,6 +198,7 @@ Future<void> _bootstrap() async {
       moderation: moderation,
       subscription: subscription,
       mcpKeys: mcpKeys,
+      davTokens: davTokens,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       dashboardController: dashboardController,
