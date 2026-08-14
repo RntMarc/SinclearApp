@@ -99,6 +99,34 @@ NotificationItem _forumReplyItem() => NotificationItem(
   ],
 );
 
+NotificationItem _forumCommentItem() => NotificationItem(
+  id: 'n2',
+  type: 'forum_comment',
+  createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+  data: const [
+    NotificationRelation(
+      relation: 'comment_author',
+      object: 'User',
+      identifier: 'user-comment',
+    ),
+    NotificationRelation(
+      relation: 'post_author',
+      object: 'User',
+      identifier: 'user-post',
+    ),
+    NotificationRelation(
+      relation: 'parent_post',
+      object: 'ForumPost',
+      identifier: 'p1',
+    ),
+    NotificationRelation(
+      relation: 'parent_forum',
+      object: 'Forum',
+      identifier: 'f1',
+    ),
+  ],
+);
+
 void main() {
   late _FakeUserService user;
   late _FakeForumService forum;
@@ -117,7 +145,7 @@ void main() {
 
       final content = await resolver.resolve(_forumReplyItem());
 
-      expect(content.title, 'Neue Antwort');
+      expect(content.title, 'Neue Antwort auf deinen Kommentar');
       expect(
         content.body,
         'Tom hat auf deinen Kommentar unter dem Post „BLABLABLA“ geantwortet',
@@ -125,13 +153,16 @@ void main() {
       expect(content.route, '/forum/f1/beitrag/p1');
     });
 
-    test('generalisierter Text, wenn das Nachladen komplett scheitert', () async {
-      final content = await resolver.resolve(_forumReplyItem());
+    test(
+      'generalisierter Text, wenn das Nachladen komplett scheitert',
+      () async {
+        final content = await resolver.resolve(_forumReplyItem());
 
-      expect(content.title, 'Neue Antwort');
-      expect(content.body, 'Jemand hat auf deinen Kommentar geantwortet');
-      expect(content.route, '/forum/f1/beitrag/p1');
-    });
+        expect(content.title, 'Neue Antwort auf deinen Kommentar');
+        expect(content.body, 'Jemand hat auf deinen Kommentar geantwortet.');
+        expect(content.route, '/forum/f1/beitrag/p1');
+      },
+    );
 
     test('nur Autor ladbar: Text ohne Post-Teil', () async {
       user.displayName = 'Tom';
@@ -187,9 +218,108 @@ void main() {
 
       final content = await resolver.resolve(item);
 
-      expect(content.body, 'Jemand hat auf deinen Kommentar geantwortet');
+      expect(content.body, 'Jemand hat auf deinen Kommentar geantwortet.');
       expect(content.route, isNull);
     });
+  });
+
+  group('forum_comment', () {
+    test('voller Text, wenn der Autor geladen werden kann', () async {
+      user.displayName = 'Tom';
+
+      final content = await resolver.resolve(_forumCommentItem());
+
+      expect(content.title, 'Neuer Kommentar zu deinem Beitrag');
+      expect(content.body, 'Tom hat deinen Beitrag kommentiert');
+      expect(content.route, '/forum/f1/beitrag/p1');
+    });
+
+    test('generalisierter Text, wenn das Nachladen scheitert', () async {
+      final content = await resolver.resolve(_forumCommentItem());
+
+      expect(content.title, 'Neuer Kommentar zu deinem Beitrag');
+      expect(content.body, 'Jemand hat deinen Beitrag kommentiert.');
+      expect(content.route, '/forum/f1/beitrag/p1');
+    });
+
+    test('fehlende Relationen: generalisierter Text, Route null', () async {
+      final item = NotificationItem(
+        id: 'n4',
+        type: 'forum_comment',
+        createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+      );
+
+      final content = await resolver.resolve(item);
+
+      expect(content.body, 'Jemand hat deinen Beitrag kommentiert.');
+      expect(content.route, isNull);
+    });
+  });
+
+  group('API-gelieferte Titel und Texte', () {
+    test('werden direkt verwendet, ohne Nachladen', () async {
+      final item = NotificationItem(
+        id: 'n5',
+        type: 'forum_reply',
+        title: 'Titel von der API',
+        text: 'Text von der API',
+        createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+        data: const [
+          NotificationRelation(
+            relation: 'parent_post',
+            object: 'ForumPost',
+            identifier: 'p1',
+          ),
+          NotificationRelation(
+            relation: 'parent_forum',
+            object: 'Forum',
+            identifier: 'f1',
+          ),
+        ],
+      );
+
+      final content = await resolver.resolve(item);
+
+      expect(content.title, 'Titel von der API');
+      expect(content.body, 'Text von der API');
+      expect(content.route, '/forum/f1/beitrag/p1');
+    });
+
+    test('gelten auch für unbekannte Typen (Route bleibt null)', () async {
+      final item = NotificationItem(
+        id: 'n6',
+        type: 'irgendwas_neues',
+        title: 'Titel von der API',
+        text: 'Text von der API',
+        createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+      );
+
+      final content = await resolver.resolve(item);
+
+      expect(content.title, 'Titel von der API');
+      expect(content.body, 'Text von der API');
+      expect(content.route, isNull);
+    });
+
+    test(
+      'unvollständig (nur Titel): lokale Generierung als Fallback',
+      () async {
+        user.displayName = 'Tom';
+
+        final item = NotificationItem(
+          id: 'n7',
+          type: 'forum_reply',
+          title: 'Nur ein Titel',
+          createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+          data: _forumReplyItem().data,
+        );
+
+        final content = await resolver.resolve(item);
+
+        expect(content.title, 'Neue Antwort auf deinen Kommentar');
+        expect(content.body, 'Tom hat auf deinen Kommentar geantwortet');
+      },
+    );
   });
 
   group('unbekannte Typen', () {

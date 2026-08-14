@@ -56,39 +56,47 @@ English only.
 
 ## Notifications & Deep Links
 
-* **The API sends no titles, texts, routes or deep links.** A notification
-  consists of `type` plus a relation list `data` of
-  `{ relation, object, identifier }` entries. The client interprets `type`
-  and `data`, fetches referenced resources itself and generates display text
-  and the deep link locally. The app adapts to the API — never the other way
-  around.
+* **The API sends `type`, a relation list `data` and server-generated
+  `title`/`text`.** `data` consists of `{ relation, object, identifier }`
+  entries. The API never sends routes or deep links — the client builds
+  them locally from `type` and `data`. When the API delivers both `title`
+  and `text`, the client uses them directly (no extra API call). When they
+  are missing, the client fetches the referenced resources itself and
+  generates title/text locally. The app adapts to the API — never the other
+  way around.
 * **Single place per concern:**
   * `NotificationTypeLabel` (`lib/core/config/notification_config.dart`) maps
-    a `type` to the local fallback title/body/icon and to the German route
-    built from relation IDs (no API data, no network).
+    a `type` to the local fallback title/body/icon (mirroring the
+    API-generated texts) and to the German route built from relation IDs
+    (no API data, no network).
   * `NotificationContentResolver`
     (`lib/features/notifications/services/notification_content_resolver.dart`)
-    enriches a notification: it fetches the referenced objects (users, posts,
-    …) and generates the full display text, falling back to the generalized
-    `NotificationTypeLabel` text when fetching fails.
-  * `NotificationItem` (`…/models/notification_item.dart`) parses the
-    relation list and exposes `identifierFor(relation)`.
+    resolves the display content: API-provided `title`/`text` win when both
+    are present. Otherwise it enriches the notification — it fetches the
+    referenced objects (users, posts, …) and generates the full display
+    text, falling back to the generalized `NotificationTypeLabel` text when
+    fetching fails.
+  * `NotificationItem` (`…/models/notification_item.dart`) parses `type`,
+    `data`, `title` and `text` and exposes `identifierFor(relation)` plus
+    `hasApiContent`.
 * **Regular compatibility check:** Whenever the Sinclear API docs change
-  (check via the SinclearAPI MCP `get_documentation` tool, topic
-  `notifications`), verify the client is still compatible: notification
-  types, the `data` relation structure per type, delivery mechanisms (web
-  push, UnifiedPush, polling) and endpoints. New or changed types must be
-  added in **both** `NotificationTypeLabel` (fallback title/body/icon, route)
-  and `NotificationContentResolver` (enrichment), plus the web service worker
-  (`web/sw.js`) which only supports the generalized fallback text. Currently
-  only `forum_reply` is supported; each additional type is agreed upon and
-  implemented one at a time.
+  (check via the SinclearAPI MCP `get_documentation` tool, topics
+  `notifications` and `notifications/types`), verify the client is still
+  compatible: notification types, the `data` relation structure per type,
+  delivery mechanisms (web push, UnifiedPush, polling) and endpoints. New
+  or changed types must be added in **both** `NotificationTypeLabel`
+  (fallback title/body/icon, route) and `NotificationContentResolver`
+  (enrichment), plus the web service worker (`web/sw.js`) which prefers the
+  payload `title`/`text` and falls back to the generalized fallback text.
+  Currently `forum_reply` and `forum_comment` are supported; each additional
+  type is agreed upon and implemented one at a time.
 * **Deep links from notifications:** The client must always be able to open
   the correct screen and the correct object when a notification is tapped —
   no matter whether the notification arrives natively (Android/iOS local or
   FCM), in the browser (web service worker), or in-app (inbox sheet). Each
   type with object IDs must resolve to the matching route with those IDs
-  (e.g. `forum_reply` → `/forum/{parent_forum}/beitrag/{parent_post}`).
+  (e.g. `forum_reply` and `forum_comment` →
+  `/forum/{parent_forum}/beitrag/{parent_post}`).
 * **Cold start:** Opening a notification from the OS tray / browser while the
   app is not running must resolve the target too: the tap payload carries the
   full notification JSON (`NotificationItem.toJson`), which is enough to

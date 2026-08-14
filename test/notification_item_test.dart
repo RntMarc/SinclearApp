@@ -6,6 +6,8 @@ void main() {
     'id': '01923456-7890-7abc-def0-123456789012',
     'userId': 'user-comment',
     'type': 'forum_reply',
+    'title': 'Neue Antwort auf deinen Kommentar',
+    'text': 'Jemand hat auf deinen Kommentar geantwortet.',
     'data': [
       {
         'relation': 'reply_author',
@@ -17,11 +19,7 @@ void main() {
         'object': 'User',
         'identifier': 'user-comment',
       },
-      {
-        'relation': 'post_author',
-        'object': 'User',
-        'identifier': 'user-post',
-      },
+      {'relation': 'post_author', 'object': 'User', 'identifier': 'user-post'},
       {
         'relation': 'parent_comment',
         'object': 'ForumPostComment',
@@ -32,11 +30,7 @@ void main() {
         'object': 'ForumPost',
         'identifier': 'post-id',
       },
-      {
-        'relation': 'parent_forum',
-        'object': 'Forum',
-        'identifier': 'forum-id',
-      },
+      {'relation': 'parent_forum', 'object': 'Forum', 'identifier': 'forum-id'},
     ],
     'isRead': false,
     'createdAt': '2026-08-10 14:30:00',
@@ -48,6 +42,9 @@ void main() {
 
       expect(item.id, '01923456-7890-7abc-def0-123456789012');
       expect(item.type, 'forum_reply');
+      expect(item.title, 'Neue Antwort auf deinen Kommentar');
+      expect(item.text, 'Jemand hat auf deinen Kommentar geantwortet.');
+      expect(item.hasApiContent, isTrue);
       expect(item.data, hasLength(6));
       expect(item.data.first.relation, 'reply_author');
       expect(item.data.first.object, 'User');
@@ -57,11 +54,19 @@ void main() {
     });
 
     test('isRead wird auch als int akzeptiert', () {
-      final item = NotificationItem.fromJson({
-        ...forumReplyJson,
-        'isRead': 1,
-      });
+      final item = NotificationItem.fromJson({...forumReplyJson, 'isRead': 1});
       expect(item.isRead, isTrue);
+    });
+
+    test('fehlende oder leere title/text ergeben hasApiContent == false', () {
+      for (final raw in [
+        {'title': null, 'text': null},
+        {'title': '', 'text': ''},
+        {'title': 'Titel', 'text': ''},
+      ]) {
+        final item = NotificationItem.fromJson({...forumReplyJson, ...raw});
+        expect(item.hasApiContent, isFalse);
+      }
     });
 
     test('fehlende oder ungültige data-Liste wird zu leerer Liste', () {
@@ -86,6 +91,8 @@ void main() {
 
       expect(item.id, 'push-id');
       expect(item.isRead, isFalse);
+      expect(item.title, isNull);
+      expect(item.text, isNull);
       expect(item.data, hasLength(6));
     });
   });
@@ -128,6 +135,8 @@ void main() {
 
       expect(restored.id, original.id);
       expect(restored.type, original.type);
+      expect(restored.title, original.title);
+      expect(restored.text, original.text);
       expect(
         restored.data.map((e) => e.toJson()).toList(),
         original.data.map((e) => e.toJson()).toList(),
