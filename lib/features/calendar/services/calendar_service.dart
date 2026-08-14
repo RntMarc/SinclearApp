@@ -43,6 +43,32 @@ class CalendarService {
     return CalendarEventDetailResponse.fromJson(data).data;
   }
 
+  /// Kombinierter Feed (`GET /calendar/all`): echte Kalender-Events,
+  /// Reise-Events, Reisen, Geburtstage und ÖPNV-Fahrten im Zeitraum
+  /// [start]–[end] (beide oder keiner, sonst antwortet die API mit 400).
+  /// [types] begrenzt die Quellen auf die angegebenen Typen.
+  Future<CalendarAllResponse> all({
+    DateTime? start,
+    DateTime? end,
+    List<String>? types,
+  }) async {
+    final params = <String, String>{};
+    if (start != null && end != null) {
+      params['start'] = toApiDate(start);
+      params['end'] = toApiDate(end);
+    }
+    if (types != null && types.isNotEmpty) {
+      params['types'] = types.join(',');
+    }
+
+    final data = await _api.get(
+      '/calendar/all',
+      queryParams: params.isNotEmpty ? params : null,
+      token: await _token(),
+    );
+    return CalendarAllResponse.fromJson(data);
+  }
+
   Future<CalendarEvent> create({
     required String title,
     String? description,
