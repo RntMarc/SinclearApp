@@ -33,6 +33,9 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
   String? _error;
   bool _creating = false;
   bool _didLoad = false;
+  bool _nativeSyncEnabled = false;
+  bool _nativeSyncBusy = false;
+  String? _nativeSyncStatus;
 
   String get _davUrl =>
       '${AppScope.of(context).apiBaseUrl.replaceFirst('/api/v2', '/api/dav')}/';
@@ -55,10 +58,16 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
       final scope = AppScope.of(context);
       final tokens = await scope.davTokens.list();
       final user = await scope.user.getMe();
+      final nativeEnabled = await scope.davSync.isEnabled();
+      final nativeStatus = nativeEnabled
+          ? await scope.davSync.lastSyncStatus()
+          : null;
       if (!mounted) return;
       setState(() {
         _tokens = tokens;
         _email = user.base.email;
+        _nativeSyncEnabled = nativeEnabled;
+        _nativeSyncStatus = nativeStatus;
         _loading = false;
       });
     } catch (e) {
@@ -241,6 +250,10 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _setupCard(),
+                    if (AppScope.of(context).davSync.isSupported) ...[
+                      const SizedBox(height: 16),
+                      _nativeSyncCard(),
+                    ],
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -338,6 +351,181 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
             onPressed: () => _copy(value),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _nativeSyncCard() {
+    final tokens = DesignTheme.of(context);
+    return DesignCard(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DesignText(
+            'Kalender-Synchronisation',
+            style: DesignTextStyle.title,
+          ),
+          const SizedBox(height: 4),
+          DesignText(
+            'Spiegelt den Beyond-Kalender automatisch in den Systemkalender '
+            'auf diesem Gerät (wie DAVx5). Standard: aktiviert.',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DesignText(
+                  _nativeSyncBusy
+                      ? 'Wird eingerichtet…'
+                      : _nativeSyncEnabled
+                      ? 'Aktiv'
+                      : 'Deaktiviert',
+                  style: DesignTextStyle.body,
+                  color: _nativeSyncEnabled ? tokens.success : tokens.textLow,
+                ),
+              ),
+              _nativeSyncBusy
+                  ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: tokens.primary,
+                      ),
+                    )
+                  : Material(
+                      type: MaterialType.transparency,
+                      child: Switch(
+                        value: _nativeSyncEnabled,
+                        onChanged: _toggleNativeSync,
+                        activeThumbColor: tokens.primary,
+                      ),
+                    ),
+            ],
+          ),
+          if (_nativeSyncEnabled && _nativeSyncStatus != null) ...[
+            const SizedBox(height: 8),
+            DesignText(
+              'Letzte Synchronisation: ${_statusLabel(_nativeSyncStatus!)}',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'auth':
+        return 'Token abgelaufen, wird erneuert';
+      case 'apply':
+      case 'calendar':
+        return 'Fehler bei der Einrichtung';
+      default:
+        return status.startsWith('error:') ? 'Fehler ($status)' : status;
+    }
+  }
+
+  Future<void> _toggleNativeSync(bool newValue) async {
+    final scope = AppScope.of(context);
+    if (newValue) {
+      setState(() => _nativeSyncBusy = true);
+      final granted = await scope.davSync.requestPermission();
+      if (!granted) {
+        if (!mounted) return;
+        setState(() => _nativeSyncBusy = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Kalender-Zugriff wurde abgelehnt. Synchronisation deaktiviert.',
+            ),
+          ),
+        );
+        return;
+      }
+      try {
+        final ok = await scope.davSync.enable();
+        if (!mounted) return;
+        setState(() {
+          _nativeSyncBusy = false;
+          _nativeSyncEnabled = ok;
+        });
+        if (!ok) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Synchronisation konnte nicht aktiviert werden.'),
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _nativeSyncBusy = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Synchronisation konnte nicht aktiviert werden.'),
+          ),
+        );
+      }
+    } else {
+      final confirmed = await _confirmDisableSync();
+      if (confirmed != true || !mounted) return;
+      setState(() => _nativeSyncBusy = true);
+      await scope.davSync.disable();
+      if (!mounted) return;
+      setState(() {
+        _nativeSyncBusy = false;
+        _nativeSyncEnabled = false;
+        _nativeSyncStatus = null;
+      });
+    }
+  }
+
+  Future<bool?> _confirmDisableSync() async {
+    final tokens = DesignTheme.of(context);
+    return showDesignSheet<bool>(
+      context: context,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const DesignText(
+              'Synchronisation deaktivieren',
+              style: DesignTextStyle.title,
+            ),
+            const SizedBox(height: 8),
+            DesignText(
+              'Der Systemkalender-Account und alle synchronisierten Termine '
+              'werden von diesem Gerät entfernt. DAV-Tokens bleiben bestehen.',
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: DesignButton(
+                    variant: DesignButtonVariant.text,
+                    label: 'Abbrechen',
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DesignButton(
+                    label: 'Deaktivieren',
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

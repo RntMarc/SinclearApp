@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   bool _updateChecked = false;
+  bool _davSyncChecked = false;
 
   @override
   void didChangeDependencies() {
@@ -25,6 +27,10 @@ class _MainShellState extends State<MainShell> {
     if (!_updateChecked) {
       _updateChecked = true;
       _checkForUpdate();
+    }
+    if (!_davSyncChecked) {
+      _davSyncChecked = true;
+      unawaited(AppScope.of(context).davSync.maybeAutoEnable());
     }
   }
 

@@ -35,6 +35,7 @@ import 'features/notifications/services/web_push_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/settings/models/notification_preference.dart';
 import 'features/settings/services/dav_token_service.dart';
+import 'features/settings/services/dav_sync_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
@@ -110,6 +111,12 @@ Future<void> _bootstrap() async {
   final subscription = SubscriptionService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
   final davTokens = DavTokenService(api: api, auth: auth);
+  final davSync = DavSyncService(
+    davTokens: davTokens,
+    user: user,
+    apiBaseUrl: baseUrl,
+    prefs: prefs,
+  );
   final notificationContent = NotificationContentResolver(
     user: user,
     forum: forum,
@@ -199,6 +206,7 @@ Future<void> _bootstrap() async {
       subscription: subscription,
       mcpKeys: mcpKeys,
       davTokens: davTokens,
+      davSync: davSync,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       dashboardController: dashboardController,

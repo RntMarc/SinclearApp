@@ -89,6 +89,11 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
       final scope = AppScope.of(context);
       await scope.user.verifyEmailChange(code, email);
       scope.notification.stopPolling();
+      try {
+        await scope.davSync.disable();
+      } catch (_) {
+        // Native Sync ist best effort; Account bleibt sonst bis zum Opt-out.
+      }
       await scope.auth.logout();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,7 +143,9 @@ class _EmailChangeScreenState extends State<EmailChangeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Icon(
-                      _stepRequest ? Icons.email_rounded : Icons.vpn_key_rounded,
+                      _stepRequest
+                          ? Icons.email_rounded
+                          : Icons.vpn_key_rounded,
                       size: 56,
                       color: tokens.primary,
                     ),
