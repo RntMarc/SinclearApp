@@ -34,7 +34,8 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
   bool _creating = false;
   bool _didLoad = false;
 
-  String get _davUrl => '${AppScope.of(context).appBaseUrl}/dav/';
+  String get _davUrl =>
+      '${AppScope.of(context).apiBaseUrl.replaceFirst('/api/v2', '/api/dav')}/';
 
   @override
   void didChangeDependencies() {
