@@ -6,16 +6,52 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../models/calendar_models.dart';
 
+/// Icon je Eintragstyp des kombinierten Kalender-Feeds.
+IconData calendarEntryIcon(String type) {
+  return switch (type) {
+    CalendarEntryType.calendarEvent => Icons.event_rounded,
+    CalendarEntryType.travelEvent => Icons.local_activity_rounded,
+    CalendarEntryType.trip => Icons.flight_rounded,
+    CalendarEntryType.birthday => Icons.cake_rounded,
+    CalendarEntryType.ptJourney => Icons.train_rounded,
+    _ => Icons.event_rounded,
+  };
+}
+
+/// Deutsches Label je Eintragstyp — macht die Arten im Kalender
+/// unterscheidbar.
+String calendarEntryLabel(String type) {
+  return switch (type) {
+    CalendarEntryType.calendarEvent => 'Termin',
+    CalendarEntryType.travelEvent => 'Event',
+    CalendarEntryType.trip => 'Reise',
+    CalendarEntryType.birthday => 'Geburtstag',
+    CalendarEntryType.ptJourney => 'ÖPNV-Fahrt',
+    _ => 'Termin',
+  };
+}
+
+Color _entryColor(String type, DesignTokens tokens) {
+  return switch (type) {
+    CalendarEntryType.calendarEvent => tokens.primary,
+    CalendarEntryType.travelEvent => tokens.accentA,
+    CalendarEntryType.trip => tokens.accentB,
+    CalendarEntryType.birthday => tokens.success,
+    CalendarEntryType.ptJourney => tokens.warning,
+    _ => tokens.primary,
+  };
+}
+
 class AgendaList extends StatelessWidget {
-  final List<CalendarEvent> events;
-  final void Function(CalendarEvent event)? onEventTap;
+  final List<CalendarEntry> entries;
+  final void Function(CalendarEntry entry)? onEntryTap;
   final ScrollController? scrollController;
   final double bottomPadding;
 
   const AgendaList({
     super.key,
-    required this.events,
-    this.onEventTap,
+    required this.entries,
+    this.onEntryTap,
     this.scrollController,
     this.bottomPadding = 0,
   });
@@ -23,7 +59,7 @@ class AgendaList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final grouped = _groupByDay(events);
+    final grouped = _groupByDay(entries);
 
     if (grouped.isEmpty) {
       return Center(
@@ -59,45 +95,47 @@ class AgendaList extends StatelessWidget {
         final entry = grouped[index];
         return _DaySection(
           date: entry.key,
-          events: entry.value,
-          onEventTap: onEventTap,
+          entries: entry.value,
+          onEntryTap: onEntryTap,
         );
       },
     );
   }
 
-  List<MapEntry<DateTime, List<CalendarEvent>>> _groupByDay(
-    List<CalendarEvent> events,
+  List<MapEntry<DateTime, List<CalendarEntry>>> _groupByDay(
+    List<CalendarEntry> entries,
   ) {
-    final sorted = List<CalendarEvent>.from(events)
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    final sorted = entries.where((e) => e.startTime != null).toList()
+      ..sort((a, b) => a.startTime!.compareTo(b.startTime!));
 
-    final map = <DateTime, List<CalendarEvent>>{};
-    for (final event in sorted) {
+    // ponytail: mehrtägige Einträge (Reisen) erscheinen nur an ihrem
+    // Starttag — wie bisher bei mehreren Tagen übergreifenden Events.
+    final map = <DateTime, List<CalendarEntry>>{};
+    for (final entry in sorted) {
       final day = DateTime(
-        event.startTime.year,
-        event.startTime.month,
-        event.startTime.day,
+        entry.startTime!.year,
+        entry.startTime!.month,
+        entry.startTime!.day,
       );
-      map.putIfAbsent(day, () => []).add(event);
+      map.putIfAbsent(day, () => []).add(entry);
     }
 
-    final entries = map.entries.toList()
+    final grouped = map.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
 
-    return entries;
+    return grouped;
   }
 }
 
 class _DaySection extends StatelessWidget {
   final DateTime date;
-  final List<CalendarEvent> events;
-  final void Function(CalendarEvent event)? onEventTap;
+  final List<CalendarEntry> entries;
+  final void Function(CalendarEntry entry)? onEntryTap;
 
   const _DaySection({
     required this.date,
-    required this.events,
-    this.onEventTap,
+    required this.entries,
+    this.onEntryTap,
   });
 
   @override
@@ -133,10 +171,10 @@ class _DaySection extends StatelessWidget {
             ],
           ),
         ),
-        ...events.map(
-          (event) => _EventTile(
-            event: event,
-            onTap: onEventTap != null ? () => onEventTap!(event) : null,
+        ...entries.map(
+          (entry) => _EntryTile(
+            entry: entry,
+            onTap: onEntryTap != null ? () => onEntryTap!(entry) : null,
           ),
         ),
       ],
@@ -144,11 +182,11 @@ class _DaySection extends StatelessWidget {
   }
 }
 
-class _EventTile extends StatelessWidget {
-  final CalendarEvent event;
+class _EntryTile extends StatelessWidget {
+  final CalendarEntry entry;
   final VoidCallback? onTap;
 
-  const _EventTile({required this.event, this.onTap});
+  const _EntryTile({required this.entry, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -163,19 +201,23 @@ class _EventTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 56,
+              width: 64,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   DesignText(
-                    formatTime(event.startTime),
+                    _timeLabel(),
                     style: DesignTextStyle.label,
                     color: tokens.primary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   DesignText(
-                    formatTime(event.endTime),
+                    _endLabel(),
                     style: DesignTextStyle.body,
                     color: tokens.textLow,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -185,7 +227,7 @@ class _EventTile extends StatelessWidget {
               width: 2,
               height: 40,
               decoration: BoxDecoration(
-                color: _eventColor(event, tokens),
+                color: _entryColor(entry.type, tokens),
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -194,46 +236,26 @@ class _EventTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DesignText(
-                    event.title,
-                    style: DesignTextStyle.body,
-                    color: tokens.textHigh,
-                  ),
-                  if (event.description != null &&
-                      event.description!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: DesignText(
-                        event.description!,
-                        style: DesignTextStyle.body,
+                  Row(
+                    children: [
+                      Icon(
+                        calendarEntryIcon(entry.type),
+                        size: 16,
                         color: tokens.textLow,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  if (event.participants.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.people_rounded,
-                            size: 14,
-                            color: tokens.textLow,
-                          ),
-                          SizedBox(width: tokens.spaceXs),
-                          DesignText(
-                            event.participants
-                                .map((p) => p.displayName)
-                                .join(', '),
-                            style: DesignTextStyle.label,
-                            color: tokens.textLow,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                      SizedBox(width: tokens.spaceXs),
+                      Expanded(
+                        child: DesignText(
+                          entry.title ?? calendarEntryLabel(entry.type),
+                          style: DesignTextStyle.body,
+                          color: tokens.textHigh,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                  if (_subtitle(tokens) case final subtitle?) subtitle,
                 ],
               ),
             ),
@@ -244,16 +266,79 @@ class _EventTile extends StatelessWidget {
     );
   }
 
-  Color _eventColor(CalendarEvent event, DesignTokens tokens) {
-    switch (event.visibility) {
-      case 0:
-        return tokens.primary;
-      case 1:
-        return tokens.accentA;
-      case 2:
-        return tokens.secondary;
-      default:
-        return tokens.primary;
+  String _timeLabel() {
+    if (entry.allDay) return 'Ganztägig';
+    final start = entry.startTime;
+    return start == null ? '–' : formatTime(start);
+  }
+
+  String _endLabel() {
+    if (entry.allDay) return '';
+    final end = entry.endTime;
+    return end == null ? '' : formatTime(end);
+  }
+
+  /// Unterzeile: Typ-Label für alle Nicht-Kalender-Events; echte
+  /// Kalender-Events zeigen Beschreibung und Teilnehmer aus `detail`.
+  Widget? _subtitle(DesignTokens tokens) {
+    if (entry.type != CalendarEntryType.calendarEvent) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: DesignText(
+          calendarEntryLabel(entry.type),
+          style: DesignTextStyle.label,
+          color: tokens.textLow,
+        ),
+      );
     }
+
+    final detail = entry.detail;
+    final description = detail['description'] as String?;
+    final participants = detail['participants'] as List?;
+
+    if ((description == null || description.isEmpty) &&
+        (participants == null || participants.isEmpty)) {
+      return null;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (description != null && description.isNotEmpty)
+            DesignText(
+              description,
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          if (participants != null && participants.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.people_rounded, size: 14, color: tokens.textLow),
+                  SizedBox(width: tokens.spaceXs),
+                  Expanded(
+                    child: DesignText(
+                      participants
+                          .whereType<Map<String, dynamic>>()
+                          .map((p) => p['displayName'] as String? ?? '')
+                          .where((name) => name.isNotEmpty)
+                          .join(', '),
+                      style: DesignTextStyle.label,
+                      color: tokens.textLow,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

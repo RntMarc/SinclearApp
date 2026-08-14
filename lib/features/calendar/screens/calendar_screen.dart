@@ -9,6 +9,7 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../travel/screens/event_detail_screen.dart';
 import '../models/calendar_models.dart';
 import '../services/calendar_service.dart';
 import '../widgets/agenda_list.dart';
@@ -30,7 +31,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
-  final Map<DateTime, List<CalendarEvent>> _eventsByDay = {};
+  final Map<DateTime, List<CalendarEntry>> _entriesByDay = {};
 
   bool _hasLoaded = false;
 
@@ -69,7 +70,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _loadInitial() async {
     setState(() {
-      _eventsByDay.clear();
+      _entriesByDay.clear();
       _loadingPast = true;
       _loadingFuture = true;
       _error = null;
@@ -80,19 +81,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     try {
       final results = await Future.wait([
-        _service.list(start: _rangeStart, end: _focusedDay, limit: 100),
-        _service.list(
+        _service.all(start: _rangeStart, end: _focusedDay),
+        _service.all(
           start: _focusedDay.add(const Duration(days: 1)),
           end: _rangeEnd,
-          limit: 100,
         ),
       ]);
 
-      _addEvents(results[0]);
-      _addEvents(results[1]);
+      _addEntries(results[0]);
+      _addEntries(results[1]);
 
-      _hasMorePast = results[0].meta.hasMore;
-      _hasMoreFuture = results[1].meta.hasMore;
+      _hasMorePast = results[0].truncated;
+      _hasMoreFuture = results[1].truncated;
     } catch (e, st) {
       developer.log('Failed to load calendar events', error: e, stackTrace: st);
       if (mounted) {
@@ -114,16 +114,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     await _loadInitial();
   }
 
-  void _addEvents(CalendarEventListResponse response) {
-    for (final event in response.data) {
-      final day = DateTime(
-        event.startTime.year,
-        event.startTime.month,
-        event.startTime.day,
-      );
-      final events = _eventsByDay.putIfAbsent(day, () => []);
-      if (!events.any((e) => e.id == event.id)) {
-        events.add(event);
+  void _addEntries(CalendarAllResponse response) {
+    for (final entry in response.data) {
+      final start = entry.startTime;
+      if (start == null) continue;
+      final day = DateTime(start.year, start.month, start.day);
+      final entries = _entriesByDay.putIfAbsent(day, () => []);
+      if (!entries.any((e) => e.key == entry.key)) {
+        entries.add(entry);
       }
     }
   }
@@ -148,15 +146,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final newEnd = _rangeEnd.add(const Duration(days: 60));
 
     try {
-      final result = await _service.list(
-        start: _rangeEnd,
-        end: newEnd,
-        page: 1,
-        limit: 100,
-      );
-      _addEvents(result);
+      final result = await _service.all(start: _rangeEnd, end: newEnd);
+      _addEntries(result);
       _rangeEnd = newEnd;
-      _hasMoreFuture = result.meta.hasMore;
+      // ponytail: `truncated` gilt für die ganze Slice — bei >500 Einträgen
+      // je Quelle im Slice würden Reste übersprungen (Verkleinerung statt
+      // Erweiterung wäre der Ausweg). Für persönliche Feeds unrealistisch.
+      _hasMoreFuture = result.truncated;
     } catch (e, st) {
       developer.log('Failed to load future events', error: e, stackTrace: st);
     }
@@ -170,15 +166,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final newStart = _rangeStart.subtract(const Duration(days: 60));
 
     try {
-      final result = await _service.list(
-        start: newStart,
-        end: _rangeStart,
-        page: 1,
-        limit: 100,
-      );
-      _addEvents(result);
+      final result = await _service.all(start: newStart, end: _rangeStart);
+      _addEntries(result);
       _rangeStart = newStart;
-      _hasMorePast = result.meta.hasMore;
+      _hasMorePast = result.truncated;
     } catch (e, st) {
       developer.log('Failed to load past events', error: e, stackTrace: st);
     }
@@ -186,16 +177,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (mounted) setState(() => _loadingPast = false);
   }
 
-  List<CalendarEvent> _getEventsForDay(DateTime day) {
-    return _eventsByDay[DateTime(day.year, day.month, day.day)] ?? [];
+  List<CalendarEntry> _getEntriesForDay(DateTime day) {
+    return _entriesByDay[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
-  List<CalendarEvent> _getAllSortedEvents() {
-    final all = <CalendarEvent>[];
-    for (final events in _eventsByDay.values) {
-      all.addAll(events);
+  List<CalendarEntry> _getAllSortedEntries() {
+    final all = <CalendarEntry>[];
+    for (final entries in _entriesByDay.values) {
+      all.addAll(entries);
     }
-    all.sort((a, b) => a.startTime.compareTo(b.startTime));
+    all.sort((a, b) => a.startTime!.compareTo(b.startTime!));
     return all;
   }
 
@@ -223,13 +214,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
         visibility: result['visibility'] as int,
         participantIds: result['participantIds'] as List<String>?,
       );
+      final entry = CalendarEntry.fromCalendarEvent(event);
       final day = DateTime(
-        event.startTime.year,
-        event.startTime.month,
-        event.startTime.day,
+        entry.startTime!.year,
+        entry.startTime!.month,
+        entry.startTime!.day,
       );
       setState(() {
-        _eventsByDay.putIfAbsent(day, () => []).add(event);
+        _entriesByDay.putIfAbsent(day, () => []).add(entry);
       });
     } catch (e, st) {
       developer.log('Failed to create event', error: e, stackTrace: st);
@@ -241,18 +233,50 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  void _onEventTap(CalendarEvent event) async {
-    final result = await context.push('/kalender/${event.id}');
+  /// Öffnet den zum Typ passenden Detail-Screen: nur echte Kalender-Events
+  /// nutzen den Kalender-Detail-Screen, alle anderen Typen ihren eigenen.
+  Future<void> _onEntryTap(CalendarEntry entry) async {
+    switch (entry.type) {
+      case CalendarEntryType.calendarEvent:
+        await _openCalendarEvent(entry);
+      case CalendarEntryType.travelEvent:
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TravelEventDetailScreen(id: entry.id),
+          ),
+        );
+      case CalendarEntryType.trip:
+        context.push('/reisen/${entry.id}');
+      case CalendarEntryType.ptJourney:
+        context.push('/reisen/pt/${entry.id}');
+      case CalendarEntryType.birthday:
+        final userId = entry.targetId;
+        if (userId == null) {
+          developer.log('Geburtstags-Eintrag ohne Nutzer-ID', name: 'calendar');
+          return;
+        }
+        context.push('/kontakte/$userId');
+      default:
+        developer.log(
+          'Unbekannter Kalender-Eintragstyp: ${entry.type}',
+          name: 'calendar',
+        );
+    }
+  }
+
+  Future<void> _openCalendarEvent(CalendarEntry entry) async {
+    final result = await context.push('/kalender/${entry.id}');
     if (result == true && mounted) {
       setState(() {
         final day = DateTime(
-          event.startTime.year,
-          event.startTime.month,
-          event.startTime.day,
+          entry.startTime!.year,
+          entry.startTime!.month,
+          entry.startTime!.day,
         );
-        _eventsByDay[day]?.removeWhere((e) => e.id == event.id);
-        if (_eventsByDay[day]?.isEmpty == true) {
-          _eventsByDay.remove(day);
+        _entriesByDay[day]?.removeWhere((e) => e.key == entry.key);
+        if (_entriesByDay[day]?.isEmpty == true) {
+          _entriesByDay.remove(day);
         }
       });
     }
@@ -266,7 +290,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return DesignSurface(
       child: isDesktop
           ? CalendarDesktopLayout(
-              events: _getAllSortedEvents(),
+              entries: _getAllSortedEntries(),
               focusedDay: _focusedDay,
               selectedDay: _selectedDay,
               scrollController: _agendaScrollController,
@@ -276,8 +300,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               }),
               onRefresh: _refresh,
               onDaySelected: _onDaySelected,
-              eventLoader: _getEventsForDay,
-              onEventTap: _onEventTap,
+              eventLoader: _getEntriesForDay,
+              onEntryTap: _onEntryTap,
               onCreateEvent: () => _createEvent(),
             )
           : _buildMobileLayout(tokens),
@@ -338,7 +362,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             CalendarFormat.month: 'Monat',
                           },
                           locale: 'de',
-                          eventLoader: _getEventsForDay,
+                          eventLoader: _getEntriesForDay,
                           calendarStyle: CalendarStyle(
                             todayDecoration: BoxDecoration(
                               color: tokens.primary.withValues(alpha: 0.2),
@@ -360,7 +384,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                       ),
                     ),
-                    if (_error != null && _getAllSortedEvents().isEmpty)
+                    if (_error != null && _getAllSortedEntries().isEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.all(32),
@@ -399,7 +423,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       )
                     else if (_loadingPast &&
                         _loadingFuture &&
-                        _getAllSortedEvents().isEmpty)
+                        _getAllSortedEntries().isEmpty)
                       SliverToBoxAdapter(
                         child: SizedBox(
                           height: 300,
@@ -418,12 +442,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             context,
                             index,
                           ) {
-                            final events = _getAllSortedEvents();
+                            final entries = _getAllSortedEntries();
                             return SizedBox(
                               height: 400,
                               child: AgendaList(
-                                events: events,
-                                onEventTap: _onEventTap,
+                                entries: entries,
+                                onEntryTap: _onEntryTap,
                                 scrollController: null,
                                 bottomPadding:
                                     MediaQuery.of(context).padding.bottom + 100,

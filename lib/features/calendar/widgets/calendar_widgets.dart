@@ -10,7 +10,7 @@ class CalendarDesktopCalendar extends StatelessWidget {
   final DateTime focusedDay;
   final DateTime? selectedDay;
   final void Function(DateTime selectedDay, DateTime focusedDay) onDaySelected;
-  final List<CalendarEvent> Function(DateTime day) eventLoader;
+  final List<CalendarEntry> Function(DateTime day) eventLoader;
 
   const CalendarDesktopCalendar({
     super.key,
@@ -60,20 +60,20 @@ class CalendarDesktopCalendar extends StatelessWidget {
 }
 
 class CalendarDesktopLayout extends StatelessWidget {
-  final List<CalendarEvent> events;
+  final List<CalendarEntry> entries;
   final DateTime focusedDay;
   final DateTime? selectedDay;
   final ScrollController scrollController;
   final VoidCallback onToday;
   final VoidCallback onRefresh;
   final void Function(DateTime selectedDay, DateTime focusedDay) onDaySelected;
-  final List<CalendarEvent> Function(DateTime day) eventLoader;
-  final ValueChanged<CalendarEvent> onEventTap;
+  final List<CalendarEntry> Function(DateTime day) eventLoader;
+  final ValueChanged<CalendarEntry> onEntryTap;
   final VoidCallback onCreateEvent;
 
   const CalendarDesktopLayout({
     super.key,
-    required this.events,
+    required this.entries,
     required this.focusedDay,
     this.selectedDay,
     required this.scrollController,
@@ -81,7 +81,7 @@ class CalendarDesktopLayout extends StatelessWidget {
     required this.onRefresh,
     required this.onDaySelected,
     required this.eventLoader,
-    required this.onEventTap,
+    required this.onEntryTap,
     required this.onCreateEvent,
   });
 
@@ -150,8 +150,8 @@ class CalendarDesktopLayout extends StatelessWidget {
         ),
         Expanded(
           child: AgendaList(
-            events: events,
-            onEventTap: onEventTap,
+            entries: entries,
+            onEntryTap: onEntryTap,
             scrollController: scrollController,
           ),
         ),
