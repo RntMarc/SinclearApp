@@ -36,12 +36,20 @@ class NotificationRelation {
 
 /// Eine Benachrichtigung der API.
 ///
-/// Die API liefert weder Titel, Texte noch Routen — der Client erzeugt sie
-/// aus [type] und [data] (siehe `NotificationTypeLabel` und
-/// `NotificationContentResolver`).
+/// Die API liefert `type`, die Relation-Liste [data] und servergeneriertes
+/// [title]/[text]. Routen liefert sie nie — der Client erzeugt sie aus
+/// [type] und [data] (siehe `NotificationTypeLabel`). Fehlen [title]/[text],
+/// erzeugt der Client sie lokal (`NotificationContentResolver`).
 class NotificationItem {
   final String id;
   final String type;
+
+  /// Von der API generierter Kurztitel, `null` wenn nicht mitgeliefert.
+  final String? title;
+
+  /// Von der API generierter Anzeigetext, `null` wenn nicht mitgeliefert.
+  final String? text;
+
   final List<NotificationRelation> data;
   final bool isRead;
   final DateTime createdAt;
@@ -49,10 +57,17 @@ class NotificationItem {
   const NotificationItem({
     required this.id,
     required this.type,
+    this.title,
+    this.text,
     this.data = const [],
     this.isRead = false,
     required this.createdAt,
   });
+
+  /// `true`, wenn die API Titel und Text vollständig mitgeliefert hat —
+  /// dann muss nichts nachgeladen werden.
+  bool get hasApiContent =>
+      title != null && title!.isNotEmpty && text != null && text!.isNotEmpty;
 
   /// Die ID des Objekts mit der Rolle [relation], oder `null`, wenn kein
   /// solcher Eintrag in [data] existiert.
@@ -70,6 +85,8 @@ class NotificationItem {
     return NotificationItem(
       id: json['id'] as String,
       type: json['type'] as String,
+      title: json['title'] as String?,
+      text: json['text'] as String?,
       data: rawData is List
           ? rawData
                 .whereType<Map<String, dynamic>>()
@@ -87,6 +104,8 @@ class NotificationItem {
   Map<String, dynamic> toJson() => {
     'id': id,
     'type': type,
+    if (title != null && title!.isNotEmpty) 'title': title,
+    if (text != null && text!.isNotEmpty) 'text': text,
     'data': data.map((entry) => entry.toJson()).toList(),
     'createdAt': toApiDate(createdAt, withMilliseconds: true),
   };

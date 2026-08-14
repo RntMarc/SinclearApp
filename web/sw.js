@@ -1,13 +1,16 @@
-// Push-Payload der API: { id, type, data: [{relation, object, identifier}], createdAt }.
-// Die API liefert bewusst keine Titel, Texte oder Routen — der Service
-// Worker hat keinen API-Zugriff (kein Auth-Token) und kann daher keine
-// Daten nachladen. Er zeigt die generalisierten Fallback-Texte an
-// (Spiegelung von NotificationTypeLabel.title/fallbackBody in Dart).
+// Push-Payload der API: { id, type, title, text, data: [{relation, object, identifier}], createdAt }.
+// `title`/`text` sind API-generiert; der Service Worker bevorzugt sie und
+// fällt ohne sie auf die generalisierten Fallback-Texte zurück (Spiegelung
+// von NotificationTypeLabel.title/fallbackBody in Dart).
 
 const CONTENT_BY_TYPE = {
   forum_reply: {
-    title: 'Neue Antwort',
-    body: 'Jemand hat auf deinen Kommentar geantwortet',
+    title: 'Neue Antwort auf deinen Kommentar',
+    body: 'Jemand hat auf deinen Kommentar geantwortet.',
+  },
+  forum_comment: {
+    title: 'Neuer Kommentar zu deinem Beitrag',
+    body: 'Jemand hat deinen Beitrag kommentiert.',
   },
 };
 
@@ -25,7 +28,7 @@ function relationId(data, relation) {
 // Deutsche Route lokal aus den Relation-IDs aufbauen (Spiegelung von
 // NotificationTypeLabel.route). Fallback: '/home'.
 function resolveRoute(type, data) {
-  if (type === 'forum_reply') {
+  if (type === 'forum_reply' || type === 'forum_comment') {
     const forumId = relationId(data, 'parent_forum');
     const postId = relationId(data, 'parent_post');
     if (forumId && postId) return `/forum/${forumId}/beitrag/${postId}`;
@@ -40,14 +43,16 @@ self.addEventListener('push', (event) => {
   } catch (e) {
     payload = {};
   }
-  const content = CONTENT_BY_TYPE[payload.type] || FALLBACK_CONTENT;
+  const fallback = CONTENT_BY_TYPE[payload.type] || FALLBACK_CONTENT;
   const options = {
-    body: content.body,
+    body: payload.text || fallback.body,
     icon: '/pwa-icons/icon-192x192.png',
     badge: '/pwa-icons/icon-192x192.png',
     data: { type: payload.type, data: payload.data },
   };
-  event.waitUntil(self.registration.showNotification(content.title, options));
+  event.waitUntil(
+    self.registration.showNotification(payload.title || fallback.title, options),
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {

@@ -4,15 +4,18 @@ import '../../features/notifications/models/notification_item.dart';
 
 /// Übersetzt Benachrichtigungstypen in Titel, Text, Icon und Navigationsziel.
 ///
-/// Vertrag (siehe `test/notification_config_test.dart` und die API-Doku
-/// `doc/api/notifications/readme.md`): Die API liefert pro Benachrichtigung
-/// nur `type` plus eine Relation-Liste in `data` — keine Titel, Texte oder
-/// Routen. Diese Klasse bildet `type` und Relation-IDs rein lokal auf
-/// deutsche Texte und Routen ab.
+/// Vertrag (siehe `test/notification_config_test.dart` und die API-Doku des
+/// SinclearAPI-MCP, Topic `notifications`): Die API liefert pro
+/// Benachrichtigung `type`, `data` sowie servergenerierte Titel/Texte. Diese
+/// Klasse bildet `type` und Relation-IDs rein lokal auf deutsche
+/// Fallback-Texte und Routen ab — für den Fall, dass die API-Titel/-Texte
+/// fehlen (z. B. alte Payloads) und für die Anreicherung nicht nachgeladen
+/// werden kann.
 ///
-/// Aktuell unterstützter Typ: `forum_reply` (siehe API-Doku). Unbekannte
-/// Typen liefern generische Standardwerte, `route` gibt dann `null` zurück
-/// (Aufrufer öffnet die Inbox bzw. bis zu deren Umsetzung `/home`).
+/// Unterstützte Typen: `forum_reply`, `forum_comment` (siehe API-Doku).
+/// Unbekannte Typen liefern generische Standardwerte, `route` gibt dann
+/// `null` zurück (Aufrufer öffnet die Inbox bzw. bis zu deren Umsetzung
+/// `/home`).
 class NotificationTypeLabel {
   const NotificationTypeLabel._();
 
@@ -21,24 +24,28 @@ class NotificationTypeLabel {
   /// Pflicht-Relationen fehlen.
   static String? route(String type, List<NotificationRelation> data) {
     return switch (type) {
-      'forum_reply' => _forumReplyRoute(data),
+      'forum_reply' || 'forum_comment' => _forumRoute(data),
       _ => null,
     };
   }
 
-  /// Lokaler Titel für die Benachrichtigung.
+  /// Lokaler Fallback-Titel für die Benachrichtigung (spiegelt die
+  /// API-generierten Titel, siehe API-Doku `notifications/types`).
   static String title(String type) {
     return switch (type) {
-      'forum_reply' => 'Neue Antwort',
+      'forum_reply' => 'Neue Antwort auf deinen Kommentar',
+      'forum_comment' => 'Neuer Kommentar zu deinem Beitrag',
       _ => 'Neue Mitteilung',
     };
   }
 
   /// Generalisierter Anzeigetext, der ohne Nachladen weiterer Daten
-  /// auskommt — Fallback, wenn die Anreicherung über die API scheitert.
+  /// auskommt — Fallback, wenn weder API-Text vorliegt noch die
+  /// Anreicherung über die API gelingt.
   static String fallbackBody(String type) {
     return switch (type) {
-      'forum_reply' => 'Jemand hat auf deinen Kommentar geantwortet',
+      'forum_reply' => 'Jemand hat auf deinen Kommentar geantwortet.',
+      'forum_comment' => 'Jemand hat deinen Beitrag kommentiert.',
       _ => 'Du hast eine neue Benachrichtigung.',
     };
   }
@@ -46,14 +53,15 @@ class NotificationTypeLabel {
   /// Icon für die Benachrichtigung.
   static IconData icon(String type) {
     return switch (type) {
-      'forum_reply' => Icons.forum_rounded,
+      'forum_reply' || 'forum_comment' => Icons.forum_rounded,
       _ => Icons.notifications_rounded,
     };
   }
 
   /// `/forum/{parent_forum}/beitrag/{parent_post}` — beide Relationen sind
-  /// laut API-Doku Pflicht; ohne sie ist das Ziel nicht bestimmbar.
-  static String? _forumReplyRoute(List<NotificationRelation> data) {
+  /// laut API-Doku bei `forum_reply` und `forum_comment` Pflicht; ohne sie
+  /// ist das Ziel nicht bestimmbar.
+  static String? _forumRoute(List<NotificationRelation> data) {
     final forumId = _identifierFor(data, 'parent_forum');
     final postId = _identifierFor(data, 'parent_post');
     if (forumId == null || postId == null) return null;

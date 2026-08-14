@@ -28,22 +28,19 @@ class ResolvedNotificationContent {
   });
 }
 
-/// Erzeugt aus einer rohen [NotificationItem] (nur `type` + Relation-IDs)
-/// den anzuzeigenden Inhalt.
+/// Bereitet eine rohe [NotificationItem] für die Anzeige auf.
 ///
 /// Ablauf pro Benachrichtigung:
-/// 1. Typ erkennen und Relation-IDs aus `data` interpretieren.
-/// 2. Deep-Link lokal aus den IDs aufbauen (siehe [NotificationTypeLabel]).
-/// 3. Referenzierte Ressourcen von der API nachladen und daraus den
-///    vollständigen Text generieren (z. B. „Tom hat auf deinen Kommentar
-///    unter dem Post „X“ geantwortet“).
-/// 4. Schlägt das Nachladen fehl (offline, gelöschtes Objekt, …), wird auf
-///    den generalisierten Text von [NotificationTypeLabel.fallbackBody]
-///    zurückgefallen (z. B. „Jemand hat auf deinen Kommentar geantwortet“).
+/// 1. Liefert die API `title` und `text` mit (Regelfall), werden sie direkt
+///    verwendet — kein Extra-Aufruf gegen die API.
+/// 2. Fehlen sie, erzeugt der Client den Inhalt lokal: Deep-Link aus den
+///    Relation-IDs (siehe [NotificationTypeLabel]) und Anzeigetext durch
+///    Nachladen der referenzierten Ressourcen (z. B. „Tom hat auf deinen
+///    Kommentar unter dem Post „X“ geantwortet“).
+/// 3. Schlägt das Nachladen fehl (offline, gelöschtes Objekt, …), greifen
+///    die generalisierten Texte von [NotificationTypeLabel] (Fallback).
 ///
-/// Die API liefert bewusst keine Titel, Texte oder Routen — diese Klasse
-/// ist die einzige Stelle, die sie clientseitig erzeugt. Neue
-/// Benachrichtigungstypen werden hier (Anreicherung) und in
+/// Neue Benachrichtigungstypen werden hier (lokale Anreicherung) und in
 /// [NotificationTypeLabel] (Fallback-Texte, Icon, Route) ergänzt.
 class NotificationContentResolver {
   final UserService _user;
@@ -59,14 +56,18 @@ class NotificationContentResolver {
   /// die generalisierten Fallback-Texte zurückgefallen.
   Future<ResolvedNotificationContent> resolve(NotificationItem item) async {
     final route = NotificationTypeLabel.route(item.type, item.data);
-    if (item.type == 'forum_reply') {
-      return _resolveForumReply(item, route);
+    if (item.hasApiContent) {
+      return ResolvedNotificationContent(
+        title: item.title!,
+        body: item.text!,
+        route: route,
+      );
     }
-    return ResolvedNotificationContent(
-      title: NotificationTypeLabel.title(item.type),
-      body: NotificationTypeLabel.fallbackBody(item.type),
-      route: route,
-    );
+    return switch (item.type) {
+      'forum_reply' => _resolveForumReply(item, route),
+      'forum_comment' => _resolveForumComment(item, route),
+      _ => _fallback(item.type, route),
+    };
   }
 
   /// Zeigt die Benachrichtigung als lokale System-Benachrichtigung an.
@@ -121,6 +122,12 @@ class NotificationContentResolver {
       null => null,
     };
 
+    // Nichts nachladbar: generalisierter Fallback-Text (identisch mit der
+    // API-Formulierung), statt einer selbst zusammengesetzten Variante.
+    if (authorName == null && postSnippet == null) {
+      return _fallback(item.type, route);
+    }
+
     final author = authorName == null || authorName.isEmpty
         ? 'Jemand'
         : authorName;
@@ -131,6 +138,39 @@ class NotificationContentResolver {
     return ResolvedNotificationContent(
       title: NotificationTypeLabel.title(item.type),
       body: '$author hat auf deinen Kommentar$postPart geantwortet',
+      route: route,
+    );
+  }
+
+  /// `forum_comment`: „{Autor} hat deinen Beitrag kommentiert“ — der Autor
+  /// wird nachgeladen; schlägt das fehl, greift der generalisierte
+  /// Fallback-Text.
+  Future<ResolvedNotificationContent> _resolveForumComment(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final authorId = item.identifierFor('comment_author');
+    final authorName = await _attempt('comment_author', () async {
+      if (authorId == null) return null;
+      return (await _user.get(authorId)).base.displayName;
+    });
+
+    if (authorName == null || authorName.isEmpty) {
+      return _fallback(item.type, route);
+    }
+
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: '$authorName hat deinen Beitrag kommentiert',
+      route: route,
+    );
+  }
+
+  /// Generalisierter Fallback für unbekannte Typen.
+  ResolvedNotificationContent _fallback(String type, String? route) {
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(type),
+      body: NotificationTypeLabel.fallbackBody(type),
       route: route,
     );
   }
