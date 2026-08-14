@@ -1,7 +1,7 @@
 name: sinclear_beyond
 description: "Unsere neue Community-Plattform ist da. Gemeinsam sind wir Sinclear."
 publish_to: 'none'
-version: 0.8.2+80207   # Format: 0.7.3 -> 70300, 0.7.15 -> 71500, 0.12.1 -> 120100, 14.1.1 -> 14010100
+version: 0.8.2+80208   # Format: 0.7.3 -> 70300, 0.7.15 -> 71500, 0.12.1 -> 120100, 14.1.1 -> 14010100
 
 environment:
   sdk: ^3.12.2
