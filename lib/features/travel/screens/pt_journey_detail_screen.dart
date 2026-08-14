@@ -404,29 +404,33 @@ class _PtJourneyDetailScreenState extends State<PtJourneyDetailScreen> {
   }
 
   Widget _buildParticipants(PtSavedJourney journey, DesignTokens tokens) {
-    return Column(
-      children: journey.participants.map((p) {
-        return DesignCard(
-          child: Row(
-            children: [
-              DesignAvatar(imageUrl: p.image, name: p.displayName, size: 32),
-              SizedBox(width: tokens.spaceMd),
-              Expanded(
-                child: DesignText(
-                  p.displayName,
-                  style: DesignTextStyle.body,
-                  color: tokens.textHigh,
+    final isCreator = journey.creatorId == AppScope.of(context).auth.userId;
+    return DesignCard(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: tokens.spaceLg,
+          vertical: tokens.spaceSm,
+        ),
+        child: Column(
+          children: [
+            for (int i = 0; i < journey.participants.length; i++) ...[
+              if (i > 0)
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: tokens.border.withValues(alpha: 0.3),
                 ),
+              _ParticipantRow(
+                participant: journey.participants[i],
+                isCreator: isCreator,
+                onRemove: () =>
+                    _removeParticipant(journey.id, journey.participants[i].id),
               ),
-              if (journey.creatorId == AppScope.of(context).auth.userId)
-                DesignIconButton(
-                  icon: Icons.person_remove_rounded,
-                  onPressed: () => _removeParticipant(journey.id, p.id),
-                ),
             ],
-          ),
-        );
-      }).toList(),
+          ],
+        ),
+      ),
     );
   }
 
@@ -659,6 +663,49 @@ class _LegTile extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ParticipantRow extends StatelessWidget {
+  const _ParticipantRow({
+    required this.participant,
+    required this.isCreator,
+    required this.onRemove,
+  });
+
+  final UserBrief participant;
+  final bool isCreator;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+      child: Row(
+        children: [
+          DesignAvatar(
+            name: participant.displayName,
+            imageUrl: participant.image,
+            size: 36,
+          ),
+          SizedBox(width: tokens.spaceMd),
+          Expanded(
+            child: DesignText(
+              participant.displayName,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+          ),
+          if (isCreator)
+            DesignIconButton(
+              icon: Icons.person_remove_rounded,
+              onPressed: onRemove,
+            ),
         ],
       ),
     );
