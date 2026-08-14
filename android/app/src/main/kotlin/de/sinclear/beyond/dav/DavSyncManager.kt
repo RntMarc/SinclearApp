@@ -19,7 +19,13 @@ class DavSyncManager(private val context: Context) {
     private val resolver = context.contentResolver
 
     /** Richtet Account + Kalender ein und stößt den ersten Sync an. */
-    fun enable(email: String, userId: String, davBaseUrl: String, davToken: String): Boolean {
+    fun enable(
+        email: String,
+        userId: String,
+        davBaseUrl: String,
+        davToken: String,
+        enabledSegments: List<String>,
+    ): Boolean {
         val account = Account(email, DavConstants.ACCOUNT_TYPE)
         val exists = currentAccount()?.name == email
         if (!exists) {
@@ -30,6 +36,7 @@ class DavSyncManager(private val context: Context) {
         accountManager.setUserData(account, DavConstants.KEY_DAV_TOKEN, davToken)
         accountManager.setUserData(account, DavConstants.KEY_LAST_SYNC, null)
         accountManager.setUserData(account, DavConstants.KEY_LAST_ERROR, null)
+        setEnabledSegments(account, enabledSegments)
 
         ContentResolver.setSyncAutomatically(account, DavConstants.CALENDAR_AUTHORITY, true)
         ContentResolver.addPeriodicSync(
@@ -43,6 +50,23 @@ class DavSyncManager(private val context: Context) {
             DavConstants.CALENDAR_AUTHORITY,
             Bundle.EMPTY,
         )
+        return true
+    }
+
+    /** Aktualisiert die sichtbaren Kalender-Typen und stößt einen Sync an. */
+    fun setEnabledSegments(account: Account, segments: List<String>) {
+        accountManager.setUserData(
+            account,
+            DavConstants.KEY_ENABLED_SEGMENTS,
+            segments.joinToString(","),
+        )
+    }
+
+    /** Ändert die Auswahl der Kalender-Typen zur Laufzeit und synchronisiert. */
+    fun updateSegments(segments: List<String>): Boolean {
+        val account = currentAccount() ?: return false
+        setEnabledSegments(account, segments)
+        syncNow()
         return true
     }
 
@@ -62,7 +86,9 @@ class DavSyncManager(private val context: Context) {
             DavConstants.CALENDAR_AUTHORITY,
             false,
         )
-        deleteCalendar(account)
+        for (kind in DavConstants.CALENDARS) {
+            deleteCalendar(account, kind)
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
             accountManager.removeAccountExplicitly(account)
         } else {
@@ -87,6 +113,16 @@ class DavSyncManager(private val context: Context) {
 
     fun isEnabled(): Boolean = currentAccount() != null
 
+    /** Aktuell aktivierte Kalender-Segmente (Komma-separiert gespeichert). */
+    fun enabledSegments(): List<String> {
+        val account = currentAccount() ?: return emptyList()
+        return accountManager
+            .getUserData(account, DavConstants.KEY_ENABLED_SEGMENTS)
+            ?.split(',')
+            ?.filter { it.isNotBlank() }
+            ?: DavConstants.CALENDARS.map { it.segment }
+    }
+
     /** letzten Fehler- oder Sync-Zeitpunkt als kompakten String. */
     fun lastSyncStatus(): String? = currentAccount()?.let {
         accountManager.getUserData(it, DavConstants.KEY_LAST_ERROR)
@@ -96,8 +132,8 @@ class DavSyncManager(private val context: Context) {
     fun currentAccount(): Account? =
         accountManager.getAccountsByType(DavConstants.ACCOUNT_TYPE).firstOrNull()
 
-    private fun deleteCalendar(account: Account) {
-        val calId = queryCalendarId(account) ?: return
+    private fun deleteCalendar(account: Account, kind: CalendarKind) {
+        val calId = queryCalendarId(account, kind) ?: return
         resolver.delete(
             syncUri(CalendarContract.Calendars.CONTENT_URI, account),
             "${CalendarContract.Calendars._ID} = ?",
@@ -105,12 +141,12 @@ class DavSyncManager(private val context: Context) {
         )
     }
 
-    private fun queryCalendarId(account: Account): Long? {
+    private fun queryCalendarId(account: Account, kind: CalendarKind): Long? {
         val projection = arrayOf(CalendarContract.Calendars._ID)
         val selection = "${CalendarContract.Calendars.ACCOUNT_NAME} = ? AND " +
             "${CalendarContract.Calendars.ACCOUNT_TYPE} = ? AND " +
             "${CalendarContract.Calendars.NAME} = ?"
-        val args = arrayOf(account.name, DavConstants.ACCOUNT_TYPE, DavConstants.CALENDAR_NAME)
+        val args = arrayOf(account.name, DavConstants.ACCOUNT_TYPE, kind.name)
         return resolver.query(
             syncUri(CalendarContract.Calendars.CONTENT_URI, account),
             projection,

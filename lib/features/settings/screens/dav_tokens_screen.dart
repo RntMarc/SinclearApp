@@ -15,6 +15,7 @@ import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/dav_token_models.dart';
+import '../services/dav_sync_service.dart';
 
 /// Verwaltung der DAV-Tokens: zeigt die DAV-Zugangsdaten (Basis-URL,
 /// Benutzername, Passwort) und erlaubt das Erstellen und Widerrufen von
@@ -36,6 +37,7 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
   bool _nativeSyncEnabled = false;
   bool _nativeSyncBusy = false;
   String? _nativeSyncStatus;
+  List<String> _enabledSegments = [];
 
   String get _davUrl =>
       '${AppScope.of(context).apiBaseUrl.replaceFirst('/api/v2', '/api/dav')}/';
@@ -62,12 +64,14 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
       final nativeStatus = nativeEnabled
           ? await scope.davSync.lastSyncStatus()
           : null;
+      final segments = await scope.davSync.enabledSegments();
       if (!mounted) return;
       setState(() {
         _tokens = tokens;
         _email = user.base.email;
         _nativeSyncEnabled = nativeEnabled;
         _nativeSyncStatus = nativeStatus;
+        _enabledSegments = segments;
         _loading = false;
       });
     } catch (e) {
@@ -368,7 +372,7 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
           ),
           const SizedBox(height: 4),
           DesignText(
-            'Spiegelt den Beyond-Kalender automatisch in den Systemkalender '
+            'Spiegelt die Beyond-Kalender automatisch in den Systemkalender '
             'auf diesem Gerät (wie DAVx5). Standard: aktiviert.',
             style: DesignTextStyle.label,
             color: tokens.textLow,
@@ -406,6 +410,16 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
                     ),
             ],
           ),
+          if (_nativeSyncEnabled) ...[
+            const SizedBox(height: 16),
+            DesignText(
+              'Sichtbare Kalender',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+            const SizedBox(height: 4),
+            for (final type in DavSyncService.calendarTypes) _segmentTile(type),
+          ],
           if (_nativeSyncEnabled && _nativeSyncStatus != null) ...[
             const SizedBox(height: 8),
             DesignText(
@@ -417,6 +431,54 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
         ],
       ),
     );
+  }
+
+  Widget _segmentTile(DavCalendarType type) {
+    final tokens = DesignTheme.of(context);
+    final enabled = _enabledSegments.contains(type.segment);
+    return Padding(
+      padding: EdgeInsets.only(top: tokens.spaceXs),
+      child: Row(
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: Color(type.color),
+              shape: BoxShape.circle,
+            ),
+          ),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: DesignText(
+              type.label,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+          ),
+          Material(
+            type: MaterialType.transparency,
+            child: Switch(
+              value: enabled,
+              onChanged: (v) => _toggleSegment(type, v),
+              activeThumbColor: Color(type.color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleSegment(DavCalendarType type, bool enabled) async {
+    final scope = AppScope.of(context);
+    final next = List<String>.from(_enabledSegments);
+    if (enabled) {
+      if (!next.contains(type.segment)) next.add(type.segment);
+    } else {
+      next.remove(type.segment);
+    }
+    setState(() => _enabledSegments = next);
+    await scope.davSync.updateSegments(next);
   }
 
   String _statusLabel(String status) {

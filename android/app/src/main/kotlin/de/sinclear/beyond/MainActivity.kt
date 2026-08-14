@@ -29,6 +29,8 @@ class MainActivity : FlutterActivity() {
                                 userId = call.argument<String>("userId") ?: "",
                                 davBaseUrl = call.argument<String>("davBaseUrl") ?: "",
                                 davToken = call.argument<String>("davToken") ?: "",
+                                enabledSegments = call.argument<List<String>>("segments")
+                                    ?: emptyList(),
                             ),
                         )
                         "disable" -> {
@@ -40,6 +42,11 @@ class MainActivity : FlutterActivity() {
                             result.success(null)
                         }
                         "isEnabled" -> result.success(manager.isEnabled())
+                        "enabledSegments" -> result.success(manager.enabledSegments())
+                        "updateSegments" -> {
+                            val segments = call.argument<List<String>>("segments") ?: emptyList()
+                            result.success(manager.updateSegments(segments))
+                        }
                         "lastSyncStatus" -> result.success(manager.lastSyncStatus())
                         "requestCalendarPermission" -> requestCalendarPermission { result.success(it) }
                         else -> result.notImplemented()

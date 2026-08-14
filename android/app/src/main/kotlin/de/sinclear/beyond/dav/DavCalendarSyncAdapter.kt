@@ -26,13 +26,10 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Synchronisiert den Beyond-Kalender einseitig (read-only API) in die
- * Android-Systemkalenderdatenbank: ICS per GET vom DAV-Endpunkt holen,
- * die VEVENTs parsen und per UID diffen (insert/update/delete).
- *
- * ponytail: Falls die API GET auf der Kalender-Collection abschalten sollte,
- * hier auf einen REPORT calendar-query (XML) mit Zeitfenster umstellen – der
- * UID-Diff bleibt unverändert.
+ * Synchronisiert die drei Beyond-Kalender (Events, Reisen & Fahrten,
+ * Geburtstage) einseitig (read-only API) in die Android-Systemkalenderdatenbank:
+ * je Kalender einen `REPORT calendar-query` an den DAV-Endpunkt senden, die
+ * VEVENTs parsen und per UID diffen (insert/update/delete).
  */
 class DavCalendarSyncAdapter(
     context: Context,
@@ -63,54 +60,94 @@ class DavCalendarSyncAdapter(
             Log.e(TAG, "Kein davToken im Account")
             return
         }
+        val enabled = am.getUserData(account, DavConstants.KEY_ENABLED_SEGMENTS)
+            ?.split(',')
+            ?.filter { it.isNotBlank() }
+            ?.toSet()
+            ?: DavConstants.CALENDARS.map { it.segment }.toSet()
 
-        val url = davBaseUrl.trimEnd('/') + "/calendars/$userId/calendar/"
+        for (kind in DavConstants.CALENDARS) {
+            if (kind.segment !in enabled) {
+                deleteCalendar(account, kind)
+                continue
+            }
+            if (syncCalendar(account, am, userId, davBaseUrl, token, kind, syncResult)) {
+                // Auth- oder Netz-Fehler: nicht weiter mit weiteren Kalendern.
+                return
+            }
+        }
+
+        setUserData(am, account, DavConstants.KEY_LAST_ERROR, null)
+        setUserData(am, account, DavConstants.KEY_LAST_SYNC, System.currentTimeMillis().toString())
+    }
+
+    /** Synchronisiert einen Kalender. Liefert `true`, wenn der Sync abgebrochen
+     *  werden soll (Auth-/Netzfehler), sonst `false`. */
+    private fun syncCalendar(
+        account: Account,
+        am: AccountManager,
+        userId: String,
+        davBaseUrl: String,
+        token: String,
+        kind: CalendarKind,
+        syncResult: SyncResult,
+    ): Boolean {
+        val url = davBaseUrl.trimEnd('/') + "/calendars/$userId/${kind.segment}/"
         val fetch = fetchCalendarQuery(url, account.name, token)
 
         when (fetch.status) {
             FetchStatus.AUTH -> {
-                Log.e(TAG, "Auth-Fehler (401/403)")
+                Log.e(TAG, "Auth-Fehler (401/403) für ${kind.segment}")
                 syncResult.stats.numAuthExceptions++
                 setUserData(am, account, DavConstants.KEY_LAST_ERROR, "auth")
-                return
+                return true
             }
             FetchStatus.HTTP, FetchStatus.IO -> {
-                Log.e(TAG, "Fetch-Fehler: ${fetch.status}")
+                Log.e(TAG, "Fetch-Fehler für ${kind.segment}: ${fetch.status}")
                 syncResult.stats.numIoExceptions++
                 syncResult.delayUntil = 300
                 setUserData(am, account, DavConstants.KEY_LAST_ERROR, "error:${fetch.status}")
-                return
+                return true
             }
             FetchStatus.OK -> Unit
         }
 
         val events = parseMultistatus(fetch.body.orEmpty())
         val calId = try {
-            ensureCalendar(account)
+            ensureCalendar(account, kind)
         } catch (e: Exception) {
-            Log.e(TAG, "ensureCalendar-Fehler", e)
+            Log.e(TAG, "ensureCalendar-Fehler für ${kind.segment}", e)
             null
         }
         if (calId == null) {
-            Log.e(TAG, "Kalender konnte nicht angelegt werden")
+            Log.e(TAG, "Kalender ${kind.segment} konnte nicht angelegt werden")
             syncResult.stats.numIoExceptions++
             setUserData(am, account, DavConstants.KEY_LAST_ERROR, "calendar")
-            return
+            return true
         }
-        Log.i(TAG, "Kalender-ID: $calId")
 
         try {
             val ops = buildOperations(account, calId, events)
             if (ops.isNotEmpty()) {
                 context.contentResolver.applyBatch(CalendarContract.AUTHORITY, ops)
             }
-            setUserData(am, account, DavConstants.KEY_LAST_ERROR, null)
-            setUserData(am, account, DavConstants.KEY_LAST_SYNC, System.currentTimeMillis().toString())
         } catch (e: Exception) {
-            Log.e(TAG, "applyBatch-Fehler", e)
+            Log.e(TAG, "applyBatch-Fehler für ${kind.segment}", e)
             syncResult.stats.numIoExceptions++
             setUserData(am, account, DavConstants.KEY_LAST_ERROR, "apply")
+            return true
         }
+        return false
+    }
+
+    /** Entfernt einen abgewählten Kalender samt seiner Events aus dem System. */
+    private fun deleteCalendar(account: Account, kind: CalendarKind) {
+        val uri = DavSyncManager.syncUri(CalendarContract.Calendars.CONTENT_URI, account)
+        val selection = "${CalendarContract.Calendars.ACCOUNT_NAME} = ? AND " +
+            "${CalendarContract.Calendars.ACCOUNT_TYPE} = ? AND " +
+            "${CalendarContract.Calendars.NAME} = ?"
+        val args = arrayOf(account.name, DavConstants.ACCOUNT_TYPE, kind.name)
+        context.contentResolver.delete(uri, selection, args)
     }
 
     private fun fetchCalendarQuery(url: String, email: String, token: String): FetchResult {
@@ -192,30 +229,50 @@ class DavCalendarSyncAdapter(
         return events
     }
 
-    private fun ensureCalendar(account: Account): Long? {
+    private fun ensureCalendar(account: Account, kind: CalendarKind): Long? {
         val uri = DavSyncManager.syncUri(CalendarContract.Calendars.CONTENT_URI, account)
         val projection = arrayOf(CalendarContract.Calendars._ID)
         val selection = "${CalendarContract.Calendars.ACCOUNT_NAME} = ? AND " +
             "${CalendarContract.Calendars.ACCOUNT_TYPE} = ? AND " +
             "${CalendarContract.Calendars.NAME} = ?"
-        val args = arrayOf(account.name, DavConstants.ACCOUNT_TYPE, DavConstants.CALENDAR_NAME)
+        val args = arrayOf(account.name, DavConstants.ACCOUNT_TYPE, kind.name)
         context.contentResolver.query(uri, projection, selection, args, null)?.use { cursor ->
-            if (cursor.moveToFirst()) return cursor.getLong(0)
+            if (cursor.moveToFirst()) {
+                val calId = cursor.getLong(0)
+                updateCalendarColor(uri, calId, kind)
+                return calId
+            }
         }
 
         val values = ContentValues().apply {
             put(CalendarContract.Calendars.ACCOUNT_NAME, account.name)
             put(CalendarContract.Calendars.ACCOUNT_TYPE, DavConstants.ACCOUNT_TYPE)
-            put(CalendarContract.Calendars.NAME, DavConstants.CALENDAR_NAME)
-            put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, DavConstants.CALENDAR_DISPLAY_NAME)
+            put(CalendarContract.Calendars.NAME, kind.name)
+            put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, kind.displayName)
             put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_READ)
             put(CalendarContract.Calendars.VISIBLE, 1)
             put(CalendarContract.Calendars.SYNC_EVENTS, 1)
             put(CalendarContract.Calendars.OWNER_ACCOUNT, account.name)
-            put(CalendarContract.Calendars.CALENDAR_COLOR, -15915495) // 0xFF0064EA
+            put(CalendarContract.Calendars.CALENDAR_COLOR, kind.color)
         }
         val inserted = context.contentResolver.insert(uri, values)
         return inserted?.lastPathSegment?.toLongOrNull()
+    }
+
+    /** Hält die Farbe eines bestehenden Kalenders aktuell (API kann sie ändern). */
+    private fun updateCalendarColor(uri: android.net.Uri, calId: Long, kind: CalendarKind) {
+        val values = ContentValues().apply {
+            put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, kind.displayName)
+            put(CalendarContract.Calendars.CALENDAR_COLOR, kind.color)
+            put(CalendarContract.Calendars.VISIBLE, 1)
+            put(CalendarContract.Calendars.SYNC_EVENTS, 1)
+        }
+        context.contentResolver.update(
+            uri,
+            values,
+            "${CalendarContract.Calendars._ID} = ?",
+            arrayOf(calId.toString()),
+        )
     }
 
     private fun buildOperations(
