@@ -666,6 +666,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final scope = AppScope.of(context);
       scope.notification.stopPolling();
       try {
+        await scope.davSync.disable();
+      } catch (e) {
+        developer.log(
+          'Native DAV sync disable failed: $e',
+          name: 'settings.logout',
+        );
+      }
+      try {
         if (kIsWeb) {
           final token = await scope.auth.getAccessToken();
           await scope.webPush.unsubscribe(token: token);
