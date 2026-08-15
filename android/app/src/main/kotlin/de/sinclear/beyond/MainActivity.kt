@@ -3,7 +3,6 @@ package de.sinclear.beyond
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.activity.result.contract.ActivityResultContracts
 import de.sinclear.beyond.dav.DavSyncManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -12,18 +11,12 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     companion object {
         private const val CHANNEL = "de.sinclear.beyond/dav_sync"
+        private const val REQUEST_CODE_CALENDAR = 1001
 
         /** Überlebt die Activity-Recreation (Rotation/Hintergrund), damit ein
          *  laufender Berechtigungs-Dialog sein Ergebnis nicht verliert. */
         private var pendingPermissionCallback: ((Boolean) -> Unit)? = null
     }
-
-    private val permissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
-            val granted = grants[Manifest.permission.WRITE_CALENDAR] == true
-            pendingPermissionCallback?.invoke(granted)
-            pendingPermissionCallback = null
-        }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -79,11 +72,27 @@ class MainActivity : FlutterActivity() {
             return
         }
         pendingPermissionCallback = callback
-        permissionLauncher.launch(
+        requestPermissions(
             arrayOf(
                 Manifest.permission.READ_CALENDAR,
                 Manifest.permission.WRITE_CALENDAR,
             ),
+            REQUEST_CODE_CALENDAR,
         )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_CODE_CALENDAR) return
+        val granted = permissions.indices.any {
+            permissions[it] == Manifest.permission.WRITE_CALENDAR &&
+                grantResults[it] == PackageManager.PERMISSION_GRANTED
+        }
+        pendingPermissionCallback?.invoke(granted)
+        pendingPermissionCallback = null
     }
 }
