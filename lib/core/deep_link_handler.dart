@@ -14,12 +14,9 @@ class DeepLinkHandler {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _sub;
   GoRouter? _router;
-  String? _appBaseUrl;
-
   /// Start listening for deep links.
   void init(GoRouter router, {required String appBaseUrl}) {
     _router = router;
-    _appBaseUrl = appBaseUrl;
 
     _appLinks.getInitialLink().then(_handleUri);
 

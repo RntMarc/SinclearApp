@@ -31,7 +31,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
   bool _loadingDrafts = true;
   String? _recentError;
   String? _bookmarksError;
-  String? _draftsError;
   bool _hasLoaded = false;
 
   @override
@@ -111,13 +110,11 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
     if (!AppScope.of(context).auth.isLoggedIn) {
       setState(() {
         _loadingDrafts = false;
-        _draftsError = null;
       });
       return;
     }
     setState(() {
       _loadingDrafts = true;
-      _draftsError = null;
     });
     try {
       final recipes = AppScope.of(context).recipes;
@@ -132,7 +129,6 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
       if (!mounted) return;
       setState(() {
         _loadingDrafts = false;
-        _draftsError = 'Entwürfe konnten nicht geladen werden.';
       });
     }
   }
