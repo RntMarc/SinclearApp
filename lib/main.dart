@@ -163,8 +163,10 @@ Future<void> _bootstrap() async {
           case NotificationMethod.unifiedPush:
             unifiedPush.init(
               token: token,
-              onMessage: (item) =>
-                  unawaited(notificationContent.showLocal(item)),
+              onMessage: (item) {
+                notification.registerIncoming(item);
+                unawaited(notificationContent.showLocal(item));
+              },
             );
           case NotificationMethod.fcm:
             break;

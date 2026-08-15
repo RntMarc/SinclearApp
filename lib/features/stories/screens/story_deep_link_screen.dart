@@ -171,9 +171,26 @@ class _StoryDeepLinkScreenState extends State<StoryDeepLinkScreen> {
 
   void _onStoryShown(String id) {
     if (_viewedIds.add(id)) unawaited(_markViewed(id));
+    _markStoryNotificationRead(id);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _currentStory.value = id;
     });
+  }
+
+  /// Markiert `story_post`-Benachrichtigungen der angesehenen Story als
+  /// gelesen (analog zu `stories_bar.dart`).
+  void _markStoryNotificationRead(String id) {
+    final scope = AppScope.of(context);
+    unawaited(() async {
+      try {
+        final ids = scope.notification.unreadIdsForStory(id);
+        if (ids.isEmpty) return;
+        final token = await scope.auth.getAccessToken();
+        await scope.notification.markRead(ids, token: token);
+      } catch (_) {
+        // Idempotent; der nächste Abruf liefert den Stand erneut.
+      }
+    }());
   }
 
   Future<void> _markViewed(String id) async {

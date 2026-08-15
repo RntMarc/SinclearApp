@@ -270,21 +270,27 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
                   SizedBox(height: tokens.spaceMd),
                   const DesignDivider(),
                   SizedBox(height: tokens.spaceMd),
-                  ForumPostList(
-                    postsLoading: _postsLoading,
-                    posts: _posts,
-                    isMember: forum.isMember,
-                    hasMorePosts: _hasMorePosts,
-                    currentUserId: auth.userId ?? '',
-                    isAdmin: auth.isAdmin,
-                    forumId: widget.forumId,
-                    onVote: _votePost,
-                    onDelete: _deletePost,
-                    onPostTap: (fid, pid) => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            PostDetailScreen(forumId: fid, postId: pid),
+                  ListenableBuilder(
+                    listenable: AppScope.of(context).notification,
+                    builder: (context, _) => ForumPostList(
+                      postsLoading: _postsLoading,
+                      posts: _posts,
+                      isMember: forum.isMember,
+                      hasMorePosts: _hasMorePosts,
+                      currentUserId: auth.userId ?? '',
+                      isAdmin: auth.isAdmin,
+                      forumId: widget.forumId,
+                      unreadPostIds: AppScope.of(
+                        context,
+                      ).notification.unreadPostIdsForForum(widget.forumId),
+                      onVote: _votePost,
+                      onDelete: _deletePost,
+                      onPostTap: (fid, pid) => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              PostDetailScreen(forumId: fid, postId: pid),
+                        ),
                       ),
                     ),
                   ),

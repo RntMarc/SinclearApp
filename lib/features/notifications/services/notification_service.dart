@@ -23,6 +23,11 @@ class NotificationService extends ChangeNotifier {
   /// Resume/Cold-Start-Restarts keine Duplikate anzeigen.
   final Set<String> _seenIds = {};
 
+  /// Ungelesene Benachrichtigungen, nach ID. Wahrheitsquelle ist der Server:
+  /// befüllt aus Poll/Push, ersetzt durch [refreshUnread], bereinigt durch
+  /// [markRead]. Wird bewusst nicht lokal persistiert.
+  final Map<String, NotificationItem> _unreadById = {};
+
   final StreamController<List<NotificationItem>> _controller =
       StreamController<List<NotificationItem>>.broadcast();
 
@@ -72,9 +77,18 @@ class NotificationService extends ChangeNotifier {
       if (items.isNotEmpty) {
         _lastSeen = toApiDate(items.first.createdAt, withMilliseconds: true);
         final newItems = items.where((item) => _seenIds.add(item.id)).toList();
+
+        var registryChanged = false;
+        for (final item in items) {
+          if (!_unreadById.containsKey(item.id)) {
+            _unreadById[item.id] = item;
+            registryChanged = true;
+          }
+        }
+        if (registryChanged) notifyListeners();
+
         if (newItems.isEmpty) return;
         _controller.add(newItems);
-        notifyListeners();
 
         if (!kIsWeb) {
           final resolver = _contentResolver;
@@ -97,9 +111,16 @@ class NotificationService extends ChangeNotifier {
 
   Future<void> markRead(List<String> ids, {required String token}) async {
     if (ids.isEmpty) return;
+    var removed = false;
+    for (final id in ids) {
+      removed = _unreadById.remove(id) != null || removed;
+    }
+    if (removed) notifyListeners();
     try {
       await _api.post('/notifications/read', body: {'ids': ids}, token: token);
     } catch (e, st) {
+      // Optimistisch entfernt — beim nächsten refreshUnread() erscheint das
+      // Item wieder, falls der Server das Lesen nicht übernommen hat.
       developer.log(
         'markRead error',
         error: e,
@@ -107,6 +128,95 @@ class NotificationService extends ChangeNotifier {
         name: 'notification_service',
       );
     }
+  }
+
+  /// Ersetzt die Unread-Registry durch den aktuellen Server-Stand
+  /// (Voll-Abruf ohne `since`). Synchronisiert damit auch Lesen-Vorgänge,
+  /// die auf anderen Geräten passiert sind. Bewusst getrennt vom Poll, damit
+  /// der Voll-Abruf nur bei Screen-/Menü-Öffnung und Resume läuft.
+  Future<void> refreshUnread({required String token}) async {
+    try {
+      final response = await _api.get('/notifications', token: token);
+      final list = response['notifications'] as List? ?? const [];
+      final items = list
+          .map(
+            (json) => NotificationItem.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+      _unreadById
+        ..clear()
+        ..addEntries(items.map((item) => MapEntry(item.id, item)));
+      notifyListeners();
+    } catch (e, st) {
+      developer.log(
+        'refreshUnread error',
+        error: e,
+        stackTrace: st,
+        name: 'notification_service',
+      );
+    }
+  }
+
+  /// Registriert eine außerhalb des Pollings empfangene Benachrichtigung
+  /// (z. B. via UnifiedPush) als ungelesen.
+  void registerIncoming(NotificationItem item) {
+    _unreadById[item.id] = item;
+    notifyListeners();
+  }
+
+  /// Leert die Unread-Registry (Logout), damit nach einem erneuten Login
+  /// keine veralteten Markierungen des vorherigen Nutzers sichtbar sind.
+  void clear() {
+    if (_unreadById.isEmpty) return;
+    _unreadById.clear();
+    notifyListeners();
+  }
+
+  /// IDs aller Relationen mit der Rolle [relation] über die Unread-Registry.
+  Set<String> _relationIds(String relation) {
+    final ids = <String>{};
+    for (final item in _unreadById.values) {
+      final id = item.identifierFor(relation);
+      if (id != null) ids.add(id);
+    }
+    return ids;
+  }
+
+  /// Gibt es ungelesene Forum-Aktivität (`forum_reply`/`forum_comment`)?
+  bool get hasUnreadForumContent => _relationIds('parent_forum').isNotEmpty;
+
+  /// IDs der Foren mit ungelesener Aktivität.
+  Set<String> get unreadForumIds => _relationIds('parent_forum');
+
+  /// IDs der Posts mit ungelesener Aktivität innerhalb eines Forums.
+  Set<String> unreadPostIdsForForum(String forumId) {
+    final ids = <String>{};
+    for (final item in _unreadById.values) {
+      if (item.identifierFor('parent_forum') != forumId) continue;
+      final postId = item.identifierFor('parent_post');
+      if (postId != null) ids.add(postId);
+    }
+    return ids;
+  }
+
+  /// Notification-IDs, die einen bestimmten Post betreffen (zum Gelesen-Markieren
+  /// beim Öffnen des Post-Details).
+  List<String> unreadIdsForPost(String postId) {
+    final ids = <String>[];
+    for (final item in _unreadById.values) {
+      if (item.identifierFor('parent_post') == postId) ids.add(item.id);
+    }
+    return ids;
+  }
+
+  /// Notification-IDs, die eine bestimmte Story betreffen (zum Gelesen-Markieren
+  /// beim Ansehen der Story).
+  List<String> unreadIdsForStory(String storyId) {
+    final ids = <String>[];
+    for (final item in _unreadById.values) {
+      if (item.identifierFor('story') == storyId) ids.add(item.id);
+    }
+    return ids;
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../effects/pulse_glow.dart';
 import '../../theme/design_theme.dart';
 import '../foundation/design_glass.dart';
 import 'press_scale.dart';
@@ -20,9 +21,10 @@ class DesignCard extends StatelessWidget {
     this.onTap,
     this.useGlass,
     this.spacing,
+    this.pulseColor,
     super.key,
-  })  : children = null,
-        _isList = false;
+  }) : children = null,
+       _isList = false;
 
   /// List mode – renders [children] vertically separated by [spacing].
   ///
@@ -35,10 +37,11 @@ class DesignCard extends StatelessWidget {
     this.margin,
     this.onTap,
     this.useGlass,
+    this.pulseColor,
     super.key,
-  })  : child = null,
-        padding = null,
-        _isList = true;
+  }) : child = null,
+       padding = null,
+       _isList = true;
 
   /// Single child mode (default).
   final Widget? child;
@@ -59,6 +62,11 @@ class DesignCard extends StatelessWidget {
   final VoidCallback? onTap;
   final bool? useGlass;
   final bool _isList;
+
+  /// Wenn gesetzt, erhält die Karte einen pulsierenden farbigen Glow an der
+  /// Kante (z. B. zur Kennzeichnung ungelesener Inhalte). Funktioniert in
+  /// Solid- und Glass-Modus, da der Glow außen um die Karte liegt.
+  final Color? pulseColor;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +113,14 @@ class DesignCard extends StatelessWidget {
           boxShadow: tokens.surfaceShadow,
         ),
         child: inner,
+      );
+    }
+
+    if (pulseColor != null) {
+      result = DesignPulseGlow(
+        color: pulseColor!,
+        radius: tokens.radiusLg,
+        child: result,
       );
     }
 

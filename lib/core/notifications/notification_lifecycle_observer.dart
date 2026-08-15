@@ -52,6 +52,7 @@ class _NotificationLifecycleObserverState
         // verhindert mehrfaches startPolling beim Tap auf eine Notification.
         if (_wasPaused) {
           _wasPaused = false;
+          _refreshUnread();
           if (widget.getNotificationMethod() == NotificationMethod.polling) {
             _startPolling();
           }
@@ -74,6 +75,17 @@ class _NotificationLifecycleObserverState
       widget.notificationService.startPolling(token: token);
     } catch (e) {
       // Token unavailable, polling won't start
+    }
+  }
+
+  /// Synchronisiert die Unread-Registry mit dem Server bei App-Resume, damit
+  /// auf anderen Geräten Gelesenes auch hier den Punkt verschwinden lässt.
+  Future<void> _refreshUnread() async {
+    try {
+      final token = await widget.getToken();
+      await widget.notificationService.refreshUnread(token: token);
+    } catch (e) {
+      // Token unavailable; refresh skipped.
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
@@ -10,6 +12,7 @@ import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
+import '../../../design/widgets/primitives/design_pulse_dot.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 
 String shellTitleForLocation(String location) {
@@ -76,52 +79,59 @@ class ShellCategorySheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final notification = AppScope.of(context).notification;
 
     return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DesignText(
-            category,
-            style: DesignTextStyle.subtitle,
-            color: tokens.textHigh,
-          ),
-          SizedBox(height: tokens.spaceMd),
-          ...items.map((item) {
-            final isActive =
-                item.route != null && currentLocation.startsWith(item.route!);
-            final isPlaceholder = item.route == null;
-            final showBadge = isPlaceholder;
+      child: ListenableBuilder(
+        listenable: notification,
+        builder: (context, _) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DesignText(
+              category,
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceMd),
+            ...items.map((item) {
+              final isActive =
+                  item.route != null && currentLocation.startsWith(item.route!);
+              final isPlaceholder = item.route == null;
+              final showBadge = isPlaceholder;
 
-            return Opacity(
-              opacity: isPlaceholder ? 0.45 : 1.0,
-              child: DesignListTile(
-                leading: Icon(
-                  item.icon,
-                  color: isPlaceholder ? tokens.textLow : tokens.textHigh,
+              return Opacity(
+                opacity: isPlaceholder ? 0.45 : 1.0,
+                child: DesignListTile(
+                  leading: Icon(
+                    item.icon,
+                    color: isPlaceholder ? tokens.textLow : tokens.textHigh,
+                  ),
+                  title: item.label,
+                  onTap: isPlaceholder
+                      ? null
+                      : () {
+                          Navigator.pop(context);
+                          context.go(item.route!);
+                        },
+                  trailing: showBadge
+                      ? const DesignBadge(label: 'Bald')
+                      : isActive
+                      ? DesignBadge(label: 'Aktiv', color: tokens.primary)
+                      : item.route == '/forum' &&
+                            notification.hasUnreadForumContent
+                      ? const DesignPulseDot()
+                      : null,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: tokens.spaceMd,
+                    vertical: tokens.spaceSm,
+                  ),
                 ),
-                title: item.label,
-                onTap: isPlaceholder
-                    ? null
-                    : () {
-                        Navigator.pop(context);
-                        context.go(item.route!);
-                      },
-                trailing: showBadge
-                    ? const DesignBadge(label: 'Bald')
-                    : isActive
-                    ? DesignBadge(label: 'Aktiv', color: tokens.primary)
-                    : null,
-                padding: EdgeInsets.symmetric(
-                  horizontal: tokens.spaceMd,
-                  vertical: tokens.spaceSm,
-                ),
-              ),
-            );
-          }),
-          SizedBox(height: tokens.spaceMd),
-        ],
+              );
+            }),
+            SizedBox(height: tokens.spaceMd),
+          ],
+        ),
       ),
     );
   }
@@ -146,6 +156,7 @@ class ShellNavContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final notification = AppScope.of(context).notification;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -215,6 +226,12 @@ class ShellNavContent extends StatelessWidget {
               label: 'Forum',
               active: _isActive('/forum'),
               onTap: () => onNavigate('/forum'),
+              trailing: ListenableBuilder(
+                listenable: notification,
+                builder: (context, _) => notification.hasUnreadForumContent
+                    ? const DesignPulseDot()
+                    : const SizedBox.shrink(),
+              ),
             ),
             _tile(
               context,
@@ -428,6 +445,7 @@ class ShellMobileBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final active = shellCategoryForLocation(currentLocation);
+    final notification = AppScope.of(context).notification;
 
     final items = <({IconData icon, String label, ShellNavCategory category})>[
       (
@@ -474,29 +492,50 @@ class ShellMobileBottomNav extends StatelessWidget {
             vertical: tokens.spaceXs,
             horizontal: tokens.spaceSm,
           ),
-          child: Row(
-            children: items.map((item) {
-              final isActive = item.category == active;
-              final fg = isActive ? tokens.primary : tokens.textLow;
-              return Expanded(
-                child: PressScale(
-                  onTap: () => _onTap(context, item.category),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(item.icon, color: fg, size: 24),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.label,
-                        style: tokens.labelStyle(fg).copyWith(fontSize: 11),
-                        maxLines: 1,
-                        textAlign: TextAlign.center,
+          child: ListenableBuilder(
+            listenable: notification,
+            builder: (context, _) {
+              final hasUnreadForum = notification.hasUnreadForumContent;
+              return Row(
+                children: items.map((item) {
+                  final isActive = item.category == active;
+                  final fg = isActive ? tokens.primary : tokens.textLow;
+                  Widget icon = Icon(item.icon, color: fg, size: 24);
+                  if (item.category == ShellNavCategory.gemeinschaft &&
+                      hasUnreadForum) {
+                    icon = Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        icon,
+                        const Positioned(
+                          top: -2,
+                          right: -2,
+                          child: DesignPulseDot(size: 8),
+                        ),
+                      ],
+                    );
+                  }
+                  return Expanded(
+                    child: PressScale(
+                      onTap: () => _onTap(context, item.category),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          icon,
+                          const SizedBox(height: 4),
+                          Text(
+                            item.label,
+                            style: tokens.labelStyle(fg).copyWith(fontSize: 11),
+                            maxLines: 1,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                }).toList(),
               );
-            }).toList(),
+            },
           ),
         ),
       ),
@@ -542,6 +581,7 @@ class ShellMobileBottomNav extends StatelessWidget {
           ],
         );
       case ShellNavCategory.gemeinschaft:
+        _refreshUnread(context);
         _showCategorySheet(
           context,
           category: 'Gemeinschaft',
@@ -602,6 +642,20 @@ class ShellMobileBottomNav extends StatelessWidget {
       ),
     );
   }
+
+  /// Synchronisiert die Unread-Registry mit dem Server, wenn das
+  /// Gemeinschaft-Menü geöffnet wird (Forum-Punkt aktuell halten).
+  void _refreshUnread(BuildContext context) {
+    final scope = AppScope.of(context);
+    unawaited(() async {
+      try {
+        final token = await scope.auth.getAccessToken();
+        await scope.notification.refreshUnread(token: token);
+      } catch (_) {
+        // Nächste Öffnung/Screen liefert den Stand erneut.
+      }
+    }());
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -646,4 +700,3 @@ class ShellDashboardEditButton extends StatelessWidget {
     );
   }
 }
-

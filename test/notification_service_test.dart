@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';
+import 'package:sinclear_beyond/features/notifications/models/notification_item.dart';
 import 'package:sinclear_beyond/features/notifications/services/notification_service.dart';
 
 class MockApiClient extends ApiClient {
@@ -232,6 +233,140 @@ void main() {
       await service.markRead([], token: 'test-token');
 
       expect(mockApi.calledPaths, isEmpty);
+    });
+  });
+
+  Map<String, dynamic> forumNotification(
+    String id,
+    String type,
+    String forumId,
+    String postId,
+  ) => {
+    'id': id,
+    'type': type,
+    'data': [
+      {'relation': 'parent_forum', 'object': 'Forum', 'identifier': forumId},
+      {'relation': 'parent_post', 'object': 'ForumPost', 'identifier': postId},
+    ],
+    'createdAt': '2026-08-10 14:30:00',
+  };
+
+  group('unread registry', () {
+    test('poll seeds registry and exposes forum/post ids', () async {
+      mockApi.responses.add({
+        'notifications': [
+          forumNotification('1', 'forum_reply', 'forumA', 'post1'),
+          forumNotification('2', 'forum_comment', 'forumB', 'post2'),
+        ],
+      });
+
+      service.startPolling(token: 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(service.hasUnreadForumContent, isTrue);
+      expect(service.unreadForumIds, {'forumA', 'forumB'});
+      expect(service.unreadPostIdsForForum('forumA'), {'post1'});
+      expect(service.unreadIdsForPost('post1'), ['1']);
+    });
+
+    test('markRead removes ids from the registry', () async {
+      mockApi.responses.add({
+        'notifications': [
+          forumNotification('1', 'forum_reply', 'forumA', 'post1'),
+        ],
+      });
+
+      service.startPolling(token: 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(service.hasUnreadForumContent, isTrue);
+
+      await service.markRead(['1'], token: 'test-token');
+
+      expect(service.hasUnreadForumContent, isFalse);
+      expect(service.unreadIdsForPost('post1'), isEmpty);
+    });
+
+    test('refreshUnread replaces registry with server state', () async {
+      mockApi.responses.add({
+        'notifications': [
+          forumNotification('1', 'forum_reply', 'forumA', 'post1'),
+        ],
+      });
+
+      service.startPolling(token: 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(service.unreadForumIds, {'forumA'});
+
+      mockApi.responses.add({
+        'notifications': [
+          forumNotification('2', 'forum_comment', 'forumB', 'post2'),
+        ],
+      });
+      await service.refreshUnread(token: 'test-token');
+
+      expect(service.unreadForumIds, {'forumB'});
+      expect(service.unreadIdsForPost('post1'), isEmpty);
+    });
+
+    test('unreadIdsForStory finds story notifications, not forum', () async {
+      mockApi.responses.add({
+        'notifications': [
+          {
+            'id': 's1',
+            'type': 'story_post',
+            'data': [
+              {'relation': 'story', 'object': 'Story', 'identifier': 'story1'},
+            ],
+            'createdAt': '2026-08-10 14:30:00',
+          },
+        ],
+      });
+
+      service.startPolling(token: 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(service.unreadIdsForStory('story1'), ['s1']);
+      expect(service.hasUnreadForumContent, isFalse);
+    });
+
+    test('clear empties the registry', () async {
+      mockApi.responses.add({
+        'notifications': [
+          forumNotification('1', 'forum_reply', 'forumA', 'post1'),
+        ],
+      });
+
+      service.startPolling(token: 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(service.hasUnreadForumContent, isTrue);
+
+      service.clear();
+
+      expect(service.hasUnreadForumContent, isFalse);
+    });
+
+    test('registerIncoming adds an item to the registry', () {
+      service.registerIncoming(
+        NotificationItem(
+          id: 'x',
+          type: 'forum_reply',
+          data: const [
+            NotificationRelation(
+              relation: 'parent_forum',
+              object: 'Forum',
+              identifier: 'forumA',
+            ),
+            NotificationRelation(
+              relation: 'parent_post',
+              object: 'ForumPost',
+              identifier: 'post1',
+            ),
+          ],
+          createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+        ),
+      );
+
+      expect(service.unreadForumIds, {'forumA'});
     });
   });
 }

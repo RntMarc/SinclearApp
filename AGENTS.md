@@ -97,6 +97,25 @@ English only.
   type with object IDs must resolve to the matching route with those IDs
   (e.g. `forum_reply` and `forum_comment` →
   `/forum/{parent_forum}/beitrag/{parent_post}`).
+* **Unread indicators & read-marking:** Whenever a screen is (re)designed or a
+  new notification type is supported, always check how the two unread design
+  elements integrate and how read-marking works — so the app stays consistent
+  and new types aren't forgotten:
+  * `DesignPulseDot` (`lib/design/widgets/primitives/design_pulse_dot.dart`)
+    marks unread activity next to menu entries/icons (e.g. the Forum entry in
+    the desktop sidebar and the mobile Gemeinschaft sheet/icon).
+  * `DesignCard`'s `pulseColor` (via `DesignPulseGlow`,
+    `lib/design/effects/pulse_glow.dart`) marks cards containing unread
+    content (e.g. `ForumCard`, `PostCard`). Both use `tokens.accentA` and
+    respect reduced motion (`MediaQuery.disableAnimations`).
+  * Unread state comes from `NotificationService`'s unread registry
+    (`unreadForumIds`, `unreadPostIdsForForum`, `unreadIdsForPost`,
+    `unreadIdsForStory`) and is refreshed via `refreshUnread()` on the
+    relevant screen/menu open and on app resume — never on every poll.
+    Read-marking happens through `POST /notifications/read` when the user
+    opens the referenced object (e.g. the post detail) or views a story.
+    A new type with object IDs must decide where its dot/pulse lives and when
+    it is marked read.
 * **Cold start:** Opening a notification from the OS tray / browser while the
   app is not running must resolve the target too: the tap payload carries the
   full notification JSON (`NotificationItem.toJson`), which is enough to

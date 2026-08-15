@@ -21,6 +21,10 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onReport;
 
+  /// Kennzeichnet ungelesene Aktivität in diesem Post mit einem
+  /// pulsierenden Karten-Glow.
+  final bool hasUnread;
+
   const PostCard({
     super.key,
     required this.post,
@@ -29,6 +33,7 @@ class PostCard extends StatelessWidget {
     required this.onVote,
     this.onDelete,
     this.onReport,
+    this.hasUnread = false,
   });
 
   @override
@@ -41,6 +46,7 @@ class PostCard extends StatelessWidget {
       onTap: onTap,
       margin: EdgeInsets.zero,
       padding: EdgeInsets.all(tokens.spaceLg),
+      pulseColor: hasUnread ? tokens.accentA : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -110,8 +116,7 @@ class PostCard extends StatelessWidget {
                                   child: DesignButton(
                                     variant: DesignButtonVariant.outlined,
                                     label: 'Abbrechen',
-                                    onPressed: () =>
-                                        Navigator.pop(context),
+                                    onPressed: () => Navigator.pop(context),
                                   ),
                                 ),
                                 SizedBox(width: tokens.spaceSm),
@@ -204,17 +209,13 @@ class PostCard extends StatelessWidget {
                           ? Icons.thumb_up_rounded
                           : Icons.thumb_up_outlined,
                       size: 18,
-                      color: post.hasVoted
-                          ? tokens.primary
-                          : tokens.textLow,
+                      color: post.hasVoted ? tokens.primary : tokens.textLow,
                     ),
                     SizedBox(width: tokens.spaceXs),
                     DesignText(
                       '${post.upvoteCount}',
                       style: DesignTextStyle.label,
-                      color: post.hasVoted
-                          ? tokens.primary
-                          : tokens.textLow,
+                      color: post.hasVoted ? tokens.primary : tokens.textLow,
                     ),
                   ],
                 ),
@@ -268,8 +269,8 @@ class PostCard extends StatelessWidget {
     final links = post.type == 'video' || post.type == 'music'
         ? post.genericMusicUrls
         : post.type != 'web' && post.type != 'text'
-            ? post.urls
-            : const <MusicUrl>[];
+        ? post.urls
+        : const <MusicUrl>[];
     if (links.isEmpty) return const [];
     return [
       SizedBox(height: tokens.spaceSm),

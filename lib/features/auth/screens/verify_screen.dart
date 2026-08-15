@@ -139,8 +139,10 @@ class _VerifyScreenState extends State<VerifyScreen> {
     await LocalNotificationHelper.requestPermission();
     scope.unifiedPush.init(
       token: token,
-      onMessage: (item) =>
-          unawaited(scope.notificationContent.showLocal(item)),
+      onMessage: (item) {
+        scope.notification.registerIncoming(item);
+        unawaited(scope.notificationContent.showLocal(item));
+      },
     );
     if (!mounted) return;
     await scope.unifiedPush.checkAndSetup(

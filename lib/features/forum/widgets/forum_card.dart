@@ -9,7 +9,16 @@ class ForumCard extends StatelessWidget {
   final Forum forum;
   final VoidCallback onTap;
 
-  const ForumCard({super.key, required this.forum, required this.onTap});
+  /// Kennzeichnet ungelesene Aktivität in diesem Forum mit einem
+  /// pulsierenden Karten-Glow.
+  final bool hasUnread;
+
+  const ForumCard({
+    super.key,
+    required this.forum,
+    required this.onTap,
+    this.hasUnread = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +27,7 @@ class ForumCard extends StatelessWidget {
       onTap: onTap,
       margin: EdgeInsets.zero,
       padding: EdgeInsets.all(tokens.spaceLg),
+      pulseColor: hasUnread ? tokens.accentA : null,
       child: Row(
         children: [
           if (forum.image != null)

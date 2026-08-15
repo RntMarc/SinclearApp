@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_pulse_dot.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../../forum/models/forum_models.dart';
 import '../../forum/services/forum_service.dart';
@@ -141,6 +143,15 @@ class ForumWidgetSpec extends DashboardWidgetSpec {
                 ),
               ],
             ),
+          ),
+          ListenableBuilder(
+            listenable: AppScope.of(context).notification,
+            builder: (context, _) =>
+                AppScope.of(
+                  context,
+                ).notification.unreadIdsForPost(post.postId).isNotEmpty
+                ? const DesignPulseDot(size: 8)
+                : const SizedBox.shrink(),
           ),
         ],
       ),

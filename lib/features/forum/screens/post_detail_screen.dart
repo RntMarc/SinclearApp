@@ -72,6 +72,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         _post = match.first;
         _loading = false;
       });
+      _markPostRead();
       _loadComments();
     } catch (e, st) {
       developer.log('Failed to load post', error: e, stackTrace: st);
@@ -80,6 +81,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         _loading = false;
         _error = 'Post konnte nicht geladen werden.';
       });
+    }
+  }
+
+  /// Markiert alle ungelesenen Benachrichtigungen dieses Posts als gelesen.
+  /// „Gelesen = Inhalt gesehen" — ausgelöst beim Öffnen des Post-Details.
+  Future<void> _markPostRead() async {
+    try {
+      final scope = AppScope.of(context);
+      final ids = scope.notification.unreadIdsForPost(widget.postId);
+      if (ids.isEmpty) return;
+      final token = await scope.auth.getAccessToken();
+      await scope.notification.markRead(ids, token: token);
+    } catch (e) {
+      developer.log('markPostRead failed', error: e);
     }
   }
 

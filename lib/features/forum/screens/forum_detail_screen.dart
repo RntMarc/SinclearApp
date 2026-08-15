@@ -48,6 +48,17 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     super.didChangeDependencies();
     if (_forum == null && _loading) {
       _load();
+      _refreshUnread();
+    }
+  }
+
+  Future<void> _refreshUnread() async {
+    try {
+      final scope = AppScope.of(context);
+      final token = await scope.auth.getAccessToken();
+      await scope.notification.refreshUnread(token: token);
+    } catch (e) {
+      developer.log('refreshUnread failed', error: e);
     }
   }
 
@@ -409,17 +420,23 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
             SizedBox(height: tokens.spaceMd),
             const DesignDivider(),
             SizedBox(height: tokens.spaceMd),
-            ForumPostList(
-              postsLoading: _postsLoading,
-              posts: _posts,
-              isMember: forum.isMember,
-              hasMorePosts: _hasMorePosts,
-              currentUserId: auth.userId ?? '',
-              isAdmin: auth.isAdmin,
-              forumId: widget.id,
-              onVote: _votePost,
-              onDelete: _deletePost,
-              onReport: _reportPost,
+            ListenableBuilder(
+              listenable: AppScope.of(context).notification,
+              builder: (context, _) => ForumPostList(
+                postsLoading: _postsLoading,
+                posts: _posts,
+                isMember: forum.isMember,
+                hasMorePosts: _hasMorePosts,
+                currentUserId: auth.userId ?? '',
+                isAdmin: auth.isAdmin,
+                forumId: widget.id,
+                unreadPostIds: AppScope.of(
+                  context,
+                ).notification.unreadPostIdsForForum(widget.id),
+                onVote: _votePost,
+                onDelete: _deletePost,
+                onReport: _reportPost,
+              ),
             ),
           ],
         ),
