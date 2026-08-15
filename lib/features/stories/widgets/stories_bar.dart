@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:stories_for_flutter/full_page_view.dart';
 import 'package:stories_for_flutter/stories_for_flutter.dart';
 
+import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/utils/base64_helper.dart';
 import '../../../design/theme/design_theme.dart';
@@ -14,6 +14,7 @@ import '../../home/dashboard_controller.dart';
 import '../models/stories_models.dart';
 import '../services/stories_service.dart';
 import 'story_create_sheet.dart';
+import 'story_viewer.dart';
 
 const double _avatarSize = 56;
 const double _ringPadding = 3;
@@ -47,6 +48,9 @@ class _StoriesBarState extends State<StoriesBar>
   Object? _error;
   final Set<String> _viewedIds = {};
 
+  /// ID der im geöffneten Viewer aktuell sichtbaren Story (nur dort genutzt).
+  final ValueNotifier<String?> _currentStory = ValueNotifier<String?>(null);
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +60,7 @@ class _StoriesBarState extends State<StoriesBar>
 
   @override
   void dispose() {
+    _currentStory.dispose();
     widget.controller.unregister(this);
     super.dispose();
   }
@@ -104,7 +109,6 @@ class _StoriesBarState extends State<StoriesBar>
     if (groups == null) {
       return _error == null ? _buildSkeleton(tokens) : _buildError(tokens);
     }
-    final items = _toStoryItems(groups);
     return SizedBox(
       height: _barHeight,
       child: ListView(
@@ -118,14 +122,17 @@ class _StoriesBarState extends State<StoriesBar>
               unviewed: groups[i].stories.any(
                 (s) => !_viewedIds.contains(s.id),
               ),
-              onTap: () => _openViewer(context, items, i),
+              onTap: () => _openViewer(context, groups, i),
             ),
         ],
       ),
     );
   }
 
-  List<StoryItem> _toStoryItems(List<StoryFeedGroup> groups) {
+  List<StoryItem> _toStoryItems(
+    List<StoryFeedGroup> groups,
+    ValueChanged<String> onShown,
+  ) {
     return [
       for (final group in groups)
         StoryItem(
@@ -133,17 +140,19 @@ class _StoriesBarState extends State<StoriesBar>
           thumbnail:
               resolveImageProvider(group.avatar) ??
               const AssetImage('assets/logo.png'),
-          stories: [for (final story in group.stories) _storyScaffold(story)],
+          stories: [
+            for (final story in group.stories) _storyScaffold(story, onShown),
+          ],
         ),
     ];
   }
 
-  Scaffold _storyScaffold(Story story) {
+  Scaffold _storyScaffold(Story story, ValueChanged<String> onShown) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: _ViewTracker(
         storyId: story.id,
-        onViewed: _markViewed,
+        onShown: onShown,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -200,20 +209,49 @@ class _StoriesBarState extends State<StoriesBar>
 
   Future<void> _openViewer(
     BuildContext context,
-    List<StoryItem> items,
+    List<StoryFeedGroup> groups,
     int index,
   ) async {
-    final tokens = DesignTheme.of(context);
+    final scope = AppScope.of(context);
+    final ownId = scope.auth.userId;
+    final isAdmin = scope.auth.isAdmin;
+    final deletableById = <String, bool>{
+      for (final group in groups)
+        for (final story in group.stories)
+          story.id: isAdmin || group.userId == ownId,
+    };
+    _currentStory.value = null;
+    final items = _toStoryItems(groups, _onStoryShown);
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => FullPageView(
-          storiesMapList: items,
-          storyNumber: index,
-          fullpageVisitedColor: tokens.primary,
+        builder: (_) => StoryViewer(
+          items: items,
+          initialIndex: index,
+          service: widget.service,
+          currentStoryId: _currentStory,
+          deletableById: deletableById,
+          onDeleted: _onStoryDeleted,
         ),
       ),
     );
     if (mounted) setState(() {});
+  }
+
+  void _onStoryShown(String id) {
+    _markViewed(id);
+    // Der Aufruf kommt aus initState einer Story-Seite (während des
+    // Frame-Aufbaus); das Notifier-Update daher auf nach dem Frame schieben.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _currentStory.value = id;
+    });
+  }
+
+  void _onStoryDeleted() {
+    if (!mounted) return;
+    refresh();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Story gelöscht')));
   }
 
   Future<void> _createStory(BuildContext context) async {
@@ -424,12 +462,12 @@ class _AddStoryCircle extends StatelessWidget {
 class _ViewTracker extends StatefulWidget {
   const _ViewTracker({
     required this.storyId,
-    required this.onViewed,
+    required this.onShown,
     required this.child,
   });
 
   final String storyId;
-  final ValueChanged<String> onViewed;
+  final ValueChanged<String> onShown;
   final Widget child;
 
   @override
@@ -440,7 +478,7 @@ class _ViewTrackerState extends State<_ViewTracker> {
   @override
   void initState() {
     super.initState();
-    widget.onViewed(widget.storyId);
+    widget.onShown(widget.storyId);
   }
 
   @override
