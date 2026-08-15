@@ -101,14 +101,8 @@ class _StoriesBarState extends State<StoriesBar>
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final groups = _groups;
-    if (groups == null && _error == null) {
-      return _buildSkeleton(tokens);
-    }
-    if (_error != null) {
-      return _buildError(tokens);
-    }
-    if (groups == null || groups.isEmpty) {
-      return const SizedBox.shrink();
+    if (groups == null) {
+      return _error == null ? _buildSkeleton(tokens) : _buildError(tokens);
     }
     final items = _toStoryItems(groups);
     return SizedBox(
