@@ -9,6 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   screen_brightness_windows
   screen_retriever_windows
   share_plus
+  stories_for_flutter
   url_launcher_windows
   window_manager
 )

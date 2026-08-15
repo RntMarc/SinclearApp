@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   gtk
   open_file_linux
   screen_retriever_linux
+  stories_for_flutter
   url_launcher_linux
   window_manager
 )

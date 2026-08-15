@@ -33,6 +33,7 @@ import 'features/moderation/services/moderation_service.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
 import 'features/recipes/services/recipes_service.dart';
+import 'features/stories/services/stories_service.dart';
 import 'features/settings/models/notification_preference.dart';
 import 'features/settings/services/dav_token_service.dart';
 import 'features/settings/services/dav_sync_service.dart';
@@ -107,6 +108,7 @@ Future<void> _bootstrap() async {
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
+  final stories = StoriesService(api: api, auth: auth);
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
@@ -202,6 +204,7 @@ Future<void> _bootstrap() async {
       feedback: feedback,
       forum: forum,
       recipes: recipes,
+      stories: stories,
       moderation: moderation,
       subscription: subscription,
       mcpKeys: mcpKeys,

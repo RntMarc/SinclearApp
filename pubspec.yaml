@@ -1,7 +1,7 @@
 name: sinclear_beyond
 description: "Unsere neue Community-Plattform ist da. Gemeinsam sind wir Sinclear."
 publish_to: 'none'
-version: 0.8.3+80300   # Format: 0.7.3 -> 70300, 0.7.15 -> 71500, 0.12.1 -> 120100, 14.1.1 -> 14010100
+version: 0.8.4+80400   # Format: 0.7.3 -> 70300, 0.7.15 -> 71500, 0.12.1 -> 120100, 14.1.1 -> 14010100
 
 environment:
   sdk: ^3.12.2
@@ -38,6 +38,7 @@ dependencies:
   app_links: ^7.2.1
   flutter_local_notifications: ^22.3.0
   unifiedpush: ^6.2.0
+  stories_for_flutter: ^1.3.3
 
 dev_dependencies:
   flutter_test:

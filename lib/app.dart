@@ -15,6 +15,7 @@ import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/recipes/services/recipes_service.dart';
+import 'features/stories/services/stories_service.dart';
 import 'features/settings/services/dav_sync_service.dart';
 import 'features/settings/services/dav_token_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
@@ -44,6 +45,7 @@ class SinclearApp extends StatelessWidget {
   final RecipesService recipes;
   final ModerationService moderation;
   final SubscriptionService subscription;
+  final StoriesService stories;
   final McpKeyService mcpKeys;
   final DavTokenService davTokens;
   final DavSyncService davSync;
@@ -109,6 +111,7 @@ class SinclearApp extends StatelessWidget {
     required this.recipes,
     required this.moderation,
     required this.subscription,
+    required this.stories,
     required this.mcpKeys,
     required this.davTokens,
     required this.davSync,
@@ -153,6 +156,7 @@ class SinclearApp extends StatelessWidget {
       recipes: recipes,
       moderation: moderation,
       subscription: subscription,
+      stories: stories,
       mcpKeys: mcpKeys,
       davTokens: davTokens,
       davSync: davSync,
