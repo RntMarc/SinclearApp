@@ -70,11 +70,7 @@ void main() {
       object: 'User',
       identifier: 'user-story',
     ),
-    NotificationRelation(
-      relation: 'story',
-      object: 'Story',
-      identifier: 's1',
-    ),
+    NotificationRelation(relation: 'story', object: 'Story', identifier: 's1'),
   ];
 
   group('NotificationTypeLabel.route', () {
@@ -165,10 +161,7 @@ void main() {
     });
 
     test('story_post rendert Titel, generalisierten Text und Icon', () {
-      expect(
-        NotificationTypeLabel.title('story_post'),
-        'Neue Story',
-      );
+      expect(NotificationTypeLabel.title('story_post'), 'Neue Story');
       expect(
         NotificationTypeLabel.fallbackBody('story_post'),
         'Jemand hat eine neue Story veröffentlicht.',

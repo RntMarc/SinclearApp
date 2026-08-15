@@ -137,11 +137,7 @@ NotificationItem _storyPostItem() => NotificationItem(
       object: 'User',
       identifier: 'user-story',
     ),
-    NotificationRelation(
-      relation: 'story',
-      object: 'Story',
-      identifier: 's1',
-    ),
+    NotificationRelation(relation: 'story', object: 'Story', identifier: 's1'),
   ],
 );
 

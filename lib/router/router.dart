@@ -64,7 +64,7 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/feedback') ||
           location.startsWith('/mod-anfragen') ||
           location.startsWith('/forum') ||
-          (          location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
+          (location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
           location.startsWith('/abos') ||
           location.startsWith('/stories') ||
           location.startsWith('/design-showcase');
@@ -309,9 +309,8 @@ GoRouter createRouter(AuthService auth) {
       ),
       GoRoute(
         path: '/stories/:id',
-        builder: (context, state) => StoryDeepLinkScreen(
-          storyId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            StoryDeepLinkScreen(storyId: state.pathParameters['id']!),
       ),
     ],
   );
