@@ -14,6 +14,7 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
+import '../models/dav_sync_notice.dart';
 import '../models/dav_token_models.dart';
 import '../services/dav_sync_service.dart';
 
@@ -38,6 +39,8 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
   bool _nativeSyncBusy = false;
   String? _nativeSyncStatus;
   List<String> _enabledSegments = [];
+  List<DavSyncNotice> _notices = [];
+  String? _dismissedSyncStatus;
 
   String get _davUrl =>
       '${AppScope.of(context).apiBaseUrl.replaceFirst('/api/v2', '/api/dav')}/';
@@ -65,6 +68,7 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
           ? await scope.davSync.lastSyncStatus()
           : null;
       final segments = await scope.davSync.enabledSegments();
+      final notices = scope.davSync.notices();
       if (!mounted) return;
       setState(() {
         _tokens = tokens;
@@ -72,6 +76,7 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
         _nativeSyncEnabled = nativeEnabled;
         _nativeSyncStatus = nativeStatus;
         _enabledSegments = segments;
+        _notices = notices;
         _loading = false;
       });
     } catch (e) {
@@ -258,6 +263,29 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
                       const SizedBox(height: 16),
                       _nativeSyncCard(),
                     ],
+                    if (_notices.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: DesignText(
+                                'Hinweise',
+                                style: DesignTextStyle.label,
+                                color: tokens.primary,
+                              ),
+                            ),
+                            DesignButton(
+                              variant: DesignButtonVariant.text,
+                              label: 'Alle löschen',
+                              onPressed: _clearNotices,
+                            ),
+                          ],
+                        ),
+                      ),
+                      for (final notice in _notices) _noticeCard(notice),
+                    ],
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -422,11 +450,15 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
           ],
           if (_nativeSyncEnabled && _nativeSyncStatus != null) ...[
             const SizedBox(height: 8),
-            DesignText(
-              'Letzte Synchronisation: ${_statusLabel(_nativeSyncStatus!)}',
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
+            if (_isSyncError(_nativeSyncStatus!))
+              _syncErrorCard(_nativeSyncStatus!)
+            else
+              DesignText(
+                'Letzte Synchronisation: '
+                '${_statusLabel(_nativeSyncStatus!)}',
+                style: DesignTextStyle.label,
+                color: tokens.textLow,
+              ),
           ],
         ],
       ),
@@ -482,15 +514,138 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
   }
 
   String _statusLabel(String status) {
+    final millis = int.tryParse(status);
+    if (millis != null) {
+      return formatDateTime(DateTime.fromMillisecondsSinceEpoch(millis));
+    }
+    return status;
+  }
+
+  bool _isSyncError(String? status) {
+    if (status == null) return false;
+    return status == 'auth' ||
+        status == 'config' ||
+        status == 'calendar' ||
+        status == 'apply' ||
+        status.startsWith('error:');
+  }
+
+  String _syncErrorText(String status) {
     switch (status) {
       case 'auth':
-        return 'Token abgelaufen, wird erneuert';
-      case 'apply':
+        return 'Authentifizierung fehlgeschlagen (Token ungültig oder '
+            'abgelaufen).';
+      case 'config':
+        return 'Account-Konfiguration unvollständig.';
       case 'calendar':
-        return 'Fehler bei der Einrichtung';
+        return 'Systemkalender konnte nicht angelegt werden.';
+      case 'apply':
+        return 'Termine konnten nicht in den Systemkalender geschrieben '
+            'werden.';
+      case 'error:IO':
+        return 'Keine Verbindung zum Server.';
       default:
-        return status.startsWith('error:') ? 'Fehler ($status)' : status;
+        if (status.startsWith('error:HTTP:')) {
+          final code = status.substring('error:HTTP:'.length);
+          return 'Server-Fehler (HTTP $code). Kalender-Endpunkt möglicherweise '
+              'falsch konfiguriert.';
+        }
+        return 'Synchronisation fehlgeschlagen ($status).';
     }
+  }
+
+  Widget _syncErrorCard(String status) {
+    if (_dismissedSyncStatus == status) return const SizedBox.shrink();
+    final tokens = DesignTheme.of(context);
+    return DesignCard(
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_rounded, color: tokens.danger),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DesignText(
+                  'Synchronisation fehlgeschlagen',
+                  style: DesignTextStyle.label,
+                  color: tokens.danger,
+                ),
+                const SizedBox(height: 2),
+                DesignText(
+                  _syncErrorText(status),
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+              ],
+            ),
+          ),
+          DesignIconButton(
+            icon: Icons.close_rounded,
+            onPressed: () => setState(() => _dismissedSyncStatus = status),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _noticeCard(DavSyncNotice notice) {
+    final tokens = DesignTheme.of(context);
+    final (icon, color) = switch (notice.severity) {
+      DavSyncSeverity.error => (Icons.error_rounded, tokens.danger),
+      DavSyncSeverity.warning => (Icons.warning_rounded, tokens.warning),
+      DavSyncSeverity.info => (Icons.info_rounded, tokens.primary),
+    };
+    return DesignCard(
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DesignText(
+                  notice.step,
+                  style: DesignTextStyle.label,
+                  color: color,
+                ),
+                const SizedBox(height: 2),
+                DesignText(
+                  notice.message,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+                const SizedBox(height: 2),
+                DesignText(
+                  formatDateTime(notice.createdAt),
+                  style: DesignTextStyle.label,
+                  color: tokens.textLow,
+                ),
+              ],
+            ),
+          ),
+          DesignIconButton(
+            icon: Icons.close_rounded,
+            onPressed: () => _dismissNotice(notice.id),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _dismissNotice(String id) {
+    AppScope.of(context).davSync.clearNotice(id);
+    setState(() => _notices = AppScope.of(context).davSync.notices());
+  }
+
+  void _clearNotices() {
+    AppScope.of(context).davSync.clearNotices();
+    setState(() => _notices = const []);
   }
 
   Future<void> _toggleNativeSync(bool newValue) async {
@@ -500,14 +655,15 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
       final granted = await scope.davSync.requestPermission();
       if (!granted) {
         if (!mounted) return;
-        setState(() => _nativeSyncBusy = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Kalender-Zugriff wurde abgelehnt. Synchronisation deaktiviert.',
-            ),
-          ),
+        scope.davSync.addNotice(
+          step: 'Berechtigung',
+          message: 'Kalender-Zugriff wurde abgelehnt.',
+          severity: DavSyncSeverity.warning,
         );
+        setState(() {
+          _nativeSyncBusy = false;
+          _notices = scope.davSync.notices();
+        });
         return;
       }
       try {
@@ -516,22 +672,19 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
         setState(() {
           _nativeSyncBusy = false;
           _nativeSyncEnabled = ok;
+          _notices = scope.davSync.notices();
         });
-        if (!ok) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Synchronisation konnte nicht aktiviert werden.'),
-            ),
-          );
-        }
       } catch (e) {
         if (!mounted) return;
-        setState(() => _nativeSyncBusy = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Synchronisation konnte nicht aktiviert werden.'),
-          ),
+        scope.davSync.addNotice(
+          step: 'Systemkalender-Account',
+          message: e.toString(),
+          severity: DavSyncSeverity.error,
         );
+        setState(() {
+          _nativeSyncBusy = false;
+          _notices = scope.davSync.notices();
+        });
       }
     } else {
       final confirmed = await _confirmDisableSync();
