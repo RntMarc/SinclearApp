@@ -884,3 +884,5 @@ education levels, and learning styles.
 * **Screen Reader Testing:** Regularly test your app with TalkBack (Android) and
   VoiceOver (iOS).
 
+## Deployment (deploy.py)
+The Agent may never deploy any app updates automatically. The admin must first review and test them manually before it can be pushed out to all users.

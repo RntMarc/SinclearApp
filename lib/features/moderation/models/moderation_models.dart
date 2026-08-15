@@ -34,7 +34,8 @@ enum ModerationObjectType {
   travelAccommodation('travel_accommodation', 'Unterkunft'),
   travelTicket('travel_ticket', 'Ticket'),
   subscription('subscription', 'Abonnement'),
-  calendarEvent('calendar_event', 'Kalender-Event');
+  calendarEvent('calendar_event', 'Kalender-Event'),
+  story('story', 'Story');
 
   final String apiValue;
   final String label;

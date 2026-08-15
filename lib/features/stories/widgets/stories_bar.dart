@@ -220,6 +220,10 @@ class _StoriesBarState extends State<StoriesBar>
         for (final story in group.stories)
           story.id: isAdmin || group.userId == ownId,
     };
+    final reportableById = <String, bool>{
+      for (final group in groups)
+        for (final story in group.stories) story.id: group.userId != ownId,
+    };
     _currentStory.value = null;
     final items = _toStoryItems(groups, _onStoryShown);
     await Navigator.of(context).push(
@@ -230,7 +234,9 @@ class _StoriesBarState extends State<StoriesBar>
           service: widget.service,
           currentStoryId: _currentStory,
           deletableById: deletableById,
+          reportableById: reportableById,
           onDeleted: _onStoryDeleted,
+          onReported: _onStoryReported,
         ),
       ),
     );
@@ -252,6 +258,13 @@ class _StoriesBarState extends State<StoriesBar>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Story gelöscht')));
+  }
+
+  void _onStoryReported() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Meldung gesendet')));
   }
 
   Future<void> _createStory(BuildContext context) async {
