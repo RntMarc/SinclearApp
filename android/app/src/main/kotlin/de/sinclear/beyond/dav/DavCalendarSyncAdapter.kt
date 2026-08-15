@@ -38,7 +38,7 @@ class DavCalendarSyncAdapter(
 
     private enum class FetchStatus { OK, AUTH, HTTP, IO }
 
-    private data class FetchResult(val status: FetchStatus, val body: String?)
+    private data class FetchResult(val status: FetchStatus, val body: String?, val code: Int? = null)
 
     override fun onPerformSync(
         account: Account,
@@ -50,14 +50,17 @@ class DavCalendarSyncAdapter(
         val am = AccountManager.get(context)
         val userId = am.getUserData(account, DavConstants.KEY_USER_ID) ?: run {
             Log.e(TAG, "Kein userId im Account")
+            setUserData(am, account, DavConstants.KEY_LAST_ERROR, "config")
             return
         }
         val davBaseUrl = am.getUserData(account, DavConstants.KEY_DAV_BASE_URL) ?: run {
             Log.e(TAG, "Kein davBaseUrl im Account")
+            setUserData(am, account, DavConstants.KEY_LAST_ERROR, "config")
             return
         }
         val token = am.getUserData(account, DavConstants.KEY_DAV_TOKEN) ?: run {
             Log.e(TAG, "Kein davToken im Account")
+            setUserData(am, account, DavConstants.KEY_LAST_ERROR, "config")
             return
         }
         val enabled = am.getUserData(account, DavConstants.KEY_ENABLED_SEGMENTS)
@@ -103,10 +106,15 @@ class DavCalendarSyncAdapter(
                 return true
             }
             FetchStatus.HTTP, FetchStatus.IO -> {
-                Log.e(TAG, "Fetch-Fehler für ${kind.segment}: ${fetch.status}")
+                Log.e(TAG, "Fetch-Fehler für ${kind.segment}: ${fetch.status} ${fetch.code}")
                 syncResult.stats.numIoExceptions++
                 syncResult.delayUntil = 300
-                setUserData(am, account, DavConstants.KEY_LAST_ERROR, "error:${fetch.status}")
+                val label = if (fetch.status == FetchStatus.HTTP) {
+                    "error:HTTP:${fetch.code}"
+                } else {
+                    "error:IO"
+                }
+                setUserData(am, account, DavConstants.KEY_LAST_ERROR, label)
                 return true
             }
             FetchStatus.OK -> Unit
@@ -176,7 +184,7 @@ class DavCalendarSyncAdapter(
                     code == 401 || code == 403 -> FetchResult(FetchStatus.AUTH, null)
                     else -> {
                         Log.e(TAG, "REPORT-Status: $code")
-                        FetchResult(FetchStatus.HTTP, null)
+                        FetchResult(FetchStatus.HTTP, null, code)
                     }
                 }
             }

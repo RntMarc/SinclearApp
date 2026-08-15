@@ -18,18 +18,32 @@ class DavSyncManager(private val context: Context) {
     private val accountManager = AccountManager.get(context)
     private val resolver = context.contentResolver
 
-    /** Richtet Account + Kalender ein und stößt den ersten Sync an. */
+    /**
+     * Richtet Account + Kalender ein und stößt den ersten Sync an.
+     *
+     * Liefert einen Statuscode statt eines bloßen `Boolean`, damit die
+     * Flutter-Seite den fehlgeschlagenen Schritt benennen kann:
+     * `ok`, `account_exists` (Account überlebte z. B. eine Neuinstallation,
+     * Zugangsdaten wurden aktualisiert) oder `add_account_failed`.
+     */
     fun enable(
         email: String,
         userId: String,
         davBaseUrl: String,
         davToken: String,
         enabledSegments: List<String>,
-    ): Boolean {
+    ): String {
         val account = Account(email, DavConstants.ACCOUNT_TYPE)
-        val exists = currentAccount()?.name == email
-        if (!exists) {
-            if (!accountManager.addAccountExplicitly(account, null, null)) return false
+        val existing = currentAccount()
+        if (existing != null && existing.name != email) {
+            // Account eines anderen Nutzers: samt Kalendern entfernen.
+            disable()
+        }
+        val existed = existing != null && existing.name == email
+        if (!existed) {
+            if (!accountManager.addAccountExplicitly(account, null, null)) {
+                return "add_account_failed"
+            }
         }
         accountManager.setUserData(account, DavConstants.KEY_USER_ID, userId)
         accountManager.setUserData(account, DavConstants.KEY_DAV_BASE_URL, davBaseUrl)
@@ -50,7 +64,7 @@ class DavSyncManager(private val context: Context) {
             DavConstants.CALENDAR_AUTHORITY,
             Bundle.EMPTY,
         )
-        return true
+        return if (existed) "account_exists" else "ok"
     }
 
     /** Aktualisiert die sichtbaren Kalender-Typen und stößt einen Sync an. */
