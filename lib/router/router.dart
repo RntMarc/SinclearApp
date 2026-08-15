@@ -43,6 +43,7 @@ import '../features/forum/screens/post_detail_screen.dart';
 import '../features/forum/screens/create_post_screen.dart';
 import '../features/moderation/screens/moderation_requests_screen.dart';
 import '../features/showcase/screens/design_showcase_screen.dart';
+import '../features/stories/screens/story_deep_link_screen.dart';
 import '../features/subscription/screens/subscription_list_screen.dart';
 
 GoRouter createRouter(AuthService auth) {
@@ -63,8 +64,9 @@ GoRouter createRouter(AuthService auth) {
           location.startsWith('/feedback') ||
           location.startsWith('/mod-anfragen') ||
           location.startsWith('/forum') ||
-          (location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
+          (          location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
           location.startsWith('/abos') ||
+          location.startsWith('/stories') ||
           location.startsWith('/design-showcase');
 
       if (loggedIn && !auth.onboardingCompleted && location != '/onboarding') {
@@ -304,6 +306,12 @@ GoRouter createRouter(AuthService auth) {
             builder: (context, state) => const DesignShowcaseScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/stories/:id',
+        builder: (context, state) => StoryDeepLinkScreen(
+          storyId: state.pathParameters['id']!,
+        ),
       ),
     ],
   );

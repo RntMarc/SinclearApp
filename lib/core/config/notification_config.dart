@@ -12,10 +12,10 @@ import '../../features/notifications/models/notification_item.dart';
 /// fehlen (z. B. alte Payloads) und für die Anreicherung nicht nachgeladen
 /// werden kann.
 ///
-/// Unterstützte Typen: `forum_reply`, `forum_comment` (siehe API-Doku).
-/// Unbekannte Typen liefern generische Standardwerte, `route` gibt dann
-/// `null` zurück (Aufrufer öffnet die Inbox bzw. bis zu deren Umsetzung
-/// `/home`).
+/// Unterstützte Typen: `forum_reply`, `forum_comment`, `story_post`
+/// (siehe API-Doku). Unbekannte Typen liefern generische Standardwerte,
+/// `route` gibt dann `null` zurück (Aufrufer öffnet die Inbox bzw. bis zu
+/// deren Umsetzung `/home`).
 class NotificationTypeLabel {
   const NotificationTypeLabel._();
 
@@ -25,6 +25,7 @@ class NotificationTypeLabel {
   static String? route(String type, List<NotificationRelation> data) {
     return switch (type) {
       'forum_reply' || 'forum_comment' => _forumRoute(data),
+      'story_post' => _storyRoute(data),
       _ => null,
     };
   }
@@ -35,6 +36,7 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' => 'Neue Antwort auf deinen Kommentar',
       'forum_comment' => 'Neuer Kommentar zu deinem Beitrag',
+      'story_post' => 'Neue Story',
       _ => 'Neue Mitteilung',
     };
   }
@@ -46,6 +48,7 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' => 'Jemand hat auf deinen Kommentar geantwortet.',
       'forum_comment' => 'Jemand hat deinen Beitrag kommentiert.',
+      'story_post' => 'Jemand hat eine neue Story veröffentlicht.',
       _ => 'Du hast eine neue Benachrichtigung.',
     };
   }
@@ -54,6 +57,7 @@ class NotificationTypeLabel {
   static IconData icon(String type) {
     return switch (type) {
       'forum_reply' || 'forum_comment' => Icons.forum_rounded,
+      'story_post' => Icons.auto_stories_rounded,
       _ => Icons.notifications_rounded,
     };
   }
@@ -66,6 +70,14 @@ class NotificationTypeLabel {
     final postId = _identifierFor(data, 'parent_post');
     if (forumId == null || postId == null) return null;
     return '/forum/$forumId/beitrag/$postId';
+  }
+
+  /// `/stories/{story}` — die Story-ID ist laut API-Doku bei `story_post`
+  /// Pflicht; ohne sie ist das Ziel nicht bestimmbar.
+  static String? _storyRoute(List<NotificationRelation> data) {
+    final storyId = _identifierFor(data, 'story');
+    if (storyId == null) return null;
+    return '/stories/$storyId';
   }
 
   static String? _identifierFor(

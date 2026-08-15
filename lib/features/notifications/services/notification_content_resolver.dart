@@ -66,6 +66,7 @@ class NotificationContentResolver {
     return switch (item.type) {
       'forum_reply' => _resolveForumReply(item, route),
       'forum_comment' => _resolveForumComment(item, route),
+      'story_post' => _resolveStoryPost(item, route),
       _ => _fallback(item.type, route),
     };
   }
@@ -162,6 +163,30 @@ class NotificationContentResolver {
     return ResolvedNotificationContent(
       title: NotificationTypeLabel.title(item.type),
       body: '$authorName hat deinen Beitrag kommentiert',
+      route: route,
+    );
+  }
+
+  /// `story_post`: „{Autor} hat eine neue Story veröffentlicht“ — der Autor
+  /// wird nachgeladen; schlägt das fehl, greift der generalisierte
+  /// Fallback-Text.
+  Future<ResolvedNotificationContent> _resolveStoryPost(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final authorId = item.identifierFor('story_author');
+    final authorName = await _attempt('story_author', () async {
+      if (authorId == null) return null;
+      return (await _user.get(authorId)).base.displayName;
+    });
+
+    if (authorName == null || authorName.isEmpty) {
+      return _fallback(item.type, route);
+    }
+
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: '$authorName hat eine neue Story veröffentlicht',
       route: route,
     );
   }

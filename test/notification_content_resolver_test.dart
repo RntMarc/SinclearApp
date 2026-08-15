@@ -127,6 +127,24 @@ NotificationItem _forumCommentItem() => NotificationItem(
   ],
 );
 
+NotificationItem _storyPostItem() => NotificationItem(
+  id: 'n3',
+  type: 'story_post',
+  createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+  data: const [
+    NotificationRelation(
+      relation: 'story_author',
+      object: 'User',
+      identifier: 'user-story',
+    ),
+    NotificationRelation(
+      relation: 'story',
+      object: 'Story',
+      identifier: 's1',
+    ),
+  ],
+);
+
 void main() {
   late _FakeUserService user;
   late _FakeForumService forum;
@@ -252,6 +270,39 @@ void main() {
       final content = await resolver.resolve(item);
 
       expect(content.body, 'Jemand hat deinen Beitrag kommentiert.');
+      expect(content.route, isNull);
+    });
+  });
+
+  group('story_post', () {
+    test('voller Text, wenn der Autor geladen werden kann', () async {
+      user.displayName = 'Anna';
+
+      final content = await resolver.resolve(_storyPostItem());
+
+      expect(content.title, 'Neue Story');
+      expect(content.body, 'Anna hat eine neue Story veröffentlicht');
+      expect(content.route, '/stories/s1');
+    });
+
+    test('generalisierter Text, wenn das Nachladen scheitert', () async {
+      final content = await resolver.resolve(_storyPostItem());
+
+      expect(content.title, 'Neue Story');
+      expect(content.body, 'Jemand hat eine neue Story veröffentlicht.');
+      expect(content.route, '/stories/s1');
+    });
+
+    test('fehlende Relationen: generalisierter Text, Route null', () async {
+      final item = NotificationItem(
+        id: 'n5',
+        type: 'story_post',
+        createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+      );
+
+      final content = await resolver.resolve(item);
+
+      expect(content.body, 'Jemand hat eine neue Story veröffentlicht.');
       expect(content.route, isNull);
     });
   });
