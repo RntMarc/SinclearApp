@@ -26,4 +26,8 @@ class StoriesService {
   Future<void> markViewed(String id) async {
     await _api.post('/stories/$id/view', token: await _token());
   }
+
+  Future<void> delete(String id) async {
+    await _api.delete('/stories/$id', token: await _token());
+  }
 }
