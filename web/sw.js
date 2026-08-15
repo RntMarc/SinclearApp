@@ -12,6 +12,10 @@ const CONTENT_BY_TYPE = {
     title: 'Neuer Kommentar zu deinem Beitrag',
     body: 'Jemand hat deinen Beitrag kommentiert.',
   },
+  story_post: {
+    title: 'Neue Story',
+    body: 'Jemand hat eine neue Story veröffentlicht.',
+  },
 };
 
 const FALLBACK_CONTENT = {
@@ -32,6 +36,10 @@ function resolveRoute(type, data) {
     const forumId = relationId(data, 'parent_forum');
     const postId = relationId(data, 'parent_post');
     if (forumId && postId) return `/forum/${forumId}/beitrag/${postId}`;
+  }
+  if (type === 'story_post') {
+    const storyId = relationId(data, 'story');
+    if (storyId) return `/stories/${storyId}`;
   }
   return '/home';
 }

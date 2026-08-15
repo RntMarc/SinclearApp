@@ -63,6 +63,20 @@ void main() {
     ),
   ];
 
+  /// Relation-Liste exakt so, wie die API sie für `story_post` liefert.
+  const storyPostData = [
+    NotificationRelation(
+      relation: 'story_author',
+      object: 'User',
+      identifier: 'user-story',
+    ),
+    NotificationRelation(
+      relation: 'story',
+      object: 'Story',
+      identifier: 's1',
+    ),
+  ];
+
   group('NotificationTypeLabel.route', () {
     test('forum_reply navigiert zum Beitrag (/forum/{f}/beitrag/{p})', () {
       expect(
@@ -103,6 +117,22 @@ void main() {
       expect(NotificationTypeLabel.route('forum_comment', ohnePost), isNull);
     });
 
+    test('story_post navigiert zur Story (/stories/{s})', () {
+      expect(
+        NotificationTypeLabel.route('story_post', storyPostData),
+        '/stories/s1',
+      );
+    });
+
+    test('story_post ohne story Relation gibt null', () {
+      final ohneStory = storyPostData
+          .where((e) => e.relation != 'story')
+          .toList();
+
+      expect(NotificationTypeLabel.route('story_post', ohneStory), isNull);
+      expect(NotificationTypeLabel.route('story_post', const []), isNull);
+    });
+
     test('unbekannte Typen geben null (Inbox-Fallback)', () {
       expect(NotificationTypeLabel.route('unbekannt', forumReplyData), isNull);
       expect(NotificationTypeLabel.route('', const []), isNull);
@@ -132,6 +162,21 @@ void main() {
         'Jemand hat deinen Beitrag kommentiert.',
       );
       expect(NotificationTypeLabel.icon('forum_comment'), Icons.forum_rounded);
+    });
+
+    test('story_post rendert Titel, generalisierten Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('story_post'),
+        'Neue Story',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('story_post'),
+        'Jemand hat eine neue Story veröffentlicht.',
+      );
+      expect(
+        NotificationTypeLabel.icon('story_post'),
+        Icons.auto_stories_rounded,
+      );
     });
 
     test('unbekannte Typen rendern generische Standardwerte', () {
