@@ -1,7 +1,8 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    RewriteRule ^\.well-known/(.*)$ /api/v2/public/.well-known/$1 [L]
+    RewriteRule ^\.well-known/caldav/?$ /api/dav/ [R=301,L]
+    RewriteRule ^\.well-known/carddav/?$ /api/dav/ [R=301,L]
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
