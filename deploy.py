@@ -669,6 +669,7 @@ def main():
               f'.htaccess, manifest.json und pwa-icons/{R}')
         print(f'    {GR}→ Lade {apk_name} → {remote_root}/downloads/ hoch{R}')
         print(f'    {GR}→ Schreibe api/app_version.json erst nach Web + APK{R}')
+        print(f'    {GR}→ Verifiziere api/app_version.json auf dem Server{R}')
         print(f'    {GR}→ Lösche alte versionierte Verzeichnisse '
               f'ganz zum Schluss{R}')
         print(json.dumps(vj_data, indent=4, ensure_ascii=False))
@@ -716,10 +717,15 @@ def main():
                         label=f'downloads/{apk_name}')
 
         # 6e. app_version.json erst schreiben, wenn Web und APK
-        # erfolgreich sind.
+        # erfolgreich sind. Die Datei speist die Update-Prüfung der
+        # Android-App (GET /api/v2/app/version) und muss bei jedem Deploy
+        # den gerade veröffentlichten Stand tragen. Sie wird ausschließlich
+        # von deploy.py geschrieben; das API-Repo trackt und verändert die
+        # Datei nie (nur der Server liest sie nach dem Deploy).
         print(f'    {GR}app_version.json aktualisieren …{R}')
         ftp_mkdir(ftp, 'api')
         ftp_write_json(ftp, 'api/app_version.json', vj_data)
+        ftp_verify_files(ftp, ['api/app_version.json'])
 
         # 6f. Alte versionierte Verzeichnisse ganz zum Schluss bereinigen.
         print(f'    {GR}Alte versionierte Verzeichnisse bereinigen …{R}')
