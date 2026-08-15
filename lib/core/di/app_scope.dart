@@ -17,6 +17,7 @@ import '../../features/settings/models/notification_preference.dart';
 import '../../features/settings/services/dav_token_service.dart';
 import '../../features/settings/services/dav_sync_service.dart';
 import '../../features/settings/services/mcp_key_service.dart';
+import '../../features/stories/services/stories_service.dart';
 import '../../features/subscription/services/subscription_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/travel/services/pt_service.dart';
@@ -37,6 +38,7 @@ class AppScope extends InheritedWidget {
   final RecipesService recipes;
   final ModerationService moderation;
   final SubscriptionService subscription;
+  final StoriesService stories;
   final McpKeyService mcpKeys;
   final DavTokenService davTokens;
   final DavSyncService davSync;
@@ -72,6 +74,7 @@ class AppScope extends InheritedWidget {
     required this.recipes,
     required this.moderation,
     required this.subscription,
+    required this.stories,
     required this.mcpKeys,
     required this.davTokens,
     required this.davSync,

@@ -6,6 +6,7 @@ import '../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../design/widgets/foundation/design_surface.dart';
 import '../../design/widgets/foundation/design_text.dart';
 import '../../design/widgets/primitives/press_scale.dart';
+import '../stories/widgets/stories_bar.dart';
 import 'dashboard_controller.dart';
 import 'dashboard_widget.dart';
 import 'dashboard_widget_repository.dart';
@@ -101,7 +102,16 @@ class HomeScreen extends StatelessWidget {
         ],
       );
     }
-    return ListView(padding: padding, children: entries);
+    return ListView(
+      padding: padding,
+      children: [
+        StoriesBar(
+          controller: controller,
+          service: AppScope.of(context).stories,
+        ),
+        ...entries,
+      ],
+    );
   }
 
   Future<void> _showAddWidgetSheet(BuildContext context) async {
