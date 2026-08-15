@@ -24,12 +24,12 @@ class _TicketPreviewPageState extends State<TicketPreviewPage> {
   @override
   void initState() {
     super.initState();
-    ScreenBrightness().setScreenBrightness(1.0);
+    ScreenBrightness().setApplicationScreenBrightness(1.0);
   }
 
   @override
   void dispose() {
-    ScreenBrightness().resetScreenBrightness();
+    ScreenBrightness().resetApplicationScreenBrightness();
     super.dispose();
   }
 
