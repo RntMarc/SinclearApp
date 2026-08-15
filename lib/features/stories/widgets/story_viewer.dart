@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:stories_for_flutter/full_page_view.dart';
 import 'package:stories_for_flutter/stories_for_flutter.dart';
 
+import '../../moderation/models/moderation_models.dart';
+import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -9,12 +11,13 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../services/stories_service.dart';
 
-/// Vollbild-Viewer aus dem Paket, ergänzt um einen Löschen-Knopf.
+/// Vollbild-Viewer aus dem Paket, ergänzt um Löschen- und Melden-Button.
 ///
 /// `FullPageView` ist ein geschlossenes Widget; eigene Bedienelemente lassen
-/// sich nur DARÜBER legen. Der Mülleimer schwebt daher rechts oben über dem
-/// Viewer und ist nur sichtbar, wenn der Nutzer die aktuell angezeigte Story
-/// löschen darf (eigene Story oder Admin). Vor dem Löschen wird nachgefragt.
+/// sich nur DARÜBER legen. Je nach Berechtigung wird oben rechts ein
+/// Mülleimer-Button (eigene Story oder Admin) oder ein Flag-Button
+/// (fremde Story) eingeblendet. Beide Buttons zeigen vor dem Ausführen
+/// eine Bestätigung an.
 class StoryViewer extends StatefulWidget {
   const StoryViewer({
     required this.items,
@@ -22,7 +25,9 @@ class StoryViewer extends StatefulWidget {
     required this.service,
     required this.currentStoryId,
     required this.deletableById,
+    required this.reportableById,
     required this.onDeleted,
+    required this.onReported,
     super.key,
   });
 
@@ -36,16 +41,26 @@ class StoryViewer extends StatefulWidget {
   /// Story-ID → darf der aktuelle Nutzer diese Story löschen?
   final Map<String, bool> deletableById;
 
+  /// Story-ID → darf der aktuelle Nutzer diese Story melden?
+  final Map<String, bool> reportableById;
+
   /// Wird nach erfolgreichem Löschen aufgerufen (der Viewer hat sich
   /// dann bereits geschlossen).
   final VoidCallback onDeleted;
+
+  /// Wird nach erfolgreichen Meldung aufgerufen.
+  final VoidCallback onReported;
 
   @override
   State<StoryViewer> createState() => _StoryViewerState();
 }
 
 class _StoryViewerState extends State<StoryViewer> {
-  bool _deleting = false;
+  bool _busy = false;
+
+  bool _isDeletable(String storyId) => widget.deletableById[storyId] ?? false;
+
+  bool _isReportable(String storyId) => widget.reportableById[storyId] ?? false;
 
   Future<void> _confirmDelete(String storyId) async {
     final tokens = DesignTheme.of(context);
@@ -93,8 +108,8 @@ class _StoryViewerState extends State<StoryViewer> {
   }
 
   Future<void> _delete(String storyId) async {
-    if (_deleting) return;
-    setState(() => _deleting = true);
+    if (_busy) return;
+    setState(() => _busy = true);
     try {
       await widget.service.delete(storyId);
       if (!mounted) return;
@@ -102,11 +117,29 @@ class _StoryViewerState extends State<StoryViewer> {
       widget.onDeleted();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _deleting = false);
+      setState(() => _busy = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Story konnte nicht gelöscht werden.')),
       );
     }
+  }
+
+  Future<void> _report(String storyId) async {
+    if (_busy) return;
+    final submitted = await showModerationRequestSheet(
+      context,
+      objectType: ModerationObjectType.story,
+      objectId: storyId,
+      objectName: 'Story',
+      isOwn: false,
+      supportedTypes: [
+        ModerationRequestType.report,
+        ModerationRequestType.other,
+      ],
+    );
+    if (!submitted || !mounted) return;
+    Navigator.of(context).pop();
+    widget.onReported();
   }
 
   @override
@@ -123,51 +156,97 @@ class _StoryViewerState extends State<StoryViewer> {
           child: ValueListenableBuilder<String?>(
             valueListenable: widget.currentStoryId,
             builder: (context, storyId, _) {
-              if (storyId == null ||
-                  !(widget.deletableById[storyId] ?? false)) {
+              if (storyId == null) return const SizedBox.shrink();
+              final deletable = _isDeletable(storyId);
+              final reportable = _isReportable(storyId);
+              if (!deletable && !reportable) {
                 return const SizedBox.shrink();
               }
               return Align(
                 alignment: Alignment.topRight,
                 child: Padding(
                   padding: const EdgeInsets.only(top: 48, right: 16),
-                  child: Semantics(
-                    label: 'Story löschen',
-                    button: true,
-                    child: PressScale(
-                      onTap: _deleting ? null : () => _confirmDelete(storyId),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black.withValues(alpha: 0.55),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
+                  child: deletable
+                      ? _DeleteButton(
+                          onTap: _busy ? null : () => _confirmDelete(storyId),
+                          busy: _busy,
+                        )
+                      : _ReportButton(
+                          onTap: _busy ? null : () => _report(storyId),
                         ),
-                        child: _deleting
-                            ? const Padding(
-                                padding: EdgeInsets.all(10),
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(
-                                Icons.delete_outline_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                      ),
-                    ),
-                  ),
                 ),
               );
             },
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DeleteButton extends StatelessWidget {
+  const _DeleteButton({required this.onTap, required this.busy});
+
+  final VoidCallback? onTap;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Story löschen',
+      button: true,
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withValues(alpha: 0.55),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+          ),
+          child: busy
+              ? const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportButton extends StatelessWidget {
+  const _ReportButton({required this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Story melden',
+      button: true,
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withValues(alpha: 0.55),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+          ),
+          child: const Icon(Icons.flag_rounded, color: Colors.white, size: 20),
+        ),
+      ),
     );
   }
 }

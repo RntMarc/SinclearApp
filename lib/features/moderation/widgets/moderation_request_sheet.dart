@@ -23,6 +23,7 @@ Future<bool> showModerationRequestSheet(
   required String objectId,
   required String objectName,
   required bool isOwn,
+  List<ModerationRequestType>? supportedTypes,
 }) async {
   final submitted = await showDesignSheet<bool>(
     context: context,
@@ -31,6 +32,7 @@ Future<bool> showModerationRequestSheet(
       objectId: objectId,
       objectName: objectName,
       isOwn: isOwn,
+      supportedTypes: supportedTypes,
     ),
   );
   return submitted ?? false;
@@ -42,12 +44,17 @@ class ModerationRequestSheet extends StatefulWidget {
   final String objectName;
   final bool isOwn;
 
+  /// Optionale Einschränkung der verfügbaren Anfragetypen.
+  /// Wenn gesetzt, überschreibt die Standard-Logik (isOwn → deletion/report).
+  final List<ModerationRequestType>? supportedTypes;
+
   const ModerationRequestSheet({
     super.key,
     required this.objectType,
     required this.objectId,
     required this.objectName,
     required this.isOwn,
+    this.supportedTypes,
   });
 
   @override
@@ -56,18 +63,28 @@ class ModerationRequestSheet extends StatefulWidget {
 
 class _ModerationRequestSheetState extends State<ModerationRequestSheet> {
   final _messageController = TextEditingController();
-  late ModerationRequestType _type = widget.isOwn
-      ? ModerationRequestType.deletion
-      : ModerationRequestType.report;
+  late final List<ModerationRequestType> _availableTypes;
+  late ModerationRequestType _type;
   bool _submitting = false;
   String? _error;
 
-  /// Anfragetypen, die für dieses Objekt erlaubt sind.
-  List<ModerationRequestType> get _availableTypes => [
-    if (!widget.isOwn) ModerationRequestType.report,
-    if (widget.isOwn) ModerationRequestType.deletion,
-    ModerationRequestType.other,
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _availableTypes =
+        widget.supportedTypes ??
+        [
+          if (!widget.isOwn) ModerationRequestType.report,
+          if (widget.isOwn) ModerationRequestType.deletion,
+          ModerationRequestType.other,
+        ];
+    final defaultType = widget.isOwn
+        ? ModerationRequestType.deletion
+        : ModerationRequestType.report;
+    _type = _availableTypes.contains(defaultType)
+        ? defaultType
+        : _availableTypes.first;
+  }
 
   @override
   void dispose() {

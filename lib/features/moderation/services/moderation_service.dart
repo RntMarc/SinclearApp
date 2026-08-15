@@ -31,11 +31,7 @@ class ModerationService {
       objectId: objectId,
       message: message,
     ).toJson();
-    await _api.post(
-      '/moderation-requests',
-      body: body,
-      token: await _token(),
-    );
+    await _api.post('/moderation-requests', body: body, token: await _token());
   }
 
   /// Eigene Anfragen inklusive Status und Admin-Kommentar.
