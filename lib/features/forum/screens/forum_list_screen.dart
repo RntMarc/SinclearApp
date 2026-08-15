@@ -26,6 +26,17 @@ class _ForumListScreenState extends State<ForumListScreen> {
     super.didChangeDependencies();
     if (_allForums.isEmpty && _loading) {
       _load();
+      _refreshUnread();
+    }
+  }
+
+  Future<void> _refreshUnread() async {
+    try {
+      final scope = AppScope.of(context);
+      final token = await scope.auth.getAccessToken();
+      await scope.notification.refreshUnread(token: token);
+    } catch (e) {
+      developer.log('refreshUnread failed', error: e);
     }
   }
 
@@ -114,25 +125,29 @@ class _ForumListScreenState extends State<ForumListScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline, size: 48, color: tokens.danger),
-                  SizedBox(height: tokens.spaceSm),
-                  DesignText(_error!, style: DesignTextStyle.body, color: tokens.textHigh),
-                  SizedBox(height: tokens.spaceLg),
-                  DesignButton(
-                    variant: DesignButtonVariant.filled,
-                    label: 'Erneut versuchen',
-                    onPressed: _load,
-                  ),
-                ],
+              SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                    SizedBox(height: tokens.spaceSm),
+                    DesignText(
+                      _error!,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceLg),
+                    DesignButton(
+                      variant: DesignButtonVariant.filled,
+                      label: 'Erneut versuchen',
+                      onPressed: _load,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       );
     }
@@ -172,44 +187,51 @@ class _ForumList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: forums.isEmpty
-          ? SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.3,
+    return ListenableBuilder(
+      listenable: AppScope.of(context).notification,
+      builder: (context, _) {
+        final unreadForumIds = AppScope.of(context).notification.unreadForumIds;
+        return RefreshIndicator(
+          onRefresh: onRefresh,
+          child: forums.isEmpty
+              ? SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.3,
+                      ),
+                      Center(
+                        child: DesignText(
+                          emptyText,
+                          style: DesignTextStyle.body,
+                          color: tokens.textLow,
+                        ),
+                      ),
+                    ],
                   ),
-                  Center(
-                    child: DesignText(
-                      emptyText,
-                      style: DesignTextStyle.body,
-                      color: tokens.textLow,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
-              itemCount: forums.length,
-              itemBuilder: (context, index) {
-                final forum = forums[index];
-                return Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: tokens.spaceLg,
-                    vertical: tokens.spaceXs,
-                  ),
-                  child: ForumCard(
-                    key: ValueKey(forum.id),
-                    forum: forum,
-                    onTap: () => onForumTap(forum),
-                  ),
-                );
-              },
-            ),
+                )
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+                  itemCount: forums.length,
+                  itemBuilder: (context, index) {
+                    final forum = forums[index];
+                    return Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: tokens.spaceLg,
+                        vertical: tokens.spaceXs,
+                      ),
+                      child: ForumCard(
+                        key: ValueKey(forum.id),
+                        forum: forum,
+                        hasUnread: unreadForumIds.contains(forum.id),
+                        onTap: () => onForumTap(forum),
+                      ),
+                    );
+                  },
+                ),
+        );
+      },
     );
   }
 }

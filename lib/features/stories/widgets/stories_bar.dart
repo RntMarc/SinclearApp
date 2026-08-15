@@ -245,11 +245,29 @@ class _StoriesBarState extends State<StoriesBar>
 
   void _onStoryShown(String id) {
     _markViewed(id);
+    _markStoryNotificationRead(id);
     // Der Aufruf kommt aus initState einer Story-Seite (während des
     // Frame-Aufbaus); das Notifier-Update daher auf nach dem Frame schieben.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _currentStory.value = id;
     });
+  }
+
+  /// Markiert `story_post`-Benachrichtigungen der angesehenen Story als
+  /// gelesen. Hält die Unread-Liste sauber, damit Story-Mengen nicht die
+  /// 50er-Grenze sprengen und Forum-Unreads verdrängen.
+  void _markStoryNotificationRead(String id) {
+    final scope = AppScope.of(context);
+    unawaited(() async {
+      try {
+        final ids = scope.notification.unreadIdsForStory(id);
+        if (ids.isEmpty) return;
+        final token = await scope.auth.getAccessToken();
+        await scope.notification.markRead(ids, token: token);
+      } catch (_) {
+        // Idempotent; der nächste Abruf liefert den Stand erneut.
+      }
+    }());
   }
 
   void _onStoryDeleted() {

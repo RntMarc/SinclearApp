@@ -116,6 +116,10 @@ class ForumPostList extends StatelessWidget {
   final void Function(String forumId, String postId)? onPostTap;
   final void Function(FeedPost post)? onReport;
 
+  /// Posts mit ungelesener Aktivität (kennzeichnet die zugehörigen
+  /// [PostCard]s mit einem pulsierenden Glow).
+  final Set<String> unreadPostIds;
+
   const ForumPostList({
     super.key,
     required this.postsLoading,
@@ -129,6 +133,7 @@ class ForumPostList extends StatelessWidget {
     required this.onDelete,
     this.onPostTap,
     this.onReport,
+    this.unreadPostIds = const {},
   });
 
   @override
@@ -170,6 +175,7 @@ class ForumPostList extends StatelessWidget {
                   ? onPostTap!(forumId, post.id)
                   : context.go('/forum/$forumId/beitrag/${post.id}'),
               onVote: () => onVote(post),
+              hasUnread: unreadPostIds.contains(post.id),
               onDelete: (post.userId == currentUserId || isAdmin)
                   ? () => onDelete(post)
                   : null,

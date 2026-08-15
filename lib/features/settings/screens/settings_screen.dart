@@ -558,7 +558,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await LocalNotificationHelper.requestPermission();
     scope.unifiedPush.init(
       token: await scope.auth.getAccessToken(),
-      onMessage: (item) => unawaited(scope.notificationContent.showLocal(item)),
+      onMessage: (item) {
+        scope.notification.registerIncoming(item);
+        unawaited(scope.notificationContent.showLocal(item));
+      },
     );
     if (!mounted) return;
     await scope.unifiedPush.checkAndSetup(
@@ -665,6 +668,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       final scope = AppScope.of(context);
       scope.notification.stopPolling();
+      scope.notification.clear();
       try {
         await scope.davSync.disable();
       } catch (e) {
