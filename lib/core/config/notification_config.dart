@@ -12,12 +12,40 @@ import '../../features/notifications/models/notification_item.dart';
 /// fehlen (z. B. alte Payloads) und für die Anreicherung nicht nachgeladen
 /// werden kann.
 ///
-/// Unterstützte Typen: `forum_reply`, `forum_comment`, `story_post`
+/// Unterstützte Typen: `forum_reply`, `forum_comment`, `story_post`,
+/// `trip_user_added`, `trip_user_added_others`, `trip_event_added`,
+/// `trip_event_user_added`, `trip_event_user_added_others`,
+/// `trip_event_info_changed`, `trip_event_ticket_added`,
+/// `trip_ticket_added`, `trip_accommodation_added`,
+/// `trip_subscription_added`, `trip_info_changed`,
+/// `standalone_event_user_added`, `standalone_event_user_added_others`,
+/// `standalone_event_info_changed`, `standalone_event_ticket_added`
 /// (siehe API-Doku). Unbekannte Typen liefern generische Standardwerte,
 /// `route` gibt dann `null` zurück (Aufrufer öffnet die Inbox bzw. bis zu
 /// deren Umsetzung `/home`).
 class NotificationTypeLabel {
   const NotificationTypeLabel._();
+
+  static const _tripTypes = {
+    'trip_user_added',
+    'trip_user_added_others',
+    'trip_event_added',
+    'trip_event_user_added',
+    'trip_event_user_added_others',
+    'trip_event_info_changed',
+    'trip_event_ticket_added',
+    'trip_ticket_added',
+    'trip_accommodation_added',
+    'trip_subscription_added',
+    'trip_info_changed',
+  };
+
+  static const _standaloneEventTypes = {
+    'standalone_event_user_added',
+    'standalone_event_user_added_others',
+    'standalone_event_info_changed',
+    'standalone_event_ticket_added',
+  };
 
   /// Liefert die deutsche Route für eine Benachrichtigung, aufgebaut aus
   /// den Relation-IDs in [data]. `null`, wenn der Typ unbekannt ist oder
@@ -26,6 +54,9 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' || 'forum_comment' => _forumRoute(data),
       'story_post' => _storyRoute(data),
+      _ when _tripTypes.contains(type) => _tripRoute(data),
+      _ when _standaloneEventTypes.contains(type) =>
+        _standaloneEventRoute(data),
       _ => null,
     };
   }
@@ -37,6 +68,23 @@ class NotificationTypeLabel {
       'forum_reply' => 'Neue Antwort auf deinen Kommentar',
       'forum_comment' => 'Neuer Kommentar zu deinem Beitrag',
       'story_post' => 'Neue Story',
+      'trip_user_added' => 'Du wurdest zu einer Reise hinzugefügt',
+      'trip_user_added_others' => 'Neuer Teilnehmer auf der Reise',
+      'trip_event_added' => 'Neues Event auf der Reise',
+      'trip_event_user_added' => 'Du wurdest zu einem Event hinzugefügt',
+      'trip_event_user_added_others' => 'Neuer Teilnehmer beim Event',
+      'trip_event_info_changed' => 'Event-Informationen geändert',
+      'trip_event_ticket_added' => 'Neues Ticket für das Event',
+      'trip_ticket_added' => 'Neues Ticket für die Reise',
+      'trip_accommodation_added' => 'Hotel-Zuweisung',
+      'trip_subscription_added' => 'Neues Abo verknüpft',
+      'trip_info_changed' => 'Reise-Informationen geändert',
+      'standalone_event_user_added' =>
+        'Du wurdest zu einem Event hinzugefügt',
+      'standalone_event_user_added_others' =>
+        'Neuer Teilnehmer beim Event',
+      'standalone_event_info_changed' => 'Event-Informationen geändert',
+      'standalone_event_ticket_added' => 'Neues Ticket für das Event',
       _ => 'Neue Mitteilung',
     };
   }
@@ -49,6 +97,33 @@ class NotificationTypeLabel {
       'forum_reply' => 'Jemand hat auf deinen Kommentar geantwortet.',
       'forum_comment' => 'Jemand hat deinen Beitrag kommentiert.',
       'story_post' => 'Jemand hat eine neue Story veröffentlicht.',
+      'trip_user_added' => 'Du wurdest zu einer Reise hinzugefügt.',
+      'trip_user_added_others' =>
+        'Ein neuer Teilnehmer wurde zur Reise hinzugefügt.',
+      'trip_event_added' =>
+        'Ein neues Event wurde zur Reise hinzugefügt.',
+      'trip_event_user_added' => 'Du wurdest zu einem Event hinzugefügt.',
+      'trip_event_user_added_others' =>
+        'Ein neuer Teilnehmer wurde zum Event hinzugefügt.',
+      'trip_event_info_changed' =>
+        'Die Event-Informationen wurden geändert.',
+      'trip_event_ticket_added' =>
+        'Ein neues Ticket wurde zum Event hinzugefügt.',
+      'trip_ticket_added' =>
+        'Ein neues Ticket wurde zur Reise hinzugefügt.',
+      'trip_accommodation_added' => 'Dir wurde ein Hotel zugewiesen.',
+      'trip_subscription_added' =>
+        'Ein Abo wurde mit der Reise verknüpft.',
+      'trip_info_changed' =>
+        'Die Reise-Informationen wurden geändert.',
+      'standalone_event_user_added' =>
+        'Du wurdest zu einem Event hinzugefügt.',
+      'standalone_event_user_added_others' =>
+        'Ein neuer Teilnehmer wurde zum Event hinzugefügt.',
+      'standalone_event_info_changed' =>
+        'Die Event-Informationen wurden geändert.',
+      'standalone_event_ticket_added' =>
+        'Ein neues Ticket wurde zum Event hinzugefügt.',
       _ => 'Du hast eine neue Benachrichtigung.',
     };
   }
@@ -58,6 +133,21 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' || 'forum_comment' => Icons.forum_rounded,
       'story_post' => Icons.auto_stories_rounded,
+      'trip_user_added' ||
+      'trip_user_added_others' ||
+      'trip_info_changed' => Icons.card_travel,
+      'trip_event_added' ||
+      'trip_event_user_added' ||
+      'trip_event_user_added_others' => Icons.event,
+      'trip_event_info_changed' ||
+      'standalone_event_info_changed' => Icons.info_outline,
+      'trip_event_ticket_added' ||
+      'trip_ticket_added' ||
+      'standalone_event_ticket_added' => Icons.confirmation_num,
+      'trip_accommodation_added' => Icons.hotel,
+      'trip_subscription_added' => Icons.receipt_long,
+      'standalone_event_user_added' ||
+      'standalone_event_user_added_others' => Icons.event,
       _ => Icons.notifications_rounded,
     };
   }
@@ -78,6 +168,21 @@ class NotificationTypeLabel {
     final storyId = _identifierFor(data, 'story');
     if (storyId == null) return null;
     return '/stories/$storyId';
+  }
+
+  /// `/reisen/{trip}` — die Trip-ID ist bei allen `trip_*`-Typen Pflicht.
+  static String? _tripRoute(List<NotificationRelation> data) {
+    final tripId = _identifierFor(data, 'trip');
+    if (tripId == null) return null;
+    return '/reisen/$tripId';
+  }
+
+  /// `/reisen/einzelevent/{event}` — die Event-ID ist bei allen
+  /// `standalone_event_*`-Typen Pflicht.
+  static String? _standaloneEventRoute(List<NotificationRelation> data) {
+    final eventId = _identifierFor(data, 'event');
+    if (eventId == null) return null;
+    return '/reisen/einzelevent/$eventId';
   }
 
   static String? _identifierFor(

@@ -219,6 +219,40 @@ class NotificationService extends ChangeNotifier {
     return ids;
   }
 
+  /// Gibt es ungelesene Reise-Aktivität (`trip_*`-Typen)?
+  bool get hasUnreadTripContent => _relationIds('trip').isNotEmpty;
+
+  /// IDs der Reisen mit ungelesener Aktivität.
+  Set<String> get unreadTripIds => _relationIds('trip');
+
+  /// Notification-IDs, die eine bestimmte Reise betreffen (zum
+  /// Gelesen-Markieren beim Öffnen der Reise).
+  List<String> unreadIdsForTrip(String tripId) {
+    final ids = <String>[];
+    for (final item in _unreadById.values) {
+      if (item.identifierFor('trip') == tripId) ids.add(item.id);
+    }
+    return ids;
+  }
+
+  /// Gibt es ungelesene Aktivität bei Standalone-Events
+  /// (`standalone_event_*`-Typen)?
+  bool get hasUnreadStandaloneEventContent =>
+      _relationIds('event').isNotEmpty;
+
+  /// IDs der Standalone-Events mit ungelesener Aktivität.
+  Set<String> get unreadStandaloneEventIds => _relationIds('event');
+
+  /// Notification-IDs, die ein bestimmtes Standalone-Event betreffen (zum
+  /// Gelesen-Markieren beim Öffnen des Events).
+  List<String> unreadIdsForStandaloneEvent(String eventId) {
+    final ids = <String>[];
+    for (final item in _unreadById.values) {
+      if (item.identifierFor('event') == eventId) ids.add(item.id);
+    }
+    return ids;
+  }
+
   @override
   void dispose() {
     stopPolling();

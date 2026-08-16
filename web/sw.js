@@ -16,12 +16,93 @@ const CONTENT_BY_TYPE = {
     title: 'Neue Story',
     body: 'Jemand hat eine neue Story veröffentlicht.',
   },
+  trip_user_added: {
+    title: 'Du wurdest zu einer Reise hinzugefügt',
+    body: 'Du wurdest zu einer Reise hinzugefügt.',
+  },
+  trip_user_added_others: {
+    title: 'Neuer Teilnehmer auf der Reise',
+    body: 'Ein neuer Teilnehmer wurde zur Reise hinzugefügt.',
+  },
+  trip_event_added: {
+    title: 'Neues Event auf der Reise',
+    body: 'Ein neues Event wurde zur Reise hinzugefügt.',
+  },
+  trip_event_user_added: {
+    title: 'Du wurdest zu einem Event hinzugefügt',
+    body: 'Du wurdest zu einem Event hinzugefügt.',
+  },
+  trip_event_user_added_others: {
+    title: 'Neuer Teilnehmer beim Event',
+    body: 'Ein neuer Teilnehmer wurde zum Event hinzugefügt.',
+  },
+  trip_event_info_changed: {
+    title: 'Event-Informationen geändert',
+    body: 'Die Event-Informationen wurden geändert.',
+  },
+  trip_event_ticket_added: {
+    title: 'Neues Ticket für das Event',
+    body: 'Ein neues Ticket wurde zum Event hinzugefügt.',
+  },
+  trip_ticket_added: {
+    title: 'Neues Ticket für die Reise',
+    body: 'Ein neues Ticket wurde zur Reise hinzugefügt.',
+  },
+  trip_accommodation_added: {
+    title: 'Hotel-Zuweisung',
+    body: 'Dir wurde ein Hotel zugewiesen.',
+  },
+  trip_subscription_added: {
+    title: 'Neues Abo verknüpft',
+    body: 'Ein Abo wurde mit der Reise verknüpft.',
+  },
+  trip_info_changed: {
+    title: 'Reise-Informationen geändert',
+    body: 'Die Reise-Informationen wurden geändert.',
+  },
+  standalone_event_user_added: {
+    title: 'Du wurdest zu einem Event hinzugefügt',
+    body: 'Du wurdest zu einem Event hinzugefügt.',
+  },
+  standalone_event_user_added_others: {
+    title: 'Neuer Teilnehmer beim Event',
+    body: 'Ein neuer Teilnehmer wurde zum Event hinzugefügt.',
+  },
+  standalone_event_info_changed: {
+    title: 'Event-Informationen geändert',
+    body: 'Die Event-Informationen wurden geändert.',
+  },
+  standalone_event_ticket_added: {
+    title: 'Neues Ticket für das Event',
+    body: 'Ein neues Ticket wurde zum Event hinzugefügt.',
+  },
 };
 
 const FALLBACK_CONTENT = {
   title: 'Neue Mitteilung',
   body: 'Du hast eine neue Benachrichtigung.',
 };
+
+const TRIP_TYPES = new Set([
+  'trip_user_added',
+  'trip_user_added_others',
+  'trip_event_added',
+  'trip_event_user_added',
+  'trip_event_user_added_others',
+  'trip_event_info_changed',
+  'trip_event_ticket_added',
+  'trip_ticket_added',
+  'trip_accommodation_added',
+  'trip_subscription_added',
+  'trip_info_changed',
+]);
+
+const STANDALONE_EVENT_TYPES = new Set([
+  'standalone_event_user_added',
+  'standalone_event_user_added_others',
+  'standalone_event_info_changed',
+  'standalone_event_ticket_added',
+]);
 
 function relationId(data, relation) {
   if (!Array.isArray(data)) return null;
@@ -40,6 +121,14 @@ function resolveRoute(type, data) {
   if (type === 'story_post') {
     const storyId = relationId(data, 'story');
     if (storyId) return `/stories/${storyId}`;
+  }
+  if (TRIP_TYPES.has(type)) {
+    const tripId = relationId(data, 'trip');
+    if (tripId) return `/reisen/${tripId}`;
+  }
+  if (STANDALONE_EVENT_TYPES.has(type)) {
+    const eventId = relationId(data, 'event');
+    if (eventId) return `/reisen/einzelevent/${eventId}`;
   }
   return '/home';
 }

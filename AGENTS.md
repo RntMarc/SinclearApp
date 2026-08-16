@@ -114,8 +114,16 @@ English only.
     relevant screen/menu open and on app resume — never on every poll.
     Read-marking happens through `POST /notifications/read` when the user
     opens the referenced object (e.g. the post detail) or views a story.
-    A new type with object IDs must decide where its dot/pulse lives and when
-    it is marked read.
+  * **When adding a new notification type with object IDs, the implementing
+    agent MUST complete the following checklist:**
+    1. Add unread getters in `NotificationService` (analog `unreadForumIds`,
+       `unreadIdsForPost`, etc.) that scan the unread registry for the new
+       type's relation IDs.
+    2. Add `DesignPulseDot` in the relevant UI locations (sidebar nav entry,
+       list cards, dashboard widgets) using the new getters.
+    3. Add read-marking in the consuming screen by calling `markRead()` with
+       the notification IDs when the user opens the referenced object.
+    4. Add tests for the new unread query methods.
 * **Cold start:** Opening a notification from the OS tray / browser while the
   app is not running must resolve the target too: the tap payload carries the
   full notification JSON (`NotificationItem.toJson`), which is enough to
