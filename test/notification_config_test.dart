@@ -73,6 +73,45 @@ void main() {
     NotificationRelation(relation: 'story', object: 'Story', identifier: 's1'),
   ];
 
+  /// Relation-Liste für `trip_user_added` (Typ mit `trip` Relation).
+  const tripUserData = [
+    NotificationRelation(
+      relation: 'added_user',
+      object: 'User',
+      identifier: 'u1',
+    ),
+    NotificationRelation(
+      relation: 'trip',
+      object: 'Trip',
+      identifier: 't1',
+    ),
+    NotificationRelation(
+      relation: 'added_by',
+      object: 'User',
+      identifier: 'u2',
+    ),
+  ];
+
+  /// Relation-Liste für `standalone_event_user_added` (Typ mit `event`
+  /// Relation, ohne `trip`).
+  const standaloneEventData = [
+    NotificationRelation(
+      relation: 'added_user',
+      object: 'User',
+      identifier: 'u1',
+    ),
+    NotificationRelation(
+      relation: 'event',
+      object: 'Event',
+      identifier: 'e1',
+    ),
+    NotificationRelation(
+      relation: 'added_by',
+      object: 'User',
+      identifier: 'u2',
+    ),
+  ];
+
   group('NotificationTypeLabel.route', () {
     test('forum_reply navigiert zum Beitrag (/forum/{f}/beitrag/{p})', () {
       expect(
@@ -129,6 +168,140 @@ void main() {
       expect(NotificationTypeLabel.route('story_post', const []), isNull);
     });
 
+    test('trip_user_added navigiert zur Reise (/reisen/{t})', () {
+      expect(
+        NotificationTypeLabel.route('trip_user_added', tripUserData),
+        '/reisen/t1',
+      );
+    });
+
+    test('trip_user_added ohne trip Relation gibt null', () {
+      final ohneTrip = tripUserData
+          .where((e) => e.relation != 'trip')
+          .toList();
+
+      expect(
+        NotificationTypeLabel.route('trip_user_added', ohneTrip),
+        isNull,
+      );
+      expect(
+        NotificationTypeLabel.route('trip_user_added', const []),
+        isNull,
+      );
+    });
+
+    test('trip_event_added navigiert zur Reise (/reisen/{t})', () {
+      expect(
+        NotificationTypeLabel.route('trip_event_added', tripUserData),
+        '/reisen/t1',
+      );
+    });
+
+    test('trip_ticket_added navigiert zur Reise (/reisen/{t})', () {
+      expect(
+        NotificationTypeLabel.route('trip_ticket_added', tripUserData),
+        '/reisen/t1',
+      );
+    });
+
+    test('trip_accommodation_added navigiert zur Reise (/reisen/{t})', () {
+      expect(
+        NotificationTypeLabel.route('trip_accommodation_added', tripUserData),
+        '/reisen/t1',
+      );
+    });
+
+    test('trip_subscription_added navigiert zur Reise (/reisen/{t})', () {
+      expect(
+        NotificationTypeLabel.route('trip_subscription_added', tripUserData),
+        '/reisen/t1',
+      );
+    });
+
+    test('trip_info_changed navigiert zur Reise (/reisen/{t})', () {
+      expect(
+        NotificationTypeLabel.route('trip_info_changed', tripUserData),
+        '/reisen/t1',
+      );
+    });
+
+    test(
+      'standalone_event_user_added navigiert zum Einzelevent '
+      '(/reisen/einzelevent/{e})',
+      () {
+        expect(
+          NotificationTypeLabel.route(
+            'standalone_event_user_added',
+            standaloneEventData,
+          ),
+          '/reisen/einzelevent/e1',
+        );
+      },
+    );
+
+    test(
+      'standalone_event_ticket_added navigiert zum Einzelevent',
+      () {
+        expect(
+          NotificationTypeLabel.route(
+            'standalone_event_ticket_added',
+            standaloneEventData,
+          ),
+          '/reisen/einzelevent/e1',
+        );
+      },
+    );
+
+    test(
+      'standalone_event_info_changed navigiert zum Einzelevent',
+      () {
+        expect(
+          NotificationTypeLabel.route(
+            'standalone_event_info_changed',
+            standaloneEventData,
+          ),
+          '/reisen/einzelevent/e1',
+        );
+      },
+    );
+
+    test(
+      'standalone_event_user_added_others navigiert zum Einzelevent',
+      () {
+        expect(
+          NotificationTypeLabel.route(
+            'standalone_event_user_added_others',
+            standaloneEventData,
+          ),
+          '/reisen/einzelevent/e1',
+        );
+      },
+    );
+
+    test(
+      'standalone_event_user_added ohne event Relation gibt null',
+      () {
+        final ohneEvent = standaloneEventData
+            .where((e) => e.relation != 'event')
+            .toList();
+
+        expect(
+          NotificationTypeLabel.route(
+            'standalone_event_user_added',
+            ohneEvent,
+          ),
+          isNull,
+        );
+        expect(
+          NotificationTypeLabel.route(
+            'standalone_event_user_added',
+            const [],
+          ),
+          isNull,
+        );
+      },
+    );
+
     test('unbekannte Typen geben null (Inbox-Fallback)', () {
       expect(NotificationTypeLabel.route('unbekannt', forumReplyData), isNull);
       expect(NotificationTypeLabel.route('', const []), isNull);
@@ -169,6 +342,244 @@ void main() {
       expect(
         NotificationTypeLabel.icon('story_post'),
         Icons.auto_stories_rounded,
+      );
+    });
+
+    test('trip_user_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_user_added'),
+        'Du wurdest zu einer Reise hinzugefügt',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_user_added'),
+        'Du wurdest zu einer Reise hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_user_added'),
+        Icons.card_travel,
+      );
+    });
+
+    test('trip_user_added_others rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_user_added_others'),
+        'Neuer Teilnehmer auf der Reise',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_user_added_others'),
+        'Ein neuer Teilnehmer wurde zur Reise hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_user_added_others'),
+        Icons.card_travel,
+      );
+    });
+
+    test('trip_event_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_event_added'),
+        'Neues Event auf der Reise',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_event_added'),
+        'Ein neues Event wurde zur Reise hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_event_added'),
+        Icons.event,
+      );
+    });
+
+    test('trip_event_user_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_event_user_added'),
+        'Du wurdest zu einem Event hinzugefügt',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_event_user_added'),
+        'Du wurdest zu einem Event hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_event_user_added'),
+        Icons.event,
+      );
+    });
+
+    test('trip_event_user_added_others rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_event_user_added_others'),
+        'Neuer Teilnehmer beim Event',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_event_user_added_others'),
+        'Ein neuer Teilnehmer wurde zum Event hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_event_user_added_others'),
+        Icons.event,
+      );
+    });
+
+    test('trip_event_info_changed rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_event_info_changed'),
+        'Event-Informationen geändert',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_event_info_changed'),
+        'Die Event-Informationen wurden geändert.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_event_info_changed'),
+        Icons.info_outline,
+      );
+    });
+
+    test('trip_event_ticket_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_event_ticket_added'),
+        'Neues Ticket für das Event',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_event_ticket_added'),
+        'Ein neues Ticket wurde zum Event hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_event_ticket_added'),
+        Icons.confirmation_num,
+      );
+    });
+
+    test('trip_ticket_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_ticket_added'),
+        'Neues Ticket für die Reise',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_ticket_added'),
+        'Ein neues Ticket wurde zur Reise hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_ticket_added'),
+        Icons.confirmation_num,
+      );
+    });
+
+    test('trip_accommodation_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_accommodation_added'),
+        'Hotel-Zuweisung',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_accommodation_added'),
+        'Dir wurde ein Hotel zugewiesen.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_accommodation_added'),
+        Icons.hotel,
+      );
+    });
+
+    test('trip_subscription_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_subscription_added'),
+        'Neues Abo verknüpft',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_subscription_added'),
+        'Ein Abo wurde mit der Reise verknüpft.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_subscription_added'),
+        Icons.receipt_long,
+      );
+    });
+
+    test('trip_info_changed rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('trip_info_changed'),
+        'Reise-Informationen geändert',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('trip_info_changed'),
+        'Die Reise-Informationen wurden geändert.',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_info_changed'),
+        Icons.card_travel,
+      );
+    });
+
+    test('standalone_event_user_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('standalone_event_user_added'),
+        'Du wurdest zu einem Event hinzugefügt',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('standalone_event_user_added'),
+        'Du wurdest zu einem Event hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('standalone_event_user_added'),
+        Icons.event,
+      );
+    });
+
+    test(
+      'standalone_event_user_added_others rendert Titel, Text und Icon',
+      () {
+        expect(
+          NotificationTypeLabel.title(
+            'standalone_event_user_added_others',
+          ),
+          'Neuer Teilnehmer beim Event',
+        );
+        expect(
+          NotificationTypeLabel.fallbackBody(
+            'standalone_event_user_added_others',
+          ),
+          'Ein neuer Teilnehmer wurde zum Event hinzugefügt.',
+        );
+        expect(
+          NotificationTypeLabel.icon(
+            'standalone_event_user_added_others',
+          ),
+          Icons.event,
+        );
+      },
+    );
+
+    test('standalone_event_info_changed rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('standalone_event_info_changed'),
+        'Event-Informationen geändert',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody(
+          'standalone_event_info_changed',
+        ),
+        'Die Event-Informationen wurden geändert.',
+      );
+      expect(
+        NotificationTypeLabel.icon('standalone_event_info_changed'),
+        Icons.info_outline,
+      );
+    });
+
+    test('standalone_event_ticket_added rendert Titel, Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('standalone_event_ticket_added'),
+        'Neues Ticket für das Event',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody(
+          'standalone_event_ticket_added',
+        ),
+        'Ein neues Ticket wurde zum Event hinzugefügt.',
+      );
+      expect(
+        NotificationTypeLabel.icon('standalone_event_ticket_added'),
+        Icons.confirmation_num,
       );
     });
 

@@ -19,6 +19,7 @@ import '../features/explore/models/explore_models.dart';
 
 import '../features/shell/main_shell.dart';
 import '../features/travel/screens/travel_screen.dart';
+import '../features/travel/screens/event_detail_screen.dart';
 import '../features/travel/screens/trip_detail_screen.dart';
 import '../features/travel/screens/pt_journey_detail_screen.dart';
 import '../features/user/screens/contacts_screen.dart';
@@ -126,6 +127,12 @@ GoRouter createRouter(AuthService auth) {
                 path: 'pt/:id',
                 builder: (context, state) => PtJourneyDetailScreen(
                   journeyId: state.pathParameters['id']!,
+                ),
+              ),
+              GoRoute(
+                path: 'einzelevent/:id',
+                builder: (context, state) => TravelEventDetailScreen(
+                  id: state.pathParameters['id']!,
                 ),
               ),
             ],
