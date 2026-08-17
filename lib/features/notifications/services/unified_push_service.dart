@@ -39,7 +39,7 @@ class UnifiedPushService extends ChangeNotifier {
       },
       onMessage: (PushMessage message, String instance) {
         try {
-          final json = jsonDecode(String.fromCharCodes(message.content));
+          final json = jsonDecode(utf8.decode(message.content));
           final item = NotificationItem.fromJson(json as Map<String, dynamic>);
           onMessage?.call(item);
         } catch (e) {

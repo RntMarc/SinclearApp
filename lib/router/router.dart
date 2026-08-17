@@ -48,10 +48,10 @@ import '../features/showcase/screens/design_showcase_screen.dart';
 import '../features/stories/screens/story_deep_link_screen.dart';
 import '../features/subscription/screens/subscription_list_screen.dart';
 
-GoRouter createRouter(AuthService auth) {
+GoRouter createRouter(AuthService auth, {String? initialLocation}) {
   return GoRouter(
     refreshListenable: auth,
-    initialLocation: '/',
+    initialLocation: initialLocation ?? '/',
     redirect: (context, state) {
       final loggedIn = auth.isLoggedIn;
       final location = state.matchedLocation;

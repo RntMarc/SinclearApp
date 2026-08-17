@@ -252,9 +252,10 @@ class ApiClient {
   }
 
   void _logResponse(String method, String uri, http.Response response) {
-    final bodyPreview = response.body.length > 500
-        ? '${response.body.substring(0, 500)}...'
-        : response.body;
+    final bodyText = utf8.decode(response.bodyBytes);
+    final bodyPreview = bodyText.length > 500
+        ? '${bodyText.substring(0, 500)}...'
+        : bodyText;
     _log.fine('$method $uri ${response.statusCode} body=$bodyPreview');
   }
 
@@ -263,8 +264,13 @@ class ApiClient {
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
-    final body = response.body.isNotEmpty
-        ? jsonDecode(response.body) as Map<String, dynamic>
+    // JSON ist laut RFC 8259 immer UTF-8. `response.body` dekodiert dagegen
+    // mit dem charset aus dem Content-Type-Header (Default: latin1) — APIs
+    // ohne `charset=utf-8` liefern so Mojibake für ä/ö/ü/ß. Daher explizit
+    // als UTF-8 dekodieren.
+    final decoded = utf8.decode(response.bodyBytes);
+    final body = decoded.isNotEmpty
+        ? jsonDecode(decoded) as Map<String, dynamic>
         : <String, dynamic>{};
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -276,9 +282,9 @@ class ApiClient {
       message: body['message'] as String?,
       statusCode: response.statusCode,
       responseSize: response.bodyBytes.length,
-      responsePreview: response.body.length > 500
-          ? '${response.body.substring(0, 500)}...'
-          : response.body,
+      responsePreview: decoded.length > 500
+          ? '${decoded.substring(0, 500)}...'
+          : decoded,
     );
   }
 
