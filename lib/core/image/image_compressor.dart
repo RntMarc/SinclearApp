@@ -11,18 +11,19 @@ const int _qualityStep = 10;
 
 /// Compresses image bytes to fit the API constraints.
 ///
-/// Profile, forum and recipe images: [maxDimension] 1000.
+/// Profile, forum and recipe images: [maxDimension] 1000, max 200 KB.
+/// Stories:                           [maxDimension] 2000, max 1 MB.
 /// Bug-report screenshots:           [maxDimension] 4000.
-/// Max decoded file size is always 200 KB.
 ///
 final _log = Logger('image');
 
 /// Returns `null` if the bytes cannot be decoded as an image,
-/// or `null` when the result still exceeds 200 KB after aggressive
+/// or `null` when the result still exceeds [maxBytes] after aggressive
 /// down-scaling (caller should show an error).
 Uint8List? compressImage(
   Uint8List bytes, {
   int maxDimension = _defaultMaxDimension,
+  int maxBytes = _maxBytes,
 }) {
   final decoded = img.decodeImage(bytes);
   if (decoded == null) {
@@ -61,12 +62,12 @@ Uint8List? compressImage(
     _log.fine(
       'compressImage: quality=$quality, size=${encoded.length}B',
     );
-    if (encoded.length <= _maxBytes) return encoded;
+    if (encoded.length <= maxBytes) return encoded;
     lastEncoded = encoded;
     quality -= _qualityStep;
   }
 
-  // Even at minimum quality the image exceeds 200 KB.
+  // Even at minimum quality the image exceeds the target size.
   // Retry with aggressive down-scaling (half the target dimension).
   final aggressive = maxDimension ~/ 2;
   if (resized.width > aggressive || resized.height > aggressive) {
@@ -83,19 +84,19 @@ Uint8List? compressImage(
       'compressImage: aggressive scale ${downscaled.width}x'
       '${downscaled.height}, size=${encoded.length}B',
     );
-    if (encoded.length <= _maxBytes) return encoded;
+    if (encoded.length <= maxBytes) return encoded;
   }
 
   // Last resort: return best-effort or null when way too big.
-  if (lastEncoded != null && lastEncoded.length <= _maxBytes * 1.25) {
+  if (lastEncoded != null && lastEncoded.length <= maxBytes * 1.25) {
     _log.info(
       'compressImage: returning best-effort (${lastEncoded.length}B)',
     );
     return lastEncoded;
   }
 
-  _log.severe(
-    'compressImage: FAILED – cannot compress below 200 KB',
-  );
+    _log.severe(
+      'compressImage: FAILED – cannot compress below ${maxBytes ~/ 1024} KB',
+    );
   return null;
 }

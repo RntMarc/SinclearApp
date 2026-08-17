@@ -44,14 +44,18 @@ class _StoryCreateSheetState extends State<_StoryCreateSheet> {
   Future<void> _pick(ImageSource source) async {
     final picked = await ImagePicker().pickImage(
       source: source,
-      maxWidth: 1000,
-      maxHeight: 1000,
+      maxWidth: 2000,
+      maxHeight: 2000,
       imageQuality: 85,
     );
     if (picked == null || !mounted) return;
     final bytes = await picked.readAsBytes();
     if (!mounted) return;
-    final compressed = compressImage(bytes);
+    final compressed = compressImage(
+      bytes,
+      maxDimension: 2000,
+      maxBytes: 1024 * 1024,
+    );
     if (compressed == null) {
       setState(() => _error = 'Bild konnte nicht verarbeitet werden.');
       return;
