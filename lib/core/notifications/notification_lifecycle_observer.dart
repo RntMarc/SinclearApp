@@ -69,13 +69,8 @@ class _NotificationLifecycleObserverState
     }
   }
 
-  Future<void> _startPolling() async {
-    try {
-      final token = await widget.getToken();
-      widget.notificationService.startPolling(token: token);
-    } catch (e) {
-      // Token unavailable, polling won't start
-    }
+  void _startPolling() {
+    widget.notificationService.startPolling(getToken: widget.getToken);
   }
 
   /// Synchronisiert die Unread-Registry mit dem Server bei App-Resume, damit

@@ -84,8 +84,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
       } else if (method == NotificationMethod.polling) {
         await LocalNotificationHelper.requestPermission();
         try {
-          final token = await auth.getAccessToken();
-          scope.notification.startPolling(token: token);
+          scope.notification.startPolling(getToken: auth.getAccessToken);
         } catch (e) {
           developer.log('Failed to start polling: $e', name: 'auth.verify');
         }

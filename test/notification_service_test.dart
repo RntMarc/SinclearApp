@@ -79,7 +79,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
 
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -105,7 +105,7 @@ void main() {
         if (!completer.isCompleted) completer.complete(items);
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
 
       final items = await completer.future.timeout(const Duration(seconds: 1));
 
@@ -117,7 +117,7 @@ void main() {
     test('empty response adds nothing to stream', () async {
       mockApi.responses.add({'notifications': []});
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
 
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -138,7 +138,7 @@ void main() {
       mockApi.responses.add({'notifications': []});
 
       service.startPolling(
-        token: 'test-token',
+        getToken: () async => 'test-token',
         interval: const Duration(milliseconds: 50),
       );
       await Future.delayed(const Duration(milliseconds: 200));
@@ -162,7 +162,7 @@ void main() {
       mockApi.responses.add({'notifications': []});
 
       service.startPolling(
-        token: 'test-token',
+        getToken: () async => 'test-token',
         interval: const Duration(milliseconds: 50),
       );
       await Future.delayed(const Duration(milliseconds: 200));
@@ -190,7 +190,7 @@ void main() {
       service.notifications.listen((items) => emitted.add(items.length));
 
       service.startPolling(
-        token: 'test-token',
+        getToken: () async => 'test-token',
         interval: const Duration(milliseconds: 50),
       );
       await Future.delayed(const Duration(milliseconds: 200));
@@ -210,11 +210,11 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
       final callCount = mockApi.calledPaths.length;
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
 
       expect(mockApi.calledPaths.length, callCount);
@@ -224,7 +224,7 @@ void main() {
   group('stopPolling', () {
     test('stops the timer', () async {
       mockApi.responses.add({'notifications': []});
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 50));
 
       service.stopPolling();
@@ -276,7 +276,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
 
       expect(service.hasUnreadForumContent, isTrue);
@@ -292,7 +292,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
       expect(service.hasUnreadForumContent, isTrue);
 
@@ -309,7 +309,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
       expect(service.unreadForumIds, {'forumA'});
 
@@ -338,7 +338,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
 
       expect(service.unreadIdsForStory('story1'), ['s1']);
@@ -352,7 +352,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
       expect(service.hasUnreadForumContent, isTrue);
 
@@ -421,7 +421,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
 
       expect(service.hasUnreadTripContent, isTrue);
@@ -434,7 +434,7 @@ void main() {
         'notifications': [tripNotification('1', 'trip_user_added', 'tripA')],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
       expect(service.hasUnreadTripContent, isTrue);
 
@@ -449,7 +449,7 @@ void main() {
         'notifications': [tripNotification('1', 'trip_user_added', 'tripA')],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
       expect(service.hasUnreadTripContent, isTrue);
 
@@ -476,7 +476,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
 
       expect(service.hasUnreadStandaloneEventContent, isTrue);
@@ -495,7 +495,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
       expect(service.hasUnreadStandaloneEventContent, isTrue);
 
@@ -516,7 +516,7 @@ void main() {
         ],
       });
 
-      service.startPolling(token: 'test-token');
+      service.startPolling(getToken: () async => 'test-token');
       await Future.delayed(const Duration(milliseconds: 100));
       expect(service.hasUnreadStandaloneEventContent, isTrue);
 
