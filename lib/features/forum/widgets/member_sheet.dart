@@ -5,7 +5,6 @@ import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
-import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
 import '../models/forum_models.dart';
 
@@ -50,12 +49,6 @@ class MemberSheet extends StatelessWidget {
                     size: 36,
                   ),
                   title: member.displayName ?? 'Unbekannt',
-                  trailing: DesignIconButton(
-                    icon: member.notificationsEnabled
-                        ? Icons.notifications_active_rounded
-                        : Icons.notifications_off_rounded,
-                    onPressed: null,
-                  ),
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/kontakte/${member.userId}');

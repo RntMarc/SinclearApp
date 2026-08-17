@@ -25,6 +25,7 @@ import '../features/travel/screens/pt_journey_detail_screen.dart';
 import '../features/user/screens/contacts_screen.dart';
 import '../features/user/screens/user_detail_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
+import '../features/settings/screens/notification_settings_screen.dart';
 import '../features/settings/screens/edit_profile_screen.dart';
 import '../features/settings/screens/edit_social_screen.dart';
 import '../features/settings/screens/edit_contact_screen.dart';
@@ -131,9 +132,8 @@ GoRouter createRouter(AuthService auth) {
               ),
               GoRoute(
                 path: 'einzelevent/:id',
-                builder: (context, state) => TravelEventDetailScreen(
-                  id: state.pathParameters['id']!,
-                ),
+                builder: (context, state) =>
+                    TravelEventDetailScreen(id: state.pathParameters['id']!),
               ),
             ],
           ),
@@ -274,6 +274,10 @@ GoRouter createRouter(AuthService auth) {
             path: '/einstellungen',
             builder: (context, state) => const SettingsScreen(),
             routes: [
+              GoRoute(
+                path: 'benachrichtigungen',
+                builder: (context, state) => const NotificationSettingsScreen(),
+              ),
               GoRoute(
                 path: 'profil',
                 builder: (context, state) => const EditProfileScreen(),

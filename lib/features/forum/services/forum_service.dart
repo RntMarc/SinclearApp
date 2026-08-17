@@ -70,14 +70,6 @@ class ForumService {
     return ForumMemberListResponse.fromJson(data);
   }
 
-  Future<void> setNotifications(String id, {required bool enabled}) async {
-    await _api.put(
-      '/forums/$id/members/notifications',
-      body: {'notificationsEnabled': enabled},
-      token: await _token(),
-    );
-  }
-
   // --- Posts ---
 
   /// Aggregierter Feed: neueste Beiträge aller sichtbaren Foren (öffentliche

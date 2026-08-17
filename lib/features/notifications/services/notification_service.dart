@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart';
 import '../models/notification_item.dart';
+import '../models/notification_type_preference.dart';
 import 'notification_content_resolver.dart';
 
 class NotificationService extends ChangeNotifier {
@@ -130,6 +131,30 @@ class NotificationService extends ChangeNotifier {
     }
   }
 
+  /// Lädt die Benachrichtigungs-Präferenzen aller Typen
+  /// (`GET /notifications/preferences`).
+  Future<Map<String, NotificationTypePreference>> getPreferences({
+    required String token,
+  }) async {
+    final response = await _api.get('/notifications/preferences', token: token);
+    return NotificationPreferencesResponse.fromJson(response).data;
+  }
+
+  /// Aktualisiert nur die geänderten Typen (Bulk-Update,
+  /// `PUT /notifications/preferences`). Liefert die vollständige
+  /// Präferenz-Map des Servers zurück.
+  Future<Map<String, NotificationTypePreference>> updatePreferences(
+    List<NotificationTypePreference> changed, {
+    required String token,
+  }) async {
+    final response = await _api.put(
+      '/notifications/preferences',
+      body: {'preferences': changed.map((p) => p.toRequestJson()).toList()},
+      token: token,
+    );
+    return NotificationPreferencesResponse.fromJson(response).data;
+  }
+
   /// Ersetzt die Unread-Registry durch den aktuellen Server-Stand
   /// (Voll-Abruf ohne `since`). Synchronisiert damit auch Lesen-Vorgänge,
   /// die auf anderen Geräten passiert sind. Bewusst getrennt vom Poll, damit
@@ -237,8 +262,7 @@ class NotificationService extends ChangeNotifier {
 
   /// Gibt es ungelesene Aktivität bei Standalone-Events
   /// (`standalone_event_*`-Typen)?
-  bool get hasUnreadStandaloneEventContent =>
-      _relationIds('event').isNotEmpty;
+  bool get hasUnreadStandaloneEventContent => _relationIds('event').isNotEmpty;
 
   /// IDs der Standalone-Events mit ungelesener Aktivität.
   Set<String> get unreadStandaloneEventIds => _relationIds('event');
