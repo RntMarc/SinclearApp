@@ -173,7 +173,7 @@ class _StoriesBarState extends State<StoriesBar>
       final bytes = decodeBase64Image(image);
       return Image.memory(
         bytes,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         errorBuilder: (_, _, _) => fallback,
       );
     } catch (_) {
