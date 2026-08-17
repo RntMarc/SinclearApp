@@ -8,11 +8,13 @@ import '../../../core/image/image_compressor.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/network/api_client.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../user/models/user_models.dart';
@@ -35,6 +37,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _existingImage;
   Uint8List? _imageBytes;
   bool _removeImage = false;
+
+  String? _discordId;
+  bool _syncAvatarFromDiscord = true;
+  bool _savingSync = false;
 
   @override
   void dispose() {
@@ -72,6 +78,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _existingImage = user.image;
         _imageBytes = null;
         _removeImage = false;
+        _discordId = user.discordId;
+        _syncAvatarFromDiscord = user.syncAvatarFromDiscord;
         _loading = false;
       });
     } catch (e) {
@@ -146,6 +154,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       setState(() => _error = 'Netzwerkfehler. Bitte prüfe deine Verbindung.');
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _toggleDiscordSync(bool newValue) async {
+    setState(() => _savingSync = true);
+
+    try {
+      final updated = await AppScope.of(
+        context,
+      ).user.updatePreferences({'syncAvatarFromDiscord': newValue});
+      if (!mounted) return;
+      setState(() {
+        _syncAvatarFromDiscord = updated.syncAvatarFromDiscord;
+        _savingSync = false;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Einstellung gespeichert')));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _savingSync = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern')));
     }
   }
 
@@ -343,6 +376,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       onPressed: _showImagePicker,
                     ),
                   ),
+                  if (_discordId != null) ...[
+                    SizedBox(height: tokens.spaceMd),
+                    DesignCard.list(
+                      children: [
+                        DesignListTile(
+                          leading: const Icon(Icons.sync_rounded),
+                          title: 'Discord-Profilbild synchronisieren',
+                          subtitle: _syncAvatarFromDiscord
+                              ? 'Automatisch bei jedem Login'
+                              : 'Deaktiviert',
+                          trailing: _savingSync
+                              ? SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: tokens.primary,
+                                  ),
+                                )
+                              : Material(
+                                  type: MaterialType.transparency,
+                                  child: Switch(
+                                    value: _syncAvatarFromDiscord,
+                                    onChanged: (v) => _toggleDiscordSync(v),
+                                    activeThumbColor: tokens.primary,
+                                  ),
+                                ),
+                          onTap: _savingSync
+                              ? null
+                              : () =>
+                                    _toggleDiscordSync(!_syncAvatarFromDiscord),
+                        ),
+                      ],
+                    ),
+                  ],
                   SizedBox(height: tokens.spaceLg),
                   DesignTextField(
                     controller: _displayNameController,

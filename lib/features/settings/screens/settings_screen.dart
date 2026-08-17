@@ -39,8 +39,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   PackageInfo? _packageInfo;
   bool _checkingUpdate = false;
   String? _updateError;
-  bool _syncAvatarFromDiscord = true;
-  bool _savingSync = false;
 
   @override
   void didChangeDependencies() {
@@ -62,7 +60,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _user = user;
         _packageInfo = packageInfo;
-        _syncAvatarFromDiscord = user.base.syncAvatarFromDiscord;
         _loading = false;
         _error = null;
       });
@@ -171,20 +168,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => context.push('/einstellungen/profil'),
                     ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: DesignText(
-                    'Vernetzungen',
-                    style: DesignTextStyle.label,
-                    color: tokens.primary,
-                  ),
-                ),
-                DesignCard.list(
-                  children: [
                     DesignListTile(
                       leading: const Icon(Icons.alternate_email_rounded),
                       title: 'Social Media',
@@ -198,78 +181,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: _contactSummary(user.contact),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => context.push('/einstellungen/kontakt'),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: DesignText(
-                    'Konto',
-                    style: DesignTextStyle.label,
-                    color: tokens.primary,
-                  ),
-                ),
-                DesignCard.list(
-                  children: [
-                    DesignListTile(
-                      leading: const Icon(Icons.email_rounded),
-                      title: 'E-Mail ändern',
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.push('/einstellungen/email'),
-                    ),
-                    DesignListTile(
-                      leading: const Icon(Icons.headset_mic_rounded),
-                      title: 'Discord-Verknüpfung',
-                      subtitle: user.base.discordId != null
-                          ? 'Verbunden (${user.base.discordId})'
-                          : 'Nicht verbunden',
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.push('/einstellungen/discord'),
-                    ),
-                    if (user.base.discordId != null)
-                      DesignListTile(
-                        leading: const Icon(Icons.sync_rounded),
-                        title: 'Discord-Profilbild synchronisieren',
-                        subtitle: _syncAvatarFromDiscord
-                            ? 'Automatisch bei jedem Login'
-                            : 'Deaktiviert',
-                        trailing: _savingSync
-                            ? SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: tokens.primary,
-                                ),
-                              )
-                            : Material(
-                                type: MaterialType.transparency,
-                                child: Switch(
-                                  value: _syncAvatarFromDiscord,
-                                  onChanged: (v) => _toggleDiscordSync(v),
-                                  activeThumbColor: tokens.primary,
-                                ),
-                              ),
-                        onTap: _savingSync
-                            ? null
-                            : () => _toggleDiscordSync(!_syncAvatarFromDiscord),
-                      ),
-                    const DesignDivider(),
-                    DesignListTile(
-                      leading: const Icon(Icons.key_rounded),
-                      title: 'MCP-API-Keys',
-                      subtitle: 'Keys und Endpunkt für den MCP-Server',
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.push('/einstellungen/mcp'),
-                    ),
-                    DesignListTile(
-                      leading: const Icon(Icons.vpn_key_rounded),
-                      title: 'DAV-Tokens',
-                      subtitle: 'CalDAV- und CardDAV-Synchronisation',
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.push('/einstellungen/dav'),
                     ),
                   ],
                 ),
@@ -374,6 +285,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 8),
 
+                // Account section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: DesignText(
+                    'Konto',
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                ),
+                DesignCard.list(
+                  children: [
+                    DesignListTile(
+                      leading: const Icon(Icons.email_rounded),
+                      title: 'E-Mail ändern',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/einstellungen/email'),
+                    ),
+                    DesignListTile(
+                      leading: const Icon(Icons.headset_mic_rounded),
+                      title: 'Discord-Verknüpfung',
+                      subtitle: user.base.discordId != null
+                          ? 'Verbunden (${user.base.discordId})'
+                          : 'Nicht verbunden',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/einstellungen/discord'),
+                    ),
+                    const DesignDivider(),
+                    DesignListTile(
+                      leading: const Icon(Icons.key_rounded),
+                      title: 'MCP-API-Keys',
+                      subtitle: 'Keys und Endpunkt für den MCP-Server',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/einstellungen/mcp'),
+                    ),
+                    DesignListTile(
+                      leading: const Icon(Icons.vpn_key_rounded),
+                      title: 'DAV-Tokens',
+                      subtitle: 'CalDAV- und CardDAV-Synchronisation',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/einstellungen/dav'),
+                    ),
+                  ],
+                ),
+
                 // App section
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -445,31 +400,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _toggleDiscordSync(bool newValue) async {
-    setState(() => _savingSync = true);
-
-    try {
-      final updated = await AppScope.of(
-        context,
-      ).user.updatePreferences({'syncAvatarFromDiscord': newValue});
-      if (!mounted) return;
-      setState(() {
-        _syncAvatarFromDiscord = updated.syncAvatarFromDiscord;
-        _savingSync = false;
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Einstellung gespeichert')));
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _savingSync = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern')));
-    }
   }
 
   String _socialSummary(UserSocialInfo s) {
