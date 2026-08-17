@@ -83,3 +83,78 @@ String formatRelativeDate(String iso) {
   if (diff.inDays < 30) return 'vor ${diff.inDays ~/ 7} Wochen';
   return formatDate(date);
 }
+
+/// Kalendertage von [from] nach [to] (0, wenn gleich; negativ in der
+/// Vergangenheit). DST-sicher über UTC-Mitternacht.
+int daysBetween(DateTime from, DateTime to) {
+  return DateTime.utc(to.year, to.month, to.day)
+      .difference(DateTime.utc(from.year, from.month, from.day))
+      .inDays;
+}
+
+/// Der nächste Geburtstag ab [now]; fällt er auf heute, wird heute
+/// zurückgegeben. Der 29. Februar wird in Nicht-Schaltjahren auf den
+/// 1. März verschoben.
+DateTime nextBirthday(DateTime birth, DateTime now) {
+  final thisYear = _birthdayInYear(birth, now.year);
+  return thisYear.isBefore(now) ? _birthdayInYear(birth, now.year + 1) : thisYear;
+}
+
+/// Alter in vollen Jahren am Tag [now], konsistent zu [nextBirthday].
+int ageInYears(DateTime birth, DateTime now) {
+  var age = now.year - birth.year;
+  if (_birthdayInYear(birth, now.year).isAfter(now)) age--;
+  return age;
+}
+
+/// Dauer von [start] bis [end] in grammatikalisch korrektem Deutsch:
+/// "Seit 3 Jahren 6 Monaten und 12 Tagen", "Seit 2 Wochen und 1 Tag",
+/// "Seit heute". Zu große (vordere) Einheiten werden weggelassen, Wochen
+/// erscheinen nur unterhalb eines Monats.
+String formatDuration(DateTime start, DateTime end) {
+  if (end.isBefore(start)) return 'Seit heute';
+  var years = end.year - start.year;
+  var months = end.month - start.month;
+  var days = end.day - start.day;
+  if (days < 0) {
+    months--;
+    days += DateTime(end.year, end.month, 0).day;
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+
+  final parts = <String>[];
+  if (years > 0) {
+    parts.add(_unit(years, 'Jahr', 'Jahren'));
+    if (months > 0) parts.add(_unit(months, 'Monat', 'Monaten'));
+    if (days > 0) parts.add(_unit(days, 'Tag', 'Tagen'));
+  } else if (months > 0) {
+    parts.add(_unit(months, 'Monat', 'Monaten'));
+    if (days > 0) parts.add(_unit(days, 'Tag', 'Tagen'));
+  } else if (days >= 7) {
+    final weeks = days ~/ 7;
+    final rest = days % 7;
+    parts.add(_unit(weeks, 'Woche', 'Wochen'));
+    if (rest > 0) parts.add(_unit(rest, 'Tag', 'Tagen'));
+  } else if (days > 0) {
+    parts.add(_unit(days, 'Tag', 'Tagen'));
+  } else {
+    return 'Seit heute';
+  }
+
+  if (parts.length == 1) return 'Seit ${parts.single}';
+  return 'Seit ${parts.sublist(0, parts.length - 1).join(' ')} und ${parts.last}';
+}
+
+String _unit(int value, String singular, String plural) =>
+    '$value ${value == 1 ? singular : plural}';
+
+DateTime _birthdayInYear(DateTime birth, int year) {
+  try {
+    return DateTime(year, birth.month, birth.day);
+  } on ArgumentError {
+    return DateTime(year, 3, 1);
+  }
+}

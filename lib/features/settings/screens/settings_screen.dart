@@ -164,10 +164,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     DesignListTile(
                       leading: const Icon(Icons.person_rounded),
                       title: 'Profil bearbeiten',
-                      subtitle: 'Anzeigename, Geburtstag',
+                      subtitle: 'Name, Profilbild, Geburtstag',
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => context.push('/einstellungen/profil'),
                     ),
+                    const DesignDivider(),
                     DesignListTile(
                       leading: const Icon(Icons.alternate_email_rounded),
                       title: 'Social Media',
@@ -210,8 +211,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const DesignSegmentedSwitch(),
                       if (DesignScope.variantOf(context) ==
                           DesignVariant.custom) ...<Widget>[
-                        const SizedBox(height: 8),
-                        const DesignDivider(),
+                        const SizedBox(height: 24),
                         const DesignText(
                           'Akzentfarbe',
                           style: DesignTextStyle.title,
@@ -225,8 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 12),
                         const _AccentColorPicker(),
                       ],
-                      const SizedBox(height: 8),
-                      const DesignDivider(),
+                      const SizedBox(height: 24),
                       const DesignText(
                         'Design-Modus',
                         style: DesignTextStyle.title,
@@ -239,8 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 12),
                       _ThemeModeSelector(),
-                      const SizedBox(height: 8),
-                      const DesignDivider(),
+                      const SizedBox(height: 24),
                       const DesignText(
                         'Grain-Effekt',
                         style: DesignTextStyle.title,
@@ -256,9 +254,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 16),
-                const DesignDivider(),
+                const SizedBox(height: 8),
 
                 // Notification section
                 Padding(
