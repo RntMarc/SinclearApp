@@ -25,9 +25,12 @@ const double _barHeight = 96;
 
 /// Horizontale Story-Kreisreihe oberhalb des Dashboards.
 ///
-/// Registriert sich als [DashboardRefreshable], damit Pull-to-Refresh und der
-/// Auto-Refresh-Timer die Stories zusammen mit dem Dashboard aktualisieren.
-/// Gesehene Stories werden lokal vermerkt und idempotent an die API gemeldet.
+/// Registriert sich als [DashboardRefreshable] und rendert aus dem
+/// sessionweiten Zustand des [StoriesService]: geladen wird einmal beim
+/// App-Start, danach nur noch über den Dashboard-Zyklus (5-Minuten-Timer,
+/// Pull-to-Refresh, App-Resume). Scrollen aus dem Sichtfeld löst dank
+/// KeepAlive keinen Reload aus. Gesehene Stories werden sessionweit
+/// vermerkt und idempotent an die API gemeldet.
 class StoriesBar extends StatefulWidget {
   const StoriesBar({
     required this.controller,
@@ -43,10 +46,13 @@ class StoriesBar extends StatefulWidget {
 }
 
 class _StoriesBarState extends State<StoriesBar>
+    with AutomaticKeepAliveClientMixin
     implements DashboardRefreshable {
-  List<StoryFeedGroup>? _groups;
-  Object? _error;
-  final Set<String> _viewedIds = {};
+  /// Die Leiste bleibt beim Scrollen am Leben (wie die Dashboard-Widgets),
+  /// damit sie nicht bei jedem Wiedereinblenden neu lädt. Die Daten selbst
+  /// liegen sessionweit im [StoriesService].
+  @override
+  bool get wantKeepAlive => true;
 
   /// ID der im geöffneten Viewer aktuell sichtbaren Story (nur dort genutzt).
   final ValueNotifier<String?> _currentStory = ValueNotifier<String?>(null);
@@ -55,59 +61,44 @@ class _StoriesBarState extends State<StoriesBar>
   void initState() {
     super.initState();
     widget.controller.register(this);
-    refresh();
+    widget.service.addListener(_onServiceChanged);
+    if (widget.service.groups == null) refresh();
   }
 
   @override
   void dispose() {
-    _currentStory.dispose();
+    widget.service.removeListener(_onServiceChanged);
     widget.controller.unregister(this);
+    _currentStory.dispose();
     super.dispose();
   }
 
+  void _onServiceChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
-  Future<void> refresh() => _load();
-
-  Future<void> _load() async {
-    try {
-      final feed = await widget.service.feed();
-      if (!mounted) return;
-      setState(() {
-        _groups = feed.data;
-        _error = null;
-        _viewedIds
-          ..clear()
-          ..addAll([
-            for (final group in feed.data)
-              for (final story in group.stories)
-                if (story.viewed) story.id,
-          ]);
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e);
-    }
-  }
-
-  void _markViewed(String id) {
-    if (!_viewedIds.add(id)) return;
-    unawaited(_reportViewed(id));
-  }
-
-  Future<void> _reportViewed(String id) async {
-    try {
-      await widget.service.markViewed(id);
-    } catch (_) {
-      // Idempotent; der nächste Feed-Abruf liefert den Stand erneut.
-    }
+  Future<void> refresh() {
+    // Rate-Limit wie bei den Dashboard-Widgets: Im laufenden
+    // refreshAll-Durchlauf oder nach Ablauf des Limits laden; ohne Daten
+    // (erster App-Start) wird nie unterbunden. Aufgeschobene Läufe
+    // übernimmt der Controller als Sammel-Refresh.
+    final mayFetch =
+        widget.controller.inRefreshPass ||
+        widget.controller.claimRefreshPass() ||
+        widget.service.groups == null;
+    if (!mayFetch) return Future.value();
+    return widget.service.refreshFeed();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final tokens = DesignTheme.of(context);
-    final groups = _groups;
+    final groups = widget.service.groups;
+    final error = widget.service.error;
     if (groups == null) {
-      return _error == null ? _buildSkeleton(tokens) : _buildError(tokens);
+      return error == null ? _buildSkeleton(tokens) : _buildError(tokens);
     }
     return SizedBox(
       height: _barHeight,
@@ -120,7 +111,7 @@ class _StoriesBarState extends State<StoriesBar>
             _StoryCircle(
               group: groups[i],
               unviewed: groups[i].stories.any(
-                (s) => !_viewedIds.contains(s.id),
+                (s) => !widget.service.isViewed(s.id),
               ),
               onTap: () => _openViewer(context, groups, i),
             ),
@@ -244,7 +235,7 @@ class _StoriesBarState extends State<StoriesBar>
   }
 
   void _onStoryShown(String id) {
-    _markViewed(id);
+    unawaited(widget.service.markViewed(id));
     _markStoryNotificationRead(id);
     // Der Aufruf kommt aus initState einer Story-Seite (während des
     // Frame-Aufbaus); das Notifier-Update daher auf nach dem Frame schieben.
