@@ -11,15 +11,15 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../services/stories_service.dart';
 
-/// Vollbild-Viewer aus dem Paket, ergänzt um Schließen-, Löschen- und
-/// Melden-Button.
+/// Vollbild-Viewer aus dem Paket, ergänzt um Schließen-, Melden- und
+/// Löschen-Button.
 ///
 /// `FullPageView` ist ein geschlossenes Widget; eigene Bedienelemente lassen
-/// sich nur DARÜBER legen. Oben links liegt immer ein X-Button zum Schließen
-/// (zusätzlich schließt eine Wischgeste nach unten). Je nach Berechtigung
-/// wird oben rechts ein Mülleimer-Button (eigene Story oder Admin) oder ein
-/// Flag-Button (fremde Story) eingeblendet. Beide Buttons zeigen vor dem
-/// Ausführen eine Bestätigung an.
+/// sich nur DARÜBER legen. Oben rechts liegen der X-Button zum Schließen
+/// (zusätzlich schließt eine Wischgeste nach unten) und die Flag zum Melden
+/// — die Flag ist auf jeder Story sichtbar, auch auf eigenen; die Ownership
+/// regelt das Moderation-Sheet. Unten rechts liegt der Löschen-Button
+/// (eigene Story oder Admin); er zeigt vor dem Ausführen eine Bestätigung an.
 class StoryViewer extends StatefulWidget {
   const StoryViewer({
     required this.items,
@@ -145,16 +145,20 @@ class _StoryViewerState extends State<StoryViewer> {
 
   Future<void> _report(String storyId) async {
     if (_busy) return;
+    // Die Flag ist auf jeder Story sichtbar (auch eigenen); die Ownership
+    // regelt das Sheet. Eigene Stories unterstützen nur `other` — ein
+    // Lösch-Antrag würde die API mit `deletion_not_supported` ablehnen,
+    // eigene Stories löscht der Ersteller direkt über den Löschen-Button.
+    final isOwn = !_isReportable(storyId);
     final submitted = await showModerationRequestSheet(
       context,
       objectType: ModerationObjectType.story,
       objectId: storyId,
       objectName: 'Story',
-      isOwn: false,
-      supportedTypes: [
-        ModerationRequestType.report,
-        ModerationRequestType.other,
-      ],
+      isOwn: isOwn,
+      supportedTypes: isOwn
+          ? [ModerationRequestType.other]
+          : [ModerationRequestType.report, ModerationRequestType.other],
     );
     if (!submitted || !mounted) return;
     Navigator.of(context).pop();
@@ -177,36 +181,44 @@ class _StoryViewerState extends State<StoryViewer> {
             fullpageVisitedColor: tokens.primary,
           ),
           SafeArea(
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 48, left: 16),
-                child: _CloseButton(onTap: _close),
-              ),
+            child: ValueListenableBuilder<String?>(
+              valueListenable: widget.currentStoryId,
+              builder: (context, storyId, _) {
+                if (storyId == null) return const SizedBox.shrink();
+                return Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 48, right: 16),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _ReportButton(
+                          onTap: _busy ? null : () => _report(storyId),
+                        ),
+                        const SizedBox(width: 8),
+                        _CloseButton(onTap: _close),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           SafeArea(
             child: ValueListenableBuilder<String?>(
               valueListenable: widget.currentStoryId,
               builder: (context, storyId, _) {
-                if (storyId == null) return const SizedBox.shrink();
-                final deletable = _isDeletable(storyId);
-                final reportable = _isReportable(storyId);
-                if (!deletable && !reportable) {
+                if (storyId == null || !_isDeletable(storyId)) {
                   return const SizedBox.shrink();
                 }
                 return Align(
-                  alignment: Alignment.topRight,
+                  alignment: Alignment.bottomRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 48, right: 16),
-                    child: deletable
-                        ? _DeleteButton(
-                            onTap: _busy ? null : () => _confirmDelete(storyId),
-                            busy: _busy,
-                          )
-                        : _ReportButton(
-                            onTap: _busy ? null : () => _report(storyId),
-                          ),
+                    padding: const EdgeInsets.only(bottom: 24, right: 16),
+                    child: _DeleteButton(
+                      onTap: _busy ? null : () => _confirmDelete(storyId),
+                      busy: _busy,
+                    ),
                   ),
                 );
               },
