@@ -125,13 +125,13 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           tokens,
           Icons.cake_rounded,
           'Geburtstag',
-          formatDate(parseApiDate(user.base.birthday!)),
+          _birthdayValue(user.base.birthday!),
         ),
       _infoTile(
         tokens,
         Icons.calendar_today_rounded,
         'Dabei seit',
-        formatDate(parseApiDate(user.base.createdAt)),
+        formatDuration(parseApiDate(user.base.createdAt), DateTime.now()),
       ),
     ];
 
@@ -269,6 +269,17 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       title: value,
       subtitle: label,
     );
+  }
+
+  String _birthdayValue(String birthday) {
+    final birth = parseApiDate(birthday);
+    final now = DateTime.now();
+    final days = daysBetween(now, nextBirthday(birth, now));
+    final age = ageInYears(birth, now);
+    final ageText = '$age ${age == 1 ? 'Jahr' : 'Jahre'}';
+    final daysText =
+        days == 0 ? 'heute' : 'in $days ${days == 1 ? 'Tag' : 'Tagen'}';
+    return '${formatDate(birth)} · $ageText · $daysText';
   }
 
   Widget _socialTile(DesignTokens tokens, SocialEntry entry) {
