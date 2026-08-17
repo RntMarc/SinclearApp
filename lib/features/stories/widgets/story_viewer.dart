@@ -11,13 +11,15 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../services/stories_service.dart';
 
-/// Vollbild-Viewer aus dem Paket, ergänzt um Löschen- und Melden-Button.
+/// Vollbild-Viewer aus dem Paket, ergänzt um Schließen-, Löschen- und
+/// Melden-Button.
 ///
 /// `FullPageView` ist ein geschlossenes Widget; eigene Bedienelemente lassen
-/// sich nur DARÜBER legen. Je nach Berechtigung wird oben rechts ein
-/// Mülleimer-Button (eigene Story oder Admin) oder ein Flag-Button
-/// (fremde Story) eingeblendet. Beide Buttons zeigen vor dem Ausführen
-/// eine Bestätigung an.
+/// sich nur DARÜBER legen. Oben links liegt immer ein X-Button zum Schließen
+/// (zusätzlich schließt eine Wischgeste nach unten). Je nach Berechtigung
+/// wird oben rechts ein Mülleimer-Button (eigene Story oder Admin) oder ein
+/// Flag-Button (fremde Story) eingeblendet. Beide Buttons zeigen vor dem
+/// Ausführen eine Bestätigung an.
 class StoryViewer extends StatefulWidget {
   const StoryViewer({
     required this.items,
@@ -57,6 +59,23 @@ class StoryViewer extends StatefulWidget {
 
 class _StoryViewerState extends State<StoryViewer> {
   bool _busy = false;
+  double _dragDistance = 0;
+
+  /// Schließt den Viewer. Wird vom X-Button und der Wischgeste genutzt;
+  /// der `await push`-Fortsetzungspfad der Aufrufer übernimmt dann die
+  /// Rückkehr zum Dashboard bzw. den Refresh.
+  void _close() => Navigator.of(context).pop();
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    _dragDistance += details.delta.dy;
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    final fling = (details.primaryVelocity ?? 0) > 400;
+    final dragged = _dragDistance > 100;
+    _dragDistance = 0;
+    if (dragged || fling) _close();
+  }
 
   bool _isDeletable(String storyId) => widget.deletableById[storyId] ?? false;
 
@@ -145,41 +164,83 @@ class _StoryViewerState extends State<StoryViewer> {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    return Stack(
-      children: [
-        FullPageView(
-          storiesMapList: widget.items,
-          storyNumber: widget.initialIndex,
-          fullpageVisitedColor: tokens.primary,
-        ),
-        SafeArea(
-          child: ValueListenableBuilder<String?>(
-            valueListenable: widget.currentStoryId,
-            builder: (context, storyId, _) {
-              if (storyId == null) return const SizedBox.shrink();
-              final deletable = _isDeletable(storyId);
-              final reportable = _isReportable(storyId);
-              if (!deletable && !reportable) {
-                return const SizedBox.shrink();
-              }
-              return Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 48, right: 16),
-                  child: deletable
-                      ? _DeleteButton(
-                          onTap: _busy ? null : () => _confirmDelete(storyId),
-                          busy: _busy,
-                        )
-                      : _ReportButton(
-                          onTap: _busy ? null : () => _report(storyId),
-                        ),
-                ),
-              );
-            },
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragUpdate: _onVerticalDragUpdate,
+      onVerticalDragEnd: _onVerticalDragEnd,
+      onVerticalDragCancel: () => _dragDistance = 0,
+      child: Stack(
+        children: [
+          FullPageView(
+            storiesMapList: widget.items,
+            storyNumber: widget.initialIndex,
+            fullpageVisitedColor: tokens.primary,
           ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 48, left: 16),
+                child: _CloseButton(onTap: _close),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: ValueListenableBuilder<String?>(
+              valueListenable: widget.currentStoryId,
+              builder: (context, storyId, _) {
+                if (storyId == null) return const SizedBox.shrink();
+                final deletable = _isDeletable(storyId);
+                final reportable = _isReportable(storyId);
+                if (!deletable && !reportable) {
+                  return const SizedBox.shrink();
+                }
+                return Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 48, right: 16),
+                    child: deletable
+                        ? _DeleteButton(
+                            onTap: _busy ? null : () => _confirmDelete(storyId),
+                            busy: _busy,
+                          )
+                        : _ReportButton(
+                            onTap: _busy ? null : () => _report(storyId),
+                          ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Story schließen',
+      button: true,
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withValues(alpha: 0.55),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+          ),
+          child: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
         ),
-      ],
+      ),
     );
   }
 }

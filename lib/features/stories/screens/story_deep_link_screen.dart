@@ -209,7 +209,7 @@ class _StoryDeepLinkScreenState extends State<StoryDeepLinkScreen> {
       final bytes = decodeBase64Image(image);
       return Image.memory(
         bytes,
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         errorBuilder: (_, _, _) => fallback,
       );
     } catch (_) {
