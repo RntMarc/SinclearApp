@@ -41,13 +41,13 @@ class NotificationService extends ChangeNotifier {
        _contentResolver = contentResolver;
 
   void startPolling({
-    required String token,
+    required Future<String> Function() getToken,
     Duration interval = const Duration(seconds: 60),
   }) {
     if (_pollingTimer != null && _lastSeen != null) return;
     stopPolling();
-    _poll(token);
-    _pollingTimer = Timer.periodic(interval, (_) => _poll(token));
+    _poll(getToken);
+    _pollingTimer = Timer.periodic(interval, (_) => _poll(getToken));
   }
 
   void stopPolling() {
@@ -55,8 +55,9 @@ class NotificationService extends ChangeNotifier {
     _pollingTimer = null;
   }
 
-  Future<void> _poll(String token) async {
+  Future<void> _poll(Future<String> Function() getToken) async {
     try {
+      final token = await getToken();
       final queryParams = <String, String>{};
       if (_lastSeen != null) {
         queryParams['since'] = _lastSeen!;

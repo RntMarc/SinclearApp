@@ -159,7 +159,7 @@ Future<void> _bootstrap() async {
         final token = await auth.getAccessToken();
         switch (initialNotificationMethod) {
           case NotificationMethod.polling:
-            notification.startPolling(token: token);
+            notification.startPolling(getToken: auth.getAccessToken);
           case NotificationMethod.unifiedPush:
             unifiedPush.init(
               token: token,

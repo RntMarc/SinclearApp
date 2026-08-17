@@ -439,7 +439,7 @@ class _NotificationSettingsScreenState
           }
           await LocalNotificationHelper.requestPermission();
           scope.notification.startPolling(
-            token: await scope.auth.getAccessToken(),
+            getToken: scope.auth.getAccessToken,
           );
         case NotificationMethod.unifiedPush:
           scope.notification.stopPolling();
