@@ -84,6 +84,12 @@ class NotificationTypeLabel {
       'standalone_event_user_added_others' => 'Neuer Teilnehmer beim Event',
       'standalone_event_info_changed' => 'Event-Informationen geändert',
       'standalone_event_ticket_added' => 'Neues Ticket für das Event',
+      // Vereinheitlichte Preference-Schlüssel (nur Einstellungen): gelten
+      // für Reise-Events und eigenständige Events gleichermaßen.
+      'event_user_added' => 'Du wurdest zu einem Event hinzugefügt',
+      'event_user_added_others' => 'Neuer Teilnehmer beim Event',
+      'event_info_changed' => 'Event-Informationen geändert',
+      'event_ticket_added' => 'Neues Ticket für das Event',
       _ => 'Neue Mitteilung',
     };
   }
@@ -141,6 +147,9 @@ class NotificationTypeLabel {
       'trip_subscription_added' => Icons.receipt_long,
       'standalone_event_user_added' ||
       'standalone_event_user_added_others' => Icons.event,
+      'event_user_added' || 'event_user_added_others' => Icons.event,
+      'event_info_changed' => Icons.info_outline,
+      'event_ticket_added' => Icons.confirmation_num,
       _ => Icons.notifications_rounded,
     };
   }
@@ -180,23 +189,25 @@ class NotificationTypeLabel {
 
   /// Kategorie für die Gruppierung im Einstellungen-Screen. `null` für
   /// unbekannte Typen — unbekannte Typen werden nicht angezeigt.
+  ///
+  /// Arbeitet auf den **Preference-Schlüsseln** des Preferences-Endpoints
+  /// (`GET/PUT /notifications/preferences`). Event-Benachrichtigungen werden
+  /// dort vereinheitlicht: die internen Reise-/Standalone-Varianten
+  /// (`standalone_event_*`, `trip_event_*`) tauchen in den Präferenzen nicht
+  /// auf, sondern nur die gemeinsamen Schlüssel `event_user_added`,
+  /// `event_user_added_others`, `event_ticket_added` und `event_info_changed`.
   static String? category(String type) {
     return switch (type) {
       'forum_reply' || 'forum_comment' => 'Forum',
       'story_post' => 'Stories',
       'trip_user_added' ||
       'trip_user_added_others' ||
-      'trip_info_changed' => 'Reisen',
-      'standalone_event_user_added' ||
-      'standalone_event_user_added_others' ||
-      'standalone_event_info_changed' ||
-      'trip_event_user_added' ||
-      'trip_event_user_added_others' ||
-      'trip_event_added' ||
-      'trip_event_info_changed' => 'Events',
-      'trip_ticket_added' ||
-      'standalone_event_ticket_added' ||
-      'trip_event_ticket_added' => 'Tickets',
+      'trip_info_changed' ||
+      'trip_event_added' => 'Reisen',
+      'event_user_added' ||
+      'event_user_added_others' ||
+      'event_info_changed' => 'Events',
+      'trip_ticket_added' || 'event_ticket_added' => 'Tickets',
       'trip_accommodation_added' => 'Unterkunft',
       'trip_subscription_added' => 'Abos',
       _ => null,
