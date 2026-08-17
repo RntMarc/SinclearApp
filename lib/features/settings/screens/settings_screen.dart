@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +6,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/models/app_update_info.dart';
-import '../../../core/notifications/local_notification_helper.dart';
 import '../../../core/services/android_update_service.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/design_variant.dart';
@@ -19,14 +16,12 @@ import '../../../design/widgets/composite/design_segmented_switch.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
-import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
-import '../../notifications/screens/push_setup_screens.dart';
 import '../models/notification_preference.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -46,7 +41,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _updateError;
   bool _syncAvatarFromDiscord = true;
   bool _savingSync = false;
-  bool _savingNotificationMethod = false;
 
   @override
   void didChangeDependencies() {
@@ -356,78 +350,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const DesignDivider(),
 
                 // Notification section
-                if (!kIsWeb) ...<Widget>[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DesignText(
-                          'Benachrichtigungen',
-                          style: DesignTextStyle.label,
-                          color: tokens.primary,
-                        ),
-                        const SizedBox(height: 2),
-                        DesignText(
-                          'Aktiv: '
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: DesignText(
+                    'Benachrichtigungen',
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                ),
+                DesignCard.list(
+                  children: [
+                    DesignListTile(
+                      leading: const Icon(Icons.notifications_rounded),
+                      title: 'Benachrichtigungen',
+                      subtitle:
+                          'Methode und Typen verwalten — Aktiv: '
                           '${AppScope.of(context).notificationMethod.value.label}',
-                          style: DesignTextStyle.label,
-                          color: tokens.textLow,
-                        ),
-                      ],
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () =>
+                          context.push('/einstellungen/benachrichtigungen'),
                     ),
-                  ),
-                  DesignCard.list(
-                    children: [
-                      for (final method in NotificationMethodX.availableFor())
-                        DesignListTile(
-                          leading: Icon(
-                            method == NotificationMethod.unifiedPush
-                                ? Icons.push_pin_rounded
-                                : Icons.sync_rounded,
-                            color: tokens.textHigh,
-                          ),
-                          title: method.label,
-                          subtitle: method.description,
-                          trailing: _savingNotificationMethod
-                              ? SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: tokens.primary,
-                                  ),
-                                )
-                              : Icon(
-                                  AppScope.of(
-                                            context,
-                                          ).notificationMethod.value ==
-                                          method
-                                      ? Icons.radio_button_checked_rounded
-                                      : Icons.radio_button_unchecked_rounded,
-                                  color:
-                                      AppScope.of(
-                                            context,
-                                          ).notificationMethod.value ==
-                                          method
-                                      ? tokens.primary
-                                      : tokens.textLow,
-                                ),
-                          onTap: _savingNotificationMethod
-                              ? null
-                              : () => _applyNotificationMethod(method),
-                        ),
-                      if (Platform.isAndroid)
-                        const DesignListTile(
-                          leading: Icon(Icons.cloud_rounded),
-                          title: 'FCM',
-                          subtitle: 'Google Firebase Cloud Messaging – geplant',
-                          trailing: DesignBadge(label: 'Bald verfügbar'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                  ],
+                ),
+                const SizedBox(height: 8),
 
                 // App section
                 Padding(
@@ -551,80 +496,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ].where((e) => e != null).length;
     if (count == 0) return 'Keine Angaben';
     return '$count Kontakt${count == 1 ? '' : 'e'} hinterlegt';
-  }
-
-  Future<void> _setupPush() async {
-    final scope = AppScope.of(context);
-    await LocalNotificationHelper.requestPermission();
-    scope.unifiedPush.init(
-      token: await scope.auth.getAccessToken(),
-      onMessage: (item) {
-        scope.notification.registerIncoming(item);
-        unawaited(scope.notificationContent.showLocal(item));
-      },
-    );
-    if (!mounted) return;
-    await scope.unifiedPush.checkAndSetup(
-      context: context,
-      onDistributorsFound: (distributors) async {
-        if (!mounted) return;
-        await showDistributorPickerSheet(
-          context: context,
-          distributors: distributors,
-          onSelect: scope.unifiedPush.selectDistributor,
-        );
-      },
-      onNoDistributor: () async {
-        if (!mounted) return;
-        await Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const NoDistributorScreen()));
-      },
-    );
-  }
-
-  /// Stoppt den bisherigen Service und startet die gewählte Methode.
-  Future<void> _applyNotificationMethod(NotificationMethod method) async {
-    final scope = AppScope.of(context);
-    final previous = scope.notificationMethod.value;
-    if (method == previous) return;
-
-    setState(() => _savingNotificationMethod = true);
-    try {
-      switch (method) {
-        case NotificationMethod.polling:
-          if (previous == NotificationMethod.unifiedPush) {
-            await scope.unifiedPush.unregister();
-          }
-          await LocalNotificationHelper.requestPermission();
-          scope.notification.startPolling(
-            token: await scope.auth.getAccessToken(),
-          );
-        case NotificationMethod.unifiedPush:
-          scope.notification.stopPolling();
-          await _setupPush();
-        case NotificationMethod.fcm:
-          break;
-      }
-      scope.notificationMethod.value = method;
-      await NotificationPreference.save(method);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Benachrichtigungs-Methode: ${method.label}')),
-      );
-    } catch (e) {
-      developer.log(
-        'Notification method switch failed',
-        error: e,
-        name: 'settings.notifications',
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Methode konnte nicht gewechselt werden')),
-      );
-    } finally {
-      if (mounted) setState(() => _savingNotificationMethod = false);
-    }
   }
 
   Future<void> _confirmLogout() async {

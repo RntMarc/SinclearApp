@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';
 import 'package:sinclear_beyond/features/notifications/models/notification_item.dart';
+import 'package:sinclear_beyond/features/notifications/models/notification_type_preference.dart';
 import 'package:sinclear_beyond/features/notifications/services/notification_service.dart';
 
 class MockApiClient extends ApiClient {
@@ -9,6 +10,7 @@ class MockApiClient extends ApiClient {
   int callIndex = 0;
   final List<String> calledPaths = [];
   final List<Map<String, String?>?> calledQueryParams = [];
+  final List<Map<String, dynamic>?> calledBodies = [];
 
   MockApiClient() : super(baseUrl: 'http://localhost');
 
@@ -34,6 +36,20 @@ class MockApiClient extends ApiClient {
   }) async {
     calledPaths.add(path);
     return {'ok': true};
+  }
+
+  @override
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    calledPaths.add(path);
+    calledBodies.add(body);
+    if (callIndex < responses.length) {
+      return responses[callIndex++];
+    }
+    return {'data': {}};
   }
 }
 
@@ -415,9 +431,7 @@ void main() {
 
     test('markRead removes trip ids from the registry', () async {
       mockApi.responses.add({
-        'notifications': [
-          tripNotification('1', 'trip_user_added', 'tripA'),
-        ],
+        'notifications': [tripNotification('1', 'trip_user_added', 'tripA')],
       });
 
       service.startPolling(token: 'test-token');
@@ -432,9 +446,7 @@ void main() {
 
     test('clear empties the trip registry', () async {
       mockApi.responses.add({
-        'notifications': [
-          tripNotification('1', 'trip_user_added', 'tripA'),
-        ],
+        'notifications': [tripNotification('1', 'trip_user_added', 'tripA')],
       });
 
       service.startPolling(token: 'test-token');
@@ -511,6 +523,95 @@ void main() {
       service.clear();
 
       expect(service.hasUnreadStandaloneEventContent, isFalse);
+    });
+  });
+
+  group('notification preferences', () {
+    test('getPreferences parses the API map', () async {
+      mockApi.responses.add({
+        'data': {
+          'forum_comment': {
+            'state': 'custom',
+            'customAllowed': true,
+            'customData': {
+              'forumIds': ['f1'],
+            },
+          },
+          'story_post': {
+            'state': 'enabled',
+            'customAllowed': true,
+            'customData': null,
+          },
+        },
+      });
+
+      final prefs = await service.getPreferences(token: 'test-token');
+
+      expect(mockApi.calledPaths, contains('/notifications/preferences'));
+      expect(prefs.keys, containsAll(['forum_comment', 'story_post']));
+      expect(prefs['forum_comment']!.state, NotificationPreferenceState.custom);
+      expect(prefs['forum_comment']!.denylistIds('forumIds'), ['f1']);
+    });
+
+    test(
+      'updatePreferences sends only changed types and returns full map',
+      () async {
+        mockApi.responses.add({
+          'data': {
+            'story_post': {
+              'state': 'disabled',
+              'customAllowed': true,
+              'customData': null,
+            },
+          },
+        });
+
+        final updated = await service.updatePreferences([
+          const NotificationTypePreference(
+            type: 'story_post',
+            state: NotificationPreferenceState.disabled,
+            customAllowed: true,
+          ),
+        ], token: 'test-token');
+
+        expect(mockApi.calledPaths, contains('/notifications/preferences'));
+        expect(mockApi.calledBodies.last, {
+          'preferences': [
+            {'type': 'story_post', 'state': 'disabled'},
+          ],
+        });
+        expect(
+          updated['story_post']!.state,
+          NotificationPreferenceState.disabled,
+        );
+      },
+    );
+
+    test('updatePreferences sends customData for custom state', () async {
+      mockApi.responses.add({'data': {}});
+
+      await service.updatePreferences([
+        const NotificationTypePreference(
+          type: 'forum_reply',
+          state: NotificationPreferenceState.custom,
+          customAllowed: true,
+          customData: {
+            'forumIds': ['f1', 'f2'],
+          },
+        ),
+      ], token: 'test-token');
+
+      expect(mockApi.calledBodies.last, {
+        'preferences': [
+          {
+            'type': 'forum_reply',
+            'state': 'custom',
+            'customData': {
+              'forumIds': ['f1', 'f2'],
+            },
+          },
+        ],
+      });
     });
   });
 }

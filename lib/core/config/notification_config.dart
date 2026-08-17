@@ -55,8 +55,9 @@ class NotificationTypeLabel {
       'forum_reply' || 'forum_comment' => _forumRoute(data),
       'story_post' => _storyRoute(data),
       _ when _tripTypes.contains(type) => _tripRoute(data),
-      _ when _standaloneEventTypes.contains(type) =>
-        _standaloneEventRoute(data),
+      _ when _standaloneEventTypes.contains(type) => _standaloneEventRoute(
+        data,
+      ),
       _ => null,
     };
   }
@@ -79,10 +80,8 @@ class NotificationTypeLabel {
       'trip_accommodation_added' => 'Hotel-Zuweisung',
       'trip_subscription_added' => 'Neues Abo verknüpft',
       'trip_info_changed' => 'Reise-Informationen geändert',
-      'standalone_event_user_added' =>
-        'Du wurdest zu einem Event hinzugefügt',
-      'standalone_event_user_added_others' =>
-        'Neuer Teilnehmer beim Event',
+      'standalone_event_user_added' => 'Du wurdest zu einem Event hinzugefügt',
+      'standalone_event_user_added_others' => 'Neuer Teilnehmer beim Event',
       'standalone_event_info_changed' => 'Event-Informationen geändert',
       'standalone_event_ticket_added' => 'Neues Ticket für das Event',
       _ => 'Neue Mitteilung',
@@ -100,24 +99,18 @@ class NotificationTypeLabel {
       'trip_user_added' => 'Du wurdest zu einer Reise hinzugefügt.',
       'trip_user_added_others' =>
         'Ein neuer Teilnehmer wurde zur Reise hinzugefügt.',
-      'trip_event_added' =>
-        'Ein neues Event wurde zur Reise hinzugefügt.',
+      'trip_event_added' => 'Ein neues Event wurde zur Reise hinzugefügt.',
       'trip_event_user_added' => 'Du wurdest zu einem Event hinzugefügt.',
       'trip_event_user_added_others' =>
         'Ein neuer Teilnehmer wurde zum Event hinzugefügt.',
-      'trip_event_info_changed' =>
-        'Die Event-Informationen wurden geändert.',
+      'trip_event_info_changed' => 'Die Event-Informationen wurden geändert.',
       'trip_event_ticket_added' =>
         'Ein neues Ticket wurde zum Event hinzugefügt.',
-      'trip_ticket_added' =>
-        'Ein neues Ticket wurde zur Reise hinzugefügt.',
+      'trip_ticket_added' => 'Ein neues Ticket wurde zur Reise hinzugefügt.',
       'trip_accommodation_added' => 'Dir wurde ein Hotel zugewiesen.',
-      'trip_subscription_added' =>
-        'Ein Abo wurde mit der Reise verknüpft.',
-      'trip_info_changed' =>
-        'Die Reise-Informationen wurden geändert.',
-      'standalone_event_user_added' =>
-        'Du wurdest zu einem Event hinzugefügt.',
+      'trip_subscription_added' => 'Ein Abo wurde mit der Reise verknüpft.',
+      'trip_info_changed' => 'Die Reise-Informationen wurden geändert.',
+      'standalone_event_user_added' => 'Du wurdest zu einem Event hinzugefügt.',
       'standalone_event_user_added_others' =>
         'Ein neuer Teilnehmer wurde zum Event hinzugefügt.',
       'standalone_event_info_changed' =>
@@ -183,6 +176,42 @@ class NotificationTypeLabel {
     final eventId = _identifierFor(data, 'event');
     if (eventId == null) return null;
     return '/reisen/einzelevent/$eventId';
+  }
+
+  /// Kategorie für die Gruppierung im Einstellungen-Screen. `null` für
+  /// unbekannte Typen — unbekannte Typen werden nicht angezeigt.
+  static String? category(String type) {
+    return switch (type) {
+      'forum_reply' || 'forum_comment' => 'Forum',
+      'story_post' => 'Stories',
+      'trip_user_added' ||
+      'trip_user_added_others' ||
+      'trip_info_changed' => 'Reisen',
+      'standalone_event_user_added' ||
+      'standalone_event_user_added_others' ||
+      'standalone_event_info_changed' ||
+      'trip_event_user_added' ||
+      'trip_event_user_added_others' ||
+      'trip_event_added' ||
+      'trip_event_info_changed' => 'Events',
+      'trip_ticket_added' ||
+      'standalone_event_ticket_added' ||
+      'trip_event_ticket_added' => 'Tickets',
+      'trip_accommodation_added' => 'Unterkunft',
+      'trip_subscription_added' => 'Abos',
+      _ => null,
+    };
+  }
+
+  /// Schlüssel der Denylist (`customData`) für `custom`-fähige Typen —
+  /// deterministisch laut API-Doku `notifications`: `forumIds` bei den
+  /// Forum-Typen, `userIds` bei `story_post`. `null` für alle anderen.
+  static String? customDataKey(String type) {
+    return switch (type) {
+      'forum_reply' || 'forum_comment' => 'forumIds',
+      'story_post' => 'userIds',
+      _ => null,
+    };
   }
 
   static String? _identifierFor(

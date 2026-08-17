@@ -177,34 +177,6 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     }
   }
 
-  Future<void> _toggleNotifications() async {
-    final forum = _forum;
-    if (forum == null) return;
-    try {
-      final forumService = AppScope.of(context).forum;
-      await forumService.setNotifications(
-        forum.id,
-        enabled: !forum.notificationsEnabled,
-      );
-      if (!mounted) return;
-      setState(() {
-        _forum = ForumDetail(
-          id: forum.id,
-          name: forum.name,
-          description: forum.description,
-          image: forum.image,
-          memberCount: forum.memberCount,
-          createdAt: forum.createdAt,
-          updatedAt: forum.updatedAt,
-          isMember: forum.isMember,
-          notificationsEnabled: !forum.notificationsEnabled,
-        );
-      });
-    } catch (e) {
-      developer.log('Notification toggle failed', error: e);
-    }
-  }
-
   Future<void> _showMembers() async {
     try {
       final forumService = AppScope.of(context).forum;
@@ -348,12 +320,6 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
               DesignIconButton(
                 icon: Icons.people_rounded,
                 onPressed: _showMembers,
-              ),
-              DesignIconButton(
-                icon: _forum?.notificationsEnabled == true
-                    ? Icons.notifications_active_rounded
-                    : Icons.notifications_off_rounded,
-                onPressed: _toggleNotifications,
               ),
             ],
           ),

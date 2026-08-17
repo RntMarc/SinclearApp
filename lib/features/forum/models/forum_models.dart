@@ -7,6 +7,10 @@ class Forum {
   final String? description;
   final String? image;
   final int memberCount;
+
+  /// Ob der eingeloggte Nutzer Mitglied ist (seit API-Update auch in der
+  /// Listen-Antwort `GET /forums` enthalten).
+  final bool isMember;
   final String createdAt;
   final String updatedAt;
 
@@ -16,6 +20,7 @@ class Forum {
     this.description,
     this.image,
     required this.memberCount,
+    this.isMember = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -27,6 +32,7 @@ class Forum {
       description: json['description'] as String?,
       image: json['image'] as String?,
       memberCount: json['memberCount'] as int,
+      isMember: json['isMember'] == true || json['isMember'] == 1,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
     );
@@ -34,19 +40,15 @@ class Forum {
 }
 
 class ForumDetail extends Forum {
-  final bool isMember;
-  final bool notificationsEnabled;
-
   const ForumDetail({
     required super.id,
     required super.name,
     super.description,
     super.image,
     required super.memberCount,
+    required super.isMember,
     required super.createdAt,
     required super.updatedAt,
-    required this.isMember,
-    required this.notificationsEnabled,
   });
 
   factory ForumDetail.fromJson(Map<String, dynamic> json) {
@@ -56,13 +58,9 @@ class ForumDetail extends Forum {
       description: json['description'] as String?,
       image: json['image'] as String?,
       memberCount: json['memberCount'] as int,
+      isMember: json['isMember'] == true || json['isMember'] == 1,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
-      isMember: json['isMember'] == true || json['isMember'] == 1,
-      notificationsEnabled: json['notificationsEnabled'] == null
-          ? false
-          : json['notificationsEnabled'] == true ||
-                json['notificationsEnabled'] == 1,
     );
   }
 }
@@ -113,7 +111,6 @@ class ForumMember {
   final String userId;
   final String? displayName;
   final String? image;
-  final bool notificationsEnabled;
   final String createdAt;
 
   const ForumMember({
@@ -122,7 +119,6 @@ class ForumMember {
     required this.userId,
     this.displayName,
     this.image,
-    required this.notificationsEnabled,
     required this.createdAt,
   });
 
@@ -133,10 +129,6 @@ class ForumMember {
       userId: json['userId'] as String,
       displayName: json['displayName'] as String?,
       image: json['image'] as String?,
-      notificationsEnabled: json['notificationsEnabled'] == null
-          ? true
-          : json['notificationsEnabled'] == true ||
-                json['notificationsEnabled'] == 1,
       createdAt: json['createdAt'] as String,
     );
   }
