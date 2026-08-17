@@ -537,7 +537,7 @@ void main() {
   });
 
   group('NotificationTypeLabel.category', () {
-    test('gruppiert alle 18 bekannten Typen', () {
+    test('gruppiert alle 14 Preference-Schlüssel', () {
       expect(NotificationTypeLabel.category('forum_reply'), 'Forum');
       expect(NotificationTypeLabel.category('forum_comment'), 'Forum');
       expect(NotificationTypeLabel.category('story_post'), 'Stories');
@@ -547,37 +547,15 @@ void main() {
         'Reisen',
       );
       expect(NotificationTypeLabel.category('trip_info_changed'), 'Reisen');
-      expect(NotificationTypeLabel.category('trip_event_added'), 'Events');
-      expect(NotificationTypeLabel.category('trip_event_user_added'), 'Events');
+      expect(NotificationTypeLabel.category('trip_event_added'), 'Reisen');
+      expect(NotificationTypeLabel.category('event_user_added'), 'Events');
       expect(
-        NotificationTypeLabel.category('trip_event_user_added_others'),
+        NotificationTypeLabel.category('event_user_added_others'),
         'Events',
       );
-      expect(
-        NotificationTypeLabel.category('trip_event_info_changed'),
-        'Events',
-      );
-      expect(
-        NotificationTypeLabel.category('standalone_event_user_added'),
-        'Events',
-      );
-      expect(
-        NotificationTypeLabel.category('standalone_event_user_added_others'),
-        'Events',
-      );
-      expect(
-        NotificationTypeLabel.category('standalone_event_info_changed'),
-        'Events',
-      );
+      expect(NotificationTypeLabel.category('event_info_changed'), 'Events');
+      expect(NotificationTypeLabel.category('event_ticket_added'), 'Tickets');
       expect(NotificationTypeLabel.category('trip_ticket_added'), 'Tickets');
-      expect(
-        NotificationTypeLabel.category('trip_event_ticket_added'),
-        'Tickets',
-      );
-      expect(
-        NotificationTypeLabel.category('standalone_event_ticket_added'),
-        'Tickets',
-      );
       expect(
         NotificationTypeLabel.category('trip_accommodation_added'),
         'Unterkunft',
@@ -585,9 +563,79 @@ void main() {
       expect(NotificationTypeLabel.category('trip_subscription_added'), 'Abos');
     });
 
+    test('interne Event-Typen haben keine Kategorie (nur in Präferenzen '
+        'vereinheitlicht)', () {
+      expect(
+        NotificationTypeLabel.category('standalone_event_user_added'),
+        isNull,
+      );
+      expect(
+        NotificationTypeLabel.category('standalone_event_user_added_others'),
+        isNull,
+      );
+      expect(
+        NotificationTypeLabel.category('standalone_event_info_changed'),
+        isNull,
+      );
+      expect(
+        NotificationTypeLabel.category('standalone_event_ticket_added'),
+        isNull,
+      );
+      expect(NotificationTypeLabel.category('trip_event_user_added'), isNull);
+      expect(
+        NotificationTypeLabel.category('trip_event_user_added_others'),
+        isNull,
+      );
+      expect(NotificationTypeLabel.category('trip_event_info_changed'), isNull);
+      expect(NotificationTypeLabel.category('trip_event_ticket_added'), isNull);
+    });
+
     test('unbekannte Typen haben keine Kategorie (werden nicht angezeigt)', () {
       expect(NotificationTypeLabel.category('unbekannt'), isNull);
       expect(NotificationTypeLabel.category(''), isNull);
+    });
+  });
+
+  group('NotificationTypeLabel vereinheitlichte Event-Keys', () {
+    test('event_user_added rendert Titel und Icon', () {
+      expect(
+        NotificationTypeLabel.title('event_user_added'),
+        'Du wurdest zu einem Event hinzugefügt',
+      );
+      expect(NotificationTypeLabel.icon('event_user_added'), Icons.event);
+    });
+
+    test('event_user_added_others rendert Titel und Icon', () {
+      expect(
+        NotificationTypeLabel.title('event_user_added_others'),
+        'Neuer Teilnehmer beim Event',
+      );
+      expect(
+        NotificationTypeLabel.icon('event_user_added_others'),
+        Icons.event,
+      );
+    });
+
+    test('event_info_changed rendert Titel und Icon', () {
+      expect(
+        NotificationTypeLabel.title('event_info_changed'),
+        'Event-Informationen geändert',
+      );
+      expect(
+        NotificationTypeLabel.icon('event_info_changed'),
+        Icons.info_outline,
+      );
+    });
+
+    test('event_ticket_added rendert Titel und Icon', () {
+      expect(
+        NotificationTypeLabel.title('event_ticket_added'),
+        'Neues Ticket für das Event',
+      );
+      expect(
+        NotificationTypeLabel.icon('event_ticket_added'),
+        Icons.confirmation_num,
+      );
     });
   });
 
