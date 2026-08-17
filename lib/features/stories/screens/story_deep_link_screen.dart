@@ -32,7 +32,6 @@ class _StoryDeepLinkScreenState extends State<StoryDeepLinkScreen> {
   bool _loading = true;
   String? _error;
   StoriesService? _service;
-  final Set<String> _viewedIds = {};
 
   /// ID der im geöffneten Viewer aktuell sichtbaren Story (für die
   /// Löschen-/Melden-Buttons im Viewer).
@@ -170,7 +169,7 @@ class _StoryDeepLinkScreenState extends State<StoryDeepLinkScreen> {
   }
 
   void _onStoryShown(String id) {
-    if (_viewedIds.add(id)) unawaited(_markViewed(id));
+    unawaited(_service?.markViewed(id));
     _markStoryNotificationRead(id);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _currentStory.value = id;
@@ -191,14 +190,6 @@ class _StoryDeepLinkScreenState extends State<StoryDeepLinkScreen> {
         // Idempotent; der nächste Abruf liefert den Stand erneut.
       }
     }());
-  }
-
-  Future<void> _markViewed(String id) async {
-    try {
-      await _service?.markViewed(id);
-    } catch (_) {
-      // Idempotent; der nächste Feed-Abruf liefert den Stand erneut.
-    }
   }
 
   Widget _storyImage(String image) {
