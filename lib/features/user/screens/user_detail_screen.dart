@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/primitives/design_card.dart';
@@ -124,13 +125,13 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           tokens,
           Icons.cake_rounded,
           'Geburtstag',
-          user.base.birthday!,
+          formatDate(parseApiDate(user.base.birthday!)),
         ),
       _infoTile(
         tokens,
         Icons.calendar_today_rounded,
         'Dabei seit',
-        user.base.createdAt.substring(0, 10),
+        formatDate(parseApiDate(user.base.createdAt)),
       ),
     ];
 
