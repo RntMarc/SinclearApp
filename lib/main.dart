@@ -51,9 +51,15 @@ import 'features/notifications/models/notification_item.dart';
 import 'router/router.dart';
 
 /// Pending cold-start notification route. Set when the notification tap
-/// fires before `MaterialApp.router` has built its navigator. Cleared after
-/// the route is executed exactly once.
+/// fires before the router exists (Cold-Start). Sie wird dann die
+/// Start-Route (`initialLocation`) des Routers, damit die Story erst
+/// geöffnet wird, wenn die App fertig geladen ist. Cleared after the
+/// route is executed exactly once.
 String? _pendingNotificationRoute;
+
+/// Der aktive Router; gesetzt nach der Erstellung in `_bootstrap`.
+/// Taps, die danach eintreffen (App läuft), navigieren direkt.
+GoRouter? _router;
 
 void main() {
   runZonedGuarded(
@@ -137,14 +143,16 @@ Future<void> _bootstrap() async {
     webUpdate.init();
   }
 
-  final router = createRouter(auth);
   final initialNotificationMethod = await NotificationPreference.load();
 
   if (!kIsWeb) {
-    DeepLinkHandler().init(router, appBaseUrl: appBaseUrl);
+    // Handler VOR der Router-Erstellung registrieren: Ein Cold-Start-Tap
+    // feuert während init() und merkt die Ziel-Route vor, die dann die
+    // Start-Route des Routers wird. So öffnet die Story erst, wenn die App
+    // fertig geladen ist — statt ihr nachträglich und evtl. zu früh per
+    // router.go() hinterherzunavigieren.
     LocalNotificationHelper.setNotificationTapHandler(
       (payload) => _handleNotificationTap(
-        router,
         payload,
         auth: auth,
         notification: notification,
@@ -180,6 +188,16 @@ Future<void> _bootstrap() async {
         );
       }
     }
+  }
+
+  // Ein Cold-Start-Tap hat die Ziel-Route vorgemerkt: Sie wird direkt die
+  // erste Route des Routers (redirect-gesichert über auth/onboarding).
+  final router = createRouter(auth, initialLocation: _pendingNotificationRoute);
+  _pendingNotificationRoute = null;
+  _router = router;
+
+  if (!kIsWeb) {
+    DeepLinkHandler().init(router, appBaseUrl: appBaseUrl);
   }
 
   final initialDesign = await DesignPreferences.load();
@@ -230,14 +248,14 @@ Future<void> _bootstrap() async {
     ),
   );
 
-  // Nach runApp() ist der erste Frame geplant. Falls eine Notification den
-  // Cold-Start ausgelöst hat und die Route noch pending ist, jetzt die
-  // Navigation starten, sobald der Navigator-Context verfügbar ist.
+  // Sicherheitsnetz: Taps, die nach der Router-Erstellung, aber vor dem
+  // ersten Frame eintreffen, landen in _pendingNotificationRoute und werden
+  // hier ausgeführt, sobald der Navigator-Context verfügbar ist. (Der
+  // Cold-Start-Tap selbst ist bereits als initialLocation im Router.)
   _tryNavigatePendingNavigation(router);
 }
 
 void _handleNotificationTap(
-  GoRouter router,
   String? payload, {
   required AuthService auth,
   required NotificationService notification,
@@ -265,7 +283,14 @@ void _handleNotificationTap(
   final route = item == null
       ? null
       : NotificationTypeLabel.route(item.type, item.data);
-  _navigate(router, route ?? '/home');
+  final router = _router;
+  if (router == null) {
+    // Router existiert noch nicht (Cold-Start): Route als Start-Route
+    // vormerken — der Router nimmt sie als initialLocation entgegen.
+    _pendingNotificationRoute = route ?? '/home';
+  } else {
+    _navigate(router, route ?? '/home');
+  }
 
   final id = item?.id;
   if (id != null && id.isNotEmpty) {
@@ -273,9 +298,9 @@ void _handleNotificationTap(
   }
 }
 
-/// Navigiert Cold-Start-sicher: Läuft die App noch nicht (der Tap-Handler
-/// feuert vor `runApp`, z. B. beim Start durch eine Notification), wird die
-/// Navigation in den post-`runApp`-Frame verschoben.
+/// Navigiert Cold-Start-sicher: Ist der Navigator noch nicht bereit (Tap
+/// vor dem ersten Frame), wird die Route vorgemerkt und nach dem ersten
+/// Frame via [_tryNavigatePendingNavigation] ausgeführt.
 void _navigate(GoRouter router, String route) {
   if (router.routerDelegate.navigatorKey.currentContext != null) {
     router.go(route);
