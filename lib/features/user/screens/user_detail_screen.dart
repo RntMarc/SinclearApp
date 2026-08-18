@@ -214,11 +214,22 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               if (!_isSelf) ...[
                 SizedBox(height: tokens.spaceLg),
                 Center(
-                  child: DesignButton(
-                    variant: DesignButtonVariant.outlined,
-                    icon: Icons.flag_rounded,
-                    label: 'Benutzer melden',
-                    onPressed: _report,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DesignButton(
+                        variant: DesignButtonVariant.outlined,
+                        icon: Icons.flag_rounded,
+                        label: 'Benutzer melden',
+                        onPressed: _report,
+                      ),
+                      SizedBox(width: tokens.spaceSm),
+                      DesignButton(
+                        icon: Icons.chat_rounded,
+                        label: 'Nachricht',
+                        onPressed: _startChat,
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -258,6 +269,32 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     );
   }
 
+  /// Öffnet (get-or-create) die 1:1-Konversation und navigiert hinein.
+  Future<void> _startChat() async {
+    final scope = AppScope.of(context);
+    try {
+      final conversation = await scope.chat.openConversation(widget.id);
+      if (!mounted) return;
+      context.push('/chat/${conversation.id}');
+    } catch (e, st) {
+      developer.log(
+        'openConversation failed',
+        error: e,
+        stackTrace: st,
+        name: 'user_detail',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: DesignText(
+            'Chat konnte nicht geöffnet werden.',
+            color: DesignTheme.of(context).textOnPrimary,
+          ),
+        ),
+      );
+    }
+  }
+
   Widget _infoTile(
     DesignTokens tokens,
     IconData icon,
@@ -277,8 +314,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     final days = daysBetween(now, nextBirthday(birth, now));
     final age = ageInYears(birth, now);
     final ageText = '$age ${age == 1 ? 'Jahr' : 'Jahre'}';
-    final daysText =
-        days == 0 ? 'heute' : 'in $days ${days == 1 ? 'Tag' : 'Tagen'}';
+    final daysText = days == 0
+        ? 'heute'
+        : 'in $days ${days == 1 ? 'Tag' : 'Tagen'}';
     return '${formatDate(birth)} · $ageText · $daysText';
   }
 

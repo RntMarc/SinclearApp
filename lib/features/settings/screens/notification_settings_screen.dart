@@ -28,6 +28,7 @@ import '../models/notification_preference.dart';
 /// Reihenfolge der Kategorien im Screen; Typen mit unbekannter Kategorie
 /// (`NotificationTypeLabel.category` == null) werden nicht angezeigt.
 const _categoryOrder = [
+  'Chat',
   'Forum',
   'Stories',
   'Reisen',
@@ -438,9 +439,7 @@ class _NotificationSettingsScreenState
             await scope.unifiedPush.unregister();
           }
           await LocalNotificationHelper.requestPermission();
-          scope.notification.startPolling(
-            getToken: scope.auth.getAccessToken,
-          );
+          scope.notification.startPolling(getToken: scope.auth.getAccessToken);
         case NotificationMethod.unifiedPush:
           scope.notification.stopPolling();
           await _setupPush();

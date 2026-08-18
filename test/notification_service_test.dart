@@ -386,6 +386,70 @@ void main() {
     });
   });
 
+  group('chat unread registry', () {
+    Map<String, dynamic> chatNotification(String id, String conversationId) => {
+      'id': id,
+      'type': 'direct_message',
+      'data': [
+        {'relation': 'sender', 'object': 'User', 'identifier': 'user-x'},
+        {
+          'relation': 'conversation',
+          'object': 'ChatConversation',
+          'identifier': conversationId,
+        },
+      ],
+      'createdAt': '2026-08-10 14:30:00',
+    };
+
+    test('poll seeds registry and exposes conversation ids', () async {
+      mockApi.responses.add({
+        'notifications': [
+          chatNotification('1', 'convA'),
+          chatNotification('2', 'convA'),
+          chatNotification('3', 'convB'),
+        ],
+      });
+
+      service.startPolling(getToken: () async => 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(service.hasUnreadChatContent, isTrue);
+      expect(service.unreadConversationIds, {'convA', 'convB'});
+      expect(service.hasUnreadForumContent, isFalse);
+    });
+
+    test('unreadIdsForConversation returns only matching ids', () async {
+      mockApi.responses.add({
+        'notifications': [
+          chatNotification('1', 'convA'),
+          chatNotification('2', 'convB'),
+        ],
+      });
+
+      service.startPolling(getToken: () async => 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(service.unreadIdsForConversation('convA'), ['1']);
+      expect(service.unreadIdsForConversation('convB'), ['2']);
+      expect(service.unreadIdsForConversation('convC'), isEmpty);
+    });
+
+    test('markRead removes chat notifications from the registry', () async {
+      mockApi.responses.add({
+        'notifications': [chatNotification('1', 'convA')],
+      });
+
+      service.startPolling(getToken: () async => 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(service.unreadConversationIds, {'convA'});
+
+      await service.markRead(['1'], token: 'test-token');
+
+      expect(service.hasUnreadChatContent, isFalse);
+      expect(service.unreadConversationIds, isEmpty);
+    });
+  });
+
   Map<String, dynamic> tripNotification(
     String id,
     String type,

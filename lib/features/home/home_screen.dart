@@ -5,63 +5,232 @@ import '../../design/theme/design_theme.dart';
 import '../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../design/widgets/foundation/design_surface.dart';
 import '../../design/widgets/foundation/design_text.dart';
+import '../../design/widgets/primitives/design_badge.dart';
+import '../../design/widgets/primitives/design_pulse_dot.dart';
 import '../../design/widgets/primitives/press_scale.dart';
+import '../chat/widgets/chat_tab.dart';
 import '../stories/widgets/stories_bar.dart';
 import 'dashboard_controller.dart';
 import 'dashboard_widget.dart';
 import 'dashboard_widget_repository.dart';
 import 'dashboard_widget_view.dart';
 
+/// Ab dieser Breite stehen Dashboard und Chat nebeneinander (Desktop),
+/// darunter wechseln sie über eine Tab-Leiste.
+const double _desktopSideBySideWidth = 800;
+
 /// Maximale Breite des Dashboards auf Desktop (z.B. 720), darunter volle Breite.
 const double _desktopMaxWidth = 720;
 
-/// Start-Seite: modulares Dashboard aus platzierbaren Widgets.
+/// Start-Seite: Dashboard und Chat.
+///
+/// Auf Desktop (>= [_desktopSideBySideWidth]) stehen beide nebeneinander,
+/// auf schmalen Bildschirmen über eine Tab-Leiste mit PageView. Der Chat-Tab
+/// trägt einen Pulse-Dot plus Unread-Zähler aus der Unread-Registry.
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final PageController _pageController = PageController();
+  int _tabIndex = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _setTab(int index) {
+    setState(() => _tabIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _desktopSideBySideWidth;
+        return DesignSurface(
+          child: wide
+              ? Row(
+                  children: [
+                    const Expanded(child: DashboardTab()),
+                    VerticalDivider(width: 1, color: tokens.divider),
+                    const Expanded(child: ChatTab()),
+                  ],
+                )
+              : Column(
+                  children: [
+                    _HomeTabBar(index: _tabIndex, onChanged: _setTab),
+                    Expanded(
+                      child: PageView(
+                        controller: _pageController,
+                        onPageChanged: (index) =>
+                            setState(() => _tabIndex = index),
+                        children: const [DashboardTab(), ChatTab()],
+                      ),
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+/// Tab-Leiste des Home-Screens (Dashboard | Chat) im Segmented-Pill-Stil.
+class _HomeTabBar extends StatelessWidget {
+  final int index;
+  final ValueChanged<int> onChanged;
+
+  const _HomeTabBar({required this.index, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final scope = AppScope.of(context);
+    return ListenableBuilder(
+      listenable: scope.notification,
+      builder: (context, _) {
+        final unreadIds = scope.notification.unreadConversationIds;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            tokens.spaceLg,
+            tokens.spaceMd,
+            tokens.spaceLg,
+            0,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: tokens.surfaceVariant.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(tokens.radiusPill),
+              border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
+            ),
+            child: Row(
+              children: [
+                _segment(
+                  context,
+                  tokens,
+                  active: index == 0,
+                  icon: Icons.space_dashboard_rounded,
+                  label: 'Dashboard',
+                  onTap: () => onChanged(0),
+                ),
+                _segment(
+                  context,
+                  tokens,
+                  active: index == 1,
+                  icon: Icons.chat_rounded,
+                  label: 'Chat',
+                  unread: unreadIds,
+                  onTap: () => onChanged(1),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _segment(
+    BuildContext context,
+    DesignTokens tokens, {
+    required bool active,
+    required IconData icon,
+    required String label,
+    Set<String> unread = const {},
+    required VoidCallback onTap,
+  }) {
+    final fg = active ? tokens.textOnPrimary : tokens.textHigh;
+    return Expanded(
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+          decoration: BoxDecoration(
+            color: active ? tokens.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(tokens.radiusPill),
+            boxShadow: active ? tokens.glowShadow : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: fg),
+              SizedBox(width: tokens.spaceSm),
+              DesignText(label, style: DesignTextStyle.label, color: fg),
+              if (unread.isNotEmpty) ...[
+                SizedBox(width: tokens.spaceSm),
+                const DesignPulseDot(size: 8),
+                SizedBox(width: tokens.spaceXs),
+                DesignBadge(
+                  label: unread.length > 99 ? '99+' : '${unread.length}',
+                  color: tokens.accentA,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Modulares Dashboard aus platzierbaren Widgets.
 ///
 /// Normal-Modus: scrollende Liste mit Pull-to-Refresh. Edit-Modus: Widgets
 /// per Drag & Drop oder Pfeilen sortieren, entfernen, hinzufügen (FAB) und
 /// konfigurieren (Tipp auf die Karte).
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class DashboardTab extends StatelessWidget {
+  const DashboardTab({super.key});
 
   @override
   Widget build(BuildContext context) {
     final controller = AppScope.of(context).dashboard;
     final repository = AppScope.of(context).dashboardWidgets;
-    return DesignSurface(
-      child: ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) {
-          final editing = controller.editing;
-          return Stack(
-            children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: constraints.maxWidth >= _desktopMaxWidth
-                            ? _desktopMaxWidth
-                            : double.infinity,
-                      ),
-                      child: RefreshIndicator(
-                        onRefresh: controller.refreshAll,
-                        child: _buildList(
-                          context,
-                          controller,
-                          repository,
-                          editing,
-                        ),
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final editing = controller.editing;
+        return Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: constraints.maxWidth >= _desktopMaxWidth
+                          ? _desktopMaxWidth
+                          : double.infinity,
+                    ),
+                    child: RefreshIndicator(
+                      onRefresh: controller.refreshAll,
+                      child: _buildList(
+                        context,
+                        controller,
+                        repository,
+                        editing,
                       ),
                     ),
-                  );
-                },
-              ),
-              if (editing)
-                _AddWidgetFab(onPressed: () => _showAddWidgetSheet(context)),
-            ],
-          );
-        },
-      ),
+                  ),
+                );
+              },
+            ),
+            if (editing)
+              _AddWidgetFab(onPressed: () => _showAddWidgetSheet(context)),
+          ],
+        );
+      },
     );
   }
 

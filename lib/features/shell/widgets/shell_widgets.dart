@@ -24,6 +24,7 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/mod-anfragen')) return 'MOD-ANFRAGEN';
   if (location.startsWith('/forum')) return 'FORUM';
+  if (location.startsWith('/chat')) return 'CHAT';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
   if (location.startsWith('/abos')) return 'ABOS';
   if (location.startsWith('/design-showcase')) return 'DESIGN SHOWCASE';

@@ -14,6 +14,7 @@ class DesignTextField extends StatefulWidget {
     this.maxLength,
     this.prefixIcon,
     this.suffix,
+    this.onChanged,
     this.scrollPadding = const EdgeInsets.only(bottom: 140.0),
     super.key,
   });
@@ -31,6 +32,9 @@ class DesignTextField extends StatefulWidget {
   /// [VisibilityBadge]). The suffix sits inside the field's border, aligned
   /// to the trailing edge, so it stays visually part of the same input row.
   final Widget? suffix;
+
+  /// Called whenever the input value changes.
+  final ValueChanged<String>? onChanged;
 
   /// Configures the padding for the edges surrounding a Scrollable when the
   /// text field scrolls into view. Defaults to [EdgeInsets.only(bottom: 140.0)].
@@ -94,6 +98,7 @@ class _DesignTextFieldState extends State<DesignTextField> {
                 maxLength: widget.maxLength,
                 style: tokens.bodyStyle(tokens.textHigh),
                 scrollPadding: widget.scrollPadding,
+                onChanged: widget.onChanged,
                 decoration: InputDecoration(
                   hintText: widget.hint,
                   hintStyle: tokens.bodyStyle(tokens.textLow),

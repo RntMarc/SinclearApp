@@ -245,6 +245,24 @@ class NotificationService extends ChangeNotifier {
     return ids;
   }
 
+  /// Gibt es ungelesene Chat-Aktivität (`direct_message`)?
+  bool get hasUnreadChatContent => _relationIds('conversation').isNotEmpty;
+
+  /// IDs der Konversationen mit ungelesener Aktivität.
+  Set<String> get unreadConversationIds => _relationIds('conversation');
+
+  /// Notification-IDs, die eine bestimmte Konversation betreffen (zum
+  /// Gelesen-Markieren beim Öffnen der Konversation).
+  List<String> unreadIdsForConversation(String conversationId) {
+    final ids = <String>[];
+    for (final item in _unreadById.values) {
+      if (item.identifierFor('conversation') == conversationId) {
+        ids.add(item.id);
+      }
+    }
+    return ids;
+  }
+
   /// Gibt es ungelesene Reise-Aktivität (`trip_*`-Typen)?
   bool get hasUnreadTripContent => _relationIds('trip').isNotEmpty;
 
