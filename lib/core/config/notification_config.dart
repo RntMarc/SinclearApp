@@ -13,6 +13,7 @@ import '../../features/notifications/models/notification_item.dart';
 /// werden kann.
 ///
 /// Unterstützte Typen: `forum_reply`, `forum_comment`, `story_post`,
+/// `direct_message`,
 /// `trip_user_added`, `trip_user_added_others`, `trip_event_added`,
 /// `trip_event_user_added`, `trip_event_user_added_others`,
 /// `trip_event_info_changed`, `trip_event_ticket_added`,
@@ -54,6 +55,7 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' || 'forum_comment' => _forumRoute(data),
       'story_post' => _storyRoute(data),
+      'direct_message' => _directMessageRoute(data),
       _ when _tripTypes.contains(type) => _tripRoute(data),
       _ when _standaloneEventTypes.contains(type) => _standaloneEventRoute(
         data,
@@ -69,6 +71,7 @@ class NotificationTypeLabel {
       'forum_reply' => 'Neue Antwort auf deinen Kommentar',
       'forum_comment' => 'Neuer Kommentar zu deinem Beitrag',
       'story_post' => 'Neue Story',
+      'direct_message' => 'Neue Nachricht',
       'trip_user_added' => 'Du wurdest zu einer Reise hinzugefügt',
       'trip_user_added_others' => 'Neuer Teilnehmer auf der Reise',
       'trip_event_added' => 'Neues Event auf der Reise',
@@ -102,6 +105,7 @@ class NotificationTypeLabel {
       'forum_reply' => 'Jemand hat auf deinen Kommentar geantwortet.',
       'forum_comment' => 'Jemand hat deinen Beitrag kommentiert.',
       'story_post' => 'Jemand hat eine neue Story veröffentlicht.',
+      'direct_message' => 'Du hast eine neue Nachricht.',
       'trip_user_added' => 'Du wurdest zu einer Reise hinzugefügt.',
       'trip_user_added_others' =>
         'Ein neuer Teilnehmer wurde zur Reise hinzugefügt.',
@@ -132,6 +136,7 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' || 'forum_comment' => Icons.forum_rounded,
       'story_post' => Icons.auto_stories_rounded,
+      'direct_message' => Icons.chat_rounded,
       'trip_user_added' ||
       'trip_user_added_others' ||
       'trip_info_changed' => Icons.card_travel,
@@ -172,6 +177,14 @@ class NotificationTypeLabel {
     return '/stories/$storyId';
   }
 
+  /// `/chat/{conversation}` — die Konversations-ID ist bei
+  /// `direct_message` Pflicht; ohne sie ist das Ziel nicht bestimmbar.
+  static String? _directMessageRoute(List<NotificationRelation> data) {
+    final conversationId = _identifierFor(data, 'conversation');
+    if (conversationId == null) return null;
+    return '/chat/$conversationId';
+  }
+
   /// `/reisen/{trip}` — die Trip-ID ist bei allen `trip_*`-Typen Pflicht.
   static String? _tripRoute(List<NotificationRelation> data) {
     final tripId = _identifierFor(data, 'trip');
@@ -200,6 +213,7 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' || 'forum_comment' => 'Forum',
       'story_post' => 'Stories',
+      'direct_message' => 'Chat',
       'trip_user_added' ||
       'trip_user_added_others' ||
       'trip_info_changed' ||
@@ -221,6 +235,7 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' || 'forum_comment' => 'forumIds',
       'story_post' => 'userIds',
+      'direct_message' => 'userIds',
       _ => null,
     };
   }

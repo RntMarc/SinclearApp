@@ -104,6 +104,25 @@ void main() {
     ),
   ];
 
+  /// Relation-Liste für `direct_message` (Sender + Konversation).
+  const directMessageData = [
+    NotificationRelation(
+      relation: 'sender',
+      object: 'User',
+      identifier: 'user-sender',
+    ),
+    NotificationRelation(
+      relation: 'conversation',
+      object: 'ChatConversation',
+      identifier: 'conv1',
+    ),
+    NotificationRelation(
+      relation: 'message',
+      object: 'DirectMessage',
+      identifier: 'msg1',
+    ),
+  ];
+
   group('NotificationTypeLabel.route', () {
     test('forum_reply navigiert zum Beitrag (/forum/{f}/beitrag/{p})', () {
       expect(
@@ -265,6 +284,25 @@ void main() {
       );
     });
 
+    test('direct_message navigiert zum Chat (/chat/{conversation})', () {
+      expect(
+        NotificationTypeLabel.route('direct_message', directMessageData),
+        '/chat/conv1',
+      );
+    });
+
+    test('direct_message ohne conversation Relation gibt null', () {
+      final ohneConversation = directMessageData
+          .where((e) => e.relation != 'conversation')
+          .toList();
+
+      expect(
+        NotificationTypeLabel.route('direct_message', ohneConversation),
+        isNull,
+      );
+      expect(NotificationTypeLabel.route('direct_message', const []), isNull);
+    });
+
     test('unbekannte Typen geben null (Inbox-Fallback)', () {
       expect(NotificationTypeLabel.route('unbekannt', forumReplyData), isNull);
       expect(NotificationTypeLabel.route('', const []), isNull);
@@ -306,6 +344,15 @@ void main() {
         NotificationTypeLabel.icon('story_post'),
         Icons.auto_stories_rounded,
       );
+    });
+
+    test('direct_message rendert Titel, generalisierten Text und Icon', () {
+      expect(NotificationTypeLabel.title('direct_message'), 'Neue Nachricht');
+      expect(
+        NotificationTypeLabel.fallbackBody('direct_message'),
+        'Du hast eine neue Nachricht.',
+      );
+      expect(NotificationTypeLabel.icon('direct_message'), Icons.chat_rounded);
     });
 
     test('trip_user_added rendert Titel, Text und Icon', () {
@@ -541,6 +588,7 @@ void main() {
       expect(NotificationTypeLabel.category('forum_reply'), 'Forum');
       expect(NotificationTypeLabel.category('forum_comment'), 'Forum');
       expect(NotificationTypeLabel.category('story_post'), 'Stories');
+      expect(NotificationTypeLabel.category('direct_message'), 'Chat');
       expect(NotificationTypeLabel.category('trip_user_added'), 'Reisen');
       expect(
         NotificationTypeLabel.category('trip_user_added_others'),
@@ -647,6 +695,10 @@ void main() {
 
     test('story_post nutzt userIds', () {
       expect(NotificationTypeLabel.customDataKey('story_post'), 'userIds');
+    });
+
+    test('direct_message nutzt userIds', () {
+      expect(NotificationTypeLabel.customDataKey('direct_message'), 'userIds');
     });
 
     test('alle anderen Typen unterstützen kein custom', () {

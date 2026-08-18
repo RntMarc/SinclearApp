@@ -47,6 +47,7 @@ import '../features/moderation/screens/moderation_requests_screen.dart';
 import '../features/showcase/screens/design_showcase_screen.dart';
 import '../features/stories/screens/story_deep_link_screen.dart';
 import '../features/subscription/screens/subscription_list_screen.dart';
+import '../features/chat/screens/conversation_screen.dart';
 
 GoRouter createRouter(AuthService auth, {String? initialLocation}) {
   return GoRouter(
@@ -69,6 +70,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
           (location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
           location.startsWith('/abos') ||
           location.startsWith('/stories') ||
+          location.startsWith('/chat') ||
           location.startsWith('/design-showcase');
 
       if (loggedIn && !auth.onboardingCompleted && location != '/onboarding') {
@@ -307,6 +309,12 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                 builder: (context, state) => const DavTokensScreen(),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/chat/:conversationId',
+            builder: (context, state) => ConversationScreen(
+              conversationId: state.pathParameters['conversationId']!,
+            ),
           ),
           GoRoute(
             path: '/abos',

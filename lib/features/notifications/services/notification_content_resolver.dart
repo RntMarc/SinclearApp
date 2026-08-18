@@ -67,6 +67,7 @@ class NotificationContentResolver {
       'forum_reply' => _resolveForumReply(item, route),
       'forum_comment' => _resolveForumComment(item, route),
       'story_post' => _resolveStoryPost(item, route),
+      'direct_message' => _resolveDirectMessage(item, route),
       _ => _fallback(item.type, route),
     };
   }
@@ -187,6 +188,29 @@ class NotificationContentResolver {
     return ResolvedNotificationContent(
       title: NotificationTypeLabel.title(item.type),
       body: '$authorName hat eine neue Story veröffentlicht',
+      route: route,
+    );
+  }
+
+  /// `direct_message`: „{Absender} hat dir geschrieben" — der Absender wird
+  /// nachgeladen; schlägt das fehl, greift der generalisierte Fallback-Text.
+  Future<ResolvedNotificationContent> _resolveDirectMessage(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final senderId = item.identifierFor('sender');
+    final senderName = await _attempt('sender', () async {
+      if (senderId == null) return null;
+      return (await _user.get(senderId)).base.displayName;
+    });
+
+    if (senderName == null || senderName.isEmpty) {
+      return _fallback(item.type, route);
+    }
+
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: '$senderName hat dir geschrieben',
       route: route,
     );
   }

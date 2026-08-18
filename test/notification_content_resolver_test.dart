@@ -141,6 +141,24 @@ NotificationItem _storyPostItem() => NotificationItem(
   ],
 );
 
+NotificationItem _directMessageItem() => NotificationItem(
+  id: 'n7',
+  type: 'direct_message',
+  createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+  data: const [
+    NotificationRelation(
+      relation: 'sender',
+      object: 'User',
+      identifier: 'user-sender',
+    ),
+    NotificationRelation(
+      relation: 'conversation',
+      object: 'ChatConversation',
+      identifier: 'conv1',
+    ),
+  ],
+);
+
 void main() {
   late _FakeUserService user;
   late _FakeForumService forum;
@@ -299,6 +317,39 @@ void main() {
       final content = await resolver.resolve(item);
 
       expect(content.body, 'Jemand hat eine neue Story veröffentlicht.');
+      expect(content.route, isNull);
+    });
+  });
+
+  group('direct_message', () {
+    test('voller Text, wenn der Absender geladen werden kann', () async {
+      user.displayName = 'Tom';
+
+      final content = await resolver.resolve(_directMessageItem());
+
+      expect(content.title, 'Neue Nachricht');
+      expect(content.body, 'Tom hat dir geschrieben');
+      expect(content.route, '/chat/conv1');
+    });
+
+    test('generalisierter Text, wenn das Nachladen scheitert', () async {
+      final content = await resolver.resolve(_directMessageItem());
+
+      expect(content.title, 'Neue Nachricht');
+      expect(content.body, 'Du hast eine neue Nachricht.');
+      expect(content.route, '/chat/conv1');
+    });
+
+    test('fehlende Relationen: generalisierter Text, Route null', () async {
+      final item = NotificationItem(
+        id: 'n8',
+        type: 'direct_message',
+        createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+      );
+
+      final content = await resolver.resolve(item);
+
+      expect(content.body, 'Du hast eine neue Nachricht.');
       expect(content.route, isNull);
     });
   });

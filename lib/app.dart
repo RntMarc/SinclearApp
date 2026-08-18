@@ -13,6 +13,7 @@ import 'features/explore/services/explore_service.dart';
 import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
+import 'features/chat/services/chat_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
@@ -42,6 +43,7 @@ class SinclearApp extends StatelessWidget {
   final CalendarService calendar;
   final FeedbackService feedback;
   final ForumService forum;
+  final ChatService chat;
   final RecipesService recipes;
   final ModerationService moderation;
   final SubscriptionService subscription;
@@ -108,6 +110,7 @@ class SinclearApp extends StatelessWidget {
     required this.calendar,
     required this.feedback,
     required this.forum,
+    required this.chat,
     required this.recipes,
     required this.moderation,
     required this.subscription,
@@ -153,6 +156,7 @@ class SinclearApp extends StatelessWidget {
       calendar: calendar,
       feedback: feedback,
       forum: forum,
+      chat: chat,
       recipes: recipes,
       moderation: moderation,
       subscription: subscription,

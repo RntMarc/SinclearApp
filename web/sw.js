@@ -16,6 +16,10 @@ const CONTENT_BY_TYPE = {
     title: 'Neue Story',
     body: 'Jemand hat eine neue Story veröffentlicht.',
   },
+  direct_message: {
+    title: 'Neue Nachricht',
+    body: 'Du hast eine neue Nachricht.',
+  },
   trip_user_added: {
     title: 'Du wurdest zu einer Reise hinzugefügt',
     body: 'Du wurdest zu einer Reise hinzugefügt.',
@@ -121,6 +125,10 @@ function resolveRoute(type, data) {
   if (type === 'story_post') {
     const storyId = relationId(data, 'story');
     if (storyId) return `/stories/${storyId}`;
+  }
+  if (type === 'direct_message') {
+    const conversationId = relationId(data, 'conversation');
+    if (conversationId) return `/chat/${conversationId}`;
   }
   if (TRIP_TYPES.has(type)) {
     const tripId = relationId(data, 'trip');

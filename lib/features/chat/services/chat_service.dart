@@ -1,0 +1,377 @@
+// ignore_for_file: prefer_initializing_formals
+
+import 'dart:async';
+import 'dart:developer' as developer;
+import 'dart:math';
+
+import 'package:flutter/foundation.dart';
+
+import '../../../core/network/api_client.dart';
+import '../../auth/services/auth_service.dart';
+import '../models/chat_models.dart';
+
+/// Hält den Chat-Zustand: Konversationsliste, Nachrichten je Konversation
+/// und den Sync-Loop über `GET /chat/sync` (Short Polling, adaptiv).
+///
+/// Polling läuft nur, solange mindestens ein UI-Teilnehmer aktiv ist
+/// ([registerActive]/[unregisterActive], z. B. Chat-Tab oder geöffnete
+/// Konversation): aktiv 2 s bei offener Konversation, sonst 30 s.
+class ChatService extends ChangeNotifier {
+  final ApiClient _api;
+  final AuthService _auth;
+
+  final List<ChatConversation> _conversations = [];
+  final Map<String, List<DirectMessage>> _messages = {};
+
+  /// Höchster gesehener Event-seq (Cursor für `after`).
+  int? _lastEventSeq;
+  Timer? _syncTimer;
+  bool _syncInFlight = false;
+  int _activeCount = 0;
+  String? _activeConversationId;
+
+  ChatService({required ApiClient api, required AuthService auth})
+    : _api = api,
+      _auth = auth;
+
+  Future<String> _token() => _auth.getAccessToken();
+
+  /// Konversationen, neueste Aktivität zuerst.
+  List<ChatConversation> get conversations => List.unmodifiable(_conversations);
+
+  /// Nachrichten einer Konversation (aufsteigend nach `seq`), `null` wenn
+  /// noch nicht geladen.
+  List<DirectMessage>? messagesOf(String conversationId) {
+    final list = _messages[conversationId];
+    return list == null ? null : List.unmodifiable(list);
+  }
+
+  bool get syncing => _syncInFlight;
+
+  /// Chat-UI sichtbar: Startet/erhält den Sync-Loop (ref-counted, damit
+  /// Tab und Konversations-Screen sich nicht gegenseitig stoppen).
+  void registerActive() {
+    _activeCount++;
+    _restartSyncTimer();
+  }
+
+  void unregisterActive() {
+    if (_activeCount > 0) _activeCount--;
+    _restartSyncTimer();
+  }
+
+  /// Geöffnete Konversation: bestimmt das Poll-Intervall (2 s aktiv,
+  /// 30 s nur Liste).
+  void setActiveConversation(String? conversationId) {
+    _activeConversationId = conversationId;
+    _restartSyncTimer();
+  }
+
+  // ─── REST-API ─────────────────────────────────────────────────────────
+
+  /// Vollständige Konversationsliste (`GET /chat/conversations`).
+  Future<void> refreshConversations() async {
+    final data = await _api.get(
+      '/chat/conversations',
+      queryParams: const {'limit': '100'},
+      token: await _token(),
+    );
+    final list = (data['data'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(ChatConversation.fromJson)
+        .toList();
+    _conversations
+      ..clear()
+      ..addAll(list);
+    _sortConversations();
+    notifyListeners();
+  }
+
+  /// Öffnet (get-or-create) die 1:1-Konversation mit [userId]
+  /// (`POST /chat/conversations`).
+  Future<ChatConversation> openConversation(String userId) async {
+    final data = await _api.post(
+      '/chat/conversations',
+      body: {'userId': userId},
+      token: await _token(),
+    );
+    final conversation = ChatConversation.fromJson(
+      data['data'] as Map<String, dynamic>,
+    );
+    _upsertConversation(conversation);
+    return conversation;
+  }
+
+  /// Konversations-Details (`GET /chat/conversations/{id}`), z. B. beim
+  /// Deep-Link oder für unbekannte Konversationen aus dem Sync.
+  Future<ChatConversation> loadConversation(String id) async {
+    final data = await _api.get(
+      '/chat/conversations/$id',
+      token: await _token(),
+    );
+    final conversation = ChatConversation.fromJson(
+      data['data'] as Map<String, dynamic>,
+    );
+    _upsertConversation(conversation);
+    return conversation;
+  }
+
+  /// Nachrichten-Verlauf (`GET .../messages`, aufsteigend, Cursor [before]).
+  Future<List<DirectMessage>> getMessages(
+    String conversationId, {
+    int? before,
+  }) async {
+    final query = <String, String>{'limit': '50'};
+    if (before != null) query['before'] = '$before';
+    final data = await _api.get(
+      '/chat/conversations/$conversationId/messages',
+      queryParams: query,
+      token: await _token(),
+    );
+    final list = (data['data'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(DirectMessage.fromJson)
+        .toList();
+    for (final message in list) {
+      _upsertMessage(conversationId, message);
+    }
+    notifyListeners();
+    return list;
+  }
+
+  /// Sendet eine Nachricht (`POST .../messages`). Wartet auf den Server;
+  /// die [clientId] macht Retries idempotent.
+  Future<DirectMessage> sendMessage(
+    String conversationId,
+    String content,
+  ) async {
+    final data = await _api.post(
+      '/chat/conversations/$conversationId/messages',
+      body: {
+        'clientId': _generateClientId(),
+        'type': 'text',
+        'content': content,
+      },
+      token: await _token(),
+    );
+    final message = DirectMessage.fromJson(
+      data['data'] as Map<String, dynamic>,
+    );
+    _upsertMessage(conversationId, message);
+    _updatePreview(conversationId, message);
+    notifyListeners();
+    return message;
+  }
+
+  /// Setzt den eigenen Lesestand (`POST .../read`) auf den höchsten
+  /// lokal bekannten `seq` und markiert die Konversation lokal gelesen.
+  ///
+  /// No-op, wenn bereits alles gelesen ist — der Screen ruft dies bei
+  /// jedem Sync auf, ohne Guard würde das POST- und notify-Schleifen
+  /// erzeugen. Ohne geladene Nachrichten gibt es nichts zu markieren.
+  Future<void> markConversationRead(String conversationId) async {
+    final messages = _messages[conversationId];
+    if (messages == null || messages.isEmpty) return;
+    final maxSeq = messages.fold<int>(0, (max, m) => m.seq > max ? m.seq : max);
+    final index = _conversations.indexWhere((c) => c.id == conversationId);
+    if (index < 0) return;
+    final c = _conversations[index];
+    if (maxSeq <= c.lastReadSeq && c.unreadCount == 0) return;
+    if (maxSeq > c.lastReadSeq) {
+      try {
+        await _api.post(
+          '/chat/conversations/$conversationId/read',
+          body: {'seq': maxSeq},
+          token: await _token(),
+        );
+      } catch (e, st) {
+        // Optimistisch: Der nächste Sync spiegelt den echten Serverstand.
+        developer.log(
+          'markConversationRead($conversationId) failed',
+          error: e,
+          stackTrace: st,
+          name: 'chat_service',
+        );
+      }
+    }
+    _conversations[index] = ChatConversation(
+      id: c.id,
+      type: c.type,
+      name: c.name,
+      otherUser: c.otherUser,
+      lastMessage: c.lastMessage,
+      unreadCount: 0,
+      lastSeenAt: c.lastSeenAt,
+      lastReadSeq: maxSeq,
+      otherLastReadSeq: c.otherLastReadSeq,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    );
+    notifyListeners();
+  }
+
+  // ─── Sync-Loop ────────────────────────────────────────────────────────
+
+  void _restartSyncTimer() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
+    if (_activeCount == 0) return;
+    unawaited(_pollSync());
+    final interval = _activeConversationId != null
+        ? const Duration(seconds: 2)
+        : const Duration(seconds: 30);
+    _syncTimer = Timer.periodic(interval, (_) => unawaited(_pollSync()));
+  }
+
+  /// Ein Sync-Durchlauf; bei `meta.hasMore` direkt nachziehen.
+  Future<void> _pollSync() async {
+    if (_syncInFlight || _activeCount == 0) return;
+    _syncInFlight = true;
+    try {
+      var after = _lastEventSeq;
+      while (true) {
+        final query = <String, String>{'limit': '200'};
+        if (after != null) query['after'] = '$after';
+        final response = await _api.get(
+          '/chat/sync',
+          queryParams: query,
+          token: await _token(),
+        );
+        final sync = ChatSyncResponse.fromJson(response);
+        _applySync(sync);
+        _lastEventSeq = sync.seq;
+        after = sync.seq;
+        if (!sync.hasMore || _activeCount == 0) break;
+      }
+    } catch (e, st) {
+      developer.log(
+        'Chat sync failed',
+        error: e,
+        stackTrace: st,
+        name: 'chat_service',
+      );
+    } finally {
+      _syncInFlight = false;
+    }
+  }
+
+  void _applySync(ChatSyncResponse sync) {
+    var changed = false;
+    for (final summary in sync.conversations) {
+      final index = _conversations.indexWhere(
+        (c) => c.id == summary.conversationId,
+      );
+      if (index >= 0) {
+        final c = _conversations[index];
+        _conversations[index] = ChatConversation(
+          id: c.id,
+          type: c.type,
+          name: c.name,
+          otherUser: c.otherUser,
+          lastMessage: c.lastMessage,
+          unreadCount: summary.unreadCount,
+          lastSeenAt: summary.lastSeenAt ?? c.lastSeenAt,
+          lastReadSeq: c.lastReadSeq,
+          otherLastReadSeq: summary.otherLastReadSeq ?? c.otherLastReadSeq,
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+        );
+        changed = true;
+      } else {
+        // Neue Konversation (z. B. vom Gegenüber erstellt): Details
+        // nachladen — die Sync-Zusammenfassung enthält keine Anzeige-Daten.
+        unawaited(_ensureConversation(summary.conversationId));
+      }
+    }
+    for (final event in sync.events) {
+      final message = event.message;
+      if (message == null) continue;
+      _upsertMessage(event.conversationId, message);
+      if (event.type == 'message_created') {
+        _updatePreview(event.conversationId, message);
+      }
+      changed = true;
+    }
+    if (changed) notifyListeners();
+  }
+
+  Future<void> _ensureConversation(String id) async {
+    try {
+      await loadConversation(id);
+    } catch (e, st) {
+      developer.log(
+        'Loading unknown conversation $id failed',
+        error: e,
+        stackTrace: st,
+        name: 'chat_service',
+      );
+    }
+  }
+
+  // ─── Lokale Caches ────────────────────────────────────────────────────
+
+  void _upsertConversation(ChatConversation conversation) {
+    final index = _conversations.indexWhere((c) => c.id == conversation.id);
+    if (index >= 0) {
+      _conversations[index] = conversation;
+    } else {
+      _conversations.add(conversation);
+    }
+    _sortConversations();
+  }
+
+  void _sortConversations() {
+    _conversations.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
+  void _upsertMessage(String conversationId, DirectMessage message) {
+    final list = _messages.putIfAbsent(conversationId, () => []);
+    final index = list.indexWhere((m) => m.id == message.id);
+    if (index >= 0) {
+      list[index] = message;
+    } else {
+      list.add(message);
+    }
+    list.sort((a, b) => a.seq.compareTo(b.seq));
+  }
+
+  /// Aktualisiert die Vorschau (letzte Nachricht) der Konversation —
+  /// die Sync-Zusammenfassung enthält keine `lastMessage`-Daten.
+  void _updatePreview(String conversationId, DirectMessage message) {
+    final index = _conversations.indexWhere((c) => c.id == conversationId);
+    if (index < 0) return;
+    final c = _conversations[index];
+    _conversations[index] = ChatConversation(
+      id: c.id,
+      type: c.type,
+      name: c.name,
+      otherUser: c.otherUser,
+      lastMessage: ChatMessageSummary(
+        content: message.content,
+        senderId: message.senderId,
+        createdAt: message.createdAt,
+        deleted: message.deleted,
+      ),
+      unreadCount: c.unreadCount,
+      lastSeenAt: c.lastSeenAt,
+      lastReadSeq: c.lastReadSeq,
+      otherLastReadSeq: c.otherLastReadSeq,
+      createdAt: c.createdAt,
+      updatedAt: message.createdAt,
+    );
+    _sortConversations();
+  }
+
+  /// Idempotenz-Schlüssel für [sendMessage]: eindeutig genug ohne
+  /// zusätzliches Paket (Zeitstempel + Zufall).
+  static String _generateClientId() {
+    final random = Random.secure();
+    return '${DateTime.now().microsecondsSinceEpoch}-${random.nextInt(0x7fffffff)}';
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    super.dispose();
+  }
+}
