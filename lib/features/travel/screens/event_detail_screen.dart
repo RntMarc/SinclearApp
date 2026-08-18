@@ -20,6 +20,7 @@ import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
+import '../widgets/ticket_delete_flow.dart';
 import '../widgets/ticket_form_sheet.dart';
 import '../widgets/ticket_preview_page.dart';
 
@@ -306,6 +307,15 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
     if (result == true && mounted) _load();
   }
 
+  Future<void> _deleteTicket(TravelEventTicket ticket) async {
+    final deleted = await deleteUserTicketFlow(
+      context: context,
+      service: _service,
+      ticket: ticket,
+    );
+    if (deleted && mounted) _load();
+  }
+
   Future<void> _report() async {
     final event = _event;
     if (event == null) return;
@@ -342,8 +352,8 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
     final label = t.type == 'event'
         ? 'Event-Ticket'
         : t.type == 'user'
-            ? 'Mein Ticket'
-            : 'Ticket';
+        ? 'Mein Ticket'
+        : 'Ticket';
     final hasQr = t.qrcode != null && t.qrcode!.isNotEmpty;
     final hasImg = t.image != null && resolveImageProvider(t.image) != null;
 
@@ -356,7 +366,11 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.confirmation_number_rounded, color: tokens.primary, size: 20),
+              Icon(
+                Icons.confirmation_number_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
               SizedBox(width: tokens.spaceSm),
               Expanded(
                 child: DesignText(
@@ -365,6 +379,11 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
                   color: tokens.textHigh,
                 ),
               ),
+              if (t.type == 'user')
+                DesignIconButton(
+                  icon: Icons.delete_outline_rounded,
+                  onPressed: () => _deleteTicket(t),
+                ),
             ],
           ),
           if (hasQr || hasImg) ...[
@@ -385,7 +404,11 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
                             ),
                           ),
                         ),
-                        child: QrImageView(data: t.qrcode!, size: 120, backgroundColor: Colors.white),
+                        child: QrImageView(
+                          data: t.qrcode!,
+                          size: 120,
+                          backgroundColor: Colors.white,
+                        ),
                       ),
                     ),
                   if (hasQr && hasImg) SizedBox(width: tokens.spaceSm),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../core/widgets/async_section.dart';
@@ -11,6 +12,7 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../subscription/models/subscription_models.dart';
 import '../../subscription/screens/subscription_detail_screen.dart';
 import '../../subscription/widgets/subscription_card.dart';
@@ -18,6 +20,7 @@ import '../models/travel_models.dart';
 import '../screens/accommodation_detail_screen.dart';
 import '../screens/event_detail_screen.dart';
 import '../services/trip_data_controller.dart';
+import '../widgets/ticket_delete_flow.dart';
 import '../widgets/ticket_preview_page.dart';
 import '../widgets/user_tile.dart';
 
@@ -458,6 +461,7 @@ class TripTicketsTab extends StatelessWidget {
   final List<TravelEvent> events;
   final String? ticket;
   final String? ticketUrl;
+  final Future<void> Function(TravelEventTicket ticket)? onDelete;
 
   const TripTicketsTab({
     super.key,
@@ -465,6 +469,7 @@ class TripTicketsTab extends StatelessWidget {
     required this.events,
     this.ticket,
     this.ticketUrl,
+    this.onDelete,
   });
 
   String _eventName(String eventId) {
@@ -637,6 +642,11 @@ class TripTicketsTab extends StatelessWidget {
                   color: tokens.textHigh,
                 ),
               ),
+              if (t.type == 'user' && onDelete != null)
+                DesignIconButton(
+                  icon: Icons.delete_outline_rounded,
+                  onPressed: () => onDelete!(t),
+                ),
             ],
           ),
           if (hasQr || hasImg) ...[
@@ -684,8 +694,7 @@ class TripTicketsTab extends StatelessWidget {
                             height: 120,
                             width: double.infinity,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, _, _) =>
-                                const SizedBox.shrink(),
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
                           ),
                         ),
                       ),
@@ -802,6 +811,18 @@ class TripTicketsSection extends StatelessWidget {
     this.ticketUrl,
   });
 
+  Future<void> _deleteTicket(
+    BuildContext context,
+    TravelEventTicket ticket,
+  ) async {
+    final deleted = await deleteUserTicketFlow(
+      context: context,
+      service: AppScope.of(context).travel,
+      ticket: ticket,
+    );
+    if (deleted) controller.refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     return AsyncSection<
@@ -815,6 +836,7 @@ class TripTicketsSection extends StatelessWidget {
         events: section.events,
         ticket: ticket,
         ticketUrl: ticketUrl,
+        onDelete: (ticket) => _deleteTicket(context, ticket),
       ),
     );
   }
