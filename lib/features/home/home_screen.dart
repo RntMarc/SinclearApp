@@ -45,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _setTab(int index) {
     setState(() => _tabIndex = index);
+    AppScope.of(context).dashboard.setHomeTab(index);
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 250),
@@ -89,8 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: PageView(
                         controller: _pageController,
-                        onPageChanged: (index) =>
-                            setState(() => _tabIndex = index),
+                        onPageChanged: (index) {
+                          setState(() => _tabIndex = index);
+                          AppScope.of(context).dashboard.setHomeTab(index);
+                        },
                         children: const [DashboardTab(), ChatTab()],
                       ),
                     ),

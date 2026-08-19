@@ -685,6 +685,7 @@ class ShellShareButton extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// Schaltet den Bearbeitungsmodus des Dashboards um (nur auf `/home`).
+/// Wird ausgeblendet, während der Chat-Tab des Home-Screens aktiv ist.
 class ShellDashboardEditButton extends StatelessWidget {
   const ShellDashboardEditButton({super.key});
 
@@ -693,11 +694,14 @@ class ShellDashboardEditButton extends StatelessWidget {
     final dashboard = AppScope.of(context).dashboard;
     return ListenableBuilder(
       listenable: dashboard,
-      builder: (context, _) => DesignIconButton(
-        icon: dashboard.editing ? Icons.check_rounded : Icons.edit_rounded,
-        tinted: dashboard.editing,
-        onPressed: dashboard.toggleEditing,
-      ),
+      builder: (context, _) {
+        if (dashboard.homeTabIndex != 0) return const SizedBox.shrink();
+        return DesignIconButton(
+          icon: dashboard.editing ? Icons.check_rounded : Icons.edit_rounded,
+          tinted: dashboard.editing,
+          onPressed: dashboard.toggleEditing,
+        );
+      },
     );
   }
 }
