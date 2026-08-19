@@ -129,7 +129,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
   void _maybeMarkRead() {
     if (!_scroll.hasClients) return;
     final position = _scroll.position;
-    if (position.pixels >= position.maxScrollExtent - 40) {
+    // Reverse-Liste: Offset 0 zeigt die neueste Nachricht unten. Gelesen wird
+    // nur markiert, wenn der Nutzer dort steht — sonst blieben Nachrichten,
+    // die während des offenen Chats eingehen, in der Liste ungelesen.
+    if (position.pixels <= 40) {
       unawaited(_markRead());
     }
   }
