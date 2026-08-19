@@ -36,6 +36,7 @@ import 'features/notifications/services/web_push_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
 import 'features/settings/models/notification_preference.dart';
+import 'features/settings/models/map_app_preference.dart';
 import 'features/settings/services/dav_token_service.dart';
 import 'features/settings/services/dav_sync_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
@@ -146,6 +147,7 @@ Future<void> _bootstrap() async {
   }
 
   final initialNotificationMethod = await NotificationPreference.load();
+  final initialMapApp = await MapAppPreference.load();
 
   if (!kIsWeb) {
     // Handler VOR der Router-Erstellung registrieren: Ein Cold-Start-Tap
@@ -241,6 +243,7 @@ Future<void> _bootstrap() async {
       unifiedPush: unifiedPush,
       webPush: webPush,
       initialNotificationMethod: initialNotificationMethod,
+      initialMapApp: initialMapApp,
       initialDesignVariant: initialDesign,
       initialGrainOpacity: initialGrainOpacity,
       initialThemeMode: initialThemeMode,

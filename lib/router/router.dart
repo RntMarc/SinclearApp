@@ -33,6 +33,7 @@ import '../features/settings/screens/email_change_screen.dart';
 import '../features/settings/screens/discord_relink_screen.dart';
 import '../features/settings/screens/mcp_keys_screen.dart';
 import '../features/settings/screens/dav_tokens_screen.dart';
+import '../features/settings/screens/map_app_screen.dart';
 import '../features/feedback/screens/feedback_screen.dart';
 import '../features/feedback/screens/feedback_detail_screen.dart';
 import '../features/recipes/screens/recipe_list_screen.dart';
@@ -307,6 +308,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
               GoRoute(
                 path: 'dav',
                 builder: (context, state) => const DavTokensScreen(),
+              ),
+              GoRoute(
+                path: 'karte',
+                builder: (context, state) => const MapAppScreen(),
               ),
             ],
           ),

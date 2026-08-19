@@ -15,6 +15,7 @@ import '../../features/notifications/services/unified_push_service.dart';
 import '../../features/notifications/services/web_push_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
 import '../../features/settings/models/notification_preference.dart';
+import '../../features/settings/models/map_app_preference.dart';
 import '../../features/settings/services/dav_token_service.dart';
 import '../../features/settings/services/dav_sync_service.dart';
 import '../../features/settings/services/mcp_key_service.dart';
@@ -59,6 +60,9 @@ class AppScope extends InheritedWidget {
   /// Aktuell gewählte Benachrichtigungs-Methode (lokal persistiert).
   final ValueNotifier<NotificationMethod> notificationMethod;
 
+  /// Aktuell gewählte Karten-App (lokal persistiert).
+  final ValueNotifier<MapApp> mapApp;
+
   final String appBaseUrl;
   final String apiBaseUrl;
 
@@ -89,6 +93,7 @@ class AppScope extends InheritedWidget {
     required this.unifiedPush,
     required this.webPush,
     required this.notificationMethod,
+    required this.mapApp,
     this.webUpdate,
     required this.appBaseUrl,
     required this.apiBaseUrl,

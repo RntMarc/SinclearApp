@@ -31,6 +31,7 @@ import 'features/notifications/services/notification_service.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
 import 'features/settings/models/notification_preference.dart';
+import 'features/settings/models/map_app_preference.dart';
 import 'core/notifications/notification_lifecycle_observer.dart';
 
 class SinclearApp extends StatelessWidget {
@@ -64,9 +65,15 @@ class SinclearApp extends StatelessWidget {
   /// Initial, lokal gespeicherte Benachrichtigungs-Methode.
   final NotificationMethod initialNotificationMethod;
 
+  /// Initial, lokal gespeicherte Karten-App-Präferenz.
+  final MapApp initialMapApp;
+
   /// Aktive Zustell-Methode; Änderungen werden in der UI sofort wirksam
   /// (z. B. Lifecycle-Observer pollt nur bei [NotificationMethod.polling]).
   final ValueNotifier<NotificationMethod> notificationMethod;
+
+  /// Aktive Karten-App; Änderungen werden sofort persistiert.
+  final ValueNotifier<MapApp> mapApp;
 
   /// Initial, locally persisted design variant (survives logout/login).
   final DesignVariant initialDesignVariant;
@@ -126,6 +133,7 @@ class SinclearApp extends StatelessWidget {
     required this.unifiedPush,
     required this.webPush,
     required this.initialNotificationMethod,
+    required this.initialMapApp,
     required this.router,
     required this.appBaseUrl,
     required this.apiBaseUrl,
@@ -140,9 +148,10 @@ class SinclearApp extends StatelessWidget {
        grainOpacity = GrainController(initialGrainOpacity),
        themeMode = ThemeModeController(initialThemeMode),
        customAccent = CustomAccentController(initialCustomAccent),
-       notificationMethod = ValueNotifier<NotificationMethod>(
-         initialNotificationMethod,
-       );
+        notificationMethod = ValueNotifier<NotificationMethod>(
+          initialNotificationMethod,
+        ),
+        mapApp = MapAppController(initialMapApp);
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +181,7 @@ class SinclearApp extends StatelessWidget {
       unifiedPush: unifiedPush,
       webPush: webPush,
       notificationMethod: notificationMethod,
+      mapApp: mapApp,
       webUpdate: webUpdate,
       appBaseUrl: appBaseUrl,
       apiBaseUrl: apiBaseUrl,

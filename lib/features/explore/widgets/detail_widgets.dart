@@ -16,6 +16,8 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../core/widgets/open_in_map_button.dart';
+import '../../../core/utils/map_helper.dart';
 import '../../user/models/user_models.dart';
 import '../models/explore_models.dart';
 import '../utils/cuisine_translations.dart';
@@ -219,6 +221,18 @@ class PlaceInfoContent extends StatelessWidget {
             '${place.avgRating!.toStringAsFixed(1)} / 5',
             tokens,
           ),
+        if (place.latitude != null && place.longitude != null) ...[
+          SizedBox(height: tokens.spaceLg),
+          OpenInMapButton(
+            target: MapTarget(
+              latitude: place.latitude!,
+              longitude: place.longitude!,
+              osmId: place.osmId,
+              osmType: place.osmType,
+              label: place.name,
+            ),
+          ),
+        ],
         SizedBox(height: tokens.spaceLg),
         _metaRow(
           'Kategorie',
