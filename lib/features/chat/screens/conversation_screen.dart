@@ -59,7 +59,11 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   void _onChatChanged() {
-    // Nach neuen Nachrichten prüfen: unten angekommen → gelesen markieren.
+    if (!mounted) return;
+    // Neue Nachrichten aus dem Sync anzeigen (der Screen lauscht nicht über
+    // einen ListenableBuilder, also explizit neu bauen) und unten angekommen
+    // als gelesen markieren.
+    setState(() {});
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeMarkRead());
   }
 
