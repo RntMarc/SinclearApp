@@ -34,6 +34,7 @@ class TravelTrip {
   final String? ticketUrl;
   final String? forumId;
   final ForumBrief? forum;
+  final String? conversationId;
   final int subscriptionCount;
 
   const TravelTrip({
@@ -47,6 +48,7 @@ class TravelTrip {
     this.ticketUrl,
     this.forumId,
     this.forum,
+    this.conversationId,
     this.subscriptionCount = 0,
   });
 
@@ -64,6 +66,7 @@ class TravelTrip {
       forum: json['forum'] != null
           ? ForumBrief.fromJson(json['forum'] as Map<String, dynamic>)
           : null,
+      conversationId: json['conversationId'] as String?,
       subscriptionCount: (json['subscriptionCount'] as num?)?.toInt() ?? 0,
     );
   }
@@ -86,6 +89,7 @@ class TravelEvent {
   final double? latitude;
   final double? longitude;
   final int? osmId;
+  final String? conversationId;
   final List<TravelParticipantBrief> participants;
 
   const TravelEvent({
@@ -105,6 +109,7 @@ class TravelEvent {
     this.latitude,
     this.longitude,
     this.osmId,
+    this.conversationId,
     this.participants = const [],
   });
 
@@ -126,6 +131,7 @@ class TravelEvent {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       osmId: json['OSMID'] as int?,
+      conversationId: json['conversationId'] as String?,
       participants:
           (json['participants'] as List?)
               ?.map(

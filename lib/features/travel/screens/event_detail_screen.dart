@@ -25,6 +25,7 @@ import '../services/travel_service.dart';
 import '../widgets/ticket_delete_flow.dart';
 import '../widgets/ticket_form_sheet.dart';
 import '../widgets/ticket_preview_page.dart';
+import '../../chat/widgets/conversation_body.dart';
 
 class TravelEventDetailScreen extends StatefulWidget {
   final String id;
@@ -36,7 +37,8 @@ class TravelEventDetailScreen extends StatefulWidget {
       _TravelEventDetailScreenState();
 }
 
-class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
+class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
+    with TickerProviderStateMixin {
   TravelService get _service => AppScope.of(context).travel;
 
   TravelEvent? _event;
@@ -44,10 +46,29 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
   bool _loading = true;
   String? _error;
 
+  TabController? _tabController;
+  int _currentTabIndex = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_loading) _load();
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
+
+  void _ensureTabController(int length) {
+    if (_tabController != null && _tabController!.length == length) return;
+    _tabController?.dispose();
+    _tabController = TabController(length: length, vsync: this);
+    _tabController!.addListener(() {
+      if (!mounted) return;
+      setState(() => _currentTabIndex = _tabController!.index);
+    });
   }
 
   Future<void> _load() async {
@@ -356,10 +377,62 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
 
   Widget _buildBodyWithFab() {
     if (_loading || _error != null || _event == null) return _buildBody();
+    final event = _event!;
+    final hasChat = event.conversationId != null;
+
+    if (hasChat) {
+      _ensureTabController(2);
+      final showFab = _currentTabIndex == 0 && event.hastickets == '1';
+      return Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            indicatorColor: DesignTheme.of(context).primary,
+            labelColor: DesignTheme.of(context).textHigh,
+            unselectedLabelColor: DesignTheme.of(context).textLow,
+            labelStyle: DesignTheme.of(
+              context,
+            ).bodyStyle(DesignTheme.of(context).textHigh),
+            unselectedLabelStyle: DesignTheme.of(
+              context,
+            ).labelStyle(DesignTheme.of(context).textLow),
+            tabs: const [
+              Tab(text: 'Übersicht'),
+              Tab(text: 'Chat'),
+            ],
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildBody(),
+                    ConversationBody(conversationId: event.conversationId!),
+                  ],
+                ),
+                if (showFab)
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: FloatingActionButton(
+                      heroTag: 'event_ticket_fab',
+                      onPressed: _addTicket,
+                      tooltip: 'Ticket hinzufügen',
+                      child: const Icon(Icons.qr_code_scanner_rounded),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return Stack(
       children: [
         _buildBody(),
-        if (_event!.hastickets == '1')
+        if (event.hastickets == '1')
           Positioned(
             right: 16,
             bottom: 16,
