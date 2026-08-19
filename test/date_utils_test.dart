@@ -105,6 +105,64 @@ void main() {
     });
   });
 
+  group('formatRelativeDayTime', () {
+    late DateTime now;
+    late DateTime today;
+
+    setUp(() {
+      now = DateTime.now();
+      today = DateTime(now.year, now.month, now.day);
+    });
+
+    test('gleicher Tag', () {
+      final iso = toApiDate(today.add(const Duration(hours: 10, minutes: 30)));
+      expect(formatRelativeDayTime(iso), 'Heute, 10:30');
+    });
+
+    test('Gestern', () {
+      final iso = toApiDate(
+        today.subtract(const Duration(days: 1)).add(
+          const Duration(hours: 9, minutes: 15),
+        ),
+      );
+      expect(formatRelativeDayTime(iso), 'Gestern, 09:15');
+    });
+
+    test('Vorgestern', () {
+      final iso = toApiDate(
+        today.subtract(const Duration(days: 2)).add(
+          const Duration(hours: 18, minutes: 40),
+        ),
+      );
+      expect(formatRelativeDayTime(iso), 'Vorgestern, 18:40');
+    });
+
+    test('Vor 3–6 Tagen', () {
+      final iso3 = toApiDate(
+        today.subtract(const Duration(days: 3)).add(
+          const Duration(hours: 11, minutes: 22),
+        ),
+      );
+      expect(formatRelativeDayTime(iso3), 'Vor 3 Tagen, 11:22');
+
+      final iso5 = toApiDate(
+        today.subtract(const Duration(days: 5)).add(
+          const Duration(hours: 7, minutes: 5),
+        ),
+      );
+      expect(formatRelativeDayTime(iso5), 'Vor 5 Tagen, 07:05');
+    });
+
+    test('Ab 7 Tagen absolutes Datum', () {
+      final iso = toApiDate(
+        today.subtract(const Duration(days: 7)).add(
+          const Duration(hours: 14, minutes: 0),
+        ),
+      );
+      expect(formatRelativeDayTime(iso), '${formatDate(parseApiDate(iso))}, 14:00');
+    });
+  });
+
   group('daysBetween', () {
     test('DST-übergreifend exakt', () {
       expect(daysBetween(DateTime(2026, 3, 28), DateTime(2026, 3, 30)), 2);
