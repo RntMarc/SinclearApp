@@ -177,28 +177,31 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
               SizedBox(height: tokens.spaceXs),
             ],
             if (hasCoords) ...[
-              SizedBox(height: tokens.spaceSm),
-              OpenInMapButton(
-                target: MapTarget(
-                  latitude: acc.latitude!,
-                  longitude: acc.longitude!,
-                  osmId: acc.osmId,
-                  label: acc.name,
-                ),
-              ),
               SizedBox(height: tokens.spaceLg),
-              DesignMapCard(
-                center: LatLng(acc.latitude!, acc.longitude!),
-                initialZoom: 14,
-                markers: [
-                  designMapMarker(
-                    point: LatLng(acc.latitude!, acc.longitude!),
-                    icon: Icons.location_on_rounded,
-                    color: isMine ? tokens.primary : tokens.danger,
+              Stack(
+                children: [
+                  DesignMapCard(
+                    center: LatLng(acc.latitude!, acc.longitude!),
+                    initialZoom: 14,
+                    markers: [
+                      designMapMarker(
+                        point: LatLng(acc.latitude!, acc.longitude!),
+                        icon: Icons.location_on_rounded,
+                        color: isMine ? tokens.primary : tokens.danger,
+                      ),
+                    ],
+                    height: 180,
+                    interactive: true,
+                  ),
+                  OpenInMapButton(
+                    target: MapTarget(
+                      latitude: acc.latitude!,
+                      longitude: acc.longitude!,
+                      osmId: acc.osmId,
+                      label: acc.name,
+                    ),
                   ),
                 ],
-                height: 180,
-                interactive: true,
               ),
             ],
             if (acc.users.isNotEmpty) ...[

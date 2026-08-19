@@ -233,28 +233,31 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
               ),
             ],
             if (hasCoords) ...[
-              SizedBox(height: tokens.spaceSm),
-              OpenInMapButton(
-                target: MapTarget(
-                  latitude: event.latitude!,
-                  longitude: event.longitude!,
-                  osmId: event.osmId,
-                  label: event.name,
-                ),
-              ),
               SizedBox(height: tokens.spaceLg),
-              DesignMapCard(
-                center: LatLng(event.latitude!, event.longitude!),
-                initialZoom: 14,
-                markers: [
-                  designMapMarker(
-                    point: LatLng(event.latitude!, event.longitude!),
-                    icon: Icons.location_on_rounded,
-                    color: tokens.danger,
+              Stack(
+                children: [
+                  DesignMapCard(
+                    center: LatLng(event.latitude!, event.longitude!),
+                    initialZoom: 14,
+                    markers: [
+                      designMapMarker(
+                        point: LatLng(event.latitude!, event.longitude!),
+                        icon: Icons.location_on_rounded,
+                        color: tokens.danger,
+                      ),
+                    ],
+                    height: 180,
+                    interactive: true,
+                  ),
+                  OpenInMapButton(
+                    target: MapTarget(
+                      latitude: event.latitude!,
+                      longitude: event.longitude!,
+                      osmId: event.osmId,
+                      label: event.name,
+                    ),
                   ),
                 ],
-                height: 180,
-                interactive: true,
               ),
             ],
           ],
