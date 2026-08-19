@@ -12,6 +12,8 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../core/widgets/open_in_map_button.dart';
+import '../../../core/utils/map_helper.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/travel_models.dart';
@@ -175,6 +177,15 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
               SizedBox(height: tokens.spaceXs),
             ],
             if (hasCoords) ...[
+              SizedBox(height: tokens.spaceSm),
+              OpenInMapButton(
+                target: MapTarget(
+                  latitude: acc.latitude!,
+                  longitude: acc.longitude!,
+                  osmId: acc.osmId,
+                  label: acc.name,
+                ),
+              ),
               SizedBox(height: tokens.spaceLg),
               DesignMapCard(
                 center: LatLng(acc.latitude!, acc.longitude!),

@@ -23,6 +23,7 @@ import '../../../design/widgets/primitives/press_scale.dart';
 import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
 import '../models/notification_preference.dart';
+import '../models/map_app_preference.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -276,6 +277,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () =>
                           context.push('/einstellungen/benachrichtigungen'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Map app section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: DesignText(
+                    'Karten',
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                ),
+                DesignCard.list(
+                  children: [
+                    ListenableBuilder(
+                      listenable: AppScope.of(context).mapApp,
+                      builder: (context, _) {
+                        final current = AppScope.of(context).mapApp.value;
+                        return DesignListTile(
+                          leading: const Icon(Icons.map_rounded),
+                          title: 'Karten-App',
+                          subtitle: current.label,
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => context.push('/einstellungen/karte'),
+                        );
+                      },
                     ),
                   ],
                 ),

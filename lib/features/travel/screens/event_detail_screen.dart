@@ -15,6 +15,8 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../core/widgets/open_in_map_button.dart';
+import '../../../core/utils/map_helper.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
@@ -231,6 +233,15 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
               ),
             ],
             if (hasCoords) ...[
+              SizedBox(height: tokens.spaceSm),
+              OpenInMapButton(
+                target: MapTarget(
+                  latitude: event.latitude!,
+                  longitude: event.longitude!,
+                  osmId: event.osmId,
+                  label: event.name,
+                ),
+              ),
               SizedBox(height: tokens.spaceLg),
               DesignMapCard(
                 center: LatLng(event.latitude!, event.longitude!),
