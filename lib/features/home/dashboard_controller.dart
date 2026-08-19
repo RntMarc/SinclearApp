@@ -50,6 +50,17 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
   bool _editing = false;
   bool get editing => _editing;
 
+  /// Aktiver Tab des Home-Screens (0 = Dashboard, 1 = Chat). Auf Desktop
+  /// stehen beide nebeneinander, dort bleibt der Wert 0.
+  int _homeTabIndex = 0;
+  int get homeTabIndex => _homeTabIndex;
+
+  void setHomeTab(int index) {
+    if (_homeTabIndex == index) return;
+    _homeTabIndex = index;
+    notifyListeners();
+  }
+
   final List<DashboardRefreshable> _refreshables = [];
   Timer? _timer;
 
