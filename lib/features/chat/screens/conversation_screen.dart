@@ -44,9 +44,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
     if (_initialized) return;
     _initialized = true;
     _scope = AppScope.of(context);
-    _scope!.chat
-      ..registerActive()
-      ..setActiveConversation(widget.conversationId);
+    _scope!.chat.registerActive();
     _scroll.addListener(_maybeMarkRead);
     _scope!.chat.addListener(_onChatChanged);
     _load();
@@ -55,7 +53,6 @@ class _ConversationScreenState extends State<ConversationScreen> {
   @override
   void dispose() {
     _scope?.chat.removeListener(_onChatChanged);
-    _scope?.chat.setActiveConversation(null);
     _scope?.chat.unregisterActive();
     _scroll.dispose();
     super.dispose();

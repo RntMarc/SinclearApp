@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -5,6 +6,20 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
 final _log = Logger('image');
+
+/// Decodierte Bild-Bytes, keyed by Quellstring, damit derselbe Bildinhalt
+/// app-übergreifend auf dieselbe [Uint8List] (und damit denselben
+/// [MemoryImage]) abgebildet wird. Ohne diesen Cache erzeugt jeder Rebuild
+/// einen frisch decodierten Puffer, den Flutter als neues Bild behandelt —
+/// das verursacht das Avatar-Flackern bei Listen-Rebuilds. Bleibt der
+/// Quellstring (Base64/`data:`-URI) unverändert, wird auch nie neu gerendert.
+///
+/// ponytail: einfacher FIFO-Eviction statt LRU/TTL. Avatare sind der
+/// Hauptnutzer; die begrenzte Nutzerzahl hält den Cache klein. Wird Speicher
+/// je relevant, auf einen größenbewussten LRU keyed by Content-Hash wechseln.
+final LinkedHashMap<String, Uint8List> _decodedImages = LinkedHashMap();
+
+const int _maxDecodedImages = 256;
 
 /// Returns an [ImageProvider] for the given [imageUrl].
 ///
@@ -18,26 +33,39 @@ ImageProvider? resolveImageProvider(String? imageUrl) {
     return NetworkImage(imageUrl);
   }
 
-  if (imageUrl.startsWith('data:')) {
-    final data = _decodeBase64DataUri(imageUrl);
-    if (data != null) return MemoryImage(data);
+  final bytes = _decodedBytes(imageUrl);
+  if (bytes == null) {
     _log.warning(
-      'resolveImageProvider: invalid data URI (len=${imageUrl.length})',
+      'resolveImageProvider: invalid image source (len=${imageUrl.length})',
     );
     return null;
   }
+  return MemoryImage(bytes);
+}
 
-  // Fallback: try decoding as raw base64 string.
-  try {
-    final decoded = base64.decode(imageUrl);
-    if (decoded.isEmpty) return null;
-    return MemoryImage(decoded);
-  } catch (e) {
-    _log.warning(
-      'resolveImageProvider: base64 decode failed (len=${imageUrl.length}): $e',
-    );
-    return null;
+/// Liefert die decodierten Bytes für [source] aus dem Cache oder decodiert
+/// und cacht sie. `null` bei ungültiger Quelle.
+Uint8List? _decodedBytes(String source) {
+  final cached = _decodedImages[source];
+  if (cached != null) return cached;
+
+  Uint8List? decoded;
+  if (source.startsWith('data:')) {
+    decoded = _decodeBase64DataUri(source);
+  } else {
+    try {
+      decoded = base64.decode(source);
+    } catch (_) {
+      decoded = null;
+    }
   }
+  if (decoded == null || decoded.isEmpty) return null;
+
+  if (_decodedImages.length >= _maxDecodedImages) {
+    _decodedImages.remove(_decodedImages.keys.first);
+  }
+  _decodedImages[source] = decoded;
+  return decoded;
 }
 
 Uint8List? _decodeBase64DataUri(String dataUri) {
