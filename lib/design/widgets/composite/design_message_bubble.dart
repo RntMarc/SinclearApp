@@ -9,6 +9,8 @@ import '../foundation/design_text.dart';
 /// Eigene Nachrichten liegen rechts (Primärfarbe), fremde links
 /// (Oberflächenfarbe). Gelöschte Nachrichten zeigen einen Platzhalter.
 /// [linkPreview] (z. B. eine URL-Vorschau) wird unter dem Text gerendert.
+/// In Gruppenchats kann [senderName] gesetzt werden, um den Absendernamen
+/// über dem Text anzuzeigen (bei eigenen Nachrichten wird er weggelassen).
 class DesignMessageBubble extends StatelessWidget {
   /// Anzeigetext; bei [deleted] wird ein Platzhalter gezeigt.
   final String text;
@@ -33,6 +35,10 @@ class DesignMessageBubble extends StatelessWidget {
   /// (anderer `lastReadSeq` >= `seq`). Zeigt Doppelhaken an.
   final bool read;
 
+  /// Absendername in Gruppenchats. Wird oberhalb des Texts angezeigt,
+  /// aber nicht bei eigenen oder gelöschten Nachrichten.
+  final String? senderName;
+
   const DesignMessageBubble({
     required this.text,
     this.isOwn = false,
@@ -42,6 +48,7 @@ class DesignMessageBubble extends StatelessWidget {
     this.linkPreview,
     this.onLongPress,
     this.read = false,
+    this.senderName,
     super.key,
   });
 
@@ -88,6 +95,15 @@ class DesignMessageBubble extends StatelessWidget {
                     : tokens.textLow,
               )
             else ...[
+              if (senderName != null && !isOwn)
+                Padding(
+                  padding: EdgeInsets.only(bottom: tokens.spaceXs),
+                  child: DesignText(
+                    senderName!,
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                ),
               DesignText(text, style: DesignTextStyle.body, color: fg),
               if (edited)
                 Padding(

@@ -432,6 +432,7 @@ class _ConversationBodyState extends State<ConversationBody> {
     final userId = _scope?.auth.userId;
     final allMessages = messages ?? const <DirectMessage>[];
     final otherLastReadSeq = conversation?.otherLastReadSeq ?? 0;
+    final isGroup = conversation?.type == 'group';
 
     return Column(
       children: [
@@ -466,6 +467,11 @@ class _ConversationBodyState extends State<ConversationBody> {
                         read: isOwn && message.seq <= otherLastReadSeq,
                         linkPreview: _linkPreview(message),
                         onLongPress: () => _showMessageActions(message),
+                        senderName: isGroup && !isOwn
+                            ? message.sender.displayName.isNotEmpty
+                                  ? message.sender.displayName
+                                  : null
+                            : null,
                       ),
                     );
                   },
