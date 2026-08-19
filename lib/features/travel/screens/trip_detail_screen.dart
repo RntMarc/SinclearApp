@@ -16,6 +16,7 @@ import '../services/trip_data_controller.dart';
 import '../widgets/ticket_form_sheet.dart';
 import '../widgets/trip_detail_widgets.dart';
 import '../widgets/embedded_forum_view.dart';
+import '../../chat/widgets/conversation_body.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final String id;
@@ -229,6 +230,9 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         case 'Forum':
           tabViews.add(EmbeddedForumView(forumId: trip.forumId!));
           break;
+        case 'Chat':
+          tabViews.add(ConversationBody(conversationId: trip.conversationId!));
+          break;
         case 'Events':
           tabViews.add(
             TripEventsSection(
@@ -288,6 +292,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   /// disappears when the section data arrives.
   List<String> _getTabTitles(TravelTrip trip) {
     final titles = <String>['Übersicht'];
+    if (trip.conversationId != null) titles.add('Chat');
     if (trip.forumId != null) titles.add('Forum');
     titles.add('Events');
     final hasTicketInfo =

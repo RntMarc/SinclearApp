@@ -95,10 +95,14 @@ class _ChatTabState extends State<ChatTab> {
                                   .typingUsers[conversation.id]
                                   ?.isNotEmpty ==
                               true;
+                          final displayName =
+                              other?.displayName.isNotEmpty == true
+                              ? other!.displayName
+                              : (conversation.name?.isNotEmpty == true
+                                    ? conversation.name!
+                                    : 'Unbekannt');
                           return DesignConversationTile(
-                            name: other?.displayName.isNotEmpty == true
-                                ? other!.displayName
-                                : 'Unbekannt',
+                            name: displayName,
                             avatarUrl: other?.avatar,
                             lastMessage:
                                 conversation.lastMessage?.deleted == true
