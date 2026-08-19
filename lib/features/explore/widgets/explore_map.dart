@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/osm_config.dart';
+import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/theme/design_theme.dart';
 import '../models/explore_models.dart';
 
@@ -25,12 +26,6 @@ class _ExploreMapState extends State<ExploreMap> {
   List<Marker>? _cachedMarkers;
 
   @override
-  void initState() {
-    super.initState();
-    _cachedMarkers = [];
-  }
-
-  @override
   void didUpdateWidget(ExploreMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.places != widget.places) {
@@ -43,13 +38,12 @@ class _ExploreMapState extends State<ExploreMap> {
     return places
         .where((p) => p.latitude != null && p.longitude != null)
         .map(
-          (p) => Marker(
+          (p) => designMapMarker(
             point: LatLng(p.latitude!, p.longitude!),
-            child: Icon(
-              p.category == 'gastronomy' ? Icons.restaurant : Icons.park,
-              color: color,
-              size: 30,
-            ),
+            icon: p.category == 'gastronomy'
+                ? Icons.restaurant_rounded
+                : Icons.park_rounded,
+            color: color,
           ),
         )
         .toList();

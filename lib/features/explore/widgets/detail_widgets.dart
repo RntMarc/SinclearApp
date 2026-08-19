@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +10,7 @@ import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
+import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
@@ -293,9 +293,10 @@ class PlaceMapCard extends StatelessWidget {
       initialZoom: 15,
       markers: hasCoords
           ? [
-              Marker(
+              designMapMarker(
                 point: LatLng(place.latitude!, place.longitude!),
-                child: Icon(Icons.location_on, color: tokens.danger, size: 36),
+                icon: Icons.location_on_rounded,
+                color: tokens.danger,
               ),
             ]
           : const [],

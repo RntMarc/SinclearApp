@@ -1,11 +1,11 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
+import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -180,13 +180,10 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
                 center: LatLng(acc.latitude!, acc.longitude!),
                 initialZoom: 14,
                 markers: [
-                  Marker(
+                  designMapMarker(
                     point: LatLng(acc.latitude!, acc.longitude!),
-                    child: Icon(
-                      Icons.location_on,
-                      color: isMine ? tokens.primary : Colors.red,
-                      size: 36,
-                    ),
+                    icon: Icons.location_on_rounded,
+                    color: isMine ? tokens.primary : tokens.danger,
                   ),
                 ],
                 height: 180,
