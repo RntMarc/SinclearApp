@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
@@ -19,10 +20,59 @@ Marker designMapMarker({
       child: _PinBadge(icon: icon, color: color, size: size),
     );
 
-/// A pin-shaped badge: a circular head with the [icon] inside and a downward
-/// taper whose top edge follows the head's circle, so the two shapes join
-/// without a seam; the tip reaches exactly the bottom of the box, letting a
-/// `Alignment.topCenter` marker place the tip on the coordinate.
+/// Geometry of the pin's outline for a badge of [size] pixels.
+///
+/// The taper sides are tangent to the head circle, so the transition between
+/// the circular head and the tip is smooth (no kink or seam).
+({Offset center, double radius, Offset leftTangent, Offset rightTangent,
+  Offset tip}) pinGeometry(double size) {
+  final headSize = size * 0.72;
+  final radius = headSize / 2;
+  final cx = size / 2;
+  final cy = headSize / 2;
+  final tip = Offset(cx, size);
+  final d = tip.dy - cy;
+  final cosPhi = radius / d;
+  final sinPhi = math.sqrt(1 - cosPhi * cosPhi);
+  return (
+    center: Offset(cx, cy),
+    radius: radius,
+    leftTangent: Offset(cx - radius * sinPhi, cy + radius * cosPhi),
+    rightTangent: Offset(cx + radius * sinPhi, cy + radius * cosPhi),
+    tip: tip,
+  );
+}
+
+/// Returns the pin as one closed outline: the head circle's major arc from the
+/// left tangent point over the top to the right tangent point, then the two
+/// tangent sides down to the tip.
+Path buildPinPath(double size) {
+  final g = pinGeometry(size);
+  final path = Path()..moveTo(g.leftTangent.dx, g.leftTangent.dy);
+  final aLeft = math.atan2(
+    g.leftTangent.dy - g.center.dy,
+    g.leftTangent.dx - g.center.dx,
+  );
+  final aRight = math.atan2(
+    g.rightTangent.dy - g.center.dy,
+    g.rightTangent.dx - g.center.dx,
+  );
+  const segments = 48;
+  for (var i = 1; i <= segments; i++) {
+    final angle = aLeft + (aRight + 2 * math.pi - aLeft) * i / segments;
+    path.lineTo(
+      g.center.dx + g.radius * math.cos(angle),
+      g.center.dy + g.radius * math.sin(angle),
+    );
+  }
+  path
+    ..lineTo(g.tip.dx, g.tip.dy)
+    ..close();
+  return path;
+}
+
+/// A pin-shaped badge: a single solid-filled vector shape with the [icon]
+/// centered in its head, so head and tip are one part without a seam.
 class _PinBadge extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -36,35 +86,23 @@ class _PinBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final headSize = size * 0.72;
+    final g = pinGeometry(size);
     final iconSize = size * 0.36;
 
     return SizedBox(
       width: size,
       height: size,
       child: Stack(
-        alignment: Alignment.topCenter,
         children: [
-          Container(
-            width: headSize,
-            height: headSize,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: Colors.white, size: iconSize),
-          ),
           Positioned.fill(
-            child: CustomPaint(
-              painter: _TrianglePainter(color: color, badgeSize: size),
-            ),
+            child: CustomPaint(painter: _PinPainter(color: color, pinSize: size)),
+          ),
+          Positioned(
+            left: g.center.dx - iconSize / 2,
+            top: g.center.dy - iconSize / 2,
+            width: iconSize,
+            height: iconSize,
+            child: Icon(icon, color: Colors.white, size: iconSize),
           ),
         ],
       ),
@@ -72,68 +110,27 @@ class _PinBadge extends StatelessWidget {
   }
 }
 
-/// Geometry of the pin's taper for a badge of [badgeSize] pixels.
-///
-/// The junction points sit on the head circle (the taper starts where the
-/// circle is [radius] wide) and the tip reaches the bottom of the box.
-({Offset center, double radius, Offset leftJunction, Offset rightJunction,
-  Offset tip}) pinTaperGeometry(double badgeSize) {
-  final headSize = badgeSize * 0.72;
-  final radius = headSize / 2;
-  final cx = badgeSize / 2;
-  final cy = headSize / 2;
-  final dx = badgeSize * 0.25;
-  final dy = math.sqrt(radius * radius - dx * dx);
-  return (
-    center: Offset(cx, cy),
-    radius: radius,
-    leftJunction: Offset(cx - dx, cy + dy),
-    rightJunction: Offset(cx + dx, cy + dy),
-    tip: Offset(cx, badgeSize),
-  );
-}
-
-/// Returns the pin's taper outline in badge coordinates: a top edge following
-/// the head circle's lower arc (sampled) from the left to the right junction
-/// point, then the two sides down to a tip at the bottom of the box.
-Path buildPinTaperPath(double badgeSize) {
-  final g = pinTaperGeometry(badgeSize);
-  final path = Path()..moveTo(g.leftJunction.dx, g.leftJunction.dy);
-  final aLeft = math.atan2(
-    g.leftJunction.dy - g.center.dy,
-    g.leftJunction.dx - g.center.dx,
-  );
-  final aRight = math.atan2(
-    g.rightJunction.dy - g.center.dy,
-    g.rightJunction.dx - g.center.dx,
-  );
-  const segments = 32;
-  for (var i = 1; i < segments; i++) {
-    final angle = aLeft + (aRight - aLeft) * i / segments;
-    path.lineTo(
-      g.center.dx + g.radius * math.cos(angle),
-      g.center.dy + g.radius * math.sin(angle),
-    );
-  }
-  path
-    ..lineTo(g.rightJunction.dx, g.rightJunction.dy)
-    ..lineTo(g.tip.dx, g.tip.dy)
-    ..close();
-  return path;
-}
-
-/// Draws the pin's taper with [buildPinTaperPath], filling the shape with
-/// [color].
-class _TrianglePainter extends CustomPainter {
+/// Draws the pin as a single [buildPinPath] shape with a soft glow behind it.
+class _PinPainter extends CustomPainter {
   final Color color;
-  final double badgeSize;
+  final double pinSize;
 
-  _TrianglePainter({required this.color, required this.badgeSize});
+  _PinPainter({required this.color, required this.pinSize});
 
   @override
   void paint(Canvas canvas, Size size) {
+    final path = buildPinPath(pinSize);
+
+    final glow = Paint()
+      ..color = color.withValues(alpha: 0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.save();
+    canvas.translate(0, 2);
+    canvas.drawPath(path, glow);
+    canvas.restore();
+
     canvas.drawPath(
-      buildPinTaperPath(badgeSize),
+      path,
       Paint()
         ..color = color
         ..style = PaintingStyle.fill,
@@ -141,6 +138,6 @@ class _TrianglePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_TrianglePainter old) =>
-      color != old.color || badgeSize != old.badgeSize;
+  bool shouldRepaint(_PinPainter old) =>
+      color != old.color || pinSize != old.pinSize;
 }
