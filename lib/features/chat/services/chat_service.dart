@@ -238,6 +238,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
       id: c.id,
       type: c.type,
       name: c.name,
+      image: c.image,
       otherUser: c.otherUser,
       lastMessage: c.lastMessage,
       unreadCount: 0,
@@ -378,6 +379,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
           id: c.id,
           type: c.type,
           name: c.name,
+          image: c.image,
           otherUser: c.otherUser,
           lastMessage: c.lastMessage,
           unreadCount: summary.unreadCount,
@@ -457,6 +459,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
       id: c.id,
       type: c.type,
       name: c.name,
+      image: c.image,
       otherUser: c.otherUser,
       lastMessage: ChatMessageSummary(
         content: message.content,
@@ -487,6 +490,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
       id: c.id,
       type: c.type,
       name: c.name,
+      image: c.image,
       otherUser: c.otherUser,
       lastMessage: ChatMessageSummary(
         content: message.deleted ? '' : message.content,

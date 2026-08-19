@@ -4,11 +4,12 @@ import 'package:sinclear_beyond/features/travel/models/travel_models.dart';
 
 void main() {
   group('ChatConversation group parsing', () {
-    test('parses group type with name and null otherUser', () {
+    test('parses group type with name, image and null otherUser', () {
       final json = <String, dynamic>{
         'id': 'conv-1',
         'type': 'group',
         'name': 'Sommerurlaub 2025',
+        'image': 'data:image/jpeg;base64,abc',
         'otherUser': null,
         'lastMessage': null,
         'unreadCount': 3,
@@ -24,9 +25,28 @@ void main() {
       expect(conversation.id, 'conv-1');
       expect(conversation.type, 'group');
       expect(conversation.name, 'Sommerurlaub 2025');
+      expect(conversation.image, 'data:image/jpeg;base64,abc');
       expect(conversation.otherUser, isNull);
       expect(conversation.unreadCount, 3);
       expect(conversation.lastSeenAt, isNull);
+    });
+
+    test('group image defaults to null when absent', () {
+      final conversation = ChatConversation.fromJson({
+        'id': 'conv-3',
+        'type': 'group',
+        'name': 'Reise',
+        'otherUser': null,
+        'lastMessage': null,
+        'unreadCount': 0,
+        'lastSeenAt': null,
+        'lastReadSeq': 0,
+        'otherLastReadSeq': null,
+        'createdAt': '2025-06-01 09:00:00',
+        'updatedAt': '2025-06-15 14:00:00',
+      });
+
+      expect(conversation.image, isNull);
     });
 
     test('group with null name falls back gracefully', () {

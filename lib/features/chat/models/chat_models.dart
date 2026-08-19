@@ -39,12 +39,15 @@ class ChatMessageSummary {
       );
 }
 
-/// Eine 1:1-Konversation (Gruppen sind serverseitig vorbereitet, aber
-/// nicht implementiert — [type] bleibt daher `direct`).
+/// Eine Konversation (1:1 oder Gruppe).
 class ChatConversation {
   final String id;
   final String type;
   final String? name;
+
+  /// Icon/Avatar der Gruppenkonversation (base64-encoded Bild); null bei
+  /// 1:1 und wenn nicht gesetzt.
+  final String? image;
   final ChatUser? otherUser;
   final ChatMessageSummary? lastMessage;
   final int unreadCount;
@@ -58,6 +61,7 @@ class ChatConversation {
     required this.id,
     required this.type,
     this.name,
+    this.image,
     this.otherUser,
     this.lastMessage,
     this.unreadCount = 0,
@@ -75,6 +79,7 @@ class ChatConversation {
       id: json['id'] as String,
       type: json['type'] as String? ?? 'direct',
       name: json['name'] as String?,
+      image: json['image'] as String?,
       otherUser: rawOther is Map<String, dynamic>
           ? ChatUser.fromJson(rawOther)
           : null,

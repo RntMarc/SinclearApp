@@ -103,7 +103,7 @@ class _ChatTabState extends State<ChatTab> {
                                     : 'Unbekannt');
                           return DesignConversationTile(
                             name: displayName,
-                            avatarUrl: other?.avatar,
+                            avatarUrl: other?.avatar ?? conversation.image,
                             lastMessage:
                                 conversation.lastMessage?.deleted == true
                                 ? 'Nachricht gelöscht'
