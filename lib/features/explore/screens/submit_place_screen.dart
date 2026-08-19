@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/osm_config.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_compressor.dart';
 import '../../../design/theme/design_theme.dart';
@@ -17,6 +18,7 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
+import '../../../design/widgets/composite/design_map_marker.dart';
 import '../models/explore_models.dart';
 
 class SubmitPlaceScreen extends StatefulWidget {
@@ -154,11 +156,39 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
 
   Future<void> _useCurrentLocation() async {
     try {
-      final position = await Geolocator.getCurrentPosition();
+      final position = await LocationService.determinePosition();
       if (!mounted) return;
       final latLng = LatLng(position.latitude, position.longitude);
       setState(() => _selectedLocation = latLng);
       _mapController.move(latLng, 15);
+    } on LocationServicesOffException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Standortdienste sind deaktiviert.'),
+        ),
+      );
+    } on LocationPermissionDeniedForeverException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Standortzugriff wurde dauerhaft verweigert. '
+            'Bitte in den App-Einstellungen aktivieren.',
+          ),
+          action: SnackBarAction(
+            label: 'Einstellungen',
+            onPressed: Geolocator.openAppSettings,
+          ),
+        ),
+      );
+    } on LocationPermissionDeniedException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Standortzugriff wurde verweigert.'),
+        ),
+      );
     } catch (e, st) {
       developer.log('Failed to get location', error: e, stackTrace: st);
       if (!mounted) return;
@@ -395,13 +425,10 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
                 if (_selectedLocation != null)
                   MarkerLayer(
                     markers: [
-                      Marker(
+                      designMapMarker(
                         point: _selectedLocation!,
-                        child: Icon(
-                          Icons.location_on_rounded,
-                          color: tokens.danger,
-                          size: 36,
-                        ),
+                        icon: Icons.location_on_rounded,
+                        color: tokens.danger,
                       ),
                     ],
                   ),

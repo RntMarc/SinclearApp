@@ -1,6 +1,5 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
@@ -8,6 +7,7 @@ import '../../../core/image/image_provider_helper.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
+import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -177,13 +177,10 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
                 center: LatLng(event.latitude!, event.longitude!),
                 initialZoom: 14,
                 markers: [
-                  Marker(
+                  designMapMarker(
                     point: LatLng(event.latitude!, event.longitude!),
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Colors.red,
-                      size: 36,
-                    ),
+                    icon: Icons.location_on_rounded,
+                    color: tokens.danger,
                   ),
                 ],
                 height: 180,

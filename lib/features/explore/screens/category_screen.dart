@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/services/location_service.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -165,7 +166,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   Future<void> _searchByLocation() async {
     try {
-      final position = await Geolocator.getCurrentPosition();
+      final position = await LocationService.determinePosition();
       if (!mounted) return;
       final explore = AppScope.of(context).explore;
       final response = await explore.search(
@@ -185,6 +186,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
           radius: 5000,
         );
       });
+    } on LocationServicesOffException {
+      if (!mounted) return;
+      setState(() => _error = 'Standortdienste sind deaktiviert.');
+    } on LocationPermissionDeniedForeverException {
+      if (!mounted) return;
+      _showLocationSettingsPrompt();
+    } on LocationPermissionDeniedException {
+      if (!mounted) return;
+      setState(() => _error = 'Standortzugriff wurde verweigert.');
     } catch (e, st) {
       developer.log('Failed to search by location', error: e, stackTrace: st);
       if (!mounted) return;
@@ -232,6 +242,21 @@ class _CategoryScreenState extends State<CategoryScreen> {
       _loadingMoreSearch = false;
       _lastSearch = null;
     });
+  }
+
+  void _showLocationSettingsPrompt() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Standortzugriff wurde dauerhaft verweigert. '
+          'Bitte in den App-Einstellungen aktivieren.',
+        ),
+        action: SnackBarAction(
+          label: 'Einstellungen',
+          onPressed: Geolocator.openAppSettings,
+        ),
+      ),
+    );
   }
 
   Future<void> _loadMoreSearch() async {

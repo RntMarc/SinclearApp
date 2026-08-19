@@ -8,6 +8,7 @@ import '../../../core/utils/url_helper.dart';
 import '../../../core/widgets/async_section.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
+import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
@@ -168,13 +169,10 @@ class TripAccommodationMap extends StatelessWidget {
     final markers = coords.map((a) {
       final isMine =
           currentUserId != null && a.users.any((u) => u.id == currentUserId);
-      return Marker(
+      return designMapMarker(
         point: LatLng(a.latitude!, a.longitude!),
-        child: Icon(
-          Icons.location_on,
-          color: isMine ? tokens.primary : tokens.danger,
-          size: 36,
-        ),
+        icon: Icons.location_on_rounded,
+        color: isMine ? tokens.primary : tokens.danger,
       );
     }).toList();
 
@@ -731,13 +729,10 @@ class TripMapTab extends StatelessWidget {
       final isMine =
           currentUserId != null && a.users.any((u) => u.id == currentUserId);
       markers.add(
-        Marker(
+        designMapMarker(
           point: LatLng(a.latitude!, a.longitude!),
-          child: Icon(
-            Icons.hotel_rounded,
-            color: isMine ? tokens.primary : tokens.success,
-            size: 30,
-          ),
+          icon: Icons.hotel_rounded,
+          color: isMine ? tokens.primary : tokens.success,
         ),
       );
     }
@@ -745,9 +740,10 @@ class TripMapTab extends StatelessWidget {
     for (final e in events) {
       if (e.latitude == null || e.longitude == null) continue;
       markers.add(
-        Marker(
+        designMapMarker(
           point: LatLng(e.latitude!, e.longitude!),
-          child: Icon(Icons.event_rounded, color: tokens.warning, size: 30),
+          icon: Icons.event_rounded,
+          color: tokens.warning,
         ),
       );
     }
