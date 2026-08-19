@@ -49,6 +49,9 @@ class ChatService extends ChangeNotifier {
   Timer? _syncTimer;
   bool _syncInFlight = false;
   int _activeCount = 0;
+  Map<String, List<String>> _typingUsers = {};
+  Timer? _typingTimer;
+  bool _typingSent = false;
 
   Future<String> _token() => _auth.getAccessToken();
 
@@ -63,6 +66,10 @@ class ChatService extends ChangeNotifier {
   }
 
   bool get syncing => _syncInFlight;
+
+  /// Tippzustand des Gegenübers (aus Sync-Poll).
+  /// Map: conversationId → [userId, …].
+  Map<String, List<String>> get typingUsers => _typingUsers;
 
   /// Chat-UI sichtbar: Startet/erhält den Sync-Loop (ref-counted, damit
   /// Tab und Konversations-Screen sich nicht gegenseitig stoppen).
@@ -230,6 +237,79 @@ class ChatService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── Nachrichten-Aktionen ──────────────────────────────────────────────
+
+  /// Bearbeitet eine Nachricht (`PATCH /chat/messages/{id}`). Nur eigener
+  /// Sender, 10-Min-Fenster. Aktualisiert Inhalt und `editedAt` lokal.
+  Future<DirectMessage> editMessage(
+    String conversationId,
+    String messageId,
+    String newContent,
+  ) async {
+    final data = await _api.patch(
+      '/chat/messages/$messageId',
+      body: {'content': newContent},
+      token: await _token(),
+    );
+    final updated = DirectMessage.fromJson(
+      data['data'] as Map<String, dynamic>,
+    );
+    _upsertMessage(conversationId, updated);
+    _updatePreviewIfCurrent(conversationId, updated);
+    notifyListeners();
+    return updated;
+  }
+
+  /// Löscht eine Nachricht für alle (`DELETE /chat/messages/{id}`). Nur
+  /// eigener Sender. Setzt `deleted=true` und leert Inhalt/Payload lokal.
+  Future<void> deleteMessage(String conversationId, String messageId) async {
+    await _api.delete('/chat/messages/$messageId', token: await _token());
+    final list = _messages[conversationId];
+    if (list != null) {
+      final idx = list.indexWhere((m) => m.id == messageId);
+      if (idx >= 0) {
+        final old = list[idx];
+        final deleted = DirectMessage(
+          id: old.id,
+          seq: old.seq,
+          conversationId: old.conversationId,
+          senderId: old.senderId,
+          sender: old.sender,
+          type: old.type,
+          content: '',
+          payload: null,
+          clientId: old.clientId,
+          editedAt: old.editedAt,
+          deleted: true,
+          createdAt: old.createdAt,
+        );
+        list[idx] = deleted;
+        _updatePreviewIfCurrent(conversationId, deleted);
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Sendet den Tippindikator (`POST …/typing`), debounced (max alle 3 s).
+  /// Fire-and-forget — Fehler werden still ignoriert.
+  void sendTyping(String conversationId) {
+    if (_typingSent) return;
+    _typingSent = true;
+    unawaited(_sendTypingRequest(conversationId));
+    _typingTimer?.cancel();
+    _typingTimer = Timer(const Duration(seconds: 3), () => _typingSent = false);
+  }
+
+  Future<void> _sendTypingRequest(String conversationId) async {
+    try {
+      await _api.post(
+        '/chat/conversations/$conversationId/typing',
+        body: {'typing': true},
+        token: await _token(),
+      );
+    } catch (_) {}
+  }
+
   // ─── Sync-Loop ────────────────────────────────────────────────────────
 
   void _restartSyncTimer() {
@@ -310,6 +390,7 @@ class ChatService extends ChangeNotifier {
       }
       changed = true;
     }
+    _typingUsers = sync.typing;
     if (changed) notifyListeners();
   }
 
@@ -380,6 +461,36 @@ class ChatService extends ChangeNotifier {
     _sortConversations();
   }
 
+  /// Aktualisiert die Vorschau nur, wenn die Nachricht aktuell die letzte
+  /// der Konversation ist (z. B. Bearbeiten/Löschen der letzten Nachricht).
+  void _updatePreviewIfCurrent(String conversationId, DirectMessage message) {
+    final index = _conversations.indexWhere((c) => c.id == conversationId);
+    if (index < 0) return;
+    final c = _conversations[index];
+    if (c.lastMessage == null || c.lastMessage!.senderId != message.senderId) {
+      return;
+    }
+    _conversations[index] = ChatConversation(
+      id: c.id,
+      type: c.type,
+      name: c.name,
+      otherUser: c.otherUser,
+      lastMessage: ChatMessageSummary(
+        content: message.deleted ? '' : message.content,
+        senderId: message.senderId,
+        createdAt: message.createdAt,
+        deleted: message.deleted,
+      ),
+      unreadCount: c.unreadCount,
+      lastSeenAt: c.lastSeenAt,
+      lastReadSeq: c.lastReadSeq,
+      otherLastReadSeq: c.otherLastReadSeq,
+      createdAt: c.createdAt,
+      updatedAt: message.createdAt,
+    );
+    _sortConversations();
+  }
+
   /// Idempotenz-Schlüssel für [sendMessage]: eindeutig genug ohne
   /// zusätzliches Paket (Zeitstempel + Zufall).
   static String _generateClientId() {
@@ -390,6 +501,7 @@ class ChatService extends ChangeNotifier {
   @override
   void dispose() {
     _syncTimer?.cancel();
+    _typingTimer?.cancel();
     super.dispose();
   }
 }

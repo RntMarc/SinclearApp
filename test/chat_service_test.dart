@@ -35,6 +35,31 @@ class _MockApiClient extends ApiClient {
     if (responses.isNotEmpty) return responses.removeAt(0);
     return {'data': {}};
   }
+
+  @override
+  Future<Map<String, dynamic>> patch(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    calledPaths.add(path);
+    calledBodies.add(body);
+    if (responses.isNotEmpty) return responses.removeAt(0);
+    return {'data': {}};
+  }
+
+  @override
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+    bool parseResponse = false,
+  }) async {
+    calledPaths.add(path);
+    calledBodies.add(body);
+    if (responses.isNotEmpty) return responses.removeAt(0);
+    return {};
+  }
 }
 
 class _FakeAuth extends AuthService {
@@ -323,4 +348,84 @@ void main() {
       expect(service.conversations.single.id, 'convB');
     },
   );
+
+  // ─── Phase 2: Edit, Delete, Typing ───────────────────────────────────
+
+  test('editMessage patched Inhalt und aktualisiert Preview', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA', lastContent: 'Alt')],
+    });
+    await service.refreshConversations();
+
+    api.responses.add({
+      'data': [_messageJson('m1', 5, 'convA', 'Alt')],
+    });
+    await service.getMessages('convA');
+
+    api.responses.add({
+      'data': _messageJson('m1', 5, 'convA', 'Neu'),
+    });
+
+    final updated = await service.editMessage('convA', 'm1', 'Neu');
+
+    expect(updated.content, 'Neu');
+    expect(api.calledPaths.last, '/chat/messages/m1');
+    expect(api.calledBodies.last, {'content': 'Neu'});
+    expect(service.messagesOf('convA')!.single.content, 'Neu');
+    expect(service.conversations.first.lastMessage?.content, 'Neu');
+  });
+
+  test('deleteMessage ruft API auf und markiert lokal als gelöscht', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+
+    api.responses.add({
+      'data': [_messageJson('m1', 5, 'convA', 'Inhalt')],
+    });
+    await service.getMessages('convA');
+
+    await service.deleteMessage('convA', 'm1');
+
+    expect(api.calledPaths.last, '/chat/messages/m1');
+    final msg = service.messagesOf('convA')!.single;
+    expect(msg.deleted, isTrue);
+    expect(msg.content, isEmpty);
+  });
+
+  test(
+    'sendTyping debounced: zwei Aufrufe innerhalb 3 s → nur ein POST',
+    () async {
+      service.sendTyping('convA');
+      service.sendTyping('convA');
+
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      final typingCalls = api.calledPaths
+          .where((p) => p == '/chat/conversations/convA/typing')
+          .length;
+      expect(typingCalls, 1);
+    },
+  );
+
+  test('typingUsers wird aus Sync übernommen', () async {
+    api.responses.add({
+      'data': {
+        'events': <Map<String, dynamic>>[],
+        'conversations': <Map<String, dynamic>>[],
+        'typing': {
+          'convA': ['u2'],
+        },
+      },
+      'meta': {'seq': 1, 'hasMore': false},
+    });
+
+    service.registerActive();
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(service.typingUsers, {
+      'convA': ['u2'],
+    });
+  });
 }

@@ -26,6 +26,13 @@ class DesignMessageBubble extends StatelessWidget {
   /// Optionaler Inhalt unter dem Text (z. B. `OgPreviewCard`).
   final Widget? linkPreview;
 
+  /// Wird bei Long-Press auf die Blase ausgelöst (z. B. Bearbeiten/Löschen).
+  final VoidCallback? onLongPress;
+
+  /// `true`, wenn die Nachricht vom Gegenüber gelesen wurde
+  /// (anderer `lastReadSeq` >= `seq`). Zeigt Doppelhaken an.
+  final bool read;
+
   const DesignMessageBubble({
     required this.text,
     this.isOwn = false,
@@ -33,6 +40,8 @@ class DesignMessageBubble extends StatelessWidget {
     this.deleted = false,
     this.edited = false,
     this.linkPreview,
+    this.onLongPress,
+    this.read = false,
     super.key,
   });
 
@@ -42,59 +51,62 @@ class DesignMessageBubble extends StatelessWidget {
     final bg = isOwn ? tokens.primary : tokens.surfaceVariant;
     final fg = isOwn ? tokens.textOnPrimary : tokens.textHigh;
 
-    final bubble = Container(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.sizeOf(context).width * 0.78,
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: tokens.spaceMd,
-        vertical: tokens.spaceSm,
-      ),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(tokens.radiusLg),
-          topRight: Radius.circular(tokens.radiusLg),
-          bottomLeft: Radius.circular(
-            isOwn ? tokens.radiusLg : tokens.radiusSm,
-          ),
-          bottomRight: Radius.circular(
-            isOwn ? tokens.radiusSm : tokens.radiusLg,
-          ),
+    final bubble = GestureDetector(
+      onLongPress: onLongPress,
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * 0.78,
         ),
-        boxShadow: isOwn ? tokens.glowShadow : tokens.surfaceShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (deleted)
-            DesignText(
-              'Nachricht gelöscht',
-              style: DesignTextStyle.label,
-              color: isOwn
-                  ? tokens.textOnPrimary.withValues(alpha: 0.7)
-                  : tokens.textLow,
-            )
-          else ...[
-            DesignText(text, style: DesignTextStyle.body, color: fg),
-            if (edited)
-              Padding(
-                padding: EdgeInsets.only(top: tokens.spaceXs),
-                child: DesignText(
-                  'bearbeitet',
-                  style: DesignTextStyle.label,
-                  color: isOwn
-                      ? tokens.textOnPrimary.withValues(alpha: 0.7)
-                      : tokens.textLow,
+        padding: EdgeInsets.symmetric(
+          horizontal: tokens.spaceMd,
+          vertical: tokens.spaceSm,
+        ),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(tokens.radiusLg),
+            topRight: Radius.circular(tokens.radiusLg),
+            bottomLeft: Radius.circular(
+              isOwn ? tokens.radiusLg : tokens.radiusSm,
+            ),
+            bottomRight: Radius.circular(
+              isOwn ? tokens.radiusSm : tokens.radiusLg,
+            ),
+          ),
+          boxShadow: isOwn ? tokens.glowShadow : tokens.surfaceShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (deleted)
+              DesignText(
+                'Nachricht gelöscht',
+                style: DesignTextStyle.label,
+                color: isOwn
+                    ? tokens.textOnPrimary.withValues(alpha: 0.7)
+                    : tokens.textLow,
+              )
+            else ...[
+              DesignText(text, style: DesignTextStyle.body, color: fg),
+              if (edited)
+                Padding(
+                  padding: EdgeInsets.only(top: tokens.spaceXs),
+                  child: DesignText(
+                    'bearbeitet',
+                    style: DesignTextStyle.label,
+                    color: isOwn
+                        ? tokens.textOnPrimary.withValues(alpha: 0.7)
+                        : tokens.textLow,
+                  ),
                 ),
-              ),
+            ],
+            if (linkPreview != null) ...[
+              SizedBox(height: tokens.spaceSm),
+              linkPreview!,
+            ],
           ],
-          if (linkPreview != null) ...[
-            SizedBox(height: tokens.spaceSm),
-            linkPreview!,
-          ],
-        ],
+        ),
       ),
     );
 
@@ -105,19 +117,28 @@ class DesignMessageBubble extends StatelessWidget {
           : CrossAxisAlignment.start,
       children: [
         bubble,
-        if (time != null)
-          Padding(
-            padding: EdgeInsets.only(
-              top: tokens.spaceXs,
-              left: tokens.spaceSm,
-              right: tokens.spaceSm,
-            ),
-            child: DesignText(
-              formatTime(time),
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
+        Padding(
+          padding: EdgeInsets.only(
+            top: tokens.spaceXs,
+            left: tokens.spaceSm,
+            right: tokens.spaceSm,
           ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (time != null)
+                DesignText(
+                  formatTime(time),
+                  style: DesignTextStyle.label,
+                  color: tokens.textLow,
+                ),
+              if (isOwn && read) ...[
+                SizedBox(width: tokens.spaceXs),
+                Icon(Icons.done_all_rounded, size: 14, color: tokens.primary),
+              ],
+            ],
+          ),
+        ),
       ],
     );
   }
