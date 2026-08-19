@@ -60,15 +60,31 @@ class _HomeScreenState extends State<HomeScreen> {
         final wide = constraints.maxWidth >= _desktopSideBySideWidth;
         return DesignSurface(
           child: wide
-              ? Row(
+              ? Column(
                   children: [
-                    const Expanded(child: DashboardTab()),
-                    VerticalDivider(width: 1, color: tokens.divider),
-                    const Expanded(child: ChatTab()),
+                    StoriesBar(
+                      controller:
+                          AppScope.of(context).dashboard,
+                      service: AppScope.of(context).stories,
+                    ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Expanded(child: DashboardTab()),
+                          VerticalDivider(width: 1, color: tokens.divider),
+                          const Expanded(child: ChatTab()),
+                        ],
+                      ),
+                    ),
                   ],
                 )
               : Column(
                   children: [
+                    StoriesBar(
+                      controller:
+                          AppScope.of(context).dashboard,
+                      service: AppScope.of(context).stories,
+                    ),
                     _HomeTabBar(index: _tabIndex, onChanged: _setTab),
                     Expanded(
                       child: PageView(
@@ -240,7 +256,6 @@ class DashboardTab extends StatelessWidget {
     final tokens = DesignTheme.of(context);
     final layout = controller.layout;
     final padding = EdgeInsets.only(
-      top: tokens.spaceXs,
       bottom: editing ? 96 : tokens.spaceXl,
     );
     final entries = <Widget>[
@@ -270,13 +285,7 @@ class DashboardTab extends StatelessWidget {
     }
     return ListView(
       padding: padding,
-      children: [
-        StoriesBar(
-          controller: controller,
-          service: AppScope.of(context).stories,
-        ),
-        ...entries,
-      ],
+      children: entries,
     );
   }
 
