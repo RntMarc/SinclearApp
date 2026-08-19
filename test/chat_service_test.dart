@@ -288,4 +288,39 @@ void main() {
       expect(service.conversations.first.unreadCount, 3);
     },
   );
+
+  test(
+    'refreshConversations überspringt Abruf innerhalb der TTL, force lädt neu',
+    () async {
+      var now = DateTime(2026, 8, 16, 12, 0, 0);
+      service = ChatService(api: api, auth: _FakeAuth(api), clock: () => now);
+
+      int conversationCalls() =>
+          api.calledPaths.where((p) => p == '/chat/conversations').length;
+
+      api.responses.add({
+        'data': [_conversationJson('convA')],
+      });
+      await service.refreshConversations();
+      expect(conversationCalls(), 1);
+
+      // Innerhalb der TTL (60 s) wird nicht erneut geladen.
+      now = now.add(const Duration(seconds: 30));
+      await service.refreshConversations();
+      expect(conversationCalls(), 1);
+
+      // Pull-to-Refresh erzwingt einen frischen Abruf.
+      await service.refreshConversations(force: true);
+      expect(conversationCalls(), 2);
+
+      // Nach Ablauf der TTL wird wieder geladen.
+      now = now.add(const Duration(seconds: 61));
+      api.responses.add({
+        'data': [_conversationJson('convB')],
+      });
+      await service.refreshConversations();
+      expect(conversationCalls(), 3);
+      expect(service.conversations.single.id, 'convB');
+    },
+  );
 }

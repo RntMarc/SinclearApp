@@ -15,24 +15,40 @@ import '../models/chat_models.dart';
 ///
 /// Polling läuft nur, solange mindestens ein UI-Teilnehmer aktiv ist
 /// ([registerActive]/[unregisterActive], z. B. Chat-Tab oder geöffnete
-/// Konversation): aktiv 2 s bei offener Konversation, sonst 30 s.
+/// Konversation). Chat-Liste und offene Konversation gelten dabei gleich als
+/// aktiv und nutzen den schnellen 2-s-Takt; ohne aktiven Teilnehmer stoppt
+/// der Sync komplett (Hintergrund).
 class ChatService extends ChangeNotifier {
+  ChatService({
+    required ApiClient api,
+    required AuthService auth,
+    this.conversationsTtl = const Duration(seconds: 60),
+    DateTime Function() clock = DateTime.now,
+  }) : _api = api,
+       _auth = auth,
+       _clock = clock;
+
   final ApiClient _api;
   final AuthService _auth;
 
+  /// Mindestabstand zwischen zwei vollen Konversationslisten-Abrufen.
+  /// Verhindert, dass jeder Tab-Wechsel die Liste (inkl. Base64-Profilbilder)
+  /// erneut vom Server lädt.
+  final Duration conversationsTtl;
+
+  final DateTime Function() _clock;
+
   final List<ChatConversation> _conversations = [];
   final Map<String, List<DirectMessage>> _messages = {};
+
+  /// Zeitpunkt des letzten erfolgreichen [refreshConversations].
+  DateTime? _lastConversationsRefresh;
 
   /// Höchster gesehener Event-seq (Cursor für `after`).
   int? _lastEventSeq;
   Timer? _syncTimer;
   bool _syncInFlight = false;
   int _activeCount = 0;
-  String? _activeConversationId;
-
-  ChatService({required ApiClient api, required AuthService auth})
-    : _api = api,
-      _auth = auth;
 
   Future<String> _token() => _auth.getAccessToken();
 
@@ -60,17 +76,20 @@ class ChatService extends ChangeNotifier {
     _restartSyncTimer();
   }
 
-  /// Geöffnete Konversation: bestimmt das Poll-Intervall (2 s aktiv,
-  /// 30 s nur Liste).
-  void setActiveConversation(String? conversationId) {
-    _activeConversationId = conversationId;
-    _restartSyncTimer();
-  }
-
   // ─── REST-API ─────────────────────────────────────────────────────────
 
   /// Vollständige Konversationsliste (`GET /chat/conversations`).
-  Future<void> refreshConversations() async {
+  ///
+  /// Überspringt den Abruf, wenn die Liste innerhalb von [conversationsTtl]
+  /// zuletzt geladen wurde (außer [force]); die Sync-Zusammenfassung hält
+  /// Unread und Vorschau derweil aktuell. Der volle Abruf transportiert die
+  /// Base64-Profilbilder und soll daher nicht bei jedem Tab-Wechsel laufen.
+  Future<void> refreshConversations({bool force = false}) async {
+    final now = _clock();
+    final last = _lastConversationsRefresh;
+    if (!force && last != null && now.difference(last) < conversationsTtl) {
+      return;
+    }
     final data = await _api.get(
       '/chat/conversations',
       queryParams: const {'limit': '100'},
@@ -84,6 +103,7 @@ class ChatService extends ChangeNotifier {
       ..clear()
       ..addAll(list);
     _sortConversations();
+    _lastConversationsRefresh = _clock();
     notifyListeners();
   }
 
@@ -217,9 +237,7 @@ class ChatService extends ChangeNotifier {
     _syncTimer = null;
     if (_activeCount == 0) return;
     unawaited(_pollSync());
-    final interval = _activeConversationId != null
-        ? const Duration(seconds: 2)
-        : const Duration(seconds: 30);
+    const interval = Duration(seconds: 2);
     _syncTimer = Timer.periodic(interval, (_) => unawaited(_pollSync()));
   }
 

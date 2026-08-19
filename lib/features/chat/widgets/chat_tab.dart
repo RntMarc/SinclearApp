@@ -43,11 +43,11 @@ class _ChatTabState extends State<ChatTab> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool force = false}) async {
     final scope = _scope;
     if (scope == null) return;
     try {
-      await scope.chat.refreshConversations();
+      await scope.chat.refreshConversations(force: force);
       await scope.notification.refreshUnread(
         token: await scope.auth.getAccessToken(),
       );
@@ -80,7 +80,7 @@ class _ChatTabState extends State<ChatTab> {
             _ChatHeader(onNewChat: _openNewChat),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: _load,
+                onRefresh: () => _load(force: true),
                 child: conversations.isEmpty
                     ? const _EmptyState()
                     : ListView.builder(

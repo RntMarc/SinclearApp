@@ -6,7 +6,6 @@ import '../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../design/widgets/foundation/design_surface.dart';
 import '../../design/widgets/foundation/design_text.dart';
 import '../../design/widgets/primitives/design_badge.dart';
-import '../../design/widgets/primitives/design_pulse_dot.dart';
 import '../../design/widgets/primitives/press_scale.dart';
 import '../chat/widgets/chat_tab.dart';
 import '../stories/widgets/stories_bar.dart';
@@ -26,7 +25,7 @@ const double _desktopMaxWidth = 720;
 ///
 /// Auf Desktop (>= [_desktopSideBySideWidth]) stehen beide nebeneinander,
 /// auf schmalen Bildschirmen über eine Tab-Leiste mit PageView. Der Chat-Tab
-/// trägt einen Pulse-Dot plus Unread-Zähler aus der Unread-Registry.
+/// trägt einen Unread-Zähler aus der Unread-Registry.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -107,7 +106,7 @@ class _HomeTabBar extends StatelessWidget {
             tokens.spaceLg,
             tokens.spaceMd,
             tokens.spaceLg,
-            0,
+            tokens.spaceLg,
           ),
           child: Container(
             padding: const EdgeInsets.all(4),
@@ -171,8 +170,6 @@ class _HomeTabBar extends StatelessWidget {
               DesignText(label, style: DesignTextStyle.label, color: fg),
               if (unread.isNotEmpty) ...[
                 SizedBox(width: tokens.spaceSm),
-                const DesignPulseDot(size: 8),
-                SizedBox(width: tokens.spaceXs),
                 DesignBadge(
                   label: unread.length > 99 ? '99+' : '${unread.length}',
                   color: tokens.accentA,
