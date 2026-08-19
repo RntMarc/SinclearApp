@@ -152,6 +152,21 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (resolveImageProvider(event.image) != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(tokens.radiusLg),
+                child: AspectRatio(
+                  aspectRatio: 3.5 / 1,
+                  child: Image(
+                    image: resolveImageProvider(event.image)!,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+              SizedBox(height: tokens.spaceLg),
+            ],
             if (event.description != null && event.description!.isNotEmpty) ...[
               DesignText(
                 event.description!,
@@ -170,22 +185,6 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
             if (event.address != null) ...[
               SizedBox(height: tokens.spaceXs),
               _infoRow(tokens, Icons.location_on_rounded, event.address!),
-            ],
-            if (hasCoords) ...[
-              SizedBox(height: tokens.spaceLg),
-              DesignMapCard(
-                center: LatLng(event.latitude!, event.longitude!),
-                initialZoom: 14,
-                markers: [
-                  designMapMarker(
-                    point: LatLng(event.latitude!, event.longitude!),
-                    icon: Icons.location_on_rounded,
-                    color: tokens.danger,
-                  ),
-                ],
-                height: 180,
-                interactive: true,
-              ),
             ],
             if (event.hastickets == '1' || _tickets.isNotEmpty) ...[
               SizedBox(height: tokens.spaceXl),
@@ -229,6 +228,22 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen> {
                     ],
                   );
                 }).toList(),
+              ),
+            ],
+            if (hasCoords) ...[
+              SizedBox(height: tokens.spaceLg),
+              DesignMapCard(
+                center: LatLng(event.latitude!, event.longitude!),
+                initialZoom: 14,
+                markers: [
+                  designMapMarker(
+                    point: LatLng(event.latitude!, event.longitude!),
+                    icon: Icons.location_on_rounded,
+                    color: tokens.danger,
+                  ),
+                ],
+                height: 180,
+                interactive: true,
               ),
             ],
           ],
