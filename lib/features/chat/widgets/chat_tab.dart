@@ -89,6 +89,12 @@ class _ChatTabState extends State<ChatTab> {
                         itemBuilder: (context, index) {
                           final conversation = conversations[index];
                           final other = conversation.otherUser;
+                          final typing =
+                              scope
+                                  .chat
+                                  .typingUsers[conversation.id]
+                                  ?.isNotEmpty ==
+                              true;
                           return DesignConversationTile(
                             name: other?.displayName.isNotEmpty == true
                                 ? other!.displayName
@@ -100,6 +106,7 @@ class _ChatTabState extends State<ChatTab> {
                                 : conversation.lastMessage?.content,
                             lastMessageAt: conversation.lastMessage?.createdAt,
                             unreadCount: conversation.unreadCount,
+                            isTyping: typing,
                             onTap: () =>
                                 context.push('/chat/${conversation.id}'),
                           );

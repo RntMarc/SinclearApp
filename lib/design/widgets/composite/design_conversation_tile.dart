@@ -18,6 +18,7 @@ class DesignConversationTile extends StatelessWidget {
   /// Zeit der letzten Nachricht; `null` wenn noch keine Nachricht.
   final DateTime? lastMessageAt;
   final int unreadCount;
+  final bool isTyping;
   final VoidCallback? onTap;
 
   const DesignConversationTile({
@@ -26,6 +27,7 @@ class DesignConversationTile extends StatelessWidget {
     this.lastMessage,
     this.lastMessageAt,
     this.unreadCount = 0,
+    this.isTyping = false,
     this.onTap,
     super.key,
   });
@@ -59,9 +61,15 @@ class DesignConversationTile extends StatelessWidget {
                 ),
                 SizedBox(height: tokens.spaceXs),
                 DesignText(
-                  lastMessage ?? 'Noch keine Nachrichten',
+                  isTyping
+                      ? 'schreibt…'
+                      : lastMessage ?? 'Noch keine Nachrichten',
                   style: DesignTextStyle.label,
-                  color: unread ? tokens.textHigh : tokens.textLow,
+                  color: isTyping
+                      ? tokens.accentA
+                      : unread
+                      ? tokens.textHigh
+                      : tokens.textLow,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -125,6 +125,8 @@ Map<String, dynamic> _syncJson({
 };
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late _MockApiClient api;
   late ChatService service;
   var notified = 0;
