@@ -221,18 +221,6 @@ class PlaceInfoContent extends StatelessWidget {
             '${place.avgRating!.toStringAsFixed(1)} / 5',
             tokens,
           ),
-        if (place.latitude != null && place.longitude != null) ...[
-          SizedBox(height: tokens.spaceLg),
-          OpenInMapButton(
-            target: MapTarget(
-              latitude: place.latitude!,
-              longitude: place.longitude!,
-              osmId: place.osmId,
-              osmType: place.osmType,
-              label: place.name,
-            ),
-          ),
-        ],
         SizedBox(height: tokens.spaceLg),
         _metaRow(
           'Kategorie',
@@ -302,20 +290,34 @@ class PlaceMapCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final hasCoords = place.latitude != null && place.longitude != null;
-    return DesignMapCard(
-      center: hasCoords ? LatLng(place.latitude!, place.longitude!) : null,
-      initialZoom: 15,
-      markers: hasCoords
-          ? [
-              designMapMarker(
-                point: LatLng(place.latitude!, place.longitude!),
-                icon: Icons.location_on_rounded,
-                color: tokens.danger,
-              ),
-            ]
-          : const [],
-      height: 200,
-      interactive: true,
+    return Stack(
+      children: [
+        DesignMapCard(
+          center: hasCoords ? LatLng(place.latitude!, place.longitude!) : null,
+          initialZoom: 15,
+          markers: hasCoords
+              ? [
+                  designMapMarker(
+                    point: LatLng(place.latitude!, place.longitude!),
+                    icon: Icons.location_on_rounded,
+                    color: tokens.danger,
+                  ),
+                ]
+              : const [],
+          height: 200,
+          interactive: true,
+        ),
+        if (hasCoords)
+          OpenInMapButton(
+            target: MapTarget(
+              latitude: place.latitude!,
+              longitude: place.longitude!,
+              osmId: place.osmId,
+              osmType: place.osmType,
+              label: place.name,
+            ),
+          ),
+      ],
     );
   }
 }

@@ -7,13 +7,14 @@ import '../../design/theme/design_theme.dart';
 import '../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../design/widgets/composite/design_list_tile.dart';
 import '../../design/widgets/foundation/design_text.dart';
-import '../../design/widgets/primitives/design_button.dart';
+import '../../design/widgets/primitives/press_scale.dart';
 
-/// A button that opens the given [target] in an external map application.
+/// Small round button that opens [target] in an external map application.
 ///
-/// When the user has set a concrete preference, tapping the button opens that
-/// app directly. When the preference is [MapApp.ask], a bottom-sheet picker
-/// is shown first.
+/// Position it as the sibling of a map card inside a `Stack`; it places itself
+/// in the bottom-right corner of the card. When the user has set a concrete
+/// preference, tapping opens that app directly; when it is [MapApp.ask], a
+/// bottom-sheet picker is shown first.
 class OpenInMapButton extends StatelessWidget {
   final MapTarget target;
 
@@ -21,21 +22,43 @@ class OpenInMapButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: AppScope.of(context).mapApp,
-      builder: (context, _) {
-        final currentApp = AppScope.of(context).mapApp.value;
-        final btnLabel = currentApp == MapApp.ask
-            ? 'Karte öffnen'
-            : 'In ${currentApp.label} öffnen';
-        return DesignButton(
-          variant: DesignButtonVariant.outlined,
-          icon: Icons.open_in_new_rounded,
-          label: btnLabel,
-          fullWidth: true,
-          onPressed: () => _onTap(context, currentApp),
-        );
-      },
+    final tokens = DesignTheme.of(context);
+    return Positioned(
+      right: 12,
+      bottom: 12,
+      child: ListenableBuilder(
+        listenable: AppScope.of(context).mapApp,
+        builder: (context, _) {
+          final app = AppScope.of(context).mapApp.value;
+          final label = app == MapApp.ask
+              ? 'Karte öffnen'
+              : 'In ${app.label} öffnen';
+          return Semantics(
+            button: true,
+            label: label,
+            child: Tooltip(
+              message: label,
+              child: PressScale(
+                onTap: () => _onTap(context, app),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: tokens.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: tokens.surfaceShadow,
+                  ),
+                  child: Icon(
+                    Icons.open_in_new_rounded,
+                    color: tokens.textOnPrimary,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
