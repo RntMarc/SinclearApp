@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
@@ -18,7 +19,7 @@ import '../models/chat_models.dart';
 /// Konversation). Chat-Liste und offene Konversation gelten dabei gleich als
 /// aktiv und nutzen den schnellen 2-s-Takt; ohne aktiven Teilnehmer stoppt
 /// der Sync komplett (Hintergrund).
-class ChatService extends ChangeNotifier {
+class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   ChatService({
     required ApiClient api,
     required AuthService auth,
@@ -26,7 +27,9 @@ class ChatService extends ChangeNotifier {
     DateTime Function() clock = DateTime.now,
   }) : _api = api,
        _auth = auth,
-       _clock = clock;
+       _clock = clock {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   final ApiClient _api;
   final AuthService _auth;
@@ -52,6 +55,10 @@ class ChatService extends ChangeNotifier {
   Map<String, List<String>> _typingUsers = {};
   Timer? _typingTimer;
   bool _typingSent = false;
+  AppLifecycleState _lifecycle = AppLifecycleState.resumed;
+
+  /// Nur wenn die App im Vordergrund ist (resumed) wird gepollt.
+  bool get _foreground => _lifecycle == AppLifecycleState.resumed;
 
   Future<String> _token() => _auth.getAccessToken();
 
@@ -80,6 +87,12 @@ class ChatService extends ChangeNotifier {
 
   void unregisterActive() {
     if (_activeCount > 0) _activeCount--;
+    _restartSyncTimer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _lifecycle = state;
     _restartSyncTimer();
   }
 
@@ -315,7 +328,7 @@ class ChatService extends ChangeNotifier {
   void _restartSyncTimer() {
     _syncTimer?.cancel();
     _syncTimer = null;
-    if (_activeCount == 0) return;
+    if (_activeCount == 0 || !_foreground) return;
     unawaited(_pollSync());
     const interval = Duration(seconds: 2);
     _syncTimer = Timer.periodic(interval, (_) => unawaited(_pollSync()));
@@ -323,7 +336,7 @@ class ChatService extends ChangeNotifier {
 
   /// Ein Sync-Durchlauf; bei `meta.hasMore` direkt nachziehen.
   Future<void> _pollSync() async {
-    if (_syncInFlight || _activeCount == 0) return;
+    if (_syncInFlight || _activeCount == 0 || !_foreground) return;
     _syncInFlight = true;
     try {
       var after = _lastEventSeq;
@@ -339,7 +352,7 @@ class ChatService extends ChangeNotifier {
         _applySync(sync);
         _lastEventSeq = sync.seq;
         after = sync.seq;
-        if (!sync.hasMore || _activeCount == 0) break;
+        if (!sync.hasMore || _activeCount == 0 || !_foreground) break;
       }
     } catch (e, st) {
       developer.log(
