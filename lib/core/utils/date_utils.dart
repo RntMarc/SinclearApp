@@ -148,6 +148,20 @@ String formatDuration(DateTime start, DateTime end) {
   return 'Seit ${parts.sublist(0, parts.length - 1).join(' ')} und ${parts.last}';
 }
 
+/// Relatives Tagesdatum plus Uhrzeit für Story-Zeitstempel:
+/// „Heute, 14:32", „Gestern, 09:15", „Vorgestern, 18:40",
+/// „Vor 3 Tagen, 11:22"; ab 7 Tagen das absolute Datum.
+String formatRelativeDayTime(String iso) {
+  final date = parseApiDate(iso);
+  final time = formatTime(date);
+  final days = daysBetween(date, DateTime.now());
+  if (days <= 0) return 'Heute, $time';
+  if (days == 1) return 'Gestern, $time';
+  if (days == 2) return 'Vorgestern, $time';
+  if (days < 7) return 'Vor $days Tagen, $time';
+  return '${formatDate(date)}, $time';
+}
+
 String _unit(int value, String singular, String plural) =>
     '$value ${value == 1 ? singular : plural}';
 

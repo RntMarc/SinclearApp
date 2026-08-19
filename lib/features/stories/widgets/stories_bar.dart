@@ -5,7 +5,6 @@ import 'package:stories_for_flutter/stories_for_flutter.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
-import '../../../core/utils/base64_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
@@ -14,6 +13,7 @@ import '../../home/dashboard_controller.dart';
 import '../models/stories_models.dart';
 import '../services/stories_service.dart';
 import 'story_create_sheet.dart';
+import 'story_page.dart';
 import 'story_viewer.dart';
 
 const double _avatarSize = 56;
@@ -132,70 +132,11 @@ class _StoriesBarState extends State<StoriesBar>
               resolveImageProvider(group.avatar) ??
               const AssetImage('assets/logo.png'),
           stories: [
-            for (final story in group.stories) _storyScaffold(story, onShown),
+            for (final story in group.stories)
+              buildStoryPage(story: story, onShown: onShown),
           ],
         ),
     ];
-  }
-
-  Scaffold _storyScaffold(Story story, ValueChanged<String> onShown) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: _ViewTracker(
-        storyId: story.id,
-        onShown: onShown,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _storyImage(story.image),
-            if (story.caption != null && story.caption!.isNotEmpty)
-              _captionOverlay(story.caption!),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _storyImage(String image) {
-    const fallback = Center(
-      child: Icon(Icons.image_rounded, color: Colors.white38, size: 48),
-    );
-    try {
-      final bytes = decodeBase64Image(image);
-      return Image.memory(
-        bytes,
-        fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => fallback,
-      );
-    } catch (_) {
-      return fallback;
-    }
-  }
-
-  Widget _captionOverlay(String caption) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 48, 20, 28),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black87],
-          ),
-        ),
-        child: Text(
-          caption,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            height: 1.4,
-            shadows: [Shadow(blurRadius: 6, color: Colors.black)],
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _openViewer(
@@ -479,30 +420,4 @@ class _AddStoryCircle extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ViewTracker extends StatefulWidget {
-  const _ViewTracker({
-    required this.storyId,
-    required this.onShown,
-    required this.child,
-  });
-
-  final String storyId;
-  final ValueChanged<String> onShown;
-  final Widget child;
-
-  @override
-  State<_ViewTracker> createState() => _ViewTrackerState();
-}
-
-class _ViewTrackerState extends State<_ViewTracker> {
-  @override
-  void initState() {
-    super.initState();
-    widget.onShown(widget.storyId);
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
