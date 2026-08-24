@@ -1,7 +1,7 @@
 name: sinclear_beyond
 description: "Unsere neue Community-Plattform ist da. Gemeinsam sind wir Sinclear."
 publish_to: 'none'
-version: 0.8.8+80806   # Format: 0.7.3 -> 70300, 0.7.15 -> 71500, 0.12.1 -> 120100, 14.1.1 -> 14010100
+version: 0.8.9+80915   # Format: 0.7.3 -> 70300, 0.7.15 -> 71500, 0.12.1 -> 120100, 14.1.1 -> 14010100
 
 environment:
   sdk: ^3.12.2
@@ -15,7 +15,7 @@ dependencies:
   flutter_dotenv: ^6.0.1
   flutter_map: ^8.3.1
   geolocator: ^14.0.3
-  go_router: ^17.3.0
+  go_router: ^18.0.0
   http: ^1.6.0
   latlong2: ^0.10.1
   shared_preferences: ^2.5.5
