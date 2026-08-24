@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
@@ -44,6 +45,7 @@ class _ExploreMapState extends State<ExploreMap> {
                 ? Icons.restaurant_rounded
                 : Icons.park_rounded,
             color: color,
+            onTap: () => context.go('/entdecken/${p.id}'),
           ),
         )
         .toList();
