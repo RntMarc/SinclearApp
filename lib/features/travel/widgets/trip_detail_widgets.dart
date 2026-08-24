@@ -711,12 +711,14 @@ class TripMapTab extends StatelessWidget {
   final List<TravelAccommodation> accommodations;
   final List<TravelEvent> events;
   final String? currentUserId;
+  final String tripId;
 
   const TripMapTab({
     super.key,
     required this.accommodations,
     required this.events,
     this.currentUserId,
+    required this.tripId,
   });
 
   @override
@@ -733,6 +735,15 @@ class TripMapTab extends StatelessWidget {
           point: LatLng(a.latitude!, a.longitude!),
           icon: Icons.hotel_rounded,
           color: isMine ? tokens.primary : tokens.success,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AccommodationDetailScreen(
+                tripId: tripId,
+                accommodationId: a.id,
+              ),
+            ),
+          ),
         ),
       );
     }
@@ -744,6 +755,12 @@ class TripMapTab extends StatelessWidget {
           point: LatLng(e.latitude!, e.longitude!),
           icon: Icons.event_rounded,
           color: tokens.warning,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TravelEventDetailScreen(id: e.id),
+            ),
+          ),
         ),
       );
     }
@@ -914,6 +931,7 @@ class TripMapSection extends StatelessWidget {
         accommodations: section.accommodations,
         events: section.events,
         currentUserId: currentUserId,
+        tripId: controller.tripId,
       ),
     );
   }

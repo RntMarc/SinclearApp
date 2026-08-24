@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:sinclear_beyond/design/widgets/composite/design_map_marker.dart';
 
 void main() {
@@ -37,6 +39,48 @@ void main() {
       final metrics = buildPinPath(size).computeMetrics().toList();
       expect(metrics.length, 1);
       expect(metrics.single.isClosed, isTrue);
+    });
+  });
+
+  group('designMapMarker onTap', () {
+    testWidgets('marker fires onTap when tapped', (tester) async {
+      var tapped = false;
+      final marker = designMapMarker(
+        point: const LatLng(51.0, 10.0),
+        icon: Icons.location_on,
+        color: Colors.red,
+        onTap: () => tapped = true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: marker.child,
+          ),
+        ),
+      );
+
+      await tester.tap(find.byType(GestureDetector));
+      expect(tapped, isTrue);
+    });
+
+    testWidgets('marker without onTap has no GestureDetector',
+        (tester) async {
+      final marker = designMapMarker(
+        point: const LatLng(51.0, 10.0),
+        icon: Icons.location_on,
+        color: Colors.red,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: marker.child,
+          ),
+        ),
+      );
+
+      expect(find.byType(GestureDetector), findsNothing);
     });
   });
 }

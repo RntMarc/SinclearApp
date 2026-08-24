@@ -83,13 +83,15 @@ class DesignMapCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(tokens.radiusLg),
         child: SizedBox(
           height: height,
-          child: onTap != null
-              ? GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onTap,
-                  child: mapWidget,
-                )
-              : mapWidget,
+        child: onTap != null
+            ? GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                child: interactive
+                    ? mapWidget
+                    : AbsorbPointer(child: mapWidget),
+              )
+            : mapWidget,
         ),
       ),
     );

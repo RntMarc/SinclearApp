@@ -11,13 +11,19 @@ Marker designMapMarker({
   required IconData icon,
   required Color color,
   double size = 36,
+  VoidCallback? onTap,
 }) =>
     Marker(
       point: point,
       width: size,
       height: size,
       alignment: Alignment.topCenter,
-      child: _PinBadge(icon: icon, color: color, size: size),
+      child: onTap != null
+          ? GestureDetector(
+              onTap: onTap,
+              child: _PinBadge(icon: icon, color: color, size: size),
+            )
+          : _PinBadge(icon: icon, color: color, size: size),
     );
 
 /// Geometry of the pin's outline for a badge of [size] pixels.
