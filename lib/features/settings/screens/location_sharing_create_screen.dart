@@ -128,7 +128,7 @@ class _LocationSharingCreateScreenState
               _urlRow(context, 'Token', session.token),
               const SizedBox(height: 8),
               ..._integrationEntries(
-                session.integrationUrls,
+                session,
               ).map((e) => _urlRow(context, e.label, e.url)),
               const SizedBox(height: 16),
               DesignButton(
@@ -145,19 +145,29 @@ class _LocationSharingCreateScreenState
   }
 
   List<({String label, String url})> _integrationEntries(
-    Map<String, String> urls,
+    LocationSharingSession session,
   ) {
-    const keys = [
-      ('osmand', 'OsmAnd'),
-      ('gpslogger', 'GPSLogger'),
-      ('owntracks', 'OwnTracks'),
-      ('traccar', 'Traccar'),
-      ('httpGet', 'HTTP GET'),
+    const apps = [
+      ('osmand', 'OsmAnd', 'GET'),
+      ('gpslogger', 'GPSLogger', 'GET'),
+      ('owntracks', 'OwnTracks', 'POST'),
+      ('ulogger', 'Ulogger', 'GET'),
+      ('traccar', 'Traccar', 'GET/POST'),
+      ('opengts', 'OpenGTS', 'GET'),
+      ('overland', 'Overland', 'POST'),
+      ('locusmap', 'Locus Maps', 'GET'),
+      ('httpGet', 'HTTP GET (generisch)', 'GET'),
     ];
+    final urls = session.integrationUrls;
+    final base = AppScope.of(context).apiBaseUrl;
     return [
-      for (final (key, label) in keys)
+      for (final (key, label, method) in apps)
         if (urls[key] != null && urls[key]!.isNotEmpty)
-          (label: label, url: urls[key]!),
+          (label: '$label · $method', url: urls[key]!),
+      (
+        label: 'HTTP POST (generisch) · POST',
+        url: '$base/location-sharing/log/post/${session.token}',
+      ),
     ];
   }
 
