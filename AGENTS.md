@@ -132,6 +132,16 @@ English only.
   opened instead so the user can look it up themselves. Never silently drop a
   tapped notification to a generic screen. (Note: the inbox sheet is not yet
   implemented — until then the fallback is `/home`.)
+* **Android App-Link path claiming:** The app must only claim its own paths,
+  never the whole domain. `android/app/src/main/AndroidManifest.xml` declares
+  one `pathPrefix` per top-level route from `lib/router/router.dart` (plus the
+  public recipe HTML page `/api/v2/html/public/recipe`). API paths such as
+  `/api/v2/auth/...` are deliberately NOT claimed so they stay in the browser
+  (e.g. the Discord OAuth callback renders its pairing code there). Whenever a
+  route is added, renamed or removed in `lib/router/router.dart`, the
+  `pathPrefix` list in the manifest MUST be updated in the same change.
+  `DeepLinkHandler` (`lib/core/deep_link_handler.dart`) then maps the incoming
+  path (+ query) to the matching go_router route.
 
 ## Interaction Guidelines
 * **User Persona:** Assume the user is familiar with programming concepts but
