@@ -510,9 +510,10 @@ class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
   static const double _minExtent = 48;
   static const double _rowHeight = 40;
   static const double _daysOfWeekHeight = 30;
-  static const double _headerHeight = 48;
+  static const double _headerHeight = 56;
+  static const double _extraPadding = 8;
   static const double _maxExtent =
-      _headerHeight + _daysOfWeekHeight + _rowHeight * 6;
+      _headerHeight + _daysOfWeekHeight + _rowHeight * 6 + _extraPadding;
 
   @override
   double get minExtent => _minExtent;
