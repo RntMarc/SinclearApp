@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
-import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -17,8 +18,29 @@ import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/location_sharing_models.dart';
 
-/// Zeigt die Standorte der Kontakte an, die ihren Standort mit dem aktuellen
-/// Nutzer teilen (`GET /location-sharing/active`).
+/// Ein Eintrag auf der gemeinsamen Karte: entweder ein Kontakt, der seinen
+/// Standort teilt, oder eine eigene (von der App verwaltete) Session.
+class _SharedEntry {
+  final String sessionId;
+  final SharingMode sharingMode;
+  final String displayName;
+  final String? image;
+  final LocationSharingLocation? lastLocation;
+  final bool isOwn;
+
+  const _SharedEntry({
+    required this.sessionId,
+    required this.sharingMode,
+    required this.displayName,
+    this.image,
+    this.lastLocation,
+    this.isOwn = false,
+  });
+}
+
+/// Zeigt alle geteilten Standorte auf einer gemeinsamen Karte: die Standorte
+/// der Kontakte (`GET /location-sharing/active`) und die eigene Position
+/// (`GET /location-sharing/sessions` + Detail).
 class LocationSharingScreen extends StatefulWidget {
   const LocationSharingScreen({super.key});
 
@@ -30,7 +52,7 @@ class _LocationSharingScreenState extends State<LocationSharingScreen>
     with WidgetsBindingObserver {
   static const _pollInterval = Duration(seconds: 30);
 
-  List<ActiveLocationSharing> _items = const [];
+  List<_SharedEntry> _entries = const [];
   bool _loading = true;
   bool _refreshing = false;
   String? _error;
@@ -66,12 +88,35 @@ class _LocationSharingScreenState extends State<LocationSharingScreen>
       _error = null;
     });
     try {
-      final items = await AppScope.of(
-        context,
-      ).locationSharing.listActiveContacts();
+      final service = AppScope.of(context).locationSharing;
+      final results = await Future.wait([
+        service.listActiveContacts(),
+        service.listOwnSessionsWithLocation(),
+      ]);
       if (!mounted) return;
+      final incoming = results[0] as List<ActiveLocationSharing>;
+      final own = results[1] as List<LocationSharingSession>;
       setState(() {
-        _items = items;
+        _entries = [
+          ...incoming.map(
+            (a) => _SharedEntry(
+              sessionId: a.session.id,
+              sharingMode: a.session.sharingMode,
+              displayName: a.ownerDisplayName,
+              image: a.ownerImage,
+              lastLocation: a.lastLocation,
+            ),
+          ),
+          ...own.map(
+            (s) => _SharedEntry(
+              sessionId: s.id,
+              sharingMode: s.sharingMode,
+              displayName: 'Du',
+              lastLocation: s.lastLocation,
+              isOwn: true,
+            ),
+          ),
+        ];
         _loading = false;
         _refreshing = false;
       });
@@ -80,7 +125,7 @@ class _LocationSharingScreenState extends State<LocationSharingScreen>
       setState(() {
         _loading = false;
         _refreshing = false;
-        if (_items.isEmpty) {
+        if (_entries.isEmpty) {
           _error = 'Standorte konnten nicht geladen werden.';
         }
       });
@@ -132,7 +177,9 @@ class _LocationSharingScreenState extends State<LocationSharingScreen>
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,
-              child: _items.isEmpty ? _emptyState(context) : _content(context),
+              child: _entries.isEmpty
+                  ? _emptyState(context)
+                  : _content(context),
             ),
           ),
         ],
@@ -153,9 +200,9 @@ class _LocationSharingScreenState extends State<LocationSharingScreen>
         children: [
           Expanded(
             child: DesignText(
-              _items.isEmpty
+              _entries.isEmpty
                   ? 'Keine geteilten Standorte'
-                  : '${_items.length} ${_items.length == 1 ? 'Standort' : 'Standorte'} geteilt',
+                  : '${_entries.length} ${_entries.length == 1 ? 'Standort' : 'Standorte'} geteilt',
               style: DesignTextStyle.label,
               color: tokens.textLow,
             ),
@@ -210,59 +257,135 @@ class _LocationSharingScreenState extends State<LocationSharingScreen>
 
   Widget _content(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final markers = _items
-        .where((a) => a.lastLocation != null)
-        .map(
-          (a) => designMapMarker(
-            point: LatLng(a.lastLocation!.latitude, a.lastLocation!.longitude),
-            icon: Icons.person_pin_circle_rounded,
-            color: tokens.primary,
-            onTap: () => context.push('/standort/${a.session.id}', extra: a),
-          ),
-        )
-        .toList();
-
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 24),
       children: [
-        if (markers.isNotEmpty)
-          DesignMapCard(
-            markers: markers,
-            height: 220,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          ),
+        _bundledMap(context),
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: DesignText(
-            'Kontakte',
+            'Standorte',
             style: DesignTextStyle.label,
             color: tokens.primary,
           ),
         ),
         DesignCard.list(
-          children: [for (final item in _items) _contactTile(context, item)],
+          children: [for (final e in _entries) _entryTile(context, e)],
         ),
       ],
     );
   }
 
-  Widget _contactTile(BuildContext context, ActiveLocationSharing item) {
+  Widget _bundledMap(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final loc = item.lastLocation;
+    final located = _entries.where((e) => e.lastLocation != null).toList();
+
+    if (located.isEmpty) {
+      return DesignCard(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: SizedBox(
+          height: 220,
+          child: Center(
+            child: DesignText(
+              'Noch keine Standorte verfügbar',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final points = located
+        .map((e) => LatLng(e.lastLocation!.latitude, e.lastLocation!.longitude))
+        .toList();
+
+    final markers = located.map((e) {
+      final point = LatLng(e.lastLocation!.latitude, e.lastLocation!.longitude);
+      return designMapMarker(
+        point: point,
+        icon: e.isOwn
+            ? Icons.my_location_rounded
+            : Icons.person_pin_circle_rounded,
+        color: e.isOwn ? tokens.accentA : tokens.primary,
+        onTap: () =>
+            context.push('/standort/${e.sessionId}', extra: e.displayName),
+      );
+    }).toList();
+
+    final circles = located
+        .where(
+          (e) =>
+              e.lastLocation!.accuracy != null && e.lastLocation!.accuracy! > 0,
+        )
+        .map(
+          (e) => CircleMarker(
+            point: LatLng(e.lastLocation!.latitude, e.lastLocation!.longitude),
+            radius: e.lastLocation!.accuracy!,
+            useRadiusInMeter: true,
+            color: tokens.primary.withValues(alpha: 0.12),
+            borderStrokeWidth: 1.5,
+            borderColor: tokens.primary.withValues(alpha: 0.35),
+          ),
+        )
+        .toList();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(tokens.radiusLg),
+        boxShadow: tokens.surfaceShadow,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.radiusLg),
+        child: SizedBox(
+          height: 240,
+          child: FlutterMap(
+            options: MapOptions(
+              initialCameraFit: CameraFit.bounds(
+                bounds: LatLngBounds.fromPoints(points),
+                padding: const EdgeInsets.all(40),
+                maxZoom: 16,
+              ),
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: OsmConfig.tileUrlTemplate,
+                userAgentPackageName: OsmConfig.tileUserAgent,
+                tileProvider: osmTileProvider(),
+              ),
+              if (circles.isNotEmpty) CircleLayer(circles: circles),
+              MarkerLayer(markers: markers),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _entryTile(BuildContext context, _SharedEntry entry) {
+    final tokens = DesignTheme.of(context);
+    final loc = entry.lastLocation;
     return DesignListTile(
       leading: DesignAvatar(
-        imageUrl: item.ownerImage,
-        name: item.ownerDisplayName,
+        imageUrl: entry.image,
+        name: entry.displayName,
         size: 40,
       ),
-      title: item.ownerDisplayName,
+      title: entry.isOwn ? 'Du' : entry.displayName,
       subtitle: loc != null
           ? 'Zuletzt ${_relative(loc.recordedAt)}'
           : 'Noch kein Standort gesendet',
       trailing: Icon(Icons.chevron_right_rounded, color: tokens.textLow),
-      onTap: () => context.push('/standort/${item.session.id}', extra: item),
+      onTap: () => context.push(
+        '/standort/${entry.sessionId}',
+        extra: entry.displayName,
+      ),
     );
   }
 

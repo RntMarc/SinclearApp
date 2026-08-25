@@ -16,19 +16,19 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/location_sharing_models.dart';
 
-/// Zeigt den Standort-Verlauf (bzw. die aktuelle Position) einer geteilten
-/// Session eines Kontakts.
+/// Zeigt die aktuelle Position einer geteilten Standort-Session eines
+/// Kontakts.
 class LocationSharingSessionDetailScreen extends StatefulWidget {
   final String sessionId;
 
-  /// Optional aus der Listen-Ansicht mitgegebene Besitzer-/Modus-Information,
-  /// damit der Header sofort ohne weiteren Request steht.
-  final ActiveLocationSharing? active;
+  /// Anzeigename des Teilenden (aus der Listen-Ansicht mitgegeben), damit der
+  /// Header sofort ohne weiteren Request steht.
+  final String? ownerName;
 
   const LocationSharingSessionDetailScreen({
     super.key,
     required this.sessionId,
-    this.active,
+    this.ownerName,
   });
 
   @override
@@ -41,7 +41,6 @@ class _LocationSharingSessionDetailScreenState
   static const _pollInterval = Duration(seconds: 30);
 
   List<LocationSharingLocation> _locations = const [];
-  SharingMode _mode = SharingMode.location;
   bool _loading = true;
   String? _error;
   bool _didLoad = false;
@@ -53,7 +52,6 @@ class _LocationSharingSessionDetailScreenState
     super.didChangeDependencies();
     if (!_didLoad) {
       _didLoad = true;
-      _mode = widget.active?.session.sharingMode ?? SharingMode.location;
       _load();
       _timer = Timer.periodic(_pollInterval, (_) => _load());
     }
@@ -62,12 +60,6 @@ class _LocationSharingSessionDetailScreenState
   Future<void> _load() async {
     try {
       final scope = AppScope.of(context);
-      if (widget.active == null) {
-        final session = await scope.locationSharing.getSession(
-          widget.sessionId,
-        );
-        if (mounted) _mode = session.sharingMode;
-      }
       final locations = await scope.locationSharing.getLocations(
         widget.sessionId,
         since: _since,
@@ -106,7 +98,7 @@ class _LocationSharingSessionDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.active?.ownerDisplayName ?? 'Standort';
+    final title = widget.ownerName ?? 'Standort';
 
     return DesignSurface(
       child: Column(
@@ -146,100 +138,83 @@ class _LocationSharingSessionDetailScreenState
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: DesignText(
-              _summary(),
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: DesignText(
+            _summary(),
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
           ),
-          _map(tokens),
-          const SizedBox(height: 16),
-        ],
-      ),
+        ),
+        Expanded(child: _map(tokens)),
+      ],
     );
   }
 
   String _summary() {
     final last = _locations.isEmpty ? null : _locations.last;
-    final count = _locations.length;
-    final modeLabel = _mode.label;
-    if (last == null) return '$modeLabel · Noch keine Punkte';
-    return '$modeLabel · $count ${count == 1 ? 'Punkt' : 'Punkte'} · '
-        'Letzter ${formatDateTime(last.recordedAt)}';
+    if (last == null) return 'Noch kein Standort';
+    final time = formatDateTime(last.recordedAt);
+    final acc = last.accuracy != null ? ' · ±${last.accuracy!.round()} m' : '';
+    return 'Zuletzt aktualisiert: $time$acc';
   }
 
   Widget _map(DesignTokens tokens) {
     if (_locations.isEmpty) {
-      return SizedBox(
-        height: 260,
-        child: Center(
-          child: DesignText(
-            'Noch keine Standortpunkte',
-            style: DesignTextStyle.body,
-            color: tokens.textLow,
-          ),
+      return Center(
+        child: DesignText(
+          'Noch kein Standort',
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
         ),
       );
     }
 
-    final points = _locations
-        .map((l) => LatLng(l.latitude, l.longitude))
-        .toList();
-    final center = points.last;
+    final last = _locations.last;
+    final center = LatLng(last.latitude, last.longitude);
+    final accuracy = last.accuracy;
 
-    final polylines = _mode == SharingMode.route && points.length >= 2
-        ? [Polyline(points: points, color: tokens.primary, strokeWidth: 4)]
-        : <Polyline>[];
-
-    final markers = points
-        .map(
-          (p) => designMapMarker(
-            point: p,
-            icon: Icons.location_on_rounded,
-            color: tokens.primary,
-            size: 28,
-          ),
-        )
-        .toList();
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(tokens.radiusLg),
-        boxShadow: tokens.surfaceShadow,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(tokens.radiusLg),
-        child: SizedBox(
-          height: 260,
-          child: FlutterMap(
-            options: MapOptions(
-              initialCenter: center,
-              initialZoom: 13,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: OsmConfig.tileUrlTemplate,
-                userAgentPackageName: OsmConfig.tileUserAgent,
-                tileProvider: osmTileProvider(),
-              ),
-              if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
-              MarkerLayer(markers: markers),
-            ],
-          ),
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: center,
+        initialZoom: 15,
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
         ),
       ),
+      children: [
+        TileLayer(
+          urlTemplate: OsmConfig.tileUrlTemplate,
+          userAgentPackageName: OsmConfig.tileUserAgent,
+          tileProvider: osmTileProvider(),
+        ),
+        if (accuracy != null && accuracy > 0)
+          CircleLayer(
+            circles: [
+              CircleMarker(
+                point: center,
+                radius: accuracy,
+                useRadiusInMeter: true,
+                color: tokens.primary.withValues(alpha: 0.15),
+                borderStrokeWidth: 1.5,
+                borderColor: tokens.primary.withValues(alpha: 0.4),
+              ),
+            ],
+          ),
+        MarkerLayer(
+          markers: [
+            designMapMarker(
+              point: center,
+              icon: Icons.location_on_rounded,
+              color: tokens.primary,
+              size: 28,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
