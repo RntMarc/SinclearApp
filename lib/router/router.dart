@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/services/auth_service.dart';
 import '../features/welcome/welcome_screen.dart';
@@ -54,6 +55,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
   return GoRouter(
     refreshListenable: auth,
     initialLocation: initialLocation ?? '/',
+    errorBuilder: (context, state) => const _RouterErrorScreen(),
     redirect: (context, state) {
       final loggedIn = auth.isLoggedIn;
       final location = state.matchedLocation;
@@ -355,4 +357,30 @@ bool _isGuestRecipes(String location) {
   return location.startsWith('/rezepte') &&
       !location.startsWith('/rezepte/neu') &&
       !location.endsWith('/bearbeiten');
+}
+
+/// Simple error screen to avoid go_router's default error screen overflow.
+class _RouterErrorScreen extends StatelessWidget {
+  const _RouterErrorScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('Seite nicht gefunden'),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => context.go('/'),
+              child: const Text('Zur Startseite'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
