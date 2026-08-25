@@ -171,8 +171,8 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
     } on LocationPermissionDeniedForeverException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
+        const SnackBar(
+          content: Text(
             'Standortzugriff wurde dauerhaft verweigert. '
             'Bitte in den App-Einstellungen aktivieren.',
           ),
