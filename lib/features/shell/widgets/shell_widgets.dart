@@ -20,6 +20,7 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/entdecken')) return 'ENTDECKEN';
   if (location.startsWith('/reisen')) return 'REISEN & EVENTS';
   if (location.startsWith('/kontakte')) return 'KONTAKTE';
+  if (location.startsWith('/standort')) return 'STANDORT';
   if (location.startsWith('/einstellungen')) return 'EINSTELLUNGEN';
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/mod-anfragen')) return 'MOD-ANFRAGEN';
@@ -44,6 +45,7 @@ ShellNavCategory shellCategoryForLocation(String location) {
     return ShellNavCategory.system;
   }
   if (location.startsWith('/kontakte') ||
+      location.startsWith('/standort') ||
       location.startsWith('/forum') ||
       location.startsWith('/rezepte')) {
     return ShellNavCategory.gemeinschaft;
@@ -247,6 +249,13 @@ class ShellNavContent extends StatelessWidget {
               label: 'Kontakte',
               active: _isActive('/kontakte'),
               onTap: () => onNavigate('/kontakte'),
+            ),
+            _tile(
+              context,
+              icon: Icons.location_on_rounded,
+              label: 'Standort',
+              active: _isActive('/standort'),
+              onTap: () => onNavigate('/standort'),
             ),
             _header(context, 'UNTERWEGS'),
             _tile(
@@ -596,6 +605,11 @@ class ShellMobileBottomNav extends StatelessWidget {
             ),
             const ShellSheetItem('Fotos', Icons.photo_library_rounded, null),
             const ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
+            const ShellSheetItem(
+              'Standort',
+              Icons.location_on_rounded,
+              '/standort',
+            ),
           ],
         );
       case ShellNavCategory.unterwegs:

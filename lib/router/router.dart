@@ -35,6 +35,11 @@ import '../features/settings/screens/discord_relink_screen.dart';
 import '../features/settings/screens/mcp_keys_screen.dart';
 import '../features/settings/screens/dav_tokens_screen.dart';
 import '../features/settings/screens/map_app_screen.dart';
+import '../features/settings/screens/location_sharing_settings_screen.dart';
+import '../features/settings/screens/location_sharing_create_screen.dart';
+import '../features/location_sharing/screens/location_sharing_screen.dart';
+import '../features/location_sharing/screens/location_sharing_session_detail_screen.dart';
+import '../features/location_sharing/models/location_sharing_models.dart';
 import '../features/feedback/screens/feedback_screen.dart';
 import '../features/feedback/screens/feedback_detail_screen.dart';
 import '../features/recipes/screens/recipe_list_screen.dart';
@@ -66,6 +71,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
           (location.startsWith('/entdecken') && !_isGuestExplore(location)) ||
           location.startsWith('/reisen') ||
           location.startsWith('/kontakte') ||
+          location.startsWith('/standort') ||
           location.startsWith('/einstellungen') ||
           location.startsWith('/feedback') ||
           location.startsWith('/mod-anfragen') ||
@@ -203,6 +209,19 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
             ],
           ),
           GoRoute(
+            path: '/standort',
+            builder: (context, state) => const LocationSharingScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (context, state) => LocationSharingSessionDetailScreen(
+                  sessionId: state.pathParameters['id']!,
+                  active: state.extra as ActiveLocationSharing?,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
             path: '/feedback',
             builder: (context, state) => const FeedbackScreen(),
             routes: [
@@ -314,6 +333,18 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
               GoRoute(
                 path: 'karte',
                 builder: (context, state) => const MapAppScreen(),
+              ),
+              GoRoute(
+                path: 'standort',
+                builder: (context, state) =>
+                    const LocationSharingSettingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'neu',
+                    builder: (context, state) =>
+                        const LocationSharingCreateScreen(),
+                  ),
+                ],
               ),
             ],
           ),

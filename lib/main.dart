@@ -30,6 +30,7 @@ import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/chat/services/chat_service.dart';
+import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
@@ -116,6 +117,7 @@ Future<void> _bootstrap() async {
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final chat = ChatService(api: api, auth: auth);
+  final locationSharing = LocationSharingService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
   final stories = StoriesService(api: api, auth: auth);
   final moderation = ModerationService(api: api, auth: auth);
@@ -228,6 +230,7 @@ Future<void> _bootstrap() async {
       feedback: feedback,
       forum: forum,
       chat: chat,
+      locationSharing: locationSharing,
       recipes: recipes,
       stories: stories,
       moderation: moderation,

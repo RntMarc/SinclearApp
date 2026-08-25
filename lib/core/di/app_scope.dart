@@ -8,6 +8,7 @@ import '../../features/explore/services/nominatim_service.dart';
 import '../../features/feedback/services/feedback_service.dart';
 import '../../features/forum/services/forum_service.dart';
 import '../../features/chat/services/chat_service.dart';
+import '../../features/location_sharing/services/location_sharing_service.dart';
 import '../../features/moderation/services/moderation_service.dart';
 import '../../features/notifications/services/notification_content_resolver.dart';
 import '../../features/notifications/services/notification_service.dart';
@@ -38,6 +39,7 @@ class AppScope extends InheritedWidget {
   final FeedbackService feedback;
   final ForumService forum;
   final ChatService chat;
+  final LocationSharingService locationSharing;
   final RecipesService recipes;
   final ModerationService moderation;
   final SubscriptionService subscription;
@@ -78,6 +80,7 @@ class AppScope extends InheritedWidget {
     required this.feedback,
     required this.forum,
     required this.chat,
+    required this.locationSharing,
     required this.recipes,
     required this.moderation,
     required this.subscription,
