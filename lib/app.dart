@@ -14,6 +14,7 @@ import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/chat/services/chat_service.dart';
+import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
@@ -45,6 +46,7 @@ class SinclearApp extends StatelessWidget {
   final FeedbackService feedback;
   final ForumService forum;
   final ChatService chat;
+  final LocationSharingService locationSharing;
   final RecipesService recipes;
   final ModerationService moderation;
   final SubscriptionService subscription;
@@ -118,6 +120,7 @@ class SinclearApp extends StatelessWidget {
     required this.feedback,
     required this.forum,
     required this.chat,
+    required this.locationSharing,
     required this.recipes,
     required this.moderation,
     required this.subscription,
@@ -148,10 +151,10 @@ class SinclearApp extends StatelessWidget {
        grainOpacity = GrainController(initialGrainOpacity),
        themeMode = ThemeModeController(initialThemeMode),
        customAccent = CustomAccentController(initialCustomAccent),
-        notificationMethod = ValueNotifier<NotificationMethod>(
-          initialNotificationMethod,
-        ),
-        mapApp = MapAppController(initialMapApp);
+       notificationMethod = ValueNotifier<NotificationMethod>(
+         initialNotificationMethod,
+       ),
+       mapApp = MapAppController(initialMapApp);
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +169,7 @@ class SinclearApp extends StatelessWidget {
       feedback: feedback,
       forum: forum,
       chat: chat,
+      locationSharing: locationSharing,
       recipes: recipes,
       moderation: moderation,
       subscription: subscription,

@@ -310,6 +310,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 8),
 
+                // Location sharing section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: DesignText(
+                    'Standort',
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                ),
+                DesignCard.list(
+                  children: [
+                    DesignListTile(
+                      leading: const Icon(Icons.location_on_rounded),
+                      title: 'Standort teilen',
+                      subtitle: 'Sessions für Standort-Teilen verwalten',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/einstellungen/standort'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
                 // Account section
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),

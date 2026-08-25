@@ -50,6 +50,7 @@
                 <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/reisen" />
                 <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/entdecken" />
                 <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/kontakte" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/standort" />
                 <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/feedback" />
                 <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/mod-anfragen" />
                 <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/forum" />
