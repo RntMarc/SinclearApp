@@ -42,11 +42,37 @@ Color _entryColor(String type, DesignTokens tokens) {
   };
 }
 
+/// Gruppiert Kalendereinträge nach Tag (aufsteigend sortiert).
+List<MapEntry<DateTime, List<CalendarEntry>>> groupByDay(
+  List<CalendarEntry> entries,
+) {
+  final sorted = entries.where((e) => e.startTime != null).toList()
+    ..sort((a, b) => a.startTime!.compareTo(b.startTime!));
+
+  // ponytail: mehrtägige Einträge (Reisen) erscheinen nur an ihrem
+  // Starttag — wie bisher bei mehreren Tagen übergreifenden Events.
+  final map = <DateTime, List<CalendarEntry>>{};
+  for (final entry in sorted) {
+    final day = DateTime(
+      entry.startTime!.year,
+      entry.startTime!.month,
+      entry.startTime!.day,
+    );
+    map.putIfAbsent(day, () => []).add(entry);
+  }
+
+  final grouped = map.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+
+  return grouped;
+}
+
 class AgendaList extends StatelessWidget {
   final List<CalendarEntry> entries;
   final void Function(CalendarEntry entry)? onEntryTap;
   final ScrollController? scrollController;
   final double bottomPadding;
+  final Map<DateTime, GlobalKey>? dayKeys;
 
   const AgendaList({
     super.key,
@@ -54,12 +80,13 @@ class AgendaList extends StatelessWidget {
     this.onEntryTap,
     this.scrollController,
     this.bottomPadding = 0,
+    this.dayKeys,
   });
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    final grouped = _groupByDay(entries);
+    final grouped = groupByDay(entries);
 
     if (grouped.isEmpty) {
       return Center(
@@ -82,7 +109,9 @@ class AgendaList extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
+    // ponytail: Eager Build für begrenzte Datenmenge (~3 Monate).
+    // Ceiling: >500 Einträge → Upgrade-Pfad: scrollable_positioned_list.
+    return ListView(
       controller: scrollController,
       padding: EdgeInsets.only(
         left: 16,
@@ -90,49 +119,26 @@ class AgendaList extends StatelessWidget {
         top: 8,
         bottom: 8 + bottomPadding,
       ),
-      itemCount: grouped.length,
-      itemBuilder: (context, index) {
-        final entry = grouped[index];
-        return _DaySection(
-          date: entry.key,
-          entries: entry.value,
-          onEntryTap: onEntryTap,
-        );
-      },
+      children: [
+        for (final entry in grouped)
+          DaySection(
+            key: dayKeys?[entry.key],
+            date: entry.key,
+            entries: entry.value,
+            onEntryTap: onEntryTap,
+          ),
+      ],
     );
-  }
-
-  List<MapEntry<DateTime, List<CalendarEntry>>> _groupByDay(
-    List<CalendarEntry> entries,
-  ) {
-    final sorted = entries.where((e) => e.startTime != null).toList()
-      ..sort((a, b) => a.startTime!.compareTo(b.startTime!));
-
-    // ponytail: mehrtägige Einträge (Reisen) erscheinen nur an ihrem
-    // Starttag — wie bisher bei mehreren Tagen übergreifenden Events.
-    final map = <DateTime, List<CalendarEntry>>{};
-    for (final entry in sorted) {
-      final day = DateTime(
-        entry.startTime!.year,
-        entry.startTime!.month,
-        entry.startTime!.day,
-      );
-      map.putIfAbsent(day, () => []).add(entry);
-    }
-
-    final grouped = map.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-
-    return grouped;
   }
 }
 
-class _DaySection extends StatelessWidget {
+class DaySection extends StatelessWidget {
   final DateTime date;
   final List<CalendarEntry> entries;
   final void Function(CalendarEntry entry)? onEntryTap;
 
-  const _DaySection({
+  const DaySection({
+    super.key,
     required this.date,
     required this.entries,
     this.onEntryTap,

@@ -30,6 +30,9 @@ class CalendarDesktopCalendar extends StatelessWidget {
         lastDay: DateTime(2035),
         focusedDay: focusedDay,
         startingDayOfWeek: StartingDayOfWeek.monday,
+        rowHeight: 44,
+        daysOfWeekHeight: 30,
+        sixWeekMonthsEnforced: true,
         selectedDayPredicate: (day) => isSameDay(selectedDay, day),
         onDaySelected: onDaySelected,
         calendarFormat: CalendarFormat.month,
@@ -37,6 +40,8 @@ class CalendarDesktopCalendar extends StatelessWidget {
         locale: 'de',
         eventLoader: eventLoader,
         calendarStyle: CalendarStyle(
+          cellMargin: const EdgeInsets.all(5),
+          defaultTextStyle: const TextStyle(fontSize: 14),
           todayDecoration: BoxDecoration(
             color: tokens.primary.withValues(alpha: 0.2),
             shape: BoxShape.circle,
@@ -49,10 +54,14 @@ class CalendarDesktopCalendar extends StatelessWidget {
             color: tokens.primary,
             shape: BoxShape.circle,
           ),
+          markersMaxCount: 3,
+          markerSize: 6,
+          markerMargin: const EdgeInsets.symmetric(horizontal: 1),
         ),
         headerStyle: const HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
+          titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -70,6 +79,7 @@ class CalendarDesktopLayout extends StatelessWidget {
   final List<CalendarEntry> Function(DateTime day) eventLoader;
   final ValueChanged<CalendarEntry> onEntryTap;
   final VoidCallback onCreateEvent;
+  final Map<DateTime, GlobalKey>? dayKeys;
 
   const CalendarDesktopLayout({
     super.key,
@@ -83,6 +93,7 @@ class CalendarDesktopLayout extends StatelessWidget {
     required this.eventLoader,
     required this.onEntryTap,
     required this.onCreateEvent,
+    this.dayKeys,
   });
 
   @override
@@ -153,6 +164,7 @@ class CalendarDesktopLayout extends StatelessWidget {
             entries: entries,
             onEntryTap: onEntryTap,
             scrollController: scrollController,
+            dayKeys: dayKeys,
           ),
         ),
       ],
