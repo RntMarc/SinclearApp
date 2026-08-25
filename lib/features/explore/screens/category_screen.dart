@@ -246,8 +246,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
 
   void _showLocationSettingsPrompt() {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
+      const SnackBar(
+        content: Text(
           'Standortzugriff wurde dauerhaft verweigert. '
           'Bitte in den App-Einstellungen aktivieren.',
         ),

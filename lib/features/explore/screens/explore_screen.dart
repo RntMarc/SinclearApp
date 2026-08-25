@@ -202,8 +202,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   void _showLocationSettingsPrompt() {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(
+      const SnackBar(
+        content: Text(
           'Standortzugriff wurde dauerhaft verweigert. '
           'Bitte in den App-Einstellungen aktivieren.',
         ),
