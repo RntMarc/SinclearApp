@@ -7,7 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// Handles incoming deep links and routes them appropriately.
 ///
-/// - Discord auth callbacks pass through to the API (not forwarded to browser).
+/// - Discord auth callbacks open in an in-app WebView to show the pairing code
+///   (external browser is intercepted by Android App Links).
 /// - Recipe HTML URLs extract the recipe ID and navigate in-app.
 /// - Other API URLs are forwarded to the external browser.
 /// - All other links are ignored.
@@ -15,6 +16,7 @@ class DeepLinkHandler {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _sub;
   GoRouter? _router;
+
   /// Start listening for deep links.
   void init(GoRouter router, {required String appBaseUrl}) {
     _router = router;
@@ -38,22 +40,22 @@ class DeepLinkHandler {
     if (uri == null) return;
 
     final urlString = uri.toString();
-    // Intercept internal API URLs matching https://sinclear.de/api/v2 and forward them back to the browser
-    // EXCEPT auth callback URLs - these must hit the API endpoint directly to complete OAuth flow
-    if (urlString.startsWith('https://sinclear.de/api/v2') &&
-        !urlString.contains('/auth/') &&
-        !urlString.contains('/discord/callback')) {
+    final path = uri.path;
+
+    // Discord auth callbacks: open in in-app WebView to show pairing code HTML page.
+    // Using externalApplication triggers Android App Links which opens the app again (loop).
+    if (_isDiscordCallback(path)) {
+      _openInWebView(uri);
+      return;
+    }
+
+    // Other API URLs: forward to external browser
+    if (urlString.startsWith('https://sinclear.de/api/v2')) {
       _openInBrowser(uri);
       return;
     }
 
-    final path = uri.path;
-
-    if (_isDiscordCallback(path)) {
-      // Let Discord callbacks pass through to the API - don't reopen in browser
-      return;
-    }
-
+    // Recipe HTML URLs: extract ID and navigate in-app
     final recipeId = _extractRecipeId(uri);
     if (recipeId != null) {
       _router?.go('/rezepte/$recipeId');
@@ -61,8 +63,7 @@ class DeepLinkHandler {
     }
   }
 
-/// Discord OAuth callback URLs pass through to the API endpoint directly
-/// to complete the OAuth flow - they are NOT forwarded to the browser.
+  /// Discord OAuth callback URLs (login + register).
   bool _isDiscordCallback(String path) {
     return path.contains('/auth/') && path.contains('/discord/callback');
   }
@@ -74,9 +75,18 @@ class DeepLinkHandler {
     return uri.queryParameters['id'];
   }
 
+  /// Open URL in external browser.
   Future<void> _openInBrowser(Uri uri) async {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  /// Open URL in an in-app WebView (Chrome Custom Tab on Android).
+  /// Used for auth callbacks to show the pairing code without App Links interception.
+  Future<void> _openInWebView(Uri uri) async {
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.inAppWebView);
     }
   }
 }
