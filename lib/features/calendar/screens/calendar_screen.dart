@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
@@ -44,6 +45,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   bool _hasMorePast = true;
   bool _hasMoreFuture = true;
+
+  final Map<DateTime, GlobalKey> _dayKeys = {};
 
   @override
   void initState() {
@@ -104,6 +107,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       setState(() {
         _loadingPast = false;
         _loadingFuture = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToDay(DateTime.now());
       });
     }
   }
@@ -195,6 +201,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _selectedDay = selectedDay;
       _focusedDay = focusedDay;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToDay(selectedDay));
+  }
+
+  void _scrollToDay(DateTime day) {
+    final grouped = groupByDay(_getAllSortedEntries());
+    if (grouped.isEmpty) return;
+    final target = DateTime(day.year, day.month, day.day);
+    final idx = grouped.indexWhere((e) => !e.key.isBefore(target));
+    final d = idx >= 0 ? grouped[idx].key : grouped.last.key;
+    final key = _dayKeys[d];
+    if (key?.currentContext == null) return;
+    Scrollable.ensureVisible(
+      key!.currentContext!,
+      alignment: 0.1,
+      duration: const Duration(milliseconds: 250),
+    );
   }
 
   Future<void> _createEvent({DateTime? initialDate}) async {
@@ -294,10 +316,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
               focusedDay: _focusedDay,
               selectedDay: _selectedDay,
               scrollController: _agendaScrollController,
-              onToday: () => setState(() {
-                _focusedDay = DateTime.now();
-                _selectedDay = DateTime.now();
-              }),
+              dayKeys: _dayKeys,
+              onToday: () {
+                setState(() {
+                  _focusedDay = DateTime.now();
+                  _selectedDay = DateTime.now();
+                });
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _scrollToDay(DateTime.now());
+                });
+              },
               onRefresh: _refresh,
               onDaySelected: _onDaySelected,
               eventLoader: _getEntriesForDay,
@@ -309,6 +337,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildMobileLayout(DesignTokens tokens) {
+    final sorted = _getAllSortedEntries();
+    final grouped = groupByDay(sorted);
+
     return Stack(
       children: [
         Column(
@@ -325,10 +356,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     label: 'Heute',
                     variant: DesignButtonVariant.text,
                     icon: Icons.today_rounded,
-                    onPressed: () => setState(() {
-                      _focusedDay = DateTime.now();
-                      _selectedDay = DateTime.now();
-                    }),
+                    onPressed: () {
+                      setState(() {
+                        _focusedDay = DateTime.now();
+                        _selectedDay = DateTime.now();
+                      });
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _scrollToDay(DateTime.now());
+                      });
+                    },
                   ),
                   DesignIconButton(
                     icon: Icons.refresh_rounded,
@@ -343,48 +379,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 child: CustomScrollView(
                   controller: _agendaScrollController,
                   slivers: [
-                    SliverToBoxAdapter(
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: TableCalendar(
-                          firstDay: DateTime(2020),
-                          lastDay: DateTime(2035),
-                          focusedDay: _focusedDay,
-                          startingDayOfWeek: StartingDayOfWeek.monday,
-                          selectedDayPredicate: (day) =>
-                              isSameDay(_selectedDay, day),
-                          onDaySelected: _onDaySelected,
-                          onPageChanged: (focused) {
-                            setState(() => _focusedDay = focused);
-                          },
-                          calendarFormat: CalendarFormat.month,
-                          availableCalendarFormats: const {
-                            CalendarFormat.month: 'Monat',
-                          },
-                          locale: 'de',
-                          eventLoader: _getEntriesForDay,
-                          calendarStyle: CalendarStyle(
-                            todayDecoration: BoxDecoration(
-                              color: tokens.primary.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            selectedDecoration: BoxDecoration(
-                              color: tokens.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            markerDecoration: BoxDecoration(
-                              color: tokens.primary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          headerStyle: const HeaderStyle(
-                            formatButtonVisible: false,
-                            titleCentered: true,
-                          ),
-                        ),
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _CalendarHeaderDelegate(
+                        focusedDay: _focusedDay,
+                        selectedDay: _selectedDay,
+                        onDaySelected: _onDaySelected,
+                        onPageChanged: (focused) {
+                          setState(() => _focusedDay = focused);
+                        },
+                        eventLoader: _getEntriesForDay,
                       ),
                     ),
-                    if (_error != null && _getAllSortedEntries().isEmpty)
+                    if (_error != null && sorted.isEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.all(32),
@@ -423,7 +430,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       )
                     else if (_loadingPast &&
                         _loadingFuture &&
-                        _getAllSortedEntries().isEmpty)
+                        sorted.isEmpty)
                       SliverToBoxAdapter(
                         child: SizedBox(
                           height: 300,
@@ -436,24 +443,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       )
                     else
                       SliverPadding(
-                        padding: EdgeInsets.zero,
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).padding.bottom + 100,
+                        ),
                         sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final entries = _getAllSortedEntries();
-                            return SizedBox(
-                              height: 400,
-                              child: AgendaList(
-                                entries: entries,
+                          delegate: SliverChildListDelegate([
+                            for (final entry in grouped)
+                              DaySection(
+                                key: _dayKeys.putIfAbsent(
+                                  entry.key,
+                                  () => GlobalKey(),
+                                ),
+                                date: entry.key,
+                                entries: entry.value,
                                 onEntryTap: _onEntryTap,
-                                scrollController: null,
-                                bottomPadding:
-                                    MediaQuery.of(context).padding.bottom + 100,
                               ),
-                            );
-                          }, childCount: 1),
+                          ]),
                         ),
                       ),
                     if (_loadingFuture || _loadingPast)
@@ -483,6 +488,133 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _CalendarHeaderDelegate({
+    required this.focusedDay,
+    required this.selectedDay,
+    required this.onDaySelected,
+    required this.onPageChanged,
+    required this.eventLoader,
+  });
+
+  final DateTime focusedDay;
+  final DateTime? selectedDay;
+  final ValueChanged<DateTime> onPageChanged;
+  final void Function(DateTime selectedDay, DateTime focusedDay) onDaySelected;
+  final List<CalendarEntry> Function(DateTime day) eventLoader;
+
+  static const double _minExtent = 48;
+  static const double _rowHeight = 40;
+  static const double _daysOfWeekHeight = 30;
+  static const double _headerHeight = 48;
+  static const double _maxExtent =
+      _headerHeight + _daysOfWeekHeight + _rowHeight * 6;
+
+  @override
+  double get minExtent => _minExtent;
+
+  @override
+  double get maxExtent => _maxExtent;
+
+  @override
+  bool shouldRebuild(covariant _CalendarHeaderDelegate oldDelegate) =>
+      focusedDay != oldDelegate.focusedDay ||
+      selectedDay != oldDelegate.selectedDay;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final tokens = DesignTheme.of(context);
+    final collapsed = shrinkOffset > maxExtent - minExtent - 8;
+    final monthLabel = DateFormat('MMMM yyyy', 'de').format(focusedDay);
+
+    if (collapsed) {
+      return Material(
+        color: tokens.surface,
+        child: InkWell(
+          onTap: () {
+            final scrollable = Scrollable.of(context);
+            scrollable.position.animateTo(
+              0,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+            );
+          },
+          child: SizedBox(
+            height: minExtent,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DesignText(
+                    monthLabel,
+                    style: DesignTextStyle.subtitle,
+                    color: tokens.textHigh,
+                  ),
+                  SizedBox(width: tokens.spaceSm),
+                  Icon(
+                    Icons.expand_less_rounded,
+                    size: 20,
+                    color: tokens.textLow,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Material(
+      type: MaterialType.transparency,
+      child: TableCalendar(
+        firstDay: DateTime(2020),
+        lastDay: DateTime(2035),
+        focusedDay: focusedDay,
+        startingDayOfWeek: StartingDayOfWeek.monday,
+        rowHeight: _rowHeight,
+        daysOfWeekHeight: _daysOfWeekHeight,
+        sixWeekMonthsEnforced: true,
+        selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+        onDaySelected: (selected, focused) => onDaySelected(selected, focused),
+        onPageChanged: onPageChanged,
+        calendarFormat: CalendarFormat.month,
+        availableCalendarFormats: const {CalendarFormat.month: 'Monat'},
+        locale: 'de',
+        eventLoader: eventLoader,
+        calendarStyle: CalendarStyle(
+          cellMargin: const EdgeInsets.all(4),
+          defaultTextStyle: const TextStyle(fontSize: 14),
+          todayDecoration: BoxDecoration(
+            color: tokens.primary.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+          selectedDecoration: BoxDecoration(
+            color: tokens.primary,
+            shape: BoxShape.circle,
+          ),
+          markerDecoration: BoxDecoration(
+            color: tokens.primary,
+            shape: BoxShape.circle,
+          ),
+          markersMaxCount: 3,
+          markerSize: 6,
+          markerMargin: const EdgeInsets.symmetric(horizontal: 1),
+        ),
+        headerStyle: const HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+          headerPadding: EdgeInsets.symmetric(vertical: 4),
+          titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
     );
   }
 }
