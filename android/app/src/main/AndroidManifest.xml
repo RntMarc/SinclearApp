@@ -34,14 +34,34 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Deep link: Öffnet App bei URLs der PWA-Domain.
+            <!-- Deep links: Nur die App-eigenen Pfade übernehmen (siehe
+                 lib/router/router.dart). API-Pfade (z. B. /api/v2/auth/...)
+                 bleiben im Browser, damit z. B. der Discord-OAuth-Callback
+                 seinen Pairing-Code im Browser anzeigen kann.
                  android:host muss mit der tatsächlichen Deployment-Domain
-                 übereinstimmen (siehe .env → API_BASE_URL → Host) -->
+                 übereinstimmen (siehe .env → API_BASE_URL → Host).
+                 Bei Router-Änderungen diese Pfadliste aktualisieren (AGENTS.md). -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="sinclear.de" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/home" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/kalender" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/reisen" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/entdecken" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/kontakte" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/feedback" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/mod-anfragen" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/forum" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/rezepte" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/einstellungen" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/chat" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/abos" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/design-showcase" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/stories" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/login" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/onboarding" />
+                <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/api/v2/html/public/recipe" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

@@ -201,7 +201,7 @@ Future<void> _bootstrap() async {
   _router = router;
 
   if (!kIsWeb) {
-    DeepLinkHandler().init(router, appBaseUrl: appBaseUrl);
+    DeepLinkHandler().init(router);
   }
 
   final initialDesign = await DesignPreferences.load();
