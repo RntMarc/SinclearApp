@@ -55,6 +55,23 @@ class LocationSharingService {
         .toList();
   }
 
+  /// Eigene aktive Sessions inklusive letzter Position.
+  ///
+  /// Der Listen-Endpunkt liefert keine `lastLocation`; daher wird pro Session
+  /// das Detail nachgeladen. Die Anzahl eigener Sessions ist klein.
+  Future<List<LocationSharingSession>> listOwnSessionsWithLocation() async {
+    final sessions = await listOwnSessions();
+    final results = <LocationSharingSession>[];
+    for (final session in sessions) {
+      try {
+        results.add(await getSession(session.id));
+      } catch (_) {
+        results.add(session);
+      }
+    }
+    return results;
+  }
+
   Future<LocationSharingSession> getSession(String id) async {
     final data = await _api.get(
       '/location-sharing/sessions/$id',

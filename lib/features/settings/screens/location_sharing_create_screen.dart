@@ -404,20 +404,24 @@ class _ModeSwitch extends StatelessWidget {
           Row(
             children: SharingMode.values.map((mode) {
               final isActive = mode == value;
+              final isDisabled = mode == SharingMode.route;
               return Expanded(
-                child: PressScale(
-                  onTap: () => onChanged(mode),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
-                    decoration: BoxDecoration(
-                      color: isActive ? tokens.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(tokens.radiusPill),
-                    ),
-                    alignment: Alignment.center,
-                    child: DesignText(
-                      mode.label,
-                      style: DesignTextStyle.label,
-                      color: isActive ? tokens.onPrimary : tokens.textLow,
+                child: Opacity(
+                  opacity: isDisabled ? 0.45 : 1.0,
+                  child: PressScale(
+                    onTap: isDisabled ? null : () => onChanged(mode),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+                      decoration: BoxDecoration(
+                        color: isActive ? tokens.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(tokens.radiusPill),
+                      ),
+                      alignment: Alignment.center,
+                      child: DesignText(
+                        isDisabled ? 'Route (bald)' : mode.label,
+                        style: DesignTextStyle.label,
+                        color: isActive ? tokens.onPrimary : tokens.textLow,
+                      ),
                     ),
                   ),
                 ),
