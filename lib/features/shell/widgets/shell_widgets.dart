@@ -45,12 +45,13 @@ ShellNavCategory shellCategoryForLocation(String location) {
     return ShellNavCategory.system;
   }
   if (location.startsWith('/kontakte') ||
-      location.startsWith('/standort') ||
       location.startsWith('/forum') ||
       location.startsWith('/rezepte')) {
     return ShellNavCategory.gemeinschaft;
   }
-  if (location.startsWith('/entdecken') || location.startsWith('/reisen')) {
+  if (location.startsWith('/entdecken') ||
+      location.startsWith('/reisen') ||
+      location.startsWith('/standort')) {
     return ShellNavCategory.unterwegs;
   }
   if (location.startsWith('/kalender') || location.startsWith('/abos')) {
@@ -250,13 +251,6 @@ class ShellNavContent extends StatelessWidget {
               active: _isActive('/kontakte'),
               onTap: () => onNavigate('/kontakte'),
             ),
-            _tile(
-              context,
-              icon: Icons.location_on_rounded,
-              label: 'Standort',
-              active: _isActive('/standort'),
-              onTap: () => onNavigate('/standort'),
-            ),
             _header(context, 'UNTERWEGS'),
             _tile(
               context,
@@ -271,6 +265,13 @@ class ShellNavContent extends StatelessWidget {
               label: 'Reisen & Events',
               active: _isActive('/reisen'),
               onTap: () => onNavigate('/reisen'),
+            ),
+            _tile(
+              context,
+              icon: Icons.location_on_rounded,
+              label: 'Standort',
+              active: _isActive('/standort'),
+              onTap: () => onNavigate('/standort'),
             ),
             _header(context, 'ORGANISATION'),
             _tile(
@@ -605,11 +606,6 @@ class ShellMobileBottomNav extends StatelessWidget {
             ),
             const ShellSheetItem('Fotos', Icons.photo_library_rounded, null),
             const ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
-            const ShellSheetItem(
-              'Standort',
-              Icons.location_on_rounded,
-              '/standort',
-            ),
           ],
         );
       case ShellNavCategory.unterwegs:
@@ -623,6 +619,11 @@ class ShellMobileBottomNav extends StatelessWidget {
               '/entdecken',
             ),
             const ShellSheetItem('Reisen', Icons.flight_rounded, '/reisen'),
+            const ShellSheetItem(
+              'Standort',
+              Icons.location_on_rounded,
+              '/standort',
+            ),
           ],
         );
       case ShellNavCategory.organisation:
