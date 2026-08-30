@@ -67,7 +67,7 @@ Fest definierte Kategorien in fester Reihenfolge:
 | 0 | System | `settings_rounded` | Einstellungen, Admin, Feedback, Changelog |
 | 1 | Gemeinschaft | `people_rounded` | Forum, Kritik, Rezepte, Fotos, Kontakte |
 | 2 | Start | `home_rounded` | Home |
-| 3 | Unterwegs | `explore_rounded` | Entdecken, Reisen |
+| 3 | Unterwegs | `explore_rounded` | Entdecken, Reisen, Standort |
 | 4 | Organisation | `calendar_month_rounded` | Kalender, Umfrage, Abos |
 
 - Jeder Kategorie-Tap öffnet ein Bottom-Sheet mit den Untereinträgen.
@@ -92,6 +92,7 @@ Sub-Seiten gehören immer zur Kategorie ihrer übergeordneten Seite:
 - `/kontakte/*` → Gemeinschaft
 - `/entdecken/*` → Unterwegs
 - `/reisen/*` → Unterwegs
+- `/standort/*` → Unterwegs
 - `/kalender/*` → Organisation
 
 ## AppBar-Regeln
