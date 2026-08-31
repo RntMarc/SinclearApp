@@ -63,6 +63,49 @@ void main() {
     ),
   ];
 
+  /// Relation-Liste exakt so, wie die API sie für `forum_post` liefert.
+  const forumPostData = [
+    NotificationRelation(
+      relation: 'post_author',
+      object: 'User',
+      identifier: 'user-author',
+    ),
+    NotificationRelation(
+      relation: 'parent_post',
+      object: 'ForumPost',
+      identifier: 'p1',
+    ),
+    NotificationRelation(
+      relation: 'parent_forum',
+      object: 'Forum',
+      identifier: 'f1',
+    ),
+  ];
+
+  /// Relation-Liste exakt so, wie die API sie für `forum_upvote` liefert.
+  const forumUpvoteData = [
+    NotificationRelation(
+      relation: 'voter',
+      object: 'User',
+      identifier: 'user-voter',
+    ),
+    NotificationRelation(
+      relation: 'post_author',
+      object: 'User',
+      identifier: 'user-author',
+    ),
+    NotificationRelation(
+      relation: 'parent_post',
+      object: 'ForumPost',
+      identifier: 'p1',
+    ),
+    NotificationRelation(
+      relation: 'parent_forum',
+      object: 'Forum',
+      identifier: 'f1',
+    ),
+  ];
+
   /// Relation-Liste exakt so, wie die API sie für `story_post` liefert.
   const storyPostData = [
     NotificationRelation(
@@ -161,6 +204,46 @@ void main() {
 
       expect(NotificationTypeLabel.route('forum_comment', ohneForum), isNull);
       expect(NotificationTypeLabel.route('forum_comment', ohnePost), isNull);
+    });
+
+    test('forum_post navigiert zum Beitrag (/forum/{f}/beitrag/{p})', () {
+      expect(
+        NotificationTypeLabel.route('forum_post', forumPostData),
+        '/forum/f1/beitrag/p1',
+      );
+    });
+
+    test('forum_post ohne parent_forum oder parent_post gibt null', () {
+      final ohneForum = forumPostData
+          .where((e) => e.relation != 'parent_forum')
+          .toList();
+      final ohnePost = forumPostData
+          .where((e) => e.relation != 'parent_post')
+          .toList();
+
+      expect(NotificationTypeLabel.route('forum_post', ohneForum), isNull);
+      expect(NotificationTypeLabel.route('forum_post', ohnePost), isNull);
+      expect(NotificationTypeLabel.route('forum_post', const []), isNull);
+    });
+
+    test('forum_upvote navigiert zum Beitrag (/forum/{f}/beitrag/{p})', () {
+      expect(
+        NotificationTypeLabel.route('forum_upvote', forumUpvoteData),
+        '/forum/f1/beitrag/p1',
+      );
+    });
+
+    test('forum_upvote ohne parent_forum oder parent_post gibt null', () {
+      final ohneForum = forumUpvoteData
+          .where((e) => e.relation != 'parent_forum')
+          .toList();
+      final ohnePost = forumUpvoteData
+          .where((e) => e.relation != 'parent_post')
+          .toList();
+
+      expect(NotificationTypeLabel.route('forum_upvote', ohneForum), isNull);
+      expect(NotificationTypeLabel.route('forum_upvote', ohnePost), isNull);
+      expect(NotificationTypeLabel.route('forum_upvote', const []), isNull);
     });
 
     test('story_post navigiert zur Story (/stories/{s})', () {
@@ -332,6 +415,27 @@ void main() {
         'Jemand hat deinen Beitrag kommentiert.',
       );
       expect(NotificationTypeLabel.icon('forum_comment'), Icons.forum_rounded);
+    });
+
+    test('forum_post rendert Titel, generalisierten Text und Icon', () {
+      expect(
+        NotificationTypeLabel.title('forum_post'),
+        'Neuer Beitrag im Forum',
+      );
+      expect(
+        NotificationTypeLabel.fallbackBody('forum_post'),
+        'Jemand hat einen neuen Beitrag im Forum veröffentlicht.',
+      );
+      expect(NotificationTypeLabel.icon('forum_post'), Icons.forum_rounded);
+    });
+
+    test('forum_upvote rendert Titel, generalisierten Text und Icon', () {
+      expect(NotificationTypeLabel.title('forum_upvote'), 'Neue Bewertung');
+      expect(
+        NotificationTypeLabel.fallbackBody('forum_upvote'),
+        'Jemand hat deinen Beitrag positiv bewertet.',
+      );
+      expect(NotificationTypeLabel.icon('forum_upvote'), Icons.forum_rounded);
     });
 
     test('story_post rendert Titel, generalisierten Text und Icon', () {
@@ -584,9 +688,11 @@ void main() {
   });
 
   group('NotificationTypeLabel.category', () {
-    test('gruppiert alle 14 Preference-Schlüssel', () {
+    test('gruppiert alle Preference-Schlüssel', () {
       expect(NotificationTypeLabel.category('forum_reply'), 'Forum');
       expect(NotificationTypeLabel.category('forum_comment'), 'Forum');
+      expect(NotificationTypeLabel.category('forum_post'), 'Forum');
+      expect(NotificationTypeLabel.category('forum_upvote'), 'Forum');
       expect(NotificationTypeLabel.category('story_post'), 'Stories');
       expect(NotificationTypeLabel.category('direct_message'), 'Chat');
       expect(NotificationTypeLabel.category('trip_user_added'), 'Reisen');
@@ -691,6 +797,11 @@ void main() {
     test('Forum-Typen nutzen forumIds', () {
       expect(NotificationTypeLabel.customDataKey('forum_reply'), 'forumIds');
       expect(NotificationTypeLabel.customDataKey('forum_comment'), 'forumIds');
+      expect(NotificationTypeLabel.customDataKey('forum_post'), 'forumIds');
+    });
+
+    test('forum_upvote unterstützt kein custom', () {
+      expect(NotificationTypeLabel.customDataKey('forum_upvote'), isNull);
     });
 
     test('story_post nutzt userIds', () {

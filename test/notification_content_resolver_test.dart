@@ -127,6 +127,57 @@ NotificationItem _forumCommentItem() => NotificationItem(
   ],
 );
 
+NotificationItem _forumPostItem() => NotificationItem(
+  id: 'n9',
+  type: 'forum_post',
+  createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+  data: const [
+    NotificationRelation(
+      relation: 'post_author',
+      object: 'User',
+      identifier: 'user-author',
+    ),
+    NotificationRelation(
+      relation: 'parent_post',
+      object: 'ForumPost',
+      identifier: 'p1',
+    ),
+    NotificationRelation(
+      relation: 'parent_forum',
+      object: 'Forum',
+      identifier: 'f1',
+    ),
+  ],
+);
+
+NotificationItem _forumUpvoteItem() => NotificationItem(
+  id: 'n10',
+  type: 'forum_upvote',
+  createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+  data: const [
+    NotificationRelation(
+      relation: 'voter',
+      object: 'User',
+      identifier: 'user-voter',
+    ),
+    NotificationRelation(
+      relation: 'post_author',
+      object: 'User',
+      identifier: 'user-author',
+    ),
+    NotificationRelation(
+      relation: 'parent_post',
+      object: 'ForumPost',
+      identifier: 'p1',
+    ),
+    NotificationRelation(
+      relation: 'parent_forum',
+      object: 'Forum',
+      identifier: 'f1',
+    ),
+  ],
+);
+
 NotificationItem _storyPostItem() => NotificationItem(
   id: 'n3',
   type: 'story_post',
@@ -284,6 +335,128 @@ void main() {
       final content = await resolver.resolve(item);
 
       expect(content.body, 'Jemand hat deinen Beitrag kommentiert.');
+      expect(content.route, isNull);
+    });
+  });
+
+  group('forum_post', () {
+    test('voller Text, wenn der Autor geladen werden kann', () async {
+      user.displayName = 'Maria';
+
+      final content = await resolver.resolve(_forumPostItem());
+
+      expect(content.title, 'Neuer Beitrag im Forum');
+      expect(
+        content.body,
+        'Maria hat einen neuen Beitrag im Forum veröffentlicht',
+      );
+      expect(content.route, '/forum/f1/beitrag/p1');
+    });
+
+    test('generalisierter Text, wenn das Nachladen scheitert', () async {
+      final content = await resolver.resolve(_forumPostItem());
+
+      expect(content.title, 'Neuer Beitrag im Forum');
+      expect(
+        content.body,
+        'Jemand hat einen neuen Beitrag im Forum veröffentlicht.',
+      );
+      expect(content.route, '/forum/f1/beitrag/p1');
+    });
+
+    test('fehlende Relationen: generalisierter Text, Route null', () async {
+      final item = NotificationItem(
+        id: 'n11',
+        type: 'forum_post',
+        createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+      );
+
+      final content = await resolver.resolve(item);
+
+      expect(
+        content.body,
+        'Jemand hat einen neuen Beitrag im Forum veröffentlicht.',
+      );
+      expect(content.route, isNull);
+    });
+  });
+
+  group('forum_upvote', () {
+    test('voller Text, wenn Voter und Post geladen werden können', () async {
+      user.displayName = 'Tom';
+      forum.postText = 'Toller Beitrag';
+
+      final content = await resolver.resolve(_forumUpvoteItem());
+
+      expect(content.title, 'Neue Bewertung');
+      expect(
+        content.body,
+        'Tom hat deinen Beitrag \u201eToller Beitrag\u201c positiv bewertet',
+      );
+      expect(content.route, '/forum/f1/beitrag/p1');
+    });
+
+    test(
+      'generalisierter Text, wenn das Nachladen komplett scheitert',
+      () async {
+        final content = await resolver.resolve(_forumUpvoteItem());
+
+        expect(content.title, 'Neue Bewertung');
+        expect(
+          content.body,
+          'Jemand hat deinen Beitrag positiv bewertet.',
+        );
+        expect(content.route, '/forum/f1/beitrag/p1');
+      },
+    );
+
+    test('nur Voter ladbar: Text ohne Post-Teil', () async {
+      user.displayName = 'Tom';
+
+      final content = await resolver.resolve(_forumUpvoteItem());
+
+      expect(content.body, 'Tom hat deinen Beitrag positiv bewertet');
+    });
+
+    test('nur Post ladbar: Text mit „Jemand"', () async {
+      forum.postText = 'Toller Beitrag';
+
+      final content = await resolver.resolve(_forumUpvoteItem());
+
+      expect(
+        content.body,
+        'Jemand hat deinen Beitrag \u201eToller Beitrag\u201c positiv bewertet',
+      );
+    });
+
+    test('Post-Text wird für die Anzeige gekürzt', () async {
+      forum.postText = 'x' * 100;
+
+      final content = await resolver.resolve(_forumUpvoteItem());
+
+      expect(content.body, contains('${'x' * 80}\u2026'));
+      expect(content.body, isNot(contains('x' * 81)));
+    });
+
+    test('Post ohne Text (z. B. Musik-Post): kein Post-Teil', () async {
+      user.displayName = 'Tom';
+      forum.postText = '   ';
+
+      final content = await resolver.resolve(_forumUpvoteItem());
+
+      expect(content.body, 'Tom hat deinen Beitrag positiv bewertet');
+    });
+
+    test('fehlende Relationen: generalisierter Text, Route null', () async {
+      final item = NotificationItem(
+        id: 'n12',
+        type: 'forum_upvote',
+        createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+      );
+
+      final content = await resolver.resolve(item);
+
+      expect(content.body, 'Jemand hat deinen Beitrag positiv bewertet.');
       expect(content.route, isNull);
     });
   });

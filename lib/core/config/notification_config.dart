@@ -12,8 +12,8 @@ import '../../features/notifications/models/notification_item.dart';
 /// fehlen (z. B. alte Payloads) und für die Anreicherung nicht nachgeladen
 /// werden kann.
 ///
-/// Unterstützte Typen: `forum_reply`, `forum_comment`, `story_post`,
-/// `direct_message`,
+/// Unterstützte Typen: `forum_reply`, `forum_comment`, `forum_post`,
+/// `forum_upvote`, `story_post`, `direct_message`,
 /// `trip_user_added`, `trip_user_added_others`, `trip_event_added`,
 /// `trip_event_user_added`, `trip_event_user_added_others`,
 /// `trip_event_info_changed`, `trip_event_ticket_added`,
@@ -53,7 +53,8 @@ class NotificationTypeLabel {
   /// Pflicht-Relationen fehlen.
   static String? route(String type, List<NotificationRelation> data) {
     return switch (type) {
-      'forum_reply' || 'forum_comment' => _forumRoute(data),
+      'forum_reply' || 'forum_comment' || 'forum_post' || 'forum_upvote' =>
+        _forumRoute(data),
       'story_post' => _storyRoute(data),
       'direct_message' => _directMessageRoute(data),
       _ when _tripTypes.contains(type) => _tripRoute(data),
@@ -70,6 +71,8 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' => 'Neue Antwort auf deinen Kommentar',
       'forum_comment' => 'Neuer Kommentar zu deinem Beitrag',
+      'forum_post' => 'Neuer Beitrag im Forum',
+      'forum_upvote' => 'Neue Bewertung',
       'story_post' => 'Neue Story',
       'direct_message' => 'Neue Nachricht',
       'trip_user_added' => 'Du wurdest zu einer Reise hinzugefügt',
@@ -104,6 +107,8 @@ class NotificationTypeLabel {
     return switch (type) {
       'forum_reply' => 'Jemand hat auf deinen Kommentar geantwortet.',
       'forum_comment' => 'Jemand hat deinen Beitrag kommentiert.',
+      'forum_post' => 'Jemand hat einen neuen Beitrag im Forum veröffentlicht.',
+      'forum_upvote' => 'Jemand hat deinen Beitrag positiv bewertet.',
       'story_post' => 'Jemand hat eine neue Story veröffentlicht.',
       'direct_message' => 'Du hast eine neue Nachricht.',
       'trip_user_added' => 'Du wurdest zu einer Reise hinzugefügt.',
@@ -134,7 +139,8 @@ class NotificationTypeLabel {
   /// Icon für die Benachrichtigung.
   static IconData icon(String type) {
     return switch (type) {
-      'forum_reply' || 'forum_comment' => Icons.forum_rounded,
+      'forum_reply' || 'forum_comment' || 'forum_post' || 'forum_upvote' =>
+        Icons.forum_rounded,
       'story_post' => Icons.auto_stories_rounded,
       'direct_message' => Icons.chat_rounded,
       'trip_user_added' ||
@@ -211,7 +217,10 @@ class NotificationTypeLabel {
   /// `event_user_added_others`, `event_ticket_added` und `event_info_changed`.
   static String? category(String type) {
     return switch (type) {
-      'forum_reply' || 'forum_comment' => 'Forum',
+      'forum_reply' ||
+      'forum_comment' ||
+      'forum_post' ||
+      'forum_upvote' => 'Forum',
       'story_post' => 'Stories',
       'direct_message' => 'Chat',
       'trip_user_added' ||
@@ -233,7 +242,7 @@ class NotificationTypeLabel {
   /// Forum-Typen, `userIds` bei `story_post`. `null` für alle anderen.
   static String? customDataKey(String type) {
     return switch (type) {
-      'forum_reply' || 'forum_comment' => 'forumIds',
+      'forum_reply' || 'forum_comment' || 'forum_post' => 'forumIds',
       'story_post' => 'userIds',
       'direct_message' => 'userIds',
       _ => null,

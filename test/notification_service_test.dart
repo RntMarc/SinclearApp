@@ -273,6 +273,8 @@ void main() {
         'notifications': [
           forumNotification('1', 'forum_reply', 'forumA', 'post1'),
           forumNotification('2', 'forum_comment', 'forumB', 'post2'),
+          forumNotification('3', 'forum_post', 'forumA', 'post1'),
+          forumNotification('4', 'forum_upvote', 'forumC', 'post3'),
         ],
       });
 
@@ -280,9 +282,9 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 100));
 
       expect(service.hasUnreadForumContent, isTrue);
-      expect(service.unreadForumIds, {'forumA', 'forumB'});
+      expect(service.unreadForumIds, {'forumA', 'forumB', 'forumC'});
       expect(service.unreadPostIdsForForum('forumA'), {'post1'});
-      expect(service.unreadIdsForPost('post1'), ['1']);
+      expect(service.unreadIdsForPost('post1'), ['1', '3']);
     });
 
     test('markRead removes ids from the registry', () async {
@@ -300,6 +302,26 @@ void main() {
 
       expect(service.hasUnreadForumContent, isFalse);
       expect(service.unreadIdsForPost('post1'), isEmpty);
+    });
+
+    test('markRead removes mixed forum types for same post', () async {
+      mockApi.responses.add({
+        'notifications': [
+          forumNotification('1', 'forum_reply', 'forumA', 'post1'),
+          forumNotification('2', 'forum_comment', 'forumA', 'post1'),
+          forumNotification('3', 'forum_post', 'forumA', 'post1'),
+          forumNotification('4', 'forum_upvote', 'forumA', 'post1'),
+        ],
+      });
+
+      service.startPolling(getToken: () async => 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(service.unreadIdsForPost('post1'), ['1', '2', '3', '4']);
+
+      await service.markRead(['1', '3'], token: 'test-token');
+
+      expect(service.unreadIdsForPost('post1'), ['2', '4']);
+      expect(service.hasUnreadForumContent, isTrue);
     });
 
     test('refreshUnread replaces registry with server state', () async {

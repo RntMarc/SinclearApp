@@ -66,6 +66,8 @@ class NotificationContentResolver {
     return switch (item.type) {
       'forum_reply' => _resolveForumReply(item, route),
       'forum_comment' => _resolveForumComment(item, route),
+      'forum_post' => _resolveForumPost(item, route),
+      'forum_upvote' => _resolveForumUpvote(item, route),
       'story_post' => _resolveStoryPost(item, route),
       'direct_message' => _resolveDirectMessage(item, route),
       _ => _fallback(item.type, route),
@@ -168,7 +170,77 @@ class NotificationContentResolver {
     );
   }
 
-  /// `story_post`: „{Autor} hat eine neue Story veröffentlicht“ — der Autor
+  /// `forum_post`: „{Autor} hat einen neuen Beitrag im Forum veröffentlicht"
+  /// — der Autor wird nachgeladen; schlägt das fehl, greift der
+  /// generalisierte Fallback-Text.
+  Future<ResolvedNotificationContent> _resolveForumPost(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final authorId = item.identifierFor('post_author');
+    final authorName = await _attempt('post_author', () async {
+      if (authorId == null) return null;
+      return (await _user.get(authorId)).base.displayName;
+    });
+
+    if (authorName == null || authorName.isEmpty) {
+      return _fallback(item.type, route);
+    }
+
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: '$authorName hat einen neuen Beitrag im Forum veröffentlicht',
+      route: route,
+    );
+  }
+
+  /// `forum_upvote`: „{Voter} hat deinen Beitrag „{Vorschau}“ positiv
+  /// bewertet" — Voter und Post-Text werden nachgeladen; fehlende Teile
+  /// fallen auf die generalisierte Form zurück.
+  Future<ResolvedNotificationContent> _resolveForumUpvote(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final voterId = item.identifierFor('voter');
+    final forumId = item.identifierFor('parent_forum');
+    final postId = item.identifierFor('parent_post');
+
+    final results = await Future.wait([
+      _attempt('voter', () async {
+        if (voterId == null) return null;
+        return (await _user.get(voterId)).base.displayName;
+      }),
+      _attempt('parent_post', () async {
+        if (forumId == null || postId == null) return null;
+        return (await _forum.getPost(forumId, postId)).text;
+      }),
+    ]);
+
+    final voterName = results[0];
+    final postSnippet = switch (results[1]) {
+      final text? => _snippet(text),
+      null => null,
+    };
+
+    if (voterName == null && postSnippet == null) {
+      return _fallback(item.type, route);
+    }
+
+    final voter = voterName == null || voterName.isEmpty
+        ? 'Jemand'
+        : voterName;
+    final postPart = postSnippet == null
+        ? ''
+        : ' \u201e$postSnippet\u201c';
+
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: '$voter hat deinen Beitrag$postPart positiv bewertet',
+      route: route,
+    );
+  }
+
+  /// `story_post`: „{Autor} hat eine neue Story veröffentlicht" — der Autor
   /// wird nachgeladen; schlägt das fehl, greift der generalisierte
   /// Fallback-Text.
   Future<ResolvedNotificationContent> _resolveStoryPost(
