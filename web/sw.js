@@ -12,6 +12,14 @@ const CONTENT_BY_TYPE = {
     title: 'Neuer Kommentar zu deinem Beitrag',
     body: 'Jemand hat deinen Beitrag kommentiert.',
   },
+  forum_post: {
+    title: 'Neuer Beitrag im Forum',
+    body: 'Jemand hat einen neuen Beitrag im Forum veröffentlicht.',
+  },
+  forum_upvote: {
+    title: 'Neue Bewertung',
+    body: 'Jemand hat deinen Beitrag positiv bewertet.',
+  },
   story_post: {
     title: 'Neue Story',
     body: 'Jemand hat eine neue Story veröffentlicht.',
@@ -117,7 +125,12 @@ function relationId(data, relation) {
 // Deutsche Route lokal aus den Relation-IDs aufbauen (Spiegelung von
 // NotificationTypeLabel.route). Fallback: '/home'.
 function resolveRoute(type, data) {
-  if (type === 'forum_reply' || type === 'forum_comment') {
+  if (
+    type === 'forum_reply' ||
+    type === 'forum_comment' ||
+    type === 'forum_post' ||
+    type === 'forum_upvote'
+  ) {
     const forumId = relationId(data, 'parent_forum');
     const postId = relationId(data, 'parent_post');
     if (forumId && postId) return `/forum/${forumId}/beitrag/${postId}`;
