@@ -2,23 +2,16 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
-import '../../../core/utils/date_utils.dart' as app_date;
-import '../../../core/utils/spotify_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
-import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
-import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/forum_models.dart';
 import '../widgets/post_detail_widgets.dart';
-import '../widgets/youtube_player_embed.dart';
-import '../widgets/spotify_thumbnail.dart';
-import '../widgets/og_preview_card.dart';
 
 class PostDetailScreen extends StatefulWidget {
   final String forumId;
@@ -84,8 +77,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
   }
 
-  /// Markiert alle ungelesenen Benachrichtigungen dieses Posts als gelesen.
-  /// „Gelesen = Inhalt gesehen" — ausgelöst beim Öffnen des Post-Details.
   Future<void> _markPostRead() async {
     try {
       final scope = AppScope.of(context);
@@ -185,41 +176,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _deleteComment(String commentId) async {
-    final confirmed = await showDesignSheet<bool>(
-      context: context,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DesignText(
-            'Kommentar löschen',
-            style: DesignTextStyle.subtitle,
-            color: DesignTheme.of(context).textHigh,
-          ),
-          SizedBox(height: DesignTheme.of(context).spaceMd),
-          DesignText(
-            'Kommentar wirklich löschen?',
-            style: DesignTextStyle.body,
-            color: DesignTheme.of(context).textHigh,
-          ),
-          SizedBox(height: DesignTheme.of(context).spaceXl),
-          DesignButton(
-            variant: DesignButtonVariant.filled,
-            label: 'Löschen',
-            fullWidth: true,
-            onPressed: () => Navigator.pop(context, true),
-          ),
-          SizedBox(height: DesignTheme.of(context).spaceSm),
-          DesignButton(
-            variant: DesignButtonVariant.outlined,
-            label: 'Abbrechen',
-            fullWidth: true,
-            onPressed: () => Navigator.pop(context, false),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
     try {
       final forumService = AppScope.of(context).forum;
       await forumService.deleteComment(
@@ -268,223 +224,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-    final auth = AppScope.of(context).auth;
-    final isAdmin = auth.isAdmin;
-    final currentUserId = auth.userId ?? '';
-
-    return DesignSurface(
-      child: Column(
-        children: [
-          DesignSubpageHeader(
-            leading: DesignIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: _post?.title ?? 'Beitrag',
-            actions: [
-              if (_post != null && _post!.userId != currentUserId)
-                DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
-            ],
-          ),
-          Expanded(child: _buildBody(context, tokens, currentUserId, isAdmin)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBody(
-    BuildContext context,
-    DesignTokens tokens,
-    String currentUserId,
-    bool isAdmin,
-  ) {
-    if (_loading) {
-      return RefreshIndicator(
-        onRefresh: _load,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 120),
-              Center(child: CircularProgressIndicator(color: tokens.primary)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return RefreshIndicator(
-        onRefresh: _load,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.error_outline, size: 48, color: tokens.danger),
-                    SizedBox(height: tokens.spaceSm),
-                    DesignText(
-                      _error!,
-                      style: DesignTextStyle.body,
-                      color: tokens.textHigh,
-                    ),
-                    SizedBox(height: tokens.spaceLg),
-                    DesignButton(
-                      variant: DesignButtonVariant.filled,
-                      label: 'Erneut versuchen',
-                      onPressed: _load,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final post = _post!;
-
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(tokens.spaceLg),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                DesignAvatar(
-                  imageUrl: post.userImage,
-                  name: post.userName ?? post.userId,
-                  size: 32,
-                ),
-                SizedBox(width: tokens.spaceSm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      DesignText(
-                        post.userName ?? 'Benutzer',
-                        style: DesignTextStyle.label,
-                        color: tokens.textHigh,
-                      ),
-                      DesignText(
-                        app_date.formatRelativeDate(post.createdAt),
-                        style: DesignTextStyle.label,
-                        color: tokens.textLow.withValues(alpha: 0.6),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(postTypeIcon(post.type), size: 16, color: tokens.primary),
-                SizedBox(width: tokens.spaceXs),
-                DesignText(
-                  postTypeLabel(post.type),
-                  style: DesignTextStyle.label,
-                  color: tokens.primary,
-                ),
-              ],
-            ),
-            if (post.text != null && post.text!.isNotEmpty) ...[
-              SizedBox(height: tokens.spaceSm),
-              DesignText(
-                post.text!,
-                style: DesignTextStyle.body,
-                color: tokens.textHigh,
-              ),
-            ],
-            if (post.type == 'web') ...[
-              if (post.youtubeIds.isNotEmpty) ...[
-                SizedBox(height: tokens.spaceSm),
-                ...post.youtubeIds.map(
-                  (id) => Padding(
-                    padding: EdgeInsets.only(bottom: tokens.spaceMd),
-                    child: YouTubePlayerEmbed(videoId: id),
-                  ),
-                ),
-              ],
-              if (post.spotifyItems.isNotEmpty) ...[
-                SizedBox(height: tokens.spaceSm),
-                ...post.spotifyItems.map(
-                  (SpotifyItem item) => Padding(
-                    padding: EdgeInsets.only(bottom: tokens.spaceMd),
-                    child: SpotifyThumbnail(
-                      item: item,
-                      originalUrl: post.webUrls.firstWhere(
-                        (u) => SpotifyHelper.parseUrl(u) != null,
-                        orElse: () => post.webUrls.first,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              if (post.genericUrls.isNotEmpty) ...[
-                SizedBox(height: tokens.spaceSm),
-                ...post.genericUrls.map(
-                  (url) => Padding(
-                    padding: EdgeInsets.only(bottom: tokens.spaceMd),
-                    child: OgPreviewCard(url: url),
-                  ),
-                ),
-              ],
-            ],
-            if (post.type == 'video' && post.youtubeVideoIds.isNotEmpty) ...[
-              SizedBox(height: tokens.spaceSm),
-              ...post.youtubeVideoIds.map(
-                (id) => Padding(
-                  padding: EdgeInsets.only(bottom: tokens.spaceMd),
-                  child: YouTubePlayerEmbed(videoId: id),
-                ),
-              ),
-            ],
-            if (post.type == 'music' && post.spotifyMusicItems.isNotEmpty) ...[
-              SizedBox(height: tokens.spaceLg),
-              ...post.spotifyMusicItems.map(
-                (SpotifyItem item) => Padding(
-                  padding: EdgeInsets.only(bottom: tokens.spaceMd),
-                  child: SpotifyThumbnail(
-                    item: item,
-                    originalUrl: post.urls
-                        .firstWhere(
-                          (u) => u.platform.toLowerCase().contains('spotify'),
-                        )
-                        .url,
-                  ),
-                ),
-              ),
-            ],
-            ...postLinkDetailEntries(tokens, post),
-            PostVoteSection(
-              hasVoted: post.hasVoted,
-              upvoteCount: post.upvoteCount,
-              onVote: () => _handleVote(post),
-            ),
-            PostCommentsSection(
-              commentTotal: _commentTotal,
-              replyToId: _replyToId,
-              commentsLoading: _commentsLoading,
-              comments: _comments,
-              currentUserId: currentUserId,
-              isAdmin: isAdmin,
-              onReply: (id) => setState(() {
-                _replyToId = id.isEmpty ? null : id;
-              }),
-              onAddComment: (text, {parentId}) =>
-                  _addComment(text, parentId: parentId ?? _replyToId),
-              onDeleteComment: _deleteComment,
-              onReportComment: (commentId) => _reportComment(commentId),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _handleVote(FeedPost post) async {
     try {
       final forumService = AppScope.of(context).forum;
@@ -515,5 +254,107 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     } catch (e) {
       developer.log('Vote failed', error: e);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final auth = AppScope.of(context).auth;
+    final isAdmin = auth.isAdmin;
+    final currentUserId = auth.userId ?? '';
+
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignSubpageHeader(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: _post?.title ?? 'Beitrag',
+            actions: [
+              if (_post != null)
+                DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
+            ],
+          ),
+          Expanded(child: _buildBody(context, tokens, currentUserId, isAdmin)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    DesignTokens tokens,
+    String currentUserId,
+    bool isAdmin,
+  ) {
+    if (_loading) {
+      return Center(child: CircularProgressIndicator(color: tokens.primary));
+    }
+
+    if (_error != null) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: tokens.danger),
+                SizedBox(height: tokens.spaceSm),
+                DesignText(
+                  _error!,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+                SizedBox(height: tokens.spaceLg),
+                DesignButton(
+                  variant: DesignButtonVariant.outlined,
+                  label: 'Erneut versuchen',
+                  onPressed: _load,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final post = _post!;
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(vertical: tokens.spaceLg),
+        child: Column(
+          children: [
+            PostDetailCard(
+              post: post,
+              hasVoted: post.hasVoted,
+              upvoteCount: post.upvoteCount,
+              onVote: () => _handleVote(post),
+            ),
+            SizedBox(height: tokens.spaceMd),
+            PostCommentsCard(
+              commentTotal: _commentTotal,
+              replyToId: _replyToId,
+              commentsLoading: _commentsLoading,
+              comments: _comments,
+              currentUserId: currentUserId,
+              isAdmin: isAdmin,
+              onReply: (id) => setState(() {
+                _replyToId = id.isEmpty ? null : id;
+              }),
+              onAddComment: (text, {parentId}) =>
+                  _addComment(text, parentId: parentId ?? _replyToId),
+              onDeleteComment: _deleteComment,
+              onReportComment: _reportComment,
+            ),
+            SizedBox(height: tokens.spaceLg),
+          ],
+        ),
+      ),
+    );
   }
 }
