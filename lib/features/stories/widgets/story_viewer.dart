@@ -439,7 +439,7 @@ class _TimelineBar extends StatelessWidget {
     final progress = currentPage - groupStart + 1; // 1-indexed progress
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, top: 8),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
       child: Row(
         children: List.generate(totalInGroup, (index) {
           final completed = index < progress;
