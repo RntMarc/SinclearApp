@@ -101,6 +101,10 @@ class _StoryDeepLinkScreenState extends State<StoryDeepLinkScreen> {
     };
 
     final items = _toStoryItems(groups);
+    final storyIds = [
+      for (final group in groups)
+        for (final story in group.stories) story.id,
+    ];
 
     if (!mounted) return;
     await Navigator.of(context).push(
@@ -112,10 +116,7 @@ class _StoryDeepLinkScreenState extends State<StoryDeepLinkScreen> {
           currentStoryId: _currentStory,
           deletableById: deletableById,
           reportableById: reportableById,
-          // Der Viewer schließt sich in jedem Ausstiegspfad selbst (Löschen,
-          // Melden, durchspielen) und feuert diese Callbacks erst NACH dem
-          // Pop. Die Rückkehr zum Dashboard übernimmt daher einheitlich der
-          // `await push`-Fortsetzungspfad unten.
+          storyIds: storyIds,
           onDeleted: () {},
           onReported: () {},
         ),
