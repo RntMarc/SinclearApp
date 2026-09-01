@@ -10,15 +10,16 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../services/stories_service.dart';
+import 'story_viewers_sheet.dart';
 
-/// Vollbild-Viewer aus dem Paket, ergänzt um Schließen-, Melden- und
-/// Löschen-Button.
+/// Vollbild-Viewer aus dem Paket, ergänzt um Schließen-, Melden-,
+/// Löschen- und Zuschauer-Button.
 ///
 /// `FullPageView` ist ein geschlossenes Widget; eigene Bedienelemente lassen
 /// sich nur DARÜBER legen. Oben rechts liegen der X-Button zum Schließen
-/// (zusätzlich schließt eine Wischgeste nach unten) und die Flag zum Melden
-/// — die Flag ist auf jeder Story sichtbar, auch auf eigenen; die Ownership
-/// regelt das Moderation-Sheet. Unten rechts liegt der Löschen-Button
+/// (zusätzlich schließt eine Wischgeste nach unten), die Flag zum Melden
+/// und — nur beim eigenen Story-Autor oder Admin — der Personen-Button
+/// zum Anzeigen der Zuschauer-Liste. Unten rechts liegt der Löschen-Button
 /// (eigene Story oder Admin); er zeigt vor dem Ausführen eine Bestätigung an.
 class StoryViewer extends StatefulWidget {
   const StoryViewer({
@@ -80,6 +81,14 @@ class _StoryViewerState extends State<StoryViewer> {
   bool _isDeletable(String storyId) => widget.deletableById[storyId] ?? false;
 
   bool _isReportable(String storyId) => widget.reportableById[storyId] ?? false;
+
+  void _showViewers(String storyId) {
+    showStoryViewersSheet(
+      context,
+      storyId: storyId,
+      service: widget.service,
+    );
+  }
 
   Future<void> _confirmDelete(String storyId) async {
     final tokens = DesignTheme.of(context);
@@ -192,6 +201,12 @@ class _StoryViewerState extends State<StoryViewer> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (!_isReportable(storyId))
+                          _ViewersButton(
+                            onTap: _busy ? null : () => _showViewers(storyId),
+                          ),
+                        if (!_isReportable(storyId))
+                          const SizedBox(width: 8),
                         _ReportButton(
                           onTap: _busy ? null : () => _report(storyId),
                         ),
@@ -318,6 +333,33 @@ class _ReportButton extends StatelessWidget {
             border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
           ),
           child: const Icon(Icons.flag_rounded, color: Colors.white, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewersButton extends StatelessWidget {
+  const _ViewersButton({required this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Zuschauer anzeigen',
+      button: true,
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withValues(alpha: 0.55),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+          ),
+          child: const Icon(Icons.people_rounded, color: Colors.white, size: 20),
         ),
       ),
     );
