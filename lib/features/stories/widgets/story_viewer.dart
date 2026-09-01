@@ -262,16 +262,16 @@ class _StoryViewerState extends State<StoryViewer> {
                 children: [
                   Expanded(
                     flex: 1,
-                    child: InkWell(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: _canGoBack ? _goBack : null,
-                      child: Container(color: Colors.transparent),
                     ),
                   ),
                   Expanded(
                     flex: 2,
-                    child: InkWell(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: _canGoForward ? _goForward : null,
-                      child: Container(color: Colors.transparent),
                     ),
                   ),
                 ],
