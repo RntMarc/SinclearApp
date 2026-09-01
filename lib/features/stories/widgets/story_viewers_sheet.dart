@@ -109,10 +109,7 @@ class _StoryViewersContentState extends State<_StoryViewersContent> {
           ),
           SizedBox(height: tokens.spaceLg),
         ] else ...[
-          for (var i = 0; i < _viewers.length; i++) ...[
-            if (i > 0) SizedBox(height: tokens.spaceSm),
-            _ViewerTile(viewer: _viewers[i]),
-          ],
+          for (var i = 0; i < _viewers.length; i++) _ViewerTile(viewer: _viewers[i]),
         ],
       ],
     );
@@ -129,7 +126,7 @@ class _ViewerTile extends StatelessWidget {
     final tokens = DesignTheme.of(context);
     final timeLabel = formatRelativeDayTime(viewer.viewedAt);
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
+      padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
       child: Row(
         children: [
           _avatar(viewer, tokens),
