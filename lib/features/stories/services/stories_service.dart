@@ -83,4 +83,17 @@ class StoriesService extends ChangeNotifier {
   Future<void> delete(String id) async {
     await _api.delete('/stories/$id', token: await _token());
   }
+
+  /// Einzelne Story mit viewCount und Autor-Info laden.
+  Future<StoryDetail> getStory(String id) async {
+    final data = await _api.get('/stories/$id', token: await _token());
+    return StoryDetailResponse.fromJson(data).data;
+  }
+
+  /// Viewer-Liste einer Story laden (nur für Ersteller oder Admin).
+  /// Wirft bei 403 wenn der Nutzer nicht berechtigt ist.
+  Future<List<StoryViewerItem>> getViewers(String id) async {
+    final data = await _api.get('/stories/$id/viewers', token: await _token());
+    return StoryViewersResponse.fromJson(data).data;
+  }
 }

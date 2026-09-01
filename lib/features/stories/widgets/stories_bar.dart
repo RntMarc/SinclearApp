@@ -133,7 +133,11 @@ class _StoriesBarState extends State<StoriesBar>
               const AssetImage('assets/logo.png'),
           stories: [
             for (final story in group.stories)
-              buildStoryPage(story: story, onShown: onShown),
+              buildStoryPage(
+                story: story,
+                onShown: onShown,
+                service: widget.service,
+              ),
           ],
         ),
     ];

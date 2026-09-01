@@ -144,7 +144,11 @@ class _StoryDeepLinkScreenState extends State<StoryDeepLinkScreen> {
               const AssetImage('assets/logo.png'),
           stories: [
             for (final story in group.stories)
-              buildStoryPage(story: story, onShown: _onStoryShown),
+              buildStoryPage(
+                story: story,
+                onShown: _onStoryShown,
+                service: _service,
+              ),
           ],
         ),
     ];

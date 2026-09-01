@@ -84,3 +84,115 @@ class StoryCreateRequest {
     return map;
   }
 }
+
+/// Detaillierte Story-Antwort von `GET /stories/{id}`.
+///
+/// Enthält zusätzlich zum Feed-Autor die `viewCount`-Information
+/// sowie vollständige Author-Daten.
+class StoryDetail {
+  final String id;
+  final String image;
+  final String? caption;
+  final String createdAt;
+  final String expiresAt;
+  final bool viewed;
+  final int viewCount;
+  final StoryAuthor author;
+
+  const StoryDetail({
+    required this.id,
+    required this.image,
+    this.caption,
+    required this.createdAt,
+    required this.expiresAt,
+    this.viewed = false,
+    this.viewCount = 0,
+    required this.author,
+  });
+
+  factory StoryDetail.fromJson(Map<String, dynamic> json) {
+    return StoryDetail(
+      id: json['id'] as String,
+      image: json['image'] as String,
+      caption: json['caption'] as String?,
+      createdAt: json['createdAt'] as String,
+      expiresAt: json['expiresAt'] as String,
+      viewed: json['viewed'] as bool? ?? false,
+      viewCount: json['viewCount'] as int? ?? 0,
+      author: StoryAuthor.fromJson(json['author'] as Map<String, dynamic>),
+    );
+  }
+}
+
+/// Autor-Information einer Story (aus `GET /stories/{id}`).
+class StoryAuthor {
+  final String userId;
+  final String displayName;
+  final String? avatar;
+
+  const StoryAuthor({
+    required this.userId,
+    required this.displayName,
+    this.avatar,
+  });
+
+  factory StoryAuthor.fromJson(Map<String, dynamic> json) {
+    return StoryAuthor(
+      userId: json['userId'] as String,
+      displayName: json['displayName'] as String,
+      avatar: json['avatar'] as String?,
+    );
+  }
+}
+
+/// Einzelner Viewer-Eintrag aus `GET /stories/{id}/viewers`.
+class StoryViewerItem {
+  final String userId;
+  final String displayName;
+  final String? avatar;
+  final String viewedAt;
+
+  const StoryViewerItem({
+    required this.userId,
+    required this.displayName,
+    this.avatar,
+    required this.viewedAt,
+  });
+
+  factory StoryViewerItem.fromJson(Map<String, dynamic> json) {
+    return StoryViewerItem(
+      userId: json['userId'] as String,
+      displayName: json['displayName'] as String,
+      avatar: json['avatar'] as String?,
+      viewedAt: json['viewedAt'] as String,
+    );
+  }
+}
+
+/// Antwort von `GET /stories/{id}`.
+class StoryDetailResponse {
+  final StoryDetail data;
+
+  const StoryDetailResponse({required this.data});
+
+  factory StoryDetailResponse.fromJson(Map<String, dynamic> json) {
+    return StoryDetailResponse(
+      data: StoryDetail.fromJson(json['data'] as Map<String, dynamic>),
+    );
+  }
+}
+
+/// Antwort von `GET /stories/{id}/viewers`.
+class StoryViewersResponse {
+  final List<StoryViewerItem> data;
+
+  const StoryViewersResponse({required this.data});
+
+  factory StoryViewersResponse.fromJson(Map<String, dynamic> json) {
+    return StoryViewersResponse(
+      data: (json['data'] as List? ?? const [])
+          .map((e) => StoryViewerItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
