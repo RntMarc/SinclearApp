@@ -162,6 +162,10 @@ class _StoriesBarState extends State<StoriesBar>
     };
     _currentStory.value = null;
     final items = _toStoryItems(groups, _onStoryShown);
+    final storyIds = [
+      for (final group in groups)
+        for (final story in group.stories) story.id,
+    ];
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => StoryViewer(
@@ -171,6 +175,7 @@ class _StoriesBarState extends State<StoriesBar>
           currentStoryId: _currentStory,
           deletableById: deletableById,
           reportableById: reportableById,
+          storyIds: storyIds,
           onDeleted: _onStoryDeleted,
           onReported: _onStoryReported,
         ),
