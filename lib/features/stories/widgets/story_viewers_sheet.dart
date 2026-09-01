@@ -109,19 +109,10 @@ class _StoryViewersContentState extends State<_StoryViewersContent> {
           ),
           SizedBox(height: tokens.spaceLg),
         ] else ...[
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.4,
-            ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: _viewers.length,
-              separatorBuilder: (_, _) =>
-                  Divider(height: 1, color: tokens.border),
-              itemBuilder: (context, index) =>
-                  _ViewerTile(viewer: _viewers[index]),
-            ),
-          ),
+          for (var i = 0; i < _viewers.length; i++) ...[
+            if (i > 0) SizedBox(height: tokens.spaceSm),
+            _ViewerTile(viewer: _viewers[i]),
+          ],
         ],
       ],
     );
