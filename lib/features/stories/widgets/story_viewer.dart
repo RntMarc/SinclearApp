@@ -183,6 +183,7 @@ class _StoryViewerState extends State<StoryViewer> {
       onVerticalDragEnd: _onVerticalDragEnd,
       onVerticalDragCancel: () => _dragDistance = 0,
       child: Stack(
+        fit: StackFit.expand,
         children: [
           FullPageView(
             storiesMapList: widget.items,
@@ -197,7 +198,7 @@ class _StoryViewerState extends State<StoryViewer> {
                 return Align(
                   alignment: Alignment.topRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 48, right: 16),
+                    padding: const EdgeInsets.only(top: 16, right: 16),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
