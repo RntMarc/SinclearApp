@@ -28,6 +28,14 @@ class _ExploreSearchOverlayState extends State<ExploreSearchOverlay> {
   bool _searching = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) FocusScope.of(context).requestFocus();
+    });
+  }
+
+  @override
   void dispose() {
     _queryController.dispose();
     _focusNode.dispose();
