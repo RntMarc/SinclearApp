@@ -7,6 +7,7 @@ class DesignTextField extends StatefulWidget {
   const DesignTextField({
     this.hint,
     this.controller,
+    this.focusNode,
     this.obscure = false,
     this.keyboardType,
     this.textAlign = TextAlign.start,
@@ -21,6 +22,10 @@ class DesignTextField extends StatefulWidget {
 
   final String? hint;
   final TextEditingController? controller;
+
+  /// Externer [FocusNode], z.B. um das Feld beim Öffnen eines Screens zu
+  /// fokussieren. Ohne Angabe verwaltet das Widget einen eigenen internen.
+  final FocusNode? focusNode;
   final bool obscure;
   final TextInputType? keyboardType;
   final TextAlign textAlign;
@@ -45,19 +50,31 @@ class DesignTextField extends StatefulWidget {
 }
 
 class _DesignTextFieldState extends State<DesignTextField> {
-  final FocusNode _focus = FocusNode();
+  FocusNode? _internalFocus;
   bool _focused = false;
+
+  FocusNode get _focus {
+    final external = widget.focusNode;
+    if (external != null) return external;
+    return _internalFocus ??= FocusNode();
+  }
 
   @override
   void initState() {
     super.initState();
-    _focus.addListener(() => setState(() => _focused = _focus.hasFocus));
+    _focus.addListener(_onFocusChanged);
+    _focused = _focus.hasFocus;
   }
 
   @override
   void dispose() {
-    _focus.dispose();
+    _focus.removeListener(_onFocusChanged);
+    _internalFocus?.dispose();
     super.dispose();
+  }
+
+  void _onFocusChanged() {
+    setState(() => _focused = _focus.hasFocus);
   }
 
   @override

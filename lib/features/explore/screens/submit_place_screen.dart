@@ -216,6 +216,11 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
       setState(() => _error = 'Bitte vergebe eine Bewertung (1-5 Sterne).');
       return;
     }
+    if (_commentController.text.trim().isEmpty) {
+      debugPrint('[submit] No review comment');
+      setState(() => _error = 'Bitte schreibe einen Bewertungskommentar.');
+      return;
+    }
 
     debugPrint('[submit] Validation passed, starting submission');
     setState(() {
@@ -246,9 +251,7 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
               ? null
               : _websiteController.text.trim(),
           rating: _rating,
-          comment: _commentController.text.trim().isEmpty
-              ? null
-              : _commentController.text.trim(),
+          comment: _commentController.text.trim(),
           note: _noteController.text.trim().isEmpty
               ? null
               : _noteController.text.trim(),
@@ -272,9 +275,7 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
               ? null
               : _websiteController.text.trim(),
           rating: _rating,
-          comment: _commentController.text.trim().isEmpty
-              ? null
-              : _commentController.text.trim(),
+          comment: _commentController.text.trim(),
           note: _noteController.text.trim().isEmpty
               ? null
               : _noteController.text.trim(),
@@ -556,12 +557,6 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
         ),
         SizedBox(height: tokens.spaceMd),
         DesignTextField(
-          controller: _commentController,
-          hint: 'Kommentar (optional)',
-          prefixIcon: Icons.comment_outlined,
-        ),
-        SizedBox(height: tokens.spaceMd),
-        DesignTextField(
           controller: _noteController,
           hint: 'Notiz fuer Admins (optional)',
           prefixIcon: Icons.info_outline_rounded,
@@ -596,6 +591,19 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
               ),
             );
           }),
+        ),
+        SizedBox(height: tokens.spaceMd),
+        DesignText(
+          'Bewertungskommentar *',
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
+        ),
+        SizedBox(height: tokens.spaceSm),
+        DesignTextField(
+          controller: _commentController,
+          hint: 'Dein Kommentar zur Bewertung…',
+          prefixIcon: Icons.comment_outlined,
+          maxLines: 4,
         ),
       ],
     );
