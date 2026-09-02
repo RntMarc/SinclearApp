@@ -16,6 +16,7 @@ import '../features/explore/screens/submit_place_screen.dart';
 import '../features/explore/screens/place_confirm_screen.dart';
 import '../features/explore/screens/submissions_list_screen.dart';
 import '../features/explore/screens/submission_detail_screen.dart';
+import '../features/explore/screens/library_screen.dart';
 import '../features/explore/models/explore_models.dart';
 
 import '../features/shell/main_shell.dart';
@@ -151,6 +152,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
             path: '/entdecken',
             builder: (context, state) => const ExploreScreen(),
             routes: [
+              GoRoute(
+                path: 'sammlung',
+                builder: (context, state) => const LibraryScreen(),
+              ),
               GoRoute(
                 path: 'gastronomie',
                 builder: (context, state) =>

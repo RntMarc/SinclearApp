@@ -12,6 +12,7 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../models/explore_models.dart';
@@ -33,6 +34,12 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
   int _rating = 0;
   final _commentController = TextEditingController();
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentController.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -76,7 +83,7 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
   }
 
   Future<void> _submit() async {
-    if (_rating == 0) return;
+    if (_rating == 0 || _commentController.text.trim().isEmpty) return;
     setState(() {
       _submitting = true;
       _stepError = null;
@@ -91,9 +98,7 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
       await explore.createReview(
         place.id,
         rating: _rating,
-        comment: _commentController.text.trim().isEmpty
-            ? null
-            : _commentController.text.trim(),
+        comment: _commentController.text.trim(),
       );
       if (!mounted) return;
       context.go('/entdecken/${place.id}');
@@ -379,35 +384,11 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
               );
             }),
           ),
-          SizedBox(height: tokens.spaceMd),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: tokens.spaceMd,
-              vertical: tokens.spaceSm,
-            ),
-            decoration: BoxDecoration(
-              color: tokens.surface,
-              borderRadius: BorderRadius.circular(tokens.radiusMd),
-              border: Border.all(
-                color: tokens.border.withValues(alpha: 0.8),
-                width: 1.5,
-              ),
-            ),
-            child: Material(
-              type: MaterialType.transparency,
-              child: TextField(
-                controller: _commentController,
-                decoration: InputDecoration(
-                  labelText: 'Kommentar (optional)',
-                  labelStyle: TextStyle(color: tokens.textLow, fontSize: 15),
-                  border: InputBorder.none,
-                  isCollapsed: true,
-                ),
-                style: TextStyle(color: tokens.textHigh, fontSize: 15),
-                cursorColor: tokens.primary,
-                maxLines: 4,
-              ),
-            ),
+          SizedBox(height: tokens.spaceXl),
+          DesignTextField(
+            controller: _commentController,
+            hint: 'Bewertungskommentar *',
+            maxLines: 4,
           ),
           const Spacer(),
           if (_stepError != null)
@@ -425,7 +406,10 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
             fullWidth: true,
             icon: Icons.add_location_alt_rounded,
             loading: _submitting,
-            onPressed: _rating == 0 || _submitting ? null : _submit,
+            onPressed:
+                _rating == 0 || _commentController.text.trim().isEmpty || _submitting
+                    ? null
+                    : _submit,
           ),
         ],
       ),

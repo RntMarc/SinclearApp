@@ -115,6 +115,11 @@ class ExploreSuggestionsList extends StatelessWidget {
   final int crossAxisCount;
   final String? error;
 
+  final bool loadingNew;
+  final List<ExplorePlace> newPlaces;
+  final String? newPlacesError;
+  final VoidCallback onRetryNew;
+
   /// Blendet den Lesezeichen-Bereich für Gäste aus.
   final bool showBookmarks;
   final bool loadingBookmarks;
@@ -129,6 +134,10 @@ class ExploreSuggestionsList extends StatelessWidget {
     required this.suggestions,
     required this.crossAxisCount,
     this.error,
+    this.loadingNew = false,
+    this.newPlaces = const [],
+    this.newPlacesError,
+    required this.onRetryNew,
     this.showBookmarks = true,
     required this.loadingBookmarks,
     required this.bookmarksError,
@@ -176,7 +185,7 @@ class ExploreSuggestionsList extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.only(bottom: tokens.spaceSm),
               child: DesignText(
-                'Vorschläge',
+                'Zufällige Auswahl',
                 style: DesignTextStyle.subtitle,
                 color: tokens.textHigh,
               ),
@@ -195,6 +204,86 @@ class ExploreSuggestionsList extends StatelessWidget {
             delegate: SliverChildBuilderDelegate(
               (context, index) => PlaceCard(place: suggestions[index]),
               childCount: suggestions.length,
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(
+            tokens.spaceLg, tokens.spaceXl, tokens.spaceLg, tokens.spaceSm,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DesignText(
+                  'Neu hinzugefügte Orte',
+                  style: DesignTextStyle.subtitle,
+                  color: tokens.textHigh,
+                ),
+                SizedBox(height: tokens.spaceSm),
+                if (loadingNew)
+                  Padding(
+                    padding: EdgeInsets.all(tokens.spaceXl),
+                    child: Center(
+                      child: CircularProgressIndicator(color: tokens.primary),
+                    ),
+                  )
+                else if (newPlacesError != null)
+                  DesignCard(
+                    padding: EdgeInsets.all(tokens.spaceLg),
+                    margin: EdgeInsets.zero,
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 24,
+                            color: tokens.danger,
+                          ),
+                          SizedBox(height: tokens.spaceSm),
+                          DesignText(
+                            newPlacesError!,
+                            style: DesignTextStyle.body,
+                            color: tokens.danger,
+                          ),
+                          SizedBox(height: tokens.spaceSm),
+                          DesignButton(
+                            variant: DesignButtonVariant.text,
+                            label: 'Erneut versuchen',
+                            onPressed: onRetryNew,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else if (newPlaces.isEmpty)
+                  DesignCard(
+                    padding: EdgeInsets.all(tokens.spaceXl),
+                    margin: EdgeInsets.zero,
+                    child: Center(
+                      child: DesignText(
+                        'Noch keine Orte hinzugefügt.',
+                        style: DesignTextStyle.body,
+                        color: tokens.textLow,
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 200,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: EdgeInsets.zero,
+                      itemCount: newPlaces.length,
+                      separatorBuilder: (_, _) =>
+                          SizedBox(width: tokens.spaceSm),
+                      itemBuilder: (context, index) => SizedBox(
+                        width: 260,
+                        child: PlaceCard(place: newPlaces[index]),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

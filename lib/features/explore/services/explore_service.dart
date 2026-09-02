@@ -27,6 +27,7 @@ class ExploreService {
   Future<ExploreListResponse> list({
     String? category,
     String? sort,
+    bool mine = false,
     int page = 1,
     int limit = 20,
   }) async {
@@ -36,6 +37,7 @@ class ExploreService {
     };
     if (category != null) params['category'] = category;
     if (sort != null) params['sort'] = sort;
+    if (mine) params['mine'] = 'true';
 
     final data = await _api.get(
       _isGuest ? '/public/explore' : '/explore',

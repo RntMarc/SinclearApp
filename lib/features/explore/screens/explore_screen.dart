@@ -24,12 +24,16 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   List<ExplorePlace> _suggestions = [];
+  List<ExplorePlace> _newPlaces = [];
   List<ExplorePlace> _bookmarks = [];
+  List<ExplorePlace> _mapPlaces = [];
   bool _loading = true;
+  bool _loadingNew = true;
   bool _loadingBookmarks = true;
   bool _bookmarksError = false;
   final ValueNotifier<bool> _showMap = ValueNotifier(false);
   String? _error;
+  String? _newPlacesError;
   bool _hasLoaded = false;
 
   List<ExplorePlace>? _searchResults;
@@ -50,7 +54,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
     if (!_hasLoaded) {
       _hasLoaded = true;
       _loadSuggestions();
+      _loadNewPlaces();
       _loadBookmarks();
+      _loadMapPlaces();
     }
   }
 
@@ -74,7 +80,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     setState(() => _loading = true);
     try {
       final explore = AppScope.of(context).explore;
-      final response = await explore.random(limit: 20);
+      final response = await explore.random(limit: 3);
       if (!mounted) return;
       setState(() {
         _suggestions = response.data;
@@ -88,6 +94,41 @@ class _ExploreScreenState extends State<ExploreScreen> {
         _loading = false;
         _error = 'Vorschläge konnten nicht geladen werden.';
       });
+    }
+  }
+
+  Future<void> _loadNewPlaces() async {
+    setState(() => _loadingNew = true);
+    try {
+      final explore = AppScope.of(context).explore;
+      final response = await explore.list(
+        sort: 'created_desc',
+        limit: 10,
+      );
+      if (!mounted) return;
+      setState(() {
+        _newPlaces = response.data;
+        _loadingNew = false;
+        _newPlacesError = null;
+      });
+    } catch (e, st) {
+      developer.log('Failed to load new places', error: e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _loadingNew = false;
+        _newPlacesError = 'Neue Orte konnten nicht geladen werden.';
+      });
+    }
+  }
+
+  Future<void> _loadMapPlaces() async {
+    try {
+      final explore = AppScope.of(context).explore;
+      final response = await explore.list(limit: 100);
+      if (!mounted) return;
+      setState(() => _mapPlaces = response.data);
+    } catch (e, st) {
+      developer.log('Failed to load map places', error: e, stackTrace: st);
     }
   }
 
@@ -315,6 +356,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           tinted: true,
                           onPressed: _searchByLocation,
                         ),
+                        if (!guest) ...[
+                          SizedBox(width: tokens.spaceSm),
+                          DesignIconButton(
+                            icon: Icons.bookmark_rounded,
+                            tinted: true,
+                            onPressed: () =>
+                                context.push('/entdecken/sammlung'),
+                          ),
+                        ],
                       ],
                     ),
                     SizedBox(height: tokens.spaceMd),
@@ -372,13 +422,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       return ExploreSearchEmpty(onBack: _clearSearch);
                     }
                     if (showMap) {
-                      return ExploreMap(places: _suggestions, zoom: 6);
+                      return ExploreMap(places: _mapPlaces, zoom: 6);
                     }
                     return ExploreSuggestionsList(
                       loading: _loading,
                       suggestions: _suggestions,
                       crossAxisCount: crossAxisCount,
                       error: _error,
+                      loadingNew: _loadingNew,
+                      newPlaces: _newPlaces,
+                      newPlacesError: _newPlacesError,
+                      onRetryNew: _loadNewPlaces,
                       showBookmarks: !guest,
                       loadingBookmarks: _loadingBookmarks,
                       bookmarksError: _bookmarksError,
