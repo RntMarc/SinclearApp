@@ -31,7 +31,7 @@ class _ExploreSearchOverlayState extends State<ExploreSearchOverlay> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) FocusScope.of(context).requestFocus();
+      _focusNode.requestFocus();
     });
   }
 
@@ -95,6 +95,7 @@ class _ExploreSearchOverlayState extends State<ExploreSearchOverlay> {
                 children: [
                   DesignTextField(
                     controller: _queryController,
+                    focusNode: _focusNode,
                     hint: _searchMode == 'name'
                         ? 'Orte, Kategorien…'
                         : 'Stadt, Stadtteil…',
