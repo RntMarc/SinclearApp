@@ -439,29 +439,29 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
                 ],
               ),
               Expanded(child: _buildBody(context, tokens, auth)),
-              if (_forum?.isMember == true)
-                Padding(
-                  padding: EdgeInsets.all(tokens.spaceLg),
-                  child: DesignButton(
-                    variant: DesignButtonVariant.filled,
-                    icon: Icons.add_rounded,
-                    label: 'Neuer Beitrag',
-                    fullWidth: true,
-                    onPressed: () =>
-                        context.go('/forum/${widget.id}/erstellen'),
-                  ),
-                ),
             ],
           ),
-          if (_forum?.isMember == true)
+          if (_forum?.isMember == true) ...[
             Positioned(
-              bottom: tokens.spaceLg + 56,
-              right: tokens.spaceLg,
+              right: 16,
+              bottom: 80,
               child: DesignIconButton(
                 icon: Icons.edit_note_rounded,
                 onPressed: _showDraftsSheet,
               ),
             ),
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: FloatingActionButton(
+                heroTag: 'forum_detail_new_post',
+                tooltip: 'Neuer Beitrag',
+                onPressed: () =>
+                    context.go('/forum/${widget.id}/erstellen'),
+                child: const Icon(Icons.add_rounded),
+              ),
+            ),
+          ],
         ],
       ),
     );
