@@ -72,45 +72,62 @@ class DesignButton extends StatelessWidget {
             vertical: tokens.spaceXs,
           )
         : EdgeInsets.symmetric(
-            horizontal: tokens.spaceXl,
-            vertical: tokens.spaceMd,
+            horizontal: tokens.spaceLg,
+            vertical: tokens.spaceSm,
           );
 
-    final Widget leading = loading
+    final hasLeading = loading || icon != null;
+
+    Widget buildLeading(Color color) => loading
         ? SizedBox(
-            width: 18,
-            height: 18,
+            width: 16,
+            height: 16,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: _textColor(tokens),
+              color: color,
             ),
           )
-        : (icon != null
-            ? Row(
-                children: <Widget>[
-                  Icon(icon, size: 18),
-                  SizedBox(width: tokens.spaceSm),
-                ],
-              )
-            : const SizedBox.shrink());
+        : Icon(icon!, size: 16);
 
     Widget content = Container(
       padding: contentPadding,
       decoration: _decoration(tokens, enabled),
-      child: DefaultTextStyle(
-        style: tokens.labelStyle(tokens.textOnPrimary),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            leading,
-            DesignText(
-              label,
-              style: DesignTextStyle.label,
-              color: _textColor(tokens),
-            ),
-          ],
-        ),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final isCompact =
+              constraints.maxWidth.isFinite && constraints.maxWidth < 100;
+          final labelColor = _textColor(tokens);
+          final labelWidget = DesignText(
+            label,
+            style: DesignTextStyle.label,
+            color: labelColor,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          );
+
+          if (isCompact && hasLeading) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                buildLeading(labelColor),
+                SizedBox(height: tokens.spaceXs),
+                labelWidget,
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              if (hasLeading) ...<Widget>[
+                buildLeading(labelColor),
+                SizedBox(width: tokens.spaceSm),
+              ],
+              Flexible(child: labelWidget),
+            ],
+          );
+        },
       ),
     );
 
