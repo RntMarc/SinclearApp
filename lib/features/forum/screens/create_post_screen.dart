@@ -209,57 +209,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: widget.isEdit ? 'Beitrag bearbeiten' : 'Neuer Beitrag',
-            actions: [
-              if (!widget.isEdit) ...[
-                Padding(
-                  padding: EdgeInsets.only(right: tokens.spaceSm),
-                  child: DesignButton(
-                    variant: DesignButtonVariant.outlined,
-                    label: 'Veröffentlichen',
-                    loading: _submitting,
-                    onPressed: _submitting || _loading
-                        ? null
-                        : () => _submit(publish: true),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.only(right: tokens.spaceSm),
-                  child: DesignButton(
-                    variant: DesignButtonVariant.filled,
-                    label: 'Erstellen',
-                    loading: _submitting,
-                    onPressed: _submitting || _loading
-                        ? null
-                        : () => _submit(publish: false),
-                  ),
-                ),
-              ],
-              if (widget.isEdit) ...[
-                if (_isDraft)
-                  Padding(
-                    padding: EdgeInsets.only(right: tokens.spaceSm),
-                    child: DesignButton(
-                      variant: DesignButtonVariant.outlined,
-                      label: 'Veröffentlichen',
-                      loading: _submitting,
-                      onPressed: _submitting || _loading
-                          ? null
-                          : () => _submit(publish: true),
-                    ),
-                  ),
-                Padding(
-                  padding: EdgeInsets.only(right: tokens.spaceSm),
-                  child: DesignButton(
-                    variant: DesignButtonVariant.filled,
-                    label: 'Speichern',
-                    loading: _submitting,
-                    onPressed: _submitting || _loading
-                        ? null
-                        : () => _submit(publish: false),
-                  ),
-                ),
-              ],
-            ],
           ),
           if (_loading)
             Expanded(
@@ -459,6 +408,53 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     ],
                   ],
                 ),
+              ),
+            ),
+          if (!_loading && _loadError == null)
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  tokens.spaceLg,
+                  tokens.spaceSm,
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                ),
+                child: widget.isEdit && !_isDraft
+                    ? DesignButton(
+                        variant: DesignButtonVariant.filled,
+                        label: 'Speichern',
+                        fullWidth: true,
+                        loading: _submitting,
+                        onPressed: _submitting || _loading
+                            ? null
+                            : () => _submit(publish: false),
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: DesignButton(
+                              variant: DesignButtonVariant.outlined,
+                              label: 'Als Entwurf speichern',
+                              loading: _submitting,
+                              onPressed: _submitting || _loading
+                                  ? null
+                                  : () => _submit(publish: false),
+                            ),
+                          ),
+                          SizedBox(width: tokens.spaceMd),
+                          Expanded(
+                            child: DesignButton(
+                              variant: DesignButtonVariant.filled,
+                              label: 'Veröffentlichen',
+                              loading: _submitting,
+                              onPressed: _submitting || _loading
+                                  ? null
+                                  : () => _submit(publish: true),
+                            ),
+                          ),
+                        ],
+                      ),
               ),
             ),
         ],
