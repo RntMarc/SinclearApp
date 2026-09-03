@@ -252,28 +252,38 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       color: tokens.textHigh,
                     ),
                     SizedBox(height: tokens.spaceMd),
-                    Row(
-                      children: _types.map((t) {
-                        final isSelected = _selectedType == t.$1;
-                        return Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(right: tokens.spaceSm),
-                            child: DesignButton(
-                              variant: isSelected
-                                  ? DesignButtonVariant.filled
-                                  : DesignButtonVariant.outlined,
-                              icon: t.$3,
-                              label: t.$2,
-                              onPressed: () {
-                                setState(() {
-                                  _selectedType = t.$1;
-                                  _urls.clear();
-                                });
-                              },
-                            ),
-                          ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns =
+                            constraints.maxWidth > 360 ? 4 : 2;
+                        final spacing = tokens.spaceSm;
+                        final buttonWidth =
+                            (constraints.maxWidth - spacing * (columns - 1)) /
+                                columns;
+                        return Wrap(
+                          spacing: spacing,
+                          runSpacing: spacing,
+                          children: _types.map((t) {
+                            final isSelected = _selectedType == t.$1;
+                            return SizedBox(
+                              width: buttonWidth,
+                              child: DesignButton(
+                                variant: isSelected
+                                    ? DesignButtonVariant.filled
+                                    : DesignButtonVariant.outlined,
+                                icon: t.$3,
+                                label: t.$2,
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedType = t.$1;
+                                    _urls.clear();
+                                  });
+                                },
+                              ),
+                            );
+                          }).toList(),
                         );
-                      }).toList(),
+                      },
                     ),
                     SizedBox(height: tokens.spaceXl),
                     Material(
@@ -435,7 +445,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           Expanded(
                             child: DesignButton(
                               variant: DesignButtonVariant.outlined,
-                              label: 'Als Entwurf speichern',
+                              label: 'Entwurf speichern',
                               loading: _submitting,
                               onPressed: _submitting || _loading
                                   ? null

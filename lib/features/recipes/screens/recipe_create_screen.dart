@@ -578,7 +578,7 @@ class _RecipeCreateScreenState extends State<RecipeCreateScreen> {
                           Expanded(
                             child: DesignButton(
                               variant: DesignButtonVariant.outlined,
-                              label: 'Als Entwurf speichern',
+                              label: 'Entwurf speichern',
                               loading: _submitting,
                               onPressed: _submitting || _loading
                                   ? null
