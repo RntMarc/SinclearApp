@@ -159,6 +159,7 @@ class FeedPost {
   final int upvoteCount;
   final int commentCount;
   final bool hasVoted;
+  final bool isDraft;
   final String createdAt;
   final String updatedAt;
 
@@ -174,6 +175,7 @@ class FeedPost {
     required this.upvoteCount,
     required this.commentCount,
     required this.hasVoted,
+    this.isDraft = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -191,6 +193,7 @@ class FeedPost {
       upvoteCount: (json['upvoteCount'] as num?)?.toInt() ?? 0,
       commentCount: (json['commentCount'] as num?)?.toInt() ?? 0,
       hasVoted: json['hasVoted'] == true || json['hasVoted'] == 1,
+      isDraft: json['isDraft'] == true || json['isDraft'] == 1,
       createdAt: json['createdAt'] as String,
       updatedAt: json['updatedAt'] as String,
     );
@@ -359,11 +362,19 @@ class FeedPostCommentListResponse {
 class FeedPostCreateRequest {
   final String? type;
   final Map<String, dynamic> content;
+  final bool isDraft;
 
-  const FeedPostCreateRequest({this.type, required this.content});
+  const FeedPostCreateRequest({
+    this.type,
+    required this.content,
+    this.isDraft = true,
+  });
 
   Map<String, dynamic> toJson() {
-    final map = <String, dynamic>{'content': content};
+    final map = <String, dynamic>{
+      'content': content,
+      'isDraft': isDraft,
+    };
     if (type != null) map['type'] = type;
     return map;
   }

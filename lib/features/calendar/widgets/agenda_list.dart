@@ -261,7 +261,7 @@ class _EntryTile extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (_subtitle(tokens) case final subtitle?) subtitle,
+                  ?_subtitle(tokens),
                 ],
               ),
             ),

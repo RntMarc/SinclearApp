@@ -261,6 +261,13 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                     builder: (context, state) =>
                         CreatePostScreen(forumId: state.pathParameters['id']!),
                   ),
+                  GoRoute(
+                    path: 'bearbeiten/:postId',
+                    builder: (context, state) => CreatePostScreen(
+                      forumId: state.pathParameters['id']!,
+                      postId: state.pathParameters['postId']!,
+                    ),
+                  ),
                 ],
               ),
             ],
