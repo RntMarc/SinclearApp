@@ -247,6 +247,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               : post.upvoteCount + 1,
           commentCount: post.commentCount,
           hasVoted: !post.hasVoted,
+          isDraft: post.isDraft,
           createdAt: post.createdAt,
           updatedAt: post.updatedAt,
         );

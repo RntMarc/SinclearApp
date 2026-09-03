@@ -159,6 +159,7 @@ class _EmbeddedForumViewState extends State<EmbeddedForumView> {
             upvoteCount: p.hasVoted ? p.upvoteCount - 1 : p.upvoteCount + 1,
             commentCount: p.commentCount,
             hasVoted: !p.hasVoted,
+            isDraft: p.isDraft,
             createdAt: p.createdAt,
             updatedAt: p.updatedAt,
           );

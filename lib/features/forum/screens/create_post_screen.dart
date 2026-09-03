@@ -9,10 +9,17 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 
+/// Formular zum Erstellen und Bearbeiten von Forum-Beiträgen.
+///
+/// Ohne [postId] wird ein neuer Beitrag erstellt; mit [postId] wird der
+/// bestehende Beitrag geladen, vorbelegt und per PUT aktualisiert.
 class CreatePostScreen extends StatefulWidget {
   final String forumId;
+  final String? postId;
 
-  const CreatePostScreen({super.key, required this.forumId});
+  const CreatePostScreen({super.key, required this.forumId, this.postId});
+
+  bool get isEdit => postId != null;
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -24,6 +31,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _textController = TextEditingController();
   final List<_UrlEntry> _urls = [];
   bool _submitting = false;
+  bool _loading = false;
+  String? _loadError;
+  bool _hasLoaded = false;
+  bool _isDraft = true;
 
   static const _types = [
     ('text', 'Text', Icons.text_fields_rounded),
@@ -40,6 +51,59 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       entry.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoaded && widget.isEdit) {
+      _hasLoaded = true;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    try {
+      final forumService = AppScope.of(context).forum;
+      final post = await forumService.getPost(widget.forumId, widget.postId!);
+      if (!mounted) return;
+      setState(() {
+        _selectedType = post.type;
+        _textController.text = post.text ?? '';
+        _titleController.text = post.title ?? '';
+        _isDraft = post.isDraft;
+        if (post.type == 'music' || post.type == 'video') {
+          for (final url in post.urls) {
+            final entry = _UrlEntry();
+            entry.urlController.text = url.url;
+            entry.selectedPlatform = url.platform;
+            _urls.add(entry);
+          }
+        } else if (post.type == 'web') {
+          for (final url in post.webUrls) {
+            final entry = _UrlEntry();
+            entry.urlController.text = url;
+            _urls.add(entry);
+          }
+        }
+        _loading = false;
+      });
+    } catch (e, st) {
+      developer.log(
+        'Failed to load post for editing',
+        error: e,
+        stackTrace: st,
+      );
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = 'Beitrag konnte nicht geladen werden.';
+      });
+    }
   }
 
   void _addUrl() {
@@ -94,25 +158,37 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     return content;
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({required bool publish}) async {
     final content = _buildContent();
     if (content.isEmpty) return;
 
     setState(() => _submitting = true);
     try {
       final forumService = AppScope.of(context).forum;
-      await forumService.createPost(
-        widget.forumId,
-        type: _selectedType,
-        content: content,
-      );
+      if (widget.isEdit) {
+        await forumService.updatePost(
+          widget.forumId,
+          widget.postId!,
+          content: content,
+        );
+        if (publish) {
+          await forumService.publishPost(widget.forumId, widget.postId!);
+        }
+      } else {
+        await forumService.createPost(
+          widget.forumId,
+          type: _selectedType,
+          content: content,
+          isDraft: !publish,
+        );
+      }
       if (!mounted) return;
       context.go('/forum/${widget.forumId}');
     } catch (e) {
-      developer.log('Failed to create post', error: e);
+      developer.log('Failed to save post', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Post konnte nicht erstellt werden.')),
+          const SnackBar(content: Text('Post konnte nicht gespeichert werden.')),
         );
       }
     } finally {
@@ -132,163 +208,259 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               icon: Icons.arrow_back_rounded,
               onPressed: () => Navigator.pop(context),
             ),
-            title: 'Neuer Beitrag',
+            title: widget.isEdit ? 'Beitrag bearbeiten' : 'Neuer Beitrag',
             actions: [
-              Padding(
-                padding: EdgeInsets.only(right: tokens.spaceSm),
-                child: DesignButton(
-                  variant: DesignButtonVariant.filled,
-                  label: 'Senden',
-                  loading: _submitting,
-                  onPressed: _submitting ? null : _submit,
+              if (!widget.isEdit) ...[
+                Padding(
+                  padding: EdgeInsets.only(right: tokens.spaceSm),
+                  child: DesignButton(
+                    variant: DesignButtonVariant.outlined,
+                    label: 'Veröffentlichen',
+                    loading: _submitting,
+                    onPressed: _submitting || _loading
+                        ? null
+                        : () => _submit(publish: true),
+                  ),
                 ),
-              ),
+                Padding(
+                  padding: EdgeInsets.only(right: tokens.spaceSm),
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Erstellen',
+                    loading: _submitting,
+                    onPressed: _submitting || _loading
+                        ? null
+                        : () => _submit(publish: false),
+                  ),
+                ),
+              ],
+              if (widget.isEdit) ...[
+                if (_isDraft)
+                  Padding(
+                    padding: EdgeInsets.only(right: tokens.spaceSm),
+                    child: DesignButton(
+                      variant: DesignButtonVariant.outlined,
+                      label: 'Veröffentlichen',
+                      loading: _submitting,
+                      onPressed: _submitting || _loading
+                          ? null
+                          : () => _submit(publish: true),
+                    ),
+                  ),
+                Padding(
+                  padding: EdgeInsets.only(right: tokens.spaceSm),
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    label: 'Speichern',
+                    loading: _submitting,
+                    onPressed: _submitting || _loading
+                        ? null
+                        : () => _submit(publish: false),
+                  ),
+                ),
+              ],
             ],
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(tokens.spaceLg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DesignText(
-                    'Beitragstyp',
-                    style: DesignTextStyle.subtitle,
-                    color: tokens.textHigh,
-                  ),
-                  SizedBox(height: tokens.spaceMd),
-                  Row(
-                    children: _types.map((t) {
-                      final isSelected = _selectedType == t.$1;
-                      return Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: tokens.spaceSm),
-                          child: DesignButton(
-                            variant: isSelected
-                                ? DesignButtonVariant.filled
-                                : DesignButtonVariant.outlined,
-                            icon: t.$3,
-                            label: t.$2,
-                            onPressed: () {
-                              setState(() {
-                                _selectedType = t.$1;
-                                _urls.clear();
-                              });
-                            },
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  SizedBox(height: tokens.spaceXl),
-                  Material(
-                    type: MaterialType.transparency,
-                    child: TextField(
-                      controller: _titleController,
-                      textCapitalization: TextCapitalization.words,
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: tokens.textHigh,
-                        fontSize: 15,
-                        fontFamily: tokens.fontFamily,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Titel (optional)',
-                        hintStyle: TextStyle(
-                          color: tokens.textLow,
-                          fontSize: 15,
-                          fontFamily: tokens.fontFamily,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(color: tokens.primary, width: 1.5),
-                        ),
-                        contentPadding: EdgeInsets.all(tokens.spaceMd),
-                        filled: true,
-                        fillColor: tokens.surface,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: tokens.spaceMd),
-                  Material(
-                    type: MaterialType.transparency,
-                    child: TextField(
-                      controller: _textController,
-                      textCapitalization: TextCapitalization.sentences,
-                      maxLines: null,
-                      minLines: 3,
-                      style: TextStyle(
-                        color: tokens.textHigh,
-                        fontSize: 15,
-                        fontFamily: tokens.fontFamily,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Was möchtest du teilen?',
-                        hintStyle: TextStyle(
-                          color: tokens.textLow,
-                          fontSize: 15,
-                          fontFamily: tokens.fontFamily,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(tokens.radiusMd),
-                          borderSide: BorderSide(color: tokens.primary, width: 1.5),
-                        ),
-                        contentPadding: EdgeInsets.all(tokens.spaceMd),
-                        filled: true,
-                        fillColor: tokens.surface,
-                      ),
-                    ),
-                  ),
-                  if (_selectedType != 'text') ...[
-                    SizedBox(height: tokens.spaceXl),
-                    Row(
-                      children: [
-                        DesignText(
-                          _selectedType == 'music'
-                              ? 'Streaming-Links'
-                              : _selectedType == 'video'
-                                  ? 'Video-Links'
-                                  : 'Links',
-                          style: DesignTextStyle.subtitle,
-                          color: tokens.textHigh,
-                        ),
-                        const Spacer(),
-                        DesignIconButton(
-                          icon: Icons.add_circle_outline_rounded,
-                          onPressed: _addUrl,
-                        ),
-                      ],
-                    ),
+          if (_loading)
+            Expanded(
+              child: Center(
+                child: CircularProgressIndicator(color: tokens.primary),
+              ),
+            )
+          else if (_loadError != null)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: tokens.danger),
                     SizedBox(height: tokens.spaceSm),
-                    ..._urls.asMap().entries.map(
-                      (entry) => _UrlField(
-                        key: ValueKey(entry.key),
-                        entry: entry.value,
-                        type: _selectedType,
-                        onRemove: () => _removeUrl(entry.key),
-                      ),
+                    DesignText(
+                      _loadError!,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceLg),
+                    DesignButton(
+                      variant: DesignButtonVariant.filled,
+                      label: 'Erneut versuchen',
+                      onPressed: _load,
                     ),
                   ],
-                ],
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(tokens.spaceLg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DesignText(
+                      'Beitragstyp',
+                      style: DesignTextStyle.subtitle,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    Row(
+                      children: _types.map((t) {
+                        final isSelected = _selectedType == t.$1;
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(right: tokens.spaceSm),
+                            child: DesignButton(
+                              variant: isSelected
+                                  ? DesignButtonVariant.filled
+                                  : DesignButtonVariant.outlined,
+                              icon: t.$3,
+                              label: t.$2,
+                              onPressed: () {
+                                setState(() {
+                                  _selectedType = t.$1;
+                                  _urls.clear();
+                                });
+                              },
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    SizedBox(height: tokens.spaceXl),
+                    Material(
+                      type: MaterialType.transparency,
+                      child: TextField(
+                        controller: _titleController,
+                        textCapitalization: TextCapitalization.words,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: tokens.textHigh,
+                          fontSize: 15,
+                          fontFamily: tokens.fontFamily,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Titel (optional)',
+                          hintStyle: TextStyle(
+                            color: tokens.textLow,
+                            fontSize: 15,
+                            fontFamily: tokens.fontFamily,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              tokens.radiusMd,
+                            ),
+                            borderSide: BorderSide(
+                              color: tokens.border.withValues(alpha: 0.8),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              tokens.radiusMd,
+                            ),
+                            borderSide: BorderSide(
+                              color: tokens.border.withValues(alpha: 0.8),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              tokens.radiusMd,
+                            ),
+                            borderSide: BorderSide(
+                              color: tokens.primary,
+                              width: 1.5,
+                            ),
+                          ),
+                          contentPadding: EdgeInsets.all(tokens.spaceMd),
+                          filled: true,
+                          fillColor: tokens.surface,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: tokens.spaceMd),
+                    Material(
+                      type: MaterialType.transparency,
+                      child: TextField(
+                        controller: _textController,
+                        textCapitalization: TextCapitalization.sentences,
+                        maxLines: null,
+                        minLines: 3,
+                        style: TextStyle(
+                          color: tokens.textHigh,
+                          fontSize: 15,
+                          fontFamily: tokens.fontFamily,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Was möchtest du teilen?',
+                          hintStyle: TextStyle(
+                            color: tokens.textLow,
+                            fontSize: 15,
+                            fontFamily: tokens.fontFamily,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              tokens.radiusMd,
+                            ),
+                            borderSide: BorderSide(
+                              color: tokens.border.withValues(alpha: 0.8),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              tokens.radiusMd,
+                            ),
+                            borderSide: BorderSide(
+                              color: tokens.border.withValues(alpha: 0.8),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(
+                              tokens.radiusMd,
+                            ),
+                            borderSide: BorderSide(
+                              color: tokens.primary,
+                              width: 1.5,
+                            ),
+                          ),
+                          contentPadding: EdgeInsets.all(tokens.spaceMd),
+                          filled: true,
+                          fillColor: tokens.surface,
+                        ),
+                      ),
+                    ),
+                    if (_selectedType != 'text') ...[
+                      SizedBox(height: tokens.spaceXl),
+                      Row(
+                        children: [
+                          DesignText(
+                            _selectedType == 'music'
+                                ? 'Streaming-Links'
+                                : _selectedType == 'video'
+                                    ? 'Video-Links'
+                                    : 'Links',
+                            style: DesignTextStyle.subtitle,
+                            color: tokens.textHigh,
+                          ),
+                          const Spacer(),
+                          DesignIconButton(
+                            icon: Icons.add_circle_outline_rounded,
+                            onPressed: _addUrl,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: tokens.spaceSm),
+                      ..._urls.asMap().entries.map(
+                        (entry) => _UrlField(
+                          key: ValueKey(entry.key),
+                          entry: entry.value,
+                          type: _selectedType,
+                          onRemove: () => _removeUrl(entry.key),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -358,15 +530,22 @@ class _UrlFieldState extends State<_UrlField> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                      borderSide: BorderSide(
+                        color: tokens.border.withValues(alpha: 0.8),
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                      borderSide: BorderSide(
+                        color: tokens.border.withValues(alpha: 0.8),
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(color: tokens.primary, width: 1.5),
+                      borderSide: BorderSide(
+                        color: tokens.primary,
+                        width: 1.5,
+                      ),
                     ),
                     filled: true,
                     fillColor: tokens.surface,
@@ -410,22 +589,32 @@ class _UrlFieldState extends State<_UrlField> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                      borderSide: BorderSide(
+                        color: tokens.border.withValues(alpha: 0.8),
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                      borderSide: BorderSide(
+                        color: tokens.border.withValues(alpha: 0.8),
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(tokens.radiusMd),
-                      borderSide: BorderSide(color: tokens.primary, width: 1.5),
+                      borderSide: BorderSide(
+                        color: tokens.primary,
+                        width: 1.5,
+                      ),
                     ),
                     filled: true,
                     fillColor: tokens.surface,
                   ),
                   items: const [
                     DropdownMenuItem(value: 'youtube', child: Text('YouTube')),
-                    DropdownMenuItem(value: 'peertube', child: Text('PeerTube')),
+                    DropdownMenuItem(
+                      value: 'peertube',
+                      child: Text('PeerTube'),
+                    ),
                     DropdownMenuItem(value: 'odysee', child: Text('Odysee')),
                     DropdownMenuItem(
                       value: 'tv_mediathek',
@@ -460,15 +649,22 @@ class _UrlFieldState extends State<_UrlField> {
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(tokens.radiusMd),
-                    borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                    borderSide: BorderSide(
+                      color: tokens.border.withValues(alpha: 0.8),
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(tokens.radiusMd),
-                    borderSide: BorderSide(color: tokens.border.withValues(alpha: 0.8)),
+                    borderSide: BorderSide(
+                      color: tokens.border.withValues(alpha: 0.8),
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(tokens.radiusMd),
-                    borderSide: BorderSide(color: tokens.primary, width: 1.5),
+                    borderSide: BorderSide(
+                      color: tokens.primary,
+                      width: 1.5,
+                    ),
                   ),
                   suffixIcon: DesignIconButton(
                     icon: Icons.remove_circle_outline_rounded,

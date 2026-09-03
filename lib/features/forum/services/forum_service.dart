@@ -119,8 +119,13 @@ class ForumService {
     String forumId, {
     String? type,
     required Map<String, dynamic> content,
+    bool isDraft = true,
   }) async {
-    final body = FeedPostCreateRequest(type: type, content: content).toJson();
+    final body = FeedPostCreateRequest(
+      type: type,
+      content: content,
+      isDraft: isDraft,
+    ).toJson();
     final data = await _api.post(
       '/forums/$forumId/posts',
       body: body,
@@ -131,6 +136,44 @@ class ForumService {
 
   Future<void> deletePost(String forumId, String postId) async {
     await _api.delete('/forums/$forumId/posts/$postId', token: await _token());
+  }
+
+  Future<FeedPostListResponse> listDrafts(
+    String forumId, {
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    final data = await _api.get(
+      '/forums/$forumId/posts/drafts',
+      queryParams: params,
+      token: await _token(),
+    );
+    return FeedPostListResponse.fromJson(data);
+  }
+
+  Future<FeedPost> publishPost(String forumId, String postId) async {
+    final data = await _api.post(
+      '/forums/$forumId/posts/$postId/publish',
+      token: await _token(),
+    );
+    return FeedPost.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<FeedPost> updatePost(
+    String forumId,
+    String postId, {
+    required Map<String, dynamic> content,
+  }) async {
+    final data = await _api.put(
+      '/forums/$forumId/posts/$postId',
+      body: {'content': content},
+      token: await _token(),
+    );
+    return FeedPost.fromJson(data['data'] as Map<String, dynamic>);
   }
 
   Future<void> votePost(String forumId, String postId) async {

@@ -9,6 +9,7 @@ import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../moderation/models/moderation_models.dart';
@@ -222,6 +223,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
             upvoteCount: p.hasVoted ? p.upvoteCount - 1 : p.upvoteCount + 1,
             commentCount: p.commentCount,
             hasVoted: !p.hasVoted,
+            isDraft: p.isDraft,
             createdAt: p.createdAt,
             updatedAt: p.updatedAt,
           );
@@ -302,37 +304,162 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
     );
   }
 
+  Future<void> _showDraftsSheet() async {
+    List<FeedPost>? drafts;
+    String? error;
+    try {
+      final forumService = AppScope.of(context).forum;
+      final response = await forumService.listDrafts(widget.id, limit: 50);
+      drafts = response.data;
+    } catch (e) {
+      developer.log('Failed to load drafts', error: e);
+      error = 'Entwürfe konnten nicht geladen werden.';
+    }
+    if (!mounted) return;
+    showDesignSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DesignText('Entwürfe', style: DesignTextStyle.title),
+          SizedBox(height: DesignTheme.of(context).spaceMd),
+          if (error != null)
+            Padding(
+              padding: EdgeInsets.all(DesignTheme.of(context).spaceLg),
+              child: Center(
+                child: DesignText(
+                  error,
+                  color: DesignTheme.of(context).danger,
+                ),
+              ),
+            )
+          else if (drafts == null)
+            Padding(
+              padding: EdgeInsets.all(DesignTheme.of(context).spaceLg),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: DesignTheme.of(context).primary,
+                ),
+              ),
+            )
+          else if (drafts.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: DesignTheme.of(context).spaceLg,
+              ),
+              child: Center(
+                child: DesignText(
+                  'Keine Entwürfe vorhanden.',
+                  color: DesignTheme.of(context).textLow,
+                ),
+              ),
+            )
+          else
+            ...drafts.map((draft) => _draftTile(draft)),
+        ],
+      ),
+    );
+  }
+
+  Widget _draftTile(FeedPost draft) {
+    final tokens = DesignTheme.of(context);
+    return DesignCard(
+      margin: EdgeInsets.only(bottom: tokens.spaceSm),
+      useGlass: false,
+      onTap: () {
+        Navigator.pop(context);
+        context.go('/forum/${widget.id}/bearbeiten/${draft.id}');
+      },
+      child: Padding(
+        padding: EdgeInsets.all(tokens.spaceSm),
+        child: Row(
+          children: [
+            Icon(
+              _typeIcon(draft.type),
+              size: 24,
+              color: tokens.textLow,
+            ),
+            SizedBox(width: tokens.spaceSm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DesignText(
+                    draft.title ?? draft.text ?? 'Entwurf',
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: tokens.spaceXs),
+                  DesignText(
+                    draft.type[0].toUpperCase() + draft.type.substring(1),
+                    style: DesignTextStyle.label,
+                    color: tokens.textLow,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: tokens.textLow),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _typeIcon(String type) => switch (type) {
+    'music' => Icons.music_note_rounded,
+    'video' => Icons.videocam_rounded,
+    'web' => Icons.language_rounded,
+    _ => Icons.text_fields_rounded,
+  };
+
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final auth = AppScope.of(context).auth;
 
     return DesignSurface(
-      child: Column(
+      child: Stack(
         children: [
-          DesignSubpageHeader(
-            leading: DesignIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: _forum?.name ?? 'Forum',
-            actions: [
-              DesignIconButton(
-                icon: Icons.people_rounded,
-                onPressed: _showMembers,
+          Column(
+            children: [
+              DesignSubpageHeader(
+                leading: DesignIconButton(
+                  icon: Icons.arrow_back_rounded,
+                  onPressed: () => Navigator.pop(context),
+                ),
+                title: _forum?.name ?? 'Forum',
+                actions: [
+                  DesignIconButton(
+                    icon: Icons.people_rounded,
+                    onPressed: _showMembers,
+                  ),
+                ],
               ),
+              Expanded(child: _buildBody(context, tokens, auth)),
+              if (_forum?.isMember == true)
+                Padding(
+                  padding: EdgeInsets.all(tokens.spaceLg),
+                  child: DesignButton(
+                    variant: DesignButtonVariant.filled,
+                    icon: Icons.add_rounded,
+                    label: 'Neuer Beitrag',
+                    fullWidth: true,
+                    onPressed: () =>
+                        context.go('/forum/${widget.id}/erstellen'),
+                  ),
+                ),
             ],
           ),
-          Expanded(child: _buildBody(context, tokens, auth)),
           if (_forum?.isMember == true)
-            Padding(
-              padding: EdgeInsets.all(tokens.spaceLg),
-              child: DesignButton(
-                variant: DesignButtonVariant.filled,
-                icon: Icons.add_rounded,
-                label: 'Neuer Beitrag',
-                fullWidth: true,
-                onPressed: () => context.go('/forum/${widget.id}/erstellen'),
+            Positioned(
+              bottom: tokens.spaceLg + 56,
+              right: tokens.spaceLg,
+              child: DesignIconButton(
+                icon: Icons.edit_note_rounded,
+                onPressed: _showDraftsSheet,
               ),
             ),
         ],
