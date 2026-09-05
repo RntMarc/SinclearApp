@@ -17,6 +17,7 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../subscription/models/subscription_models.dart';
 import '../../subscription/screens/subscription_detail_screen.dart';
 import '../../subscription/widgets/subscription_card.dart';
+import '../../weather/widgets/weather_card.dart';
 import '../models/travel_models.dart';
 import '../screens/accommodation_detail_screen.dart';
 import '../screens/event_detail_screen.dart';
@@ -74,6 +75,17 @@ class TripOverviewSection extends StatelessWidget {
             skeleton: const _AccommodationsSkeleton(),
             builder: (context, accommodations) {
               if (accommodations.isEmpty) return const SizedBox.shrink();
+              final myAccommodation = currentUserId != null
+                  ? accommodations.firstWhere(
+                      (a) => a.users.any((u) => u.id == currentUserId),
+                      orElse: () => accommodations.first,
+                    )
+                  : null;
+              final hasWeatherLocation = myAccommodation != null &&
+                  ((myAccommodation.citySlug != null &&
+                      myAccommodation.citySlug!.isNotEmpty) ||
+                  (myAccommodation.latitude != null &&
+                      myAccommodation.longitude != null));
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -82,6 +94,15 @@ class TripOverviewSection extends StatelessWidget {
                     currentUserId: currentUserId,
                     onTap: onSelectMapTab,
                   ),
+                  if (hasWeatherLocation) ...[
+                    SizedBox(height: tokens.spaceLg),
+                    WeatherSummaryCard(
+                      citySlug: myAccommodation.citySlug,
+                      lat: myAccommodation.latitude,
+                      lon: myAccommodation.longitude,
+                      locationName: myAccommodation.name,
+                    ),
+                  ],
                   SizedBox(height: tokens.spaceLg),
                   DesignText(
                     'Unterkünfte',

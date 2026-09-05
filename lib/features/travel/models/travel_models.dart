@@ -90,6 +90,7 @@ class TravelEvent {
   final double? longitude;
   final int? osmId;
   final String? conversationId;
+  final String? citySlug;
   final List<TravelParticipantBrief> participants;
 
   const TravelEvent({
@@ -110,6 +111,7 @@ class TravelEvent {
     this.longitude,
     this.osmId,
     this.conversationId,
+    this.citySlug,
     this.participants = const [],
   });
 
@@ -132,6 +134,7 @@ class TravelEvent {
       longitude: (json['longitude'] as num?)?.toDouble(),
       osmId: json['OSMID'] as int?,
       conversationId: json['conversationId'] as String?,
+      citySlug: json['citySlug'] as String?,
       participants:
           (json['participants'] as List?)
               ?.map(
@@ -155,6 +158,7 @@ class TravelAccommodation {
   final String? phone;
   final String? mail;
   final int ishotel;
+  final String? citySlug;
   final List<TravelParticipantBrief> users;
 
   const TravelAccommodation({
@@ -168,6 +172,7 @@ class TravelAccommodation {
     this.phone,
     this.mail,
     required this.ishotel,
+    this.citySlug,
     this.users = const [],
   });
 
@@ -183,6 +188,7 @@ class TravelAccommodation {
       phone: json['phone'] as String?,
       mail: json['mail'] as String?,
       ishotel: json['ishotel'] as int,
+      citySlug: json['citySlug'] as String?,
       users:
           (json['users'] as List?)
               ?.map(

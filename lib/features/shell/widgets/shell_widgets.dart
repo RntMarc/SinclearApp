@@ -268,6 +268,13 @@ class ShellNavContent extends StatelessWidget {
             ),
             _tile(
               context,
+              icon: Icons.wb_sunny_rounded,
+              label: 'Wetter',
+              active: _isActive('/reisen/wetter'),
+              onTap: () => onNavigate('/reisen/wetter'),
+            ),
+            _tile(
+              context,
               icon: Icons.location_on_rounded,
               label: 'Standort',
               active: _isActive('/standort'),
@@ -619,6 +626,11 @@ class ShellMobileBottomNav extends StatelessWidget {
               '/entdecken',
             ),
             const ShellSheetItem('Reisen', Icons.flight_rounded, '/reisen'),
+            const ShellSheetItem(
+              'Wetter',
+              Icons.wb_sunny_rounded,
+              '/reisen/wetter',
+            ),
             const ShellSheetItem(
               'Standort',
               Icons.location_on_rounded,
