@@ -24,6 +24,7 @@ import '../features/travel/screens/travel_screen.dart';
 import '../features/travel/screens/event_detail_screen.dart';
 import '../features/travel/screens/trip_detail_screen.dart';
 import '../features/travel/screens/pt_journey_detail_screen.dart';
+import '../features/weather/screens/weather_screen.dart';
 import '../features/user/screens/contacts_screen.dart';
 import '../features/user/screens/user_detail_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
@@ -130,6 +131,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
             path: '/reisen',
             builder: (context, state) => const TravelScreen(),
             routes: [
+              GoRoute(
+                path: 'wetter',
+                builder: (context, state) => const WeatherScreen(),
+              ),
               GoRoute(
                 path: ':id',
                 builder: (context, state) =>

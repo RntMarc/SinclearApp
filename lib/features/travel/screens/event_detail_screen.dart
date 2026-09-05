@@ -26,6 +26,7 @@ import '../widgets/ticket_delete_flow.dart';
 import '../widgets/ticket_form_sheet.dart';
 import '../widgets/ticket_preview_page.dart';
 import '../../chat/widgets/conversation_body.dart';
+import '../../weather/widgets/weather_card.dart';
 
 class TravelEventDetailScreen extends StatefulWidget {
   final String id;
@@ -279,6 +280,16 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
                     ),
                   ),
                 ],
+              ),
+            ],
+            if (event.citySlug != null ||
+                (event.latitude != null && event.longitude != null)) ...[
+              SizedBox(height: tokens.spaceLg),
+              WeatherSummaryCard(
+                citySlug: event.citySlug,
+                lat: event.latitude,
+                lon: event.longitude,
+                locationName: event.name,
               ),
             ],
           ],

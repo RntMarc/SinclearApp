@@ -45,6 +45,7 @@ import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
 import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
+import 'features/weather/services/weather_service.dart';
 import 'features/home/dashboard_cache.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_layout_store.dart';
@@ -122,6 +123,7 @@ Future<void> _bootstrap() async {
   final stories = StoriesService(api: api, auth: auth);
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
+  final weather = WeatherService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
   final davTokens = DavTokenService(api: api, auth: auth);
   final davSync = DavSyncService(
@@ -235,6 +237,7 @@ Future<void> _bootstrap() async {
       stories: stories,
       moderation: moderation,
       subscription: subscription,
+      weather: weather,
       mcpKeys: mcpKeys,
       davTokens: davTokens,
       davSync: davSync,

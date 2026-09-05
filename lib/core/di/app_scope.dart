@@ -25,6 +25,7 @@ import '../../features/subscription/services/subscription_service.dart';
 import '../../features/travel/services/travel_service.dart';
 import '../../features/travel/services/pt_service.dart';
 import '../../features/user/services/user_service.dart';
+import '../../features/weather/services/weather_service.dart';
 import '../../features/home/dashboard_controller.dart';
 import '../../features/home/dashboard_widget_repository.dart';
 
@@ -52,6 +53,7 @@ class AppScope extends InheritedWidget {
   final DashboardController dashboard;
   final DashboardWidgetRepository dashboardWidgets;
   final NotificationService notification;
+  final WeatherService weather;
 
   /// Erzeugt aus rohen Benachrichtigungen (`type` + Relation-IDs) Titel,
   /// Text und Deep-Link — einheitlich für Polling, Push und Inbox.
@@ -92,6 +94,7 @@ class AppScope extends InheritedWidget {
     required this.dashboard,
     required this.dashboardWidgets,
     required this.notification,
+    required this.weather,
     required this.notificationContent,
     required this.unifiedPush,
     required this.webPush,
