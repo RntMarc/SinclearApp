@@ -18,6 +18,7 @@ import '../../../design/widgets/primitives/press_scale.dart';
 String shellTitleForLocation(String location) {
   if (location.startsWith('/kalender')) return 'KALENDER';
   if (location.startsWith('/entdecken')) return 'ENTDECKEN';
+  if (location.startsWith('/reisen/wetter')) return 'WETTER';
   if (location.startsWith('/reisen')) return 'REISEN & EVENTS';
   if (location.startsWith('/kontakte')) return 'KONTAKTE';
   if (location.startsWith('/standort')) return 'STANDORT';
@@ -104,6 +105,15 @@ class ShellCategorySheet extends StatelessWidget {
               final isPlaceholder = item.route == null;
               final showBadge = isPlaceholder;
 
+              // For nested routes (e.g. /reisen/wetter vs /reisen), only the
+              // longest matching route should be considered active.
+              final dominatedByLonger = item.route != null &&
+                  items.any((other) =>
+                      other.route != null &&
+                      other.route!.length > item.route!.length &&
+                      currentLocation.startsWith(other.route!));
+              final effectiveActive = isActive && !dominatedByLonger;
+
               return Opacity(
                 opacity: isPlaceholder ? 0.45 : 1.0,
                 child: DesignListTile(
@@ -120,7 +130,7 @@ class ShellCategorySheet extends StatelessWidget {
                         },
                   trailing: showBadge
                       ? const DesignBadge(label: 'Bald')
-                      : isActive
+                      : effectiveActive
                       ? DesignBadge(label: 'Aktiv', color: tokens.primary)
                       : item.route == '/forum' &&
                             notification.hasUnreadForumContent
@@ -155,7 +165,19 @@ class ShellNavContent extends StatelessWidget {
     required this.onNavigate,
   });
 
-  bool _isActive(String route) => currentLocation.startsWith(route);
+  bool _isActive(String route) {
+    if (!currentLocation.startsWith(route)) return false;
+    // Exact match or route boundary (next char is '/').
+    if (currentLocation.length == route.length) return true;
+    if (currentLocation[route.length] != '/') return false;
+    // /reisen/wetter is independent from /reisen — exclude child routes
+    // that are top-level screens on their own.
+    if (route == '/reisen' &&
+        currentLocation.startsWith('/reisen/wetter')) {
+      return false;
+    }
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
