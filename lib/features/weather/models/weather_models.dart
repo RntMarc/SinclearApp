@@ -200,6 +200,8 @@ class LocationSearchResult {
   final String source;
   final String? state;
   final int? population;
+  final int? osmId;
+  final String? osmType;
 
   const LocationSearchResult({
     required this.name,
@@ -210,6 +212,8 @@ class LocationSearchResult {
     this.source = 'nominatim',
     this.state,
     this.population,
+    this.osmId,
+    this.osmType,
   });
 
   factory LocationSearchResult.fromJson(Map<String, dynamic> json) {
@@ -222,6 +226,8 @@ class LocationSearchResult {
       source: json['source'] as String? ?? 'nominatim',
       state: json['state'] as String?,
       population: json['population'] as int?,
+      osmId: json['osm_id'] as int?,
+      osmType: json['osm_type'] as String?,
     );
   }
 
