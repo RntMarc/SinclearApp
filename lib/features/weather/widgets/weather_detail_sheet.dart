@@ -1,6 +1,5 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -12,6 +11,7 @@ import '../services/weather_service.dart';
 Future<void> showWeatherDetailSheet({
   required BuildContext context,
   required String locationName,
+  required WeatherService weatherService,
   String? citySlug,
   double? lat,
   double? lon,
@@ -20,6 +20,7 @@ Future<void> showWeatherDetailSheet({
     context: context,
     child: _WeatherDetailBody(
       locationName: locationName,
+      weatherService: weatherService,
       citySlug: citySlug,
       lat: lat,
       lon: lon,
@@ -29,12 +30,14 @@ Future<void> showWeatherDetailSheet({
 
 class _WeatherDetailBody extends StatefulWidget {
   final String locationName;
+  final WeatherService weatherService;
   final String? citySlug;
   final double? lat;
   final double? lon;
 
   const _WeatherDetailBody({
     required this.locationName,
+    required this.weatherService,
     this.citySlug,
     this.lat,
     this.lon,
@@ -45,7 +48,7 @@ class _WeatherDetailBody extends StatefulWidget {
 }
 
 class _WeatherDetailBodyState extends State<_WeatherDetailBody> {
-  WeatherService get _service => AppScope.of(context).weather;
+  late final WeatherService _service = widget.weatherService;
 
   WeatherResponse? _weather;
   bool _loading = true;

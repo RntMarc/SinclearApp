@@ -98,6 +98,7 @@ class _WeatherSummaryCardState extends State<WeatherSummaryCard> {
     showWeatherDetailSheet(
       context: context,
       locationName: widget.locationName ?? '',
+      weatherService: _service,
       citySlug: widget.citySlug,
       lat: widget.lat,
       lon: widget.lon,
