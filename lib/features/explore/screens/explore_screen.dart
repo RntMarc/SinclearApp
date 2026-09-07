@@ -9,6 +9,7 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/explore_models.dart';
 import '../widgets/explore_map.dart';
@@ -101,10 +102,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     setState(() => _loadingNew = true);
     try {
       final explore = AppScope.of(context).explore;
-      final response = await explore.list(
-        sort: 'created_desc',
-        limit: 10,
-      );
+      final response = await explore.list(sort: 'created_desc', limit: 10);
       if (!mounted) return;
       setState(() {
         _newPlaces = response.data;
@@ -449,25 +447,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
             Positioned(
               right: tokens.spaceLg,
               bottom: tokens.spaceLg,
-              child: Material(
-                type: MaterialType.transparency,
-                child: GestureDetector(
-                  onTap: () => context.push('/entdecken/neu'),
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: tokens.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: tokens.glowShadow,
-                    ),
-                    child: Icon(
-                      Icons.add_rounded,
-                      color: tokens.onPrimary,
-                      size: 28,
-                    ),
-                  ),
-                ),
+              child: DesignFab(
+                icon: Icons.add_rounded,
+                onPressed: () => context.push('/entdecken/neu'),
+                tooltip: 'Neuer Ort',
               ),
             ),
         ],

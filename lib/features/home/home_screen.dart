@@ -6,6 +6,7 @@ import '../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../design/widgets/foundation/design_surface.dart';
 import '../../design/widgets/foundation/design_text.dart';
 import '../../design/widgets/primitives/design_badge.dart';
+import '../../design/widgets/primitives/design_fab.dart';
 import '../../design/widgets/primitives/press_scale.dart';
 import '../chat/widgets/chat_tab.dart';
 import '../stories/widgets/stories_bar.dart';
@@ -64,8 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ? Column(
                   children: [
                     StoriesBar(
-                      controller:
-                          AppScope.of(context).dashboard,
+                      controller: AppScope.of(context).dashboard,
                       service: AppScope.of(context).stories,
                     ),
                     Expanded(
@@ -82,8 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
               : Column(
                   children: [
                     StoriesBar(
-                      controller:
-                          AppScope.of(context).dashboard,
+                      controller: AppScope.of(context).dashboard,
                       service: AppScope.of(context).stories,
                     ),
                     _HomeTabBar(index: _tabIndex, onChanged: _setTab),
@@ -258,9 +257,7 @@ class DashboardTab extends StatelessWidget {
   ) {
     final tokens = DesignTheme.of(context);
     final layout = controller.layout;
-    final padding = EdgeInsets.only(
-      bottom: editing ? 96 : tokens.spaceXl,
-    );
+    final padding = EdgeInsets.only(bottom: editing ? 96 : tokens.spaceXl);
     final entries = <Widget>[
       for (var i = 0; i < layout.widgets.length; i++)
         DashboardWidgetView(
@@ -286,10 +283,7 @@ class DashboardTab extends StatelessWidget {
         ],
       );
     }
-    return ListView(
-      padding: padding,
-      children: entries,
-    );
+    return ListView(padding: padding, children: entries);
   }
 
   Future<void> _showAddWidgetSheet(BuildContext context) async {
@@ -333,18 +327,10 @@ class _AddWidgetFab extends StatelessWidget {
     return Positioned(
       right: tokens.spaceLg,
       bottom: tokens.spaceLg,
-      child: PressScale(
-        onTap: onPressed,
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: tokens.primary,
-            borderRadius: BorderRadius.circular(tokens.radiusPill),
-            boxShadow: tokens.glowShadow,
-          ),
-          child: Icon(Icons.add_rounded, color: tokens.textOnPrimary, size: 28),
-        ),
+      child: DesignFab(
+        icon: Icons.add_rounded,
+        onPressed: onPressed,
+        tooltip: 'Widget hinzufügen',
       ),
     );
   }

@@ -14,6 +14,7 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../core/widgets/open_in_map_button.dart';
 import '../../../core/utils/map_helper.dart';
@@ -424,13 +425,12 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
                 ),
                 if (showFab)
                   Positioned(
-                    right: 16,
-                    bottom: 16,
-                    child: FloatingActionButton(
-                      heroTag: 'event_ticket_fab',
+                    right: DesignTheme.of(context).spaceLg,
+                    bottom: DesignTheme.of(context).spaceLg,
+                    child: DesignFab(
+                      icon: Icons.qr_code_scanner_rounded,
                       onPressed: _addTicket,
                       tooltip: 'Ticket hinzufügen',
-                      child: const Icon(Icons.qr_code_scanner_rounded),
                     ),
                   ),
               ],
@@ -445,13 +445,12 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
         _buildBody(),
         if (event.hastickets == '1')
           Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              heroTag: 'event_ticket_fab',
+            right: DesignTheme.of(context).spaceLg,
+            bottom: DesignTheme.of(context).spaceLg,
+            child: DesignFab(
+              icon: Icons.qr_code_scanner_rounded,
               onPressed: _addTicket,
               tooltip: 'Ticket hinzufügen',
-              child: const Icon(Icons.qr_code_scanner_rounded),
             ),
           ),
       ],

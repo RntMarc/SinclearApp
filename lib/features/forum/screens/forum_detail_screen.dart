@@ -11,6 +11,7 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
@@ -328,10 +329,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
             Padding(
               padding: EdgeInsets.all(DesignTheme.of(context).spaceLg),
               child: Center(
-                child: DesignText(
-                  error,
-                  color: DesignTheme.of(context).danger,
-                ),
+                child: DesignText(error, color: DesignTheme.of(context).danger),
               ),
             )
           else if (drafts == null)
@@ -375,11 +373,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
         padding: EdgeInsets.all(tokens.spaceSm),
         child: Row(
           children: [
-            Icon(
-              _typeIcon(draft.type),
-              size: 24,
-              color: tokens.textLow,
-            ),
+            Icon(_typeIcon(draft.type), size: 24, color: tokens.textLow),
             SizedBox(width: tokens.spaceSm),
             Expanded(
               child: Column(
@@ -443,22 +437,22 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
           ),
           if (_forum?.isMember == true) ...[
             Positioned(
-              right: 16,
+              right: tokens.spaceLg,
               bottom: 80,
-              child: DesignIconButton(
+              child: DesignFab(
+                size: DesignFabSize.small,
                 icon: Icons.edit_note_rounded,
                 onPressed: _showDraftsSheet,
+                tooltip: 'Entwürfe',
               ),
             ),
             Positioned(
-              right: 16,
-              bottom: 16,
-              child: FloatingActionButton(
-                heroTag: 'forum_detail_new_post',
+              right: tokens.spaceLg,
+              bottom: tokens.spaceLg,
+              child: DesignFab(
+                icon: Icons.add_rounded,
+                onPressed: () => context.go('/forum/${widget.id}/erstellen'),
                 tooltip: 'Neuer Beitrag',
-                onPressed: () =>
-                    context.go('/forum/${widget.id}/erstellen'),
-                child: const Icon(Icons.add_rounded),
               ),
             ),
           ],

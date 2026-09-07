@@ -7,6 +7,7 @@ import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
@@ -288,18 +289,18 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   onDelete: (s) => _deleteSuggestion(s.id),
                   onReport: _reportSuggestion,
                 ),
-                SizedBox(height: tokens.spaceXl + 44),
+                SizedBox(height: tokens.spaceLg + 56),
               ],
             ),
           ),
         ),
         Positioned(
           right: tokens.spaceLg,
-          bottom: tokens.spaceXl,
-          child: DesignIconButton(
+          bottom: tokens.spaceLg,
+          child: DesignFab(
             icon: Icons.add_rounded,
-            tinted: true,
             onPressed: _showCreateSheet,
+            tooltip: 'Neues Feedback',
           ),
         ),
       ],

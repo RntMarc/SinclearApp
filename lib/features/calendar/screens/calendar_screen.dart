@@ -8,6 +8,7 @@ import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../travel/screens/event_detail_screen.dart';
@@ -201,7 +202,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _selectedDay = selectedDay;
       _focusedDay = focusedDay;
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToDay(selectedDay));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _scrollToDay(selectedDay),
+    );
   }
 
   void _scrollToDay(DateTime day) {
@@ -428,9 +431,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                       )
-                    else if (_loadingPast &&
-                        _loadingFuture &&
-                        sorted.isEmpty)
+                    else if (_loadingPast && _loadingFuture && sorted.isEmpty)
                       SliverToBoxAdapter(
                         child: SizedBox(
                           height: 300,
@@ -482,9 +483,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         Positioned(
           right: tokens.spaceLg,
           bottom: tokens.spaceLg,
-          child: DesignIconButton(
+          child: DesignFab(
             icon: Icons.add_rounded,
             onPressed: () => _createEvent(initialDate: _selectedDay),
+            tooltip: 'Neuer Termin',
           ),
         ),
       ],

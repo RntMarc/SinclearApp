@@ -7,6 +7,7 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../models/pt_models.dart';
 import '../models/travel_models.dart';
 import '../screens/event_detail_screen.dart';
@@ -145,13 +146,12 @@ class _TravelScreenState extends State<TravelScreen> {
       children: [
         DesignSurface(child: _buildBody()),
         Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton(
+          right: DesignTheme.of(context).spaceLg,
+          bottom: DesignTheme.of(context).spaceLg,
+          child: DesignFab(
+            icon: Icons.directions_bus_rounded,
             onPressed: _navigateToSearch,
             tooltip: 'ÖPNV-Suche',
-            heroTag: 'pt_search',
-            child: const Icon(Icons.directions_bus_rounded),
           ),
         ),
       ],
