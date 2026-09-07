@@ -25,7 +25,7 @@ Bug fix = root cause, not symptom: a report names a symptom. Grep every caller o
 Rules:
 
 - No abstractions that weren't explicitly requested.
-- No new dependency if it can be avoided.
+- No new dependency if it can be avoided. This is about introducing something not yet in the project — reusing an already-adopted dependency (see Package Management) is rung 5 of the ladder, not a new-dependency decision.
 - No boilerplate nobody asked for.
 - Deletion over addition. Boring over clever. Fewest files possible.
 - Shortest working diff wins, but only once you understand the problem. The smallest change in the wrong place isn't lazy, it's a second bug.
@@ -41,6 +41,20 @@ After every completed task given to you by the user, write a git commit message 
 The commit message should focus on what you have done during the prompt given to you.
 Keep it short and precise and keep correct git commit message formatting in mind.
 English only.
+
+## API Compatibility
+
+The client must stay in sync with the Sinclear API. The source of truth is
+the live API — never memory or what the client used to send.
+
+**Requirement:** Before implementing or changing anything that touches an
+API endpoint (requests, responses, DTOs, enums, routes, auth, notification
+types, etc.), check the current API docs via the SinclearAPI MCP
+`get_documentation` tool for the relevant topic. After the API side changes,
+verify the client still matches: request/response shapes, endpoints, auth
+requirements, and any type/enum values. This applies project-wide, not just
+to notifications — see the notification-specific checklist below for that
+feature's additional steps.
 
 ## Moderation & Reporting
 
@@ -79,12 +93,12 @@ English only.
   * `NotificationItem` (`…/models/notification_item.dart`) parses `type`,
     `data`, `title` and `text` and exposes `identifierFor(relation)` plus
     `hasApiContent`.
-* **Regular compatibility check:** Whenever the Sinclear API docs change
-  (check via the SinclearAPI MCP `get_documentation` tool, topics
-  `notifications` and `notifications/types`), verify the client is still
-  compatible: notification types, the `data` relation structure per type,
-  delivery mechanisms (web push, UnifiedPush, polling) and endpoints. New
-  or changed types must be added in **both** `NotificationTypeLabel`
+* **Notification-specific compatibility check:** On top of the general API
+  Compatibility rule above, check topics `notifications` and
+  `notifications/types` specifically for: notification types, the `data`
+  relation structure per type, and delivery mechanisms (web push,
+  UnifiedPush, polling). New or changed types must be added in **both**
+  `NotificationTypeLabel`
   (fallback title/body/icon, route) and `NotificationContentResolver`
   (enrichment), plus the web service worker (`web/sw.js`) which prefers the
   payload `title`/`text` and falls back to the generalized fallback text.
@@ -184,6 +198,14 @@ English only.
   For more guidelines around navigation, see the section on [routing](#routing).
 
 ## Package Management
+* **Established vs. new:** The project already has code and tests built on
+  specific packages — e.g. `go_router` for routing, `json_serializable`/
+  `json_annotation` for JSON, `mockito`/`mocktail` for test doubles. Reusing
+  one of these is rung 5 of the lazy ladder ("does an already-installed
+  dependency solve it?"), not a decision to revisit. Never swap in an
+  alternative package for something already solved this way. The
+  "no new dependency if avoidable" rule and the "explain the benefits" step
+  below apply only to packages not yet present in `pubspec.yaml`.
 * **Pub Tool:** To manage packages, use the `pub` tool, if available.
 * **External Packages:** If a new feature requires an external package, use the
   `pub_dev_search` tool, if it is available. Otherwise, identify the most
@@ -305,8 +327,11 @@ linter:
 ```
 
 ### State Management
-* **Built-in Solutions:** Prefer Flutter's built-in state management solutions.
-  Do not use a third-party package unless explicitly requested.
+* **Built-in Solutions:** Prefer Flutter's built-in state management solutions
+  over a state-management package (e.g. `riverpod`, `bloc`) unless explicitly
+  requested. This is about state management specifically — it doesn't apply
+  to already-adopted packages solving a different concern, like `go_router`
+  for routing.
 * **Streams:** Use `Streams` and `StreamBuilder` for handling a sequence of
   asynchronous events.
 * **Futures:** Use `Futures` and `FutureBuilder` for handling a single
@@ -482,76 +507,24 @@ linter:
   Flutter SDK for integration tests. Add it as a `dev_dependency` in
   `pubspec.yaml` by specifying `sdk: flutter`.
 * **Mocks:** Prefer fakes or stubs over mocks. If mocks are absolutely
-  necessary, use `mockito` or `mocktail` to create mocks for dependencies. While
-  code generation is common for state management (e.g., with `freezed`), try to
-  avoid it for mocks.
+  necessary, use `mockito` or `mocktail` (already project dependencies, see
+  Package Management) to create mocks for dependencies. While code generation
+  is common for state management (e.g., with `freezed`), try to avoid it for
+  mocks.
 * **Coverage:** Aim for high test coverage.
 
 ## Visual Design & Theming
 * **Design System:** Before creating or modifying UI components, read
-  `DESIGN.md` in the project root. It contains project-specific rules for
-  typography, colors, navigation structure, AppBar usage, and layout that
-  override generic guidelines.
-* **UI Design:** Build beautiful and intuitive user interfaces that follow
-  modern design guidelines.
-* **Responsiveness:** Ensure the app is mobile responsive and adapts to
-  different screen sizes, working perfectly on mobile and web.
+  `DESIGN.md` in the project root. It is authoritative for typography,
+  colors, spacing, shadows, navigation structure, AppBar usage, and all
+  other visual/theming rules — the sections below only cover code-level
+  Flutter/Dart practices, not visual design decisions.
+* **Responsiveness:** Ensure the app adapts to different screen sizes,
+  working on both mobile and web.
 * **Navigation:** If there are multiple pages for the user to interact with,
-  provide an intuitive and easy navigation bar or controls.
-* **Typography:** Stress and emphasize font sizes to ease understanding, e.g.,
-  hero text, section headlines, list headlines, keywords in paragraphs.
-* **Background:** Apply subtle noise texture to the main background to add a
-  premium, tactile feel.
-* **Shadows:** Multi-layered drop shadows create a strong sense of depth; cards
-  have a soft, deep shadow to look "lifted."
-* **Icons:** Incorporate icons to enhance the user’s understanding and the
-  logical navigation of the app.
-* **Interactive Elements:** Buttons, checkboxes, sliders, lists, charts, graphs,
-  and other interactive elements have a shadow with elegant use of color to
-  create a "glow" effect.
-
-### Theming
-* **Centralized Theme:** Define a centralized `ThemeData` object to ensure a
-  consistent application-wide style.
-* **Light and Dark Themes:** Implement support for both light and dark themes,
-  ideal for a user-facing theme toggle (`ThemeMode.light`, `ThemeMode.dark`,
-  `ThemeMode.system`).
-* **Color Scheme Generation:** Generate harmonious color palettes from a single
-  color using `ColorScheme.fromSeed`.
-
-  ```dart
-  final ThemeData lightTheme = ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Colors.deepPurple,
-      brightness: Brightness.light,
-    ),
-    // ... other theme properties
-  );
-  ```
-* **Color Palette:** Include a wide range of color concentrations and hues in
-  the palette to create a vibrant and energetic look and feel.
-* **Component Themes:** Use specific theme properties (e.g., `appBarTheme`,
-  `elevatedButtonTheme`) to customize the appearance of individual Material
-  components.
-* **Custom Fonts:** For custom fonts, use the `google_fonts` package. Define a
-  `TextTheme` to apply fonts consistently.
-
-  ```dart
-  // 1. Add the dependency
-  // flutter pub add google_fonts
-
-  // 2. Define a TextTheme with a custom font
-  final TextTheme appTextTheme = TextTheme(
-    displayLarge: GoogleFonts.oswald(fontSize: 57, fontWeight: FontWeight.bold),
-    titleLarge: GoogleFonts.roboto(fontSize: 22, fontWeight: FontWeight.w500),
-    bodyMedium: GoogleFonts.openSans(fontSize: 14),
-  );
-  ```
+  provide clear navigation controls.
 
 ### Assets and Images
-* **Image Guidelines:** If images are needed, make them relevant and meaningful,
-  with appropriate size, layout, and licensing (e.g., freely available). Provide
-  placeholder images if real ones are not available.
 * **Asset Declaration:** Declare all asset paths in your `pubspec.yaml` file.
 
     ```yaml
@@ -589,126 +562,6 @@ linter:
     },
   )
   ```
-
-## UI Theming and Styling Code
-
-* **Responsiveness:** Use `LayoutBuilder` or `MediaQuery` to create responsive
-  UIs.
-* **Text:** Use `Theme.of(context).textTheme` for text styles.
-* **Text Fields:** Configure `textCapitalization`, `keyboardType`, and
-  `placeholder`.
-
-## Material Theming Best Practices
-
-### Embrace `ThemeData` and Material 3
-
-* **Use `ColorScheme.fromSeed()`:** Use this to generate a complete, harmonious
-  color palette for both light and dark modes from a single seed color.
-* **Define Light and Dark Themes:** Provide both `theme` and `darkTheme` to your
-  `MaterialApp` to support system brightness settings seamlessly.
-* **Centralize Component Styles:** Customize specific component themes (e.g.,
-  `elevatedButtonTheme`, `cardTheme`, `appBarTheme`) within `ThemeData` to
-  ensure consistency.
-* **Dark/Light Mode and Theme Toggle:** Implement support for both light and
-  dark themes using `theme` and `darkTheme` properties of `MaterialApp`. The
-  `themeMode` property can be dynamically controlled (e.g., via a
-  `ChangeNotifierProvider`) to allow for toggling between `ThemeMode.light`,
-  `ThemeMode.dark`, or `ThemeMode.system`.
-
-```dart
-// main.dart
-MaterialApp(
-  theme: ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Colors.deepPurple,
-      brightness: Brightness.light,
-    ),
-    textTheme: const TextTheme(
-      displayLarge: TextStyle(fontSize: 57.0, fontWeight: FontWeight.bold),
-      bodyMedium: TextStyle(fontSize: 14.0, height: 1.4),
-    ),
-  ),
-  darkTheme: ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Colors.deepPurple,
-      brightness: Brightness.dark,
-    ),
-  ),
-  home: const MyHomePage(),
-);
-```
-
-### Implement Design Tokens with `ThemeExtension`
-
-For custom styles that aren't part of the standard `ThemeData`, use
-`ThemeExtension` to define reusable design tokens.
-
-* **Create a Custom Theme Extension:** Define a class that extends
-  `ThemeExtension<T>` and include your custom properties.
-* **Implement `copyWith` and `lerp`:** These methods are required for the
-  extension to work correctly with theme transitions.
-* **Register in `ThemeData`:** Add your custom extension to the `extensions`
-  list in your `ThemeData`.
-* **Access Tokens in Widgets:** Use `Theme.of(context).extension<MyColors>()!`
-  to access your custom tokens.
-
-```dart
-// 1. Define the extension
-@immutable
-class MyColors extends ThemeExtension<MyColors> {
-  const MyColors({required this.success, required this.danger});
-
-  final Color? success;
-  final Color? danger;
-
-  @override
-  ThemeExtension<MyColors> copyWith({Color? success, Color? danger}) {
-    return MyColors(success: success ?? this.success, danger: danger ?? this.danger);
-  }
-
-  @override
-  ThemeExtension<MyColors> lerp(ThemeExtension<MyColors>? other, double t) {
-    if (other is! MyColors) return this;
-    return MyColors(
-      success: Color.lerp(success, other.success, t),
-      danger: Color.lerp(danger, other.danger, t),
-    );
-  }
-}
-
-// 2. Register it in ThemeData
-theme: ThemeData(
-  extensions: const <ThemeExtension<dynamic>>[
-    MyColors(success: Colors.green, danger: Colors.red),
-  ],
-),
-
-// 3. Use it in a widget
-Container(
-  color: Theme.of(context).extension<MyColors>()!.success,
-)
-```
-
-### Styling with `WidgetStateProperty`
-
-* **`WidgetStateProperty.resolveWith`:** Provide a function that receives a
-  `Set<WidgetState>` and returns the appropriate value for the current state.
-* **`WidgetStateProperty.all`:** A shorthand for when the value is the same for
-  all states.
-
-```dart
-// Example: Creating a button style that changes color when pressed.
-final ButtonStyle myButtonStyle = ButtonStyle(
-  backgroundColor: WidgetStateProperty.resolveWith<Color>(
-    (Set<WidgetState> states) {
-      if (states.contains(WidgetState.pressed)) {
-        return Colors.green; // Color when pressed
-      }
-      return Colors.red; // Default color
-    },
-  ),
-);
-```
 
 ## Layout Best Practices
 
@@ -781,79 +634,6 @@ final ButtonStyle myButtonStyle = ButtonStyle(
   }
   ```
 
-## Color Scheme Best Practices
-
-### Contrast Ratios
-
-* **WCAG Guidelines:** Aim to meet the Web Content Accessibility Guidelines
-  (WCAG) 2.1 standards.
-* **Minimum Contrast:**
-    * **Normal Text:** A contrast ratio of at least **4.5:1**.
-    * **Large Text:** (18pt or 14pt bold) A contrast ratio of at least **3:1**.
-
-### Palette Selection
-
-* **Primary, Secondary, and Accent:** Define a clear color hierarchy.
-* **The 60-30-10 Rule:** A classic design rule for creating a balanced color scheme.
-    * **60%** Primary/Neutral Color (Dominant)
-    * **30%** Secondary Color
-    * **10%** Accent Color
-
-### Complementary Colors
-
-* **Use with Caution:** They can be visually jarring if overused.
-* **Best Use Cases:** They are excellent for accent colors to make specific
-  elements pop, but generally poor for text and background pairings as they can
-  cause eye strain.
-
-### Example Palette
-
-* **Primary:** #0D47A1 (Dark Blue)
-* **Secondary:** #1976D2 (Medium Blue)
-* **Accent:** #FFC107 (Amber)
-* **Neutral/Text:** #212121 (Almost Black)
-* **Background:** #FEFEFE (Almost White)
-
-## Font Best Practices
-
-### Font Selection
-
-* **Limit Font Families:** Stick to one or two font families for the entire
-  application.
-* **Prioritize Legibility:** Choose fonts that are easy to read on screens of
-  all sizes. Sans-serif fonts are generally preferred for UI body text.
-* **System Fonts:** Consider using platform-native system fonts.
-* **Google Fonts:** For a wide selection of open-source fonts, use the
-  `google_fonts` package.
-
-### Hierarchy and Scale
-
-* **Establish a Scale:** Define a set of font sizes for different text elements
-  (e.g., headlines, titles, body text, captions).
-* **Use Font Weight:** Differentiate text effectively using font weights.
-* **Color and Opacity:** Use color and opacity to de-emphasize less important
-  text.
-
-### Readability
-
-* **Line Height (Leading):** Set an appropriate line height, typically **1.4x to
-  1.6x** the font size.
-* **Line Length:** For body text, aim for a line length of **45-75 characters**.
-* **Avoid All Caps:** Do not use all caps for long-form text.
-
-### Example Typographic Scale
-
-```dart
-// In your ThemeData
-textTheme: const TextTheme(
-  displayLarge: TextStyle(fontSize: 57.0, fontWeight: FontWeight.bold),
-  titleLarge: TextStyle(fontSize: 22.0, fontWeight: FontWeight.bold),
-  bodyLarge: TextStyle(fontSize: 16.0, height: 1.5),
-  bodyMedium: TextStyle(fontSize: 14.0, height: 1.4),
-  labelSmall: TextStyle(fontSize: 11.0, color: Colors.grey),
-),
-```
-
 ## Documentation
 
 * **`dartdoc`:** Write `dartdoc`-style comments for all public APIs.
@@ -912,8 +692,7 @@ Implement accessibility features to empower all users, assuming a wide variety
 of users with different physical abilities, mental abilities, age groups,
 education levels, and learning styles.
 
-* **Color Contrast:** Ensure text has a contrast ratio of at least **4.5:1**
-  against its background.
+* **Color Contrast:** Meet the contrast ratios defined in `DESIGN.md`.
 * **Dynamic Text Scaling:** Test your UI to ensure it remains usable when users
   increase the system font size.
 * **Semantic Labels:** Use the `Semantics` widget to provide clear, descriptive
