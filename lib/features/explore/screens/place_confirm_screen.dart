@@ -18,7 +18,7 @@ import '../../../design/widgets/composite/design_map_marker.dart';
 import '../models/explore_models.dart';
 
 class PlaceConfirmScreen extends StatefulWidget {
-  final NominatimResult result;
+  final OsmSearchResult result;
 
   const PlaceConfirmScreen({super.key, required this.result});
 
@@ -28,9 +28,9 @@ class PlaceConfirmScreen extends StatefulWidget {
 
 class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
   int _step = 0;
-  Map<String, dynamic>? _osmDetail;
+  ExploreCategoryPreview? _categoryPreview;
+  bool _loadingCategory = false;
   String? _stepError;
-  bool _loadingOsm = false;
   int _rating = 0;
   final _commentController = TextEditingController();
   bool _submitting = false;
@@ -47,30 +47,33 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
     super.dispose();
   }
 
-  Future<void> _confirmLocation() async {
+  void _confirmLocation() {
     setState(() {
       _step = 1;
-      _loadingOsm = true;
+      _loadingCategory = true;
       _stepError = null;
     });
+    _loadCategoryPreview();
+  }
+
+  Future<void> _loadCategoryPreview() async {
     try {
-      final nominatim = AppScope.of(context).nominatim;
-      final detail = await nominatim.lookup(
-        widget.result.osmId,
-        widget.result.osmType,
+      final explore = AppScope.of(context).explore;
+      final preview = await explore.previewCategory(
+        osmId: widget.result.osmId,
+        osmType: widget.result.osmType,
       );
       if (!mounted) return;
       setState(() {
-        _osmDetail = detail;
-        _loadingOsm = false;
-        if (detail == null) _stepError = 'Details konnten nicht geladen werden.';
+        _categoryPreview = preview;
+        _loadingCategory = false;
       });
     } catch (e, st) {
-      developer.log('Failed to load OSM details', error: e, stackTrace: st);
+      developer.log('Failed to load category preview', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
-        _loadingOsm = false;
-        _stepError = 'OSM-Details konnten nicht geladen werden.';
+        _loadingCategory = false;
+        _stepError = 'Kategorie konnte nicht geladen werden.';
       });
     }
   }
@@ -204,7 +207,7 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
       case 0:
         return _buildMapStep(tokens);
       case 1:
-        return _buildInfoStep(tokens);
+        return _buildCategoryStep(tokens);
       case 2:
         return _buildRatingStep(tokens);
       default:
@@ -267,8 +270,8 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
     );
   }
 
-  Widget _buildInfoStep(DesignTokens tokens) {
-    if (_loadingOsm) {
+  Widget _buildCategoryStep(DesignTokens tokens) {
+    if (_loadingCategory) {
       return Center(child: CircularProgressIndicator(color: tokens.primary));
     }
 
@@ -291,7 +294,7 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
               DesignButton(
                 variant: DesignButtonVariant.filled,
                 label: 'Erneut versuchen',
-                onPressed: _confirmLocation,
+                onPressed: _loadCategoryPreview,
               ),
             ],
           ),
@@ -299,19 +302,14 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
       );
     }
 
-    if (_osmDetail == null) {
+    final preview = _categoryPreview;
+    if (preview == null) {
       return const SizedBox();
     }
 
-    final detail = _osmDetail!;
-    final name = _extractName(detail);
-    final address = _formatAddress(detail);
-    final extratags = detail['extratags'] as Map<String, dynamic>? ?? {};
-    final phone = extratags['phone'] as String?;
-    final website = extratags['website'] as String?;
-    final email = extratags['contact:email'] as String? ?? extratags['email'] as String?;
-    final openingHours = extratags['opening_hours'] as String?;
-    final categoryType = detail['type'] as String? ?? detail['category'] as String? ?? '';
+    final categoryName = preview.category == 'gastronomy'
+        ? 'Gastronomie'
+        : 'Freizeit';
 
     return Padding(
       padding: EdgeInsets.all(tokens.spaceLg),
@@ -331,19 +329,10 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _infoRow(Icons.store_rounded, name, tokens),
-                    if (address != null)
-                      _infoRow(Icons.location_on_rounded, address, tokens),
-                    if (categoryType.isNotEmpty)
-                      _infoRow(Icons.category_rounded, categoryType, tokens),
-                    if (phone != null)
-                      _infoRow(Icons.phone_rounded, phone, tokens),
-                    if (website != null)
-                      _infoRow(Icons.language_rounded, website, tokens),
-                    if (email != null)
-                      _infoRow(Icons.email_rounded, email, tokens),
-                    if (openingHours != null)
-                      _infoRow(Icons.schedule_rounded, openingHours, tokens),
+                    _infoRow(Icons.store_rounded, widget.result.name, tokens),
+                    _infoRow(Icons.category_rounded, categoryName, tokens),
+                    if (preview.cuisine != null)
+                      _infoRow(Icons.restaurant_rounded, preview.cuisine!, tokens),
                   ],
                 ),
               ),
@@ -414,31 +403,6 @@ class _PlaceConfirmScreenState extends State<PlaceConfirmScreen> {
         ],
       ),
     );
-  }
-
-  String _extractName(Map<String, dynamic> detail) {
-    final displayName = detail['display_name'] as String? ?? '';
-    final first = displayName.split(',').first.trim();
-    return first.isNotEmpty ? first : 'Unbekannter Ort';
-  }
-
-  String? _formatAddress(Map<String, dynamic> detail) {
-    final address = detail['address'] as Map<String, dynamic>?;
-    if (address == null || address.isEmpty) return null;
-    final parts = <String>[];
-    for (final key in [
-      'house_number', 'road', 'city', 'state', 'postcode', 'country',
-    ]) {
-      final val = address[key] as String?;
-      if (val != null && val.isNotEmpty) {
-        if (key == 'postcode' && parts.isNotEmpty) {
-          parts[parts.length - 1] = '${parts.last} $val';
-        } else {
-          parts.add(val);
-        }
-      }
-    }
-    return parts.isEmpty ? null : parts.join(', ');
   }
 
   Widget _infoRow(IconData icon, String text, DesignTokens tokens) {

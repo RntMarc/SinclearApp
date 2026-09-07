@@ -178,7 +178,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                   GoRoute(
                     path: 'bestaetigen',
                     builder: (context, state) => PlaceConfirmScreen(
-                      result: state.extra as NominatimResult,
+                      result: state.extra as OsmSearchResult,
                     ),
                   ),
                   GoRoute(
