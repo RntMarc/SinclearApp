@@ -329,6 +329,11 @@ Design-Tokens bekommt.
   blendet den Button aus und zeigt einen `CircularProgressIndicator` an Stelle
   des `icon` (kein lokaler Spinner nötig). `fullWidth` spannt den Button über
   die gesamte Breite.
+- **`DesignFab`** (`primitives`) – Floating Action Button des Design-Systems:
+  gefüllter Primärfarben-Kreis (56 px, Icon 28 px) mit `glowShadow` und
+  `PressScale`-Feedback (Referenz: Explore-Screen). `DesignFabSize.small`
+  (40 px, Icon 20 px) für sekundäre Aktionen, die über dem Haupt-FAB gestapelt
+  werden (z.B. Entwürfe über „Neuer Beitrag"/„Neues Rezept").
 - **`DesignSlider`** (`primitives`) – Katalog-Slider mit `label`,
   `valueText`-Readout (deutsch) und gradientfähiger Track. `min`/`max`/
   `onChanged` steuern den Wert; der Thumb ist ein token-typischer Glow-Kreis.

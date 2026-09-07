@@ -3,6 +3,7 @@ import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../constants/weather_constants.dart';
 import '../models/weather_models.dart';
 import '../services/weather_preferences.dart';
@@ -75,14 +76,28 @@ class _WeatherScreenState extends State<WeatherScreen> {
     final tokens = DesignTheme.of(context);
     final canAdd = _locations.length < kMaxSavedWeatherLocations;
 
-    return DesignSurface(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: RefreshIndicator(
-        onRefresh: _init,
-        child: _locations.isEmpty
-            ? _buildEmpty(tokens)
-            : _buildList(tokens, canAdd),
-      ),
+    return Stack(
+      children: [
+        DesignSurface(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: RefreshIndicator(
+            onRefresh: _init,
+            child: _locations.isEmpty
+                ? _buildEmpty(tokens)
+                : _buildList(tokens, canAdd),
+          ),
+        ),
+        if (canAdd)
+          Positioned(
+            right: tokens.spaceLg,
+            bottom: tokens.spaceLg,
+            child: DesignFab(
+              icon: Icons.add_location_alt_rounded,
+              onPressed: _addLocation,
+              tooltip: 'Ort hinzufügen',
+            ),
+          ),
+      ],
     );
   }
 

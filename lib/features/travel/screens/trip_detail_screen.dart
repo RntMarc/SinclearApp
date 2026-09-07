@@ -6,6 +6,7 @@ import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../moderation/models/moderation_models.dart';
@@ -328,13 +329,12 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             _buildBody(),
             if (showFab)
               Positioned(
-                right: 16,
-                bottom: 16,
-                child: FloatingActionButton(
-                  heroTag: 'trip_ticket_fab',
+                right: DesignTheme.of(context).spaceLg,
+                bottom: DesignTheme.of(context).spaceLg,
+                child: DesignFab(
+                  icon: Icons.qr_code_scanner_rounded,
                   onPressed: _addTicket,
                   tooltip: 'Ticket hinzufügen',
-                  child: const Icon(Icons.qr_code_scanner_rounded),
                 ),
               ),
           ],

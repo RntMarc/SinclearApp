@@ -10,7 +10,7 @@ import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
-import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_card_chip_group.dart';
 import '../models/recipes_models.dart';
@@ -153,7 +153,9 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
             )
           else if (_drafts.isEmpty)
             Padding(
-              padding: EdgeInsets.symmetric(vertical: DesignTheme.of(context).spaceLg),
+              padding: EdgeInsets.symmetric(
+                vertical: DesignTheme.of(context).spaceLg,
+              ),
               child: Center(
                 child: DesignText(
                   'Keine Entwürfe vorhanden.',
@@ -504,19 +506,22 @@ class _RecipeListScreenState extends State<RecipeListScreen> {
           ),
           if (!guest) ...[
             Positioned(
-              bottom: tokens.spaceLg + 56,
+              bottom: tokens.spaceLg + 56 + tokens.spaceSm,
               right: tokens.spaceLg,
-              child: DesignIconButton(
+              child: DesignFab(
+                size: DesignFabSize.small,
                 icon: Icons.edit_note_rounded,
                 onPressed: _showDraftsSheet,
+                tooltip: 'Entwürfe',
               ),
             ),
             Positioned(
               bottom: tokens.spaceLg,
               right: tokens.spaceLg,
-              child: DesignIconButton(
+              child: DesignFab(
                 icon: Icons.add_rounded,
                 onPressed: () => context.go('/rezepte/neu'),
+                tooltip: 'Neues Rezept',
               ),
             ),
           ],
