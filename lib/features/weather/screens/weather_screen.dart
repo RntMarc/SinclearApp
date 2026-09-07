@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_button.dart';
 import '../constants/weather_constants.dart';
 import '../models/weather_models.dart';
 import '../services/weather_preferences.dart';
@@ -75,83 +76,97 @@ class _WeatherScreenState extends State<WeatherScreen> {
     final canAdd = _locations.length < kMaxSavedWeatherLocations;
 
     return DesignSurface(
-      child: Stack(
-        children: [
-          _locations.isEmpty
-              ? _buildEmpty(tokens)
-              : _buildList(tokens),
-          if (canAdd)
-            Positioned(
-              right: 16,
-              bottom: 16,
-              child: FloatingActionButton(
-                heroTag: 'weather_add',
-                onPressed: _addLocation,
-                tooltip: 'Ort hinzufügen',
-                child: const Icon(Icons.add_location_alt_rounded),
-              ),
-            ),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: RefreshIndicator(
+        onRefresh: _init,
+        child: _locations.isEmpty
+            ? _buildEmpty(tokens)
+            : _buildList(tokens, canAdd),
       ),
     );
   }
 
   Widget _buildEmpty(DesignTokens tokens) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.wb_sunny_outlined, size: 64, color: tokens.textLow),
-          SizedBox(height: tokens.spaceLg),
-          DesignText(
-            'Keine Orte gespeichert',
-            style: DesignTextStyle.body,
-            color: tokens.textLow,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.wb_sunny_outlined,
+                    size: 64,
+                    color: tokens.textLow,
+                  ),
+                  SizedBox(height: tokens.spaceLg),
+                  DesignText(
+                    'Keine Orte gespeichert',
+                    style: DesignTextStyle.body,
+                    color: tokens.textLow,
+                  ),
+                  SizedBox(height: tokens.spaceSm),
+                  DesignText(
+                    'Tippe auf „Ort hinzufügen" unten',
+                    style: DesignTextStyle.label,
+                    color: tokens.textLow,
+                  ),
+                ],
+              ),
+            ),
           ),
-          SizedBox(height: tokens.spaceSm),
-          DesignText(
-            'Tippe auf + um einen Ort hinzuzufügen',
-            style: DesignTextStyle.label,
-            color: tokens.textLow,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildList(DesignTokens tokens) {
+  Widget _buildList(DesignTokens tokens, bool canAdd) {
     return ListView.builder(
       padding: EdgeInsets.fromLTRB(
         tokens.spaceLg,
         tokens.spaceLg,
         tokens.spaceLg,
-        tokens.spaceXxl + 80,
+        tokens.spaceXxl,
       ),
-      itemCount: _locations.length,
+      itemCount: _locations.length + (canAdd ? 1 : 0),
       itemBuilder: (context, index) {
+        if (index == _locations.length) {
+          return Padding(
+            padding: EdgeInsets.only(top: tokens.spaceMd),
+            child: DesignButton(
+              label: 'Ort hinzufügen',
+              icon: Icons.add_location_alt_rounded,
+              variant: DesignButtonVariant.outlined,
+              fullWidth: true,
+              onPressed: _addLocation,
+            ),
+          );
+        }
         final loc = _locations[index];
-        return Dismissible(
-          key: ValueKey('weather_${loc.slug ?? loc.lat}_${loc.lon}_$index'),
-          direction: DismissDirection.endToStart,
-          onDismissed: (_) => _removeLocation(index),
-          background: Container(
-            alignment: Alignment.centerRight,
-            margin: EdgeInsets.only(bottom: tokens.spaceSm),
-            padding: EdgeInsets.only(right: tokens.spaceLg),
-            decoration: BoxDecoration(
-              color: tokens.danger,
-              borderRadius: BorderRadius.circular(tokens.radiusLg),
+        return Padding(
+          padding: EdgeInsets.only(bottom: tokens.spaceMd),
+          child: Dismissible(
+            key: ValueKey('weather_${loc.slug ?? loc.lat}_${loc.lon}_$index'),
+            direction: DismissDirection.endToStart,
+            onDismissed: (_) => _removeLocation(index),
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: EdgeInsets.only(right: tokens.spaceLg),
+              decoration: BoxDecoration(
+                color: tokens.danger,
+                borderRadius: BorderRadius.circular(tokens.radiusLg),
+              ),
+              child: Icon(Icons.delete_outline_rounded, color: tokens.surface),
             ),
-            child: Icon(
-              Icons.delete_outline_rounded,
-              color: tokens.surface,
+            child: WeatherSummaryCard(
+              citySlug: loc.slug,
+              lat: loc.lat,
+              lon: loc.lon,
+              locationName: loc.name,
             ),
-          ),
-          child: WeatherSummaryCard(
-            citySlug: loc.slug,
-            lat: loc.lat,
-            lon: loc.lon,
-            locationName: loc.name,
           ),
         );
       },

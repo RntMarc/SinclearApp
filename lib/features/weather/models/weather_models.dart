@@ -29,8 +29,7 @@ class WeatherCurrent {
     return WeatherCurrent(
       temperatureC: (json['temperature_c'] as num?)?.toDouble(),
       humidity: (json['humidity'] as num?)?.toDouble(),
-      apparentTemperature:
-          (json['apparent_temperature'] as num?)?.toDouble(),
+      apparentTemperature: (json['apparent_temperature'] as num?)?.toDouble(),
       precipitation: (json['precipitation'] as num?)?.toDouble(),
       weatherCode: json['weather_code'] as int?,
       condition: json['condition'] as String?,
@@ -119,15 +118,31 @@ class WeatherDaily {
   }
 }
 
+class WeatherAttribution {
+  final String text;
+  final String url;
+
+  const WeatherAttribution({required this.text, required this.url});
+
+  factory WeatherAttribution.fromJson(Map<String, dynamic> json) {
+    return WeatherAttribution(
+      text: json['text'] as String? ?? '',
+      url: json['url'] as String? ?? '',
+    );
+  }
+}
+
 class WeatherData {
   final WeatherCurrent? current;
   final List<WeatherHourly> hourly;
   final List<WeatherDaily> daily;
+  final WeatherAttribution? attribution;
 
   const WeatherData({
     this.current,
     this.hourly = const [],
     this.daily = const [],
+    this.attribution,
   });
 
   factory WeatherData.fromJson(Map<String, dynamic> json) {
@@ -135,16 +150,21 @@ class WeatherData {
       current: json['current'] != null
           ? WeatherCurrent.fromJson(json['current'] as Map<String, dynamic>)
           : null,
-      hourly: (json['hourly'] as List?)
-              ?.map((e) =>
-                  WeatherHourly.fromJson(e as Map<String, dynamic>))
+      hourly:
+          (json['hourly'] as List?)
+              ?.map((e) => WeatherHourly.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      daily: (json['daily'] as List?)
-              ?.map((e) =>
-                  WeatherDaily.fromJson(e as Map<String, dynamic>))
+      daily:
+          (json['daily'] as List?)
+              ?.map((e) => WeatherDaily.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      attribution: json['_attribution'] != null
+          ? WeatherAttribution.fromJson(
+              json['_attribution'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 }
@@ -160,13 +180,25 @@ class WeatherMeta {
     this.source,
   });
 
+  String get sourceLabel {
+    return switch (source) {
+      'infranode' => 'InfraNode',
+      'open-meteo' => 'Open-Meteo',
+      'mixed' => 'InfraNode + Open-Meteo',
+      'cache' => 'Cache',
+      _ => source ?? 'Unbekannt',
+    };
+  }
+
   factory WeatherMeta.fromJson(Map<String, dynamic> json) {
     return WeatherMeta(
-      missingSections: (json['missing_sections'] as List?)
+      missingSections:
+          (json['missing_sections'] as List?)
               ?.map((e) => e as String)
               .toList() ??
           [],
-      availableSections: (json['available_sections'] as List?)
+      availableSections:
+          (json['available_sections'] as List?)
               ?.map((e) => e as String)
               .toList() ??
           [],
@@ -184,9 +216,7 @@ class WeatherResponse {
   factory WeatherResponse.fromJson(Map<String, dynamic> json) {
     return WeatherResponse(
       data: WeatherData.fromJson(json['data'] as Map<String, dynamic>),
-      meta: WeatherMeta.fromJson(
-        json['meta'] as Map<String, dynamic>? ?? {},
-      ),
+      meta: WeatherMeta.fromJson(json['meta'] as Map<String, dynamic>? ?? {}),
     );
   }
 }
@@ -263,10 +293,10 @@ class SavedLocation {
   }
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'slug': slug,
-        'lat': lat,
-        'lon': lon,
-        'source': source,
-      };
+    'name': name,
+    'slug': slug,
+    'lat': lat,
+    'lon': lon,
+    'source': source,
+  };
 }
