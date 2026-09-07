@@ -15,15 +15,6 @@ class ExploreService {
 
   Future<String> _token() => _auth.getAccessToken();
 
-  /// Token nur bei eingeloggten Nutzern; Gäste nutzen die öffentlichen
-  /// `/public/...`-Endpunkte ohne Authorization-Header.
-  Future<String?> _optionalToken() async {
-    if (!_auth.isLoggedIn) return null;
-    return _auth.getAccessToken();
-  }
-
-  bool get _isGuest => !_auth.isLoggedIn;
-
   Future<ExploreListResponse> list({
     String? category,
     String? sort,
@@ -40,9 +31,9 @@ class ExploreService {
     if (mine) params['mine'] = 'true';
 
     final data = await _api.get(
-      _isGuest ? '/public/explore' : '/explore',
+      '/explore',
       queryParams: params,
-      token: await _optionalToken(),
+      token: await _token(),
     );
     return ExploreListResponse.fromJson(data);
   }
@@ -52,9 +43,9 @@ class ExploreService {
     if (category != null) params['category'] = category;
 
     final data = await _api.get(
-      _isGuest ? '/public/explore/random' : '/explore/random',
+      '/explore/random',
       queryParams: params,
-      token: await _optionalToken(),
+      token: await _token(),
     );
     return ExploreListResponse.fromJson(data);
   }
@@ -116,17 +107,17 @@ class ExploreService {
     if (location != null) params['location'] = location;
 
     final data = await _api.get(
-      _isGuest ? '/public/explore/search' : '/explore/search',
+      '/explore/search',
       queryParams: params,
-      token: await _optionalToken(),
+      token: await _token(),
     );
     return ExploreListResponse.fromJson(data);
   }
 
   Future<ExplorePlace> get(String id) async {
     final data = await _api.get(
-      _isGuest ? '/public/explore/$id' : '/explore/$id',
-      token: await _optionalToken(),
+      '/explore/$id',
+      token: await _token(),
     );
     return ExplorePlace.fromJson(data['data'] as Map<String, dynamic>);
   }
@@ -143,6 +134,32 @@ class ExploreService {
       token: await _token(),
     );
     return ExplorePlace.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<ExploreCategoryPreview> previewCategory({
+    required int osmId,
+    required String osmType,
+  }) async {
+    const typeMap = {'node': 'N', 'way': 'W', 'relation': 'R'};
+    final apiType = typeMap[osmType] ?? osmType;
+    final data = await _api.post(
+      '/explore/preview-category',
+      body: CreatePlaceRequest(osmId: osmId, osmType: apiType).toJson(),
+      token: await _token(),
+    );
+    return ExploreCategoryPreview.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<List<OsmSearchResult>> searchOsm(String query, {int limit = 5}) async {
+    final data = await _api.get(
+      '/explore/osm-search',
+      queryParams: {'q': query, 'limit': limit.toString()},
+      token: await _token(),
+    );
+    final list = data['data'] as List;
+    return list
+        .map((e) => OsmSearchResult.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ExplorePlace> update(String id) async {

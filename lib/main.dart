@@ -26,7 +26,6 @@ import 'core/storage/token_storage.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
-import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/chat/services/chat_service.dart';
@@ -107,7 +106,6 @@ Future<void> _bootstrap() async {
 
   final api = ApiClient(baseUrl: baseUrl);
   final storage = TokenStorage();
-  final nominatim = NominatimService();
   final auth = AuthService(api: api, storage: storage);
   await auth.init();
   final explore = ExploreService(api: api, auth: auth);
@@ -224,7 +222,6 @@ Future<void> _bootstrap() async {
     SinclearApp(
       auth: auth,
       explore: explore,
-      nominatim: nominatim,
       travel: travel,
       publicTransport: publicTransport,
       user: user,

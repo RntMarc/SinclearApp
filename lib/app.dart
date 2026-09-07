@@ -10,7 +10,6 @@ import 'core/widgets/web_update_banner.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
-import 'features/explore/services/nominatim_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
 import 'features/chat/services/chat_service.dart';
@@ -39,7 +38,6 @@ import 'core/notifications/notification_lifecycle_observer.dart';
 class SinclearApp extends StatelessWidget {
   final AuthService auth;
   final ExploreService explore;
-  final NominatimService nominatim;
   final TravelService travel;
   final PublicTransportService publicTransport;
   final UserService user;
@@ -114,7 +112,6 @@ class SinclearApp extends StatelessWidget {
     required this.initialCustomAccent,
     required this.auth,
     required this.explore,
-    required this.nominatim,
     required this.travel,
     required this.publicTransport,
     required this.user,
@@ -164,7 +161,6 @@ class SinclearApp extends StatelessWidget {
     return AppScope(
       auth: auth,
       explore: explore,
-      nominatim: nominatim,
       travel: travel,
       publicTransport: publicTransport,
       user: user,

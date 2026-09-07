@@ -142,6 +142,52 @@ class CreatePlaceRequest {
   Map<String, dynamic> toJson() => {'osmId': osmId, 'osmType': osmType};
 }
 
+class ExploreCategoryPreview {
+  final String category;
+  final String? cuisine;
+  final String? name;
+
+  const ExploreCategoryPreview({
+    required this.category,
+    this.cuisine,
+    this.name,
+  });
+
+  factory ExploreCategoryPreview.fromJson(Map<String, dynamic> json) {
+    return ExploreCategoryPreview(
+      category: json['category'] as String,
+      cuisine: json['cuisine'] as String?,
+      name: json['name'] as String?,
+    );
+  }
+}
+
+class OsmSearchResult {
+  final int osmId;
+  final String osmType;
+  final String name;
+  final double lat;
+  final double lon;
+
+  const OsmSearchResult({
+    required this.osmId,
+    required this.osmType,
+    required this.name,
+    required this.lat,
+    required this.lon,
+  });
+
+  factory OsmSearchResult.fromJson(Map<String, dynamic> json) {
+    return OsmSearchResult(
+      osmId: json['osmId'] as int,
+      osmType: json['osmType'] as String,
+      name: json['name'] as String,
+      lat: (json['lat'] as num).toDouble(),
+      lon: (json['lon'] as num).toDouble(),
+    );
+  }
+}
+
 class Review {
   final String id;
   final String placeId;
@@ -227,38 +273,6 @@ class UpdateReviewRequest {
       map['comment'] = null;
     }
     return map;
-  }
-}
-
-class NominatimResult {
-  final int osmId;
-  final String osmType;
-  final String displayName;
-  final double lat;
-  final double lon;
-  final String? category;
-  final String? type;
-
-  const NominatimResult({
-    required this.osmId,
-    required this.osmType,
-    required this.displayName,
-    required this.lat,
-    required this.lon,
-    this.category,
-    this.type,
-  });
-
-  factory NominatimResult.fromJson(Map<String, dynamic> json) {
-    return NominatimResult(
-      osmId: (json['osm_id'] as num).toInt(),
-      osmType: json['osm_type'] as String,
-      displayName: json['display_name'] as String,
-      lat: double.parse(json['lat'] as String),
-      lon: double.parse(json['lon'] as String),
-      category: json['category'] as String?,
-      type: json['type'] as String?,
-    );
   }
 }
 

@@ -21,7 +21,7 @@ class CreatePlaceScreen extends StatefulWidget {
 
 class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
   final _searchController = TextEditingController();
-  List<NominatimResult> _results = [];
+  List<OsmSearchResult> _results = [];
   bool _searching = false;
   String? _error;
 
@@ -42,8 +42,8 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
     });
 
     try {
-      final nominatim = AppScope.of(context).nominatim;
-      final results = await nominatim.search(query);
+      final explore = AppScope.of(context).explore;
+      final results = await explore.searchOsm(query);
       if (!mounted) return;
       setState(() {
         _results = results;
@@ -143,7 +143,7 @@ class _CreatePlaceScreenState extends State<CreatePlaceScreen> {
                                   : Icons.layers_rounded,
                               color: tokens.primary,
                             ),
-                            title: result.displayName,
+                            title: result.name,
                             subtitle: 'OSM-ID: ${result.osmId}',
                             trailing: Icon(
                               Icons.add_circle_outline,

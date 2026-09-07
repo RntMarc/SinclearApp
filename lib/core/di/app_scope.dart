@@ -4,7 +4,6 @@ import '../services/web_update_service.dart';
 import '../../features/auth/services/auth_service.dart';
 import '../../features/calendar/services/calendar_service.dart';
 import '../../features/explore/services/explore_service.dart';
-import '../../features/explore/services/nominatim_service.dart';
 import '../../features/feedback/services/feedback_service.dart';
 import '../../features/forum/services/forum_service.dart';
 import '../../features/chat/services/chat_service.dart';
@@ -32,7 +31,6 @@ import '../../features/home/dashboard_widget_repository.dart';
 class AppScope extends InheritedWidget {
   final AuthService auth;
   final ExploreService explore;
-  final NominatimService nominatim;
   final TravelService travel;
   final PublicTransportService publicTransport;
   final UserService user;
@@ -74,7 +72,6 @@ class AppScope extends InheritedWidget {
     super.key,
     required this.auth,
     required this.explore,
-    required this.nominatim,
     required this.travel,
     required this.publicTransport,
     required this.user,
