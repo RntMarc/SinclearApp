@@ -115,51 +115,118 @@ class _WeatherSummaryCardState extends State<WeatherSummaryCard> {
 
     return DesignCard(
       margin: EdgeInsets.zero,
-      padding: EdgeInsets.all(tokens.spaceMd),
+      padding: EdgeInsets.all(tokens.spaceLg),
       onTap: _openDetail,
       child: Row(
         children: [
-          Icon(
-            Icons.wb_sunny_rounded,
-            color: tokens.primary,
-            size: 24,
-          ),
-          SizedBox(width: tokens.spaceSm),
-          Expanded(
-            child: _buildContent(tokens, current),
-          ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: tokens.textLow,
-            size: 20,
-          ),
+          _buildIcon(tokens, current),
+          SizedBox(width: tokens.spaceLg),
+          Expanded(child: _buildContent(tokens, current)),
+          Icon(Icons.chevron_right_rounded, color: tokens.textLow, size: 20),
         ],
       ),
     );
   }
 
-  Widget _buildContent(DesignTokens tokens, WeatherCurrent? current) {
+  Widget _buildIcon(DesignTokens tokens, WeatherCurrent? current) {
     if (_loading) {
-      return DesignText(
-        'Wetter laden…',
-        style: DesignTextStyle.label,
+      return _iconContainer(
+        tokens,
+        icon: Icons.wb_sunny_rounded,
         color: tokens.textLow,
+      );
+    }
+    if (current == null || _error != null) {
+      return _iconContainer(
+        tokens,
+        icon: Icons.cloud_off_rounded,
+        color: tokens.textLow,
+      );
+    }
+    return _iconContainer(
+      tokens,
+      icon: Icons.wb_sunny_rounded,
+      color: tokens.primary,
+    );
+  }
+
+  Widget _iconContainer(
+    DesignTokens tokens, {
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(tokens.radiusSm),
+      ),
+      child: Icon(icon, color: color, size: 24),
+    );
+  }
+
+  Widget _buildContent(DesignTokens tokens, WeatherCurrent? current) {
+    final locationName = widget.locationName;
+    final hasName = locationName != null && locationName.isNotEmpty;
+
+    if (_loading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasName)
+            DesignText(
+              locationName,
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
+            ),
+          DesignText(
+            'Wetter laden…',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+        ],
       );
     }
 
     if (_error != null) {
-      return DesignText(
-        'Abruf von Wetter fehlgeschlagen',
-        style: DesignTextStyle.label,
-        color: tokens.textLow,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasName)
+            DesignText(
+              locationName,
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
+            ),
+          DesignText(
+            'Abruf fehlgeschlagen',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+        ],
       );
     }
 
     if (current == null) {
-      return DesignText(
-        'Keine Wetterdaten verfügbar',
-        style: DesignTextStyle.label,
-        color: tokens.textLow,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasName)
+            DesignText(
+              locationName,
+              style: DesignTextStyle.subtitle,
+              color: tokens.textHigh,
+            ),
+          DesignText(
+            'Keine Daten verfügbar',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+        ],
       );
     }
 
@@ -173,32 +240,23 @@ class _WeatherSummaryCardState extends State<WeatherSummaryCard> {
       parts.add('WMO ${current.weatherCode}');
     }
 
-    final tempText = parts.isNotEmpty ? parts.join(' \u2022 ') : 'Wetter';
+    final detailText = parts.isNotEmpty ? parts.join(' \u2022 ') : 'Wetter';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (hasName)
+          DesignText(
+            locationName,
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
         DesignText(
-          'Wetter',
+          detailText,
           style: DesignTextStyle.label,
           color: tokens.textLow,
         ),
-        SizedBox(height: tokens.spaceXs),
-        DesignText(
-          tempText,
-          style: DesignTextStyle.body,
-          color: tokens.textHigh,
-        ),
-        if (widget.locationName != null &&
-            widget.locationName!.isNotEmpty) ...[
-          SizedBox(height: tokens.spaceXs),
-          DesignText(
-            widget.locationName!,
-            style: DesignTextStyle.label,
-            color: tokens.textLow,
-          ),
-        ],
       ],
     );
   }

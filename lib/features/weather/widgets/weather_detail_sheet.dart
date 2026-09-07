@@ -129,6 +129,10 @@ class _WeatherDetailBodyState extends State<_WeatherDetailBody> {
           ],
           if (_weather!.data.daily.isNotEmpty)
             _DailySection(daily: _weather!.data.daily),
+          if (_weather != null) ...[
+            SizedBox(height: tokens.spaceMd),
+            _DataSourceLabel(weather: _weather!),
+          ],
         ],
       ],
     );
@@ -146,55 +150,68 @@ class _CurrentSection extends StatelessWidget {
     final rows = <_InfoRow>[];
 
     if (current.temperatureC != null) {
-      rows.add(_InfoRow(
-        label: 'Temperatur',
-        value: '${current.temperatureC!.toStringAsFixed(1)}\u00B0C',
-      ));
+      rows.add(
+        _InfoRow(
+          label: 'Temperatur',
+          value: '${current.temperatureC!.toStringAsFixed(1)}\u00B0C',
+        ),
+      );
     }
     if (current.apparentTemperature != null) {
-      rows.add(_InfoRow(
-        label: 'Gef\u00fchlt',
-        value: '${current.apparentTemperature!.toStringAsFixed(1)}\u00B0C',
-      ));
+      rows.add(
+        _InfoRow(
+          label: 'Gef\u00fchlt',
+          value: '${current.apparentTemperature!.toStringAsFixed(1)}\u00B0C',
+        ),
+      );
     }
     if (current.condition != null && current.condition!.isNotEmpty) {
       rows.add(_InfoRow(label: 'Bedingung', value: current.condition!));
     }
     if (current.humidity != null) {
-      rows.add(_InfoRow(
-        label: 'Luftfeuchtigkeit',
-        value: '${current.humidity!.toStringAsFixed(0)}%',
-      ));
+      rows.add(
+        _InfoRow(
+          label: 'Luftfeuchtigkeit',
+          value: '${current.humidity!.toStringAsFixed(0)}%',
+        ),
+      );
     }
     if (current.windSpeed != null) {
-      rows.add(_InfoRow(
-        label: 'Wind',
-        value: '${current.windSpeed!.toStringAsFixed(1)} km/h',
-      ));
+      rows.add(
+        _InfoRow(
+          label: 'Wind',
+          value: '${current.windSpeed!.toStringAsFixed(1)} km/h',
+        ),
+      );
     }
     if (current.windGusts != null) {
-      rows.add(_InfoRow(
-        label: 'B\u00f6en',
-        value: '${current.windGusts!.toStringAsFixed(1)} km/h',
-      ));
+      rows.add(
+        _InfoRow(
+          label: 'B\u00f6en',
+          value: '${current.windGusts!.toStringAsFixed(1)} km/h',
+        ),
+      );
     }
     if (current.windDirection != null) {
-      rows.add(_InfoRow(
-        label: 'Windrichtung',
-        value: '${current.windDirection!.toStringAsFixed(0)}\u00B0',
-      ));
+      rows.add(
+        _InfoRow(
+          label: 'Windrichtung',
+          value: '${current.windDirection!.toStringAsFixed(0)}\u00B0',
+        ),
+      );
     }
     if (current.cloudCover != null) {
-      rows.add(_InfoRow(
-        label: 'Bew\u00f6lkung',
-        value: '${current.cloudCover}%',
-      ));
+      rows.add(
+        _InfoRow(label: 'Bew\u00f6lkung', value: '${current.cloudCover}%'),
+      );
     }
     if (current.precipitation != null) {
-      rows.add(_InfoRow(
-        label: 'Niederschlag',
-        value: '${current.precipitation!.toStringAsFixed(1)} mm',
-      ));
+      rows.add(
+        _InfoRow(
+          label: 'Niederschlag',
+          value: '${current.precipitation!.toStringAsFixed(1)} mm',
+        ),
+      );
     }
     if (current.observedAt != null) {
       final local = current.observedAt!.toLocal();
@@ -217,24 +234,26 @@ class _CurrentSection extends StatelessWidget {
             color: tokens.textLow,
           ),
           SizedBox(height: tokens.spaceSm),
-          ...rows.map((r) => Padding(
-                padding: EdgeInsets.only(bottom: tokens.spaceXs),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    DesignText(
-                      r.label,
-                      style: DesignTextStyle.body,
-                      color: tokens.textLow,
-                    ),
-                    DesignText(
-                      r.value,
-                      style: DesignTextStyle.body,
-                      color: tokens.textHigh,
-                    ),
-                  ],
-                ),
-              )),
+          ...rows.map(
+            (r) => Padding(
+              padding: EdgeInsets.only(bottom: tokens.spaceXs),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  DesignText(
+                    r.label,
+                    style: DesignTextStyle.body,
+                    color: tokens.textLow,
+                  ),
+                  DesignText(
+                    r.value,
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -380,4 +399,31 @@ class _InfoRow {
   final String value;
 
   const _InfoRow({required this.label, required this.value});
+}
+
+class _DataSourceLabel extends StatelessWidget {
+  final WeatherResponse weather;
+
+  const _DataSourceLabel({required this.weather});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final attribution = weather.data.attribution;
+    final sourceLabel = weather.meta.sourceLabel;
+
+    return Center(
+      child: attribution != null && attribution.text.isNotEmpty
+          ? DesignText(
+              attribution.text,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            )
+          : DesignText(
+              'Datenquelle: $sourceLabel',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+    );
+  }
 }
