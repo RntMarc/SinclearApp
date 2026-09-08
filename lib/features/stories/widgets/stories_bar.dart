@@ -21,7 +21,7 @@ const double _ringPadding = 3;
 const double _ringWidth = 2;
 const double _circleOuter = _avatarSize + 2 * _ringPadding + 2 * _ringWidth;
 const double _labelWidth = 68;
-const double _barHeight = 96;
+const double _barHeight = 112;
 
 /// Horizontale Story-Kreisreihe oberhalb des Dashboards.
 ///
@@ -104,7 +104,12 @@ class _StoriesBarState extends State<StoriesBar>
       height: _barHeight,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+        padding: EdgeInsets.fromLTRB(
+          tokens.spaceLg,
+          tokens.spaceLg,
+          tokens.spaceLg,
+          0,
+        ),
         children: [
           _AddStoryCircle(onTap: () => _createStory(context)),
           for (var i = 0; i < groups.length; i++)
@@ -236,7 +241,12 @@ class _StoriesBarState extends State<StoriesBar>
       height: _barHeight,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+        padding: EdgeInsets.fromLTRB(
+          tokens.spaceLg,
+          tokens.spaceLg,
+          tokens.spaceLg,
+          0,
+        ),
         children: [
           for (var i = 0; i < 4; i++)
             Padding(
@@ -273,7 +283,12 @@ class _StoriesBarState extends State<StoriesBar>
     return SizedBox(
       height: _barHeight,
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+        padding: EdgeInsets.fromLTRB(
+          tokens.spaceLg,
+          tokens.spaceLg,
+          tokens.spaceLg,
+          0,
+        ),
         child: Row(
           children: [
             Icon(Icons.error_outline_rounded, size: 18, color: tokens.danger),
