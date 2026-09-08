@@ -166,10 +166,21 @@ class _LocationSearchBodyState extends State<_LocationSearchBody> {
                               color: tokens.textHigh,
                             ),
                             if (r.recommended)
-                              DesignText(
-                                'Empfohlen',
-                                style: DesignTextStyle.label,
-                                color: tokens.primary,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.star_rounded,
+                                    color: tokens.primary,
+                                    size: 14,
+                                  ),
+                                  SizedBox(width: tokens.spaceXs),
+                                  DesignText(
+                                    'Empfohlen — InfraNode',
+                                    style: DesignTextStyle.label,
+                                    color: tokens.primary,
+                                  ),
+                                ],
                               ),
                           ],
                         ),
