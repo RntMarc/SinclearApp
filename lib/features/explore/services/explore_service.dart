@@ -6,6 +6,8 @@ import '../models/explore_models.dart';
 // ignore_for_file: prefer_initializing_formals
 
 class ExploreService {
+  static const _osmTypeMap = {'node': 'N', 'way': 'W', 'relation': 'R'};
+
   final ApiClient _api;
   final AuthService _auth;
 
@@ -126,8 +128,7 @@ class ExploreService {
     required int osmId,
     required String osmType,
   }) async {
-    const typeMap = {'node': 'N', 'way': 'W', 'relation': 'R'};
-    final apiType = typeMap[osmType] ?? osmType;
+    final apiType = _osmTypeMap[osmType.toLowerCase()] ?? osmType;
     final data = await _api.post(
       '/explore',
       body: CreatePlaceRequest(osmId: osmId, osmType: apiType).toJson(),
@@ -140,8 +141,7 @@ class ExploreService {
     required int osmId,
     required String osmType,
   }) async {
-    const typeMap = {'node': 'N', 'way': 'W', 'relation': 'R'};
-    final apiType = typeMap[osmType] ?? osmType;
+    final apiType = _osmTypeMap[osmType.toLowerCase()] ?? osmType;
     final data = await _api.post(
       '/explore/preview-category',
       body: CreatePlaceRequest(osmId: osmId, osmType: apiType).toJson(),
