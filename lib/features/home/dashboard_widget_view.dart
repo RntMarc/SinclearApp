@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/di/app_scope.dart';
 import '../../design/theme/design_theme.dart';
 import '../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../design/widgets/foundation/design_text.dart';
@@ -129,7 +130,7 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
     if (!mayFetch) return;
     final epoch = ++_refreshEpoch;
     try {
-      final rows = await widget.spec.fetch(_config.count);
+      final rows = await widget.spec.fetch(_config.count, config: _config);
       if (!mounted || epoch != _refreshEpoch) return;
       setState(() {
         _rows = rows;
@@ -380,12 +381,47 @@ class _WidgetSettingsSheet extends StatefulWidget {
 class _WidgetSettingsSheetState extends State<_WidgetSettingsSheet> {
   late int _count = widget.config.count;
   late WidgetEmptyState _emptyState = widget.config.emptyState;
+  String? _selectedLocationId;
+  List<_WeatherLocationOption> _weatherLocations = [];
+  bool _loadingLocations = false;
+
+  bool get _isWeather => widget.config.type == DashboardWidgetType.weather;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedLocationId = widget.config.selectedLocationId;
+    if (_isWeather) {
+      _loadWeatherLocations();
+    }
+  }
+
+  Future<void> _loadWeatherLocations() async {
+    setState(() => _loadingLocations = true);
+    try {
+      final scope = AppScope.of(context);
+      final locations = await scope.weatherLocations.list();
+      if (!mounted) return;
+      setState(() {
+        _weatherLocations = [
+          for (final loc in locations)
+            _WeatherLocationOption(id: loc.id, name: loc.name),
+        ];
+        _loadingLocations = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingLocations = false);
+    }
+  }
 
   void _apply() {
     widget.controller.updateConfig(
       widget.config.type,
       count: _count,
       emptyState: _emptyState,
+      selectedLocationId: _selectedLocationId,
+      clearLocationId: _selectedLocationId == null,
     );
   }
 
@@ -402,6 +438,79 @@ class _WidgetSettingsSheetState extends State<_WidgetSettingsSheet> {
           style: DesignTextStyle.subtitle,
           color: tokens.textHigh,
         ),
+        if (_isWeather) ...[
+          SizedBox(height: tokens.spaceLg),
+          DesignText(
+            'Angezeigter Ort',
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          if (_loadingLocations)
+            SizedBox(
+              height: 44,
+              child: Center(
+                child: DesignText(
+                  'Lade Orte...',
+                  style: DesignTextStyle.label,
+                  color: tokens.textLow,
+                ),
+              ),
+            )
+          else if (_weatherLocations.isEmpty)
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+                context.go('/wetter');
+              },
+              child: Container(
+                padding: EdgeInsets.all(tokens.spaceMd),
+                decoration: BoxDecoration(
+                  color: tokens.surfaceVariant.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(tokens.radiusMd),
+                  border: Border.all(
+                    color: tokens.border.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.add_location_alt_rounded,
+                      size: 18,
+                      color: tokens.primary,
+                    ),
+                    SizedBox(width: tokens.spaceSm),
+                    Expanded(
+                      child: DesignText(
+                        'Erst Orte auf der Wetter-Seite hinzufügen',
+                        style: DesignTextStyle.label,
+                        color: tokens.textLow,
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: tokens.textLow,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ..._weatherLocations.map(
+              (loc) => Padding(
+                padding: EdgeInsets.only(bottom: tokens.spaceSm),
+                child: _LocationOption(
+                  location: loc,
+                  selected: _selectedLocationId == loc.id,
+                  onTap: () {
+                    setState(() => _selectedLocationId = loc.id);
+                    _apply();
+                  },
+                ),
+              ),
+            ),
+        ],
         if (type.countConfigurable) ...[
           SizedBox(height: tokens.spaceLg),
           Row(
@@ -475,6 +584,73 @@ class _WidgetSettingsSheetState extends State<_WidgetSettingsSheet> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _WeatherLocationOption {
+  const _WeatherLocationOption({required this.id, required this.name});
+  final String id;
+  final String name;
+}
+
+class _LocationOption extends StatelessWidget {
+  const _LocationOption({
+    required this.location,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _WeatherLocationOption location;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return PressScale(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: tokens.spaceMd,
+          vertical: tokens.spaceSm,
+        ),
+        decoration: BoxDecoration(
+          color: selected
+              ? tokens.primary.withValues(alpha: 0.15)
+              : tokens.surfaceVariant.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(tokens.radiusPill),
+          border: Border.all(
+            color: selected
+                ? tokens.primary
+                : tokens.border.withValues(alpha: 0.5),
+          ),
+          boxShadow: selected ? tokens.glowShadow : null,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.location_on_rounded,
+              size: 16,
+              color: selected ? tokens.primary : tokens.textLow,
+            ),
+            SizedBox(width: tokens.spaceSm),
+            Expanded(
+              child: DesignText(
+                location.name,
+                style: DesignTextStyle.label,
+                color: selected ? tokens.primary : tokens.textHigh,
+              ),
+            ),
+            if (selected)
+              Icon(
+                Icons.check_circle_rounded,
+                size: 16,
+                color: tokens.primary,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -73,7 +73,7 @@ class RecipesWidgetSpec extends DashboardWidgetSpec {
   String get listRoute => '/rezepte';
 
   @override
-  Future<List<DashboardRow>> fetch(int count) async {
+  Future<List<DashboardRow>> fetch(int count, {DashboardWidgetConfig? config}) async {
     final response = await _service.list(
       sort: 'created_desc',
       page: 1,

@@ -93,7 +93,7 @@ class TripWidgetSpec extends DashboardWidgetSpec {
   String get listRoute => '/reisen';
 
   @override
-  Future<List<DashboardRow>> fetch(int count) async {
+  Future<List<DashboardRow>> fetch(int count, {DashboardWidgetConfig? config}) async {
     final trips = (await _service.list(page: 1, limit: 100)).data;
     final events = (await _service.getStandaloneEvents(
       page: 1,
