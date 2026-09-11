@@ -25,6 +25,7 @@ import 'features/travel/services/travel_service.dart';
 import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
 import 'features/weather/services/weather_service.dart';
+import 'features/weather/services/user_weather_location_service.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_widget_repository.dart';
 import 'features/notifications/services/notification_content_resolver.dart';
@@ -62,6 +63,7 @@ class SinclearApp extends StatelessWidget {
   final UnifiedPushService unifiedPush;
   final WebPushService webPush;
   final WeatherService weather;
+  final UserWeatherLocationService weatherLocations;
   final GoRouter router;
 
   /// Initial, lokal gespeicherte Benachrichtigungs-Methode.
@@ -135,6 +137,7 @@ class SinclearApp extends StatelessWidget {
     required this.unifiedPush,
     required this.webPush,
     required this.weather,
+    required this.weatherLocations,
     required this.initialNotificationMethod,
     required this.initialMapApp,
     required this.router,
@@ -184,6 +187,7 @@ class SinclearApp extends StatelessWidget {
       unifiedPush: unifiedPush,
       webPush: webPush,
       weather: weather,
+      weatherLocations: weatherLocations,
       notificationMethod: notificationMethod,
       mapApp: mapApp,
       webUpdate: webUpdate,
