@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -6,7 +7,7 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_fab.dart';
 import '../constants/weather_constants.dart';
 import '../models/weather_models.dart';
-import '../services/weather_preferences.dart';
+import '../services/synced_weather_preferences.dart';
 import '../widgets/location_search_sheet.dart';
 import '../widgets/weather_card.dart';
 
@@ -18,7 +19,7 @@ class WeatherScreen extends StatefulWidget {
 }
 
 class _WeatherScreenState extends State<WeatherScreen> {
-  WeatherPreferences? _prefs;
+  SyncedWeatherPreferences? _prefs;
   List<SavedLocation> _locations = [];
   bool _loaded = false;
 
@@ -32,11 +33,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
   }
 
   Future<void> _init() async {
-    final prefs = await WeatherPreferences.create();
+    final service = AppScope.of(context).weatherLocations;
+    final prefs = SyncedWeatherPreferences(service);
+    await prefs.init();
     if (!mounted) return;
     setState(() {
       _prefs = prefs;
-      _locations = prefs.load();
+      _locations = prefs.locations;
     });
   }
 
@@ -61,14 +64,14 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
     await _prefs!.addLocation(location);
     if (!mounted) return;
-    setState(() => _locations = _prefs!.load());
+    setState(() => _locations = _prefs!.locations);
   }
 
   Future<void> _removeLocation(int index) async {
     if (_prefs == null || !mounted) return;
     await _prefs!.removeLocation(index);
     if (!mounted) return;
-    setState(() => _locations = _prefs!.load());
+    setState(() => _locations = _prefs!.locations);
   }
 
   @override
