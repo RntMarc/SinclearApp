@@ -205,27 +205,35 @@ class SinclearApp extends StatelessWidget {
             getToken: () => auth.getAccessToken(),
             getNotificationMethod: () => notificationMethod.value,
             child: ListenableBuilder(
-              listenable: themeMode,
-              builder: (context, _) => MaterialApp.router(
-                title: 'Sinclear Beyond',
-                debugShowCheckedModeBanner: false,
-                theme: ThemeData(
-                  useMaterial3: true,
-                  colorScheme: ColorScheme.fromSeed(
-                    seedColor: const Color(0xFF0064EA),
-                    brightness: Brightness.light,
+              listenable: Listenable.merge([
+                designVariant,
+                grainOpacity,
+                themeMode,
+                customAccent,
+              ]),
+              builder: (context, _) {
+                final tokens = DesignTheme.of(context);
+                return MaterialApp.router(
+                  title: 'Sinclear Beyond',
+                  debugShowCheckedModeBanner: false,
+                  theme: ThemeData(
+                    useMaterial3: true,
+                    colorScheme: ColorScheme.fromSeed(
+                      seedColor: tokens.primary,
+                      brightness: Brightness.light,
+                    ),
                   ),
-                ),
-                darkTheme: ThemeData(
-                  useMaterial3: true,
-                  colorScheme: ColorScheme.fromSeed(
-                    seedColor: const Color(0xFF0064EA),
-                    brightness: Brightness.dark,
-                  ).copyWith(surface: const Color(0xFF011219)),
-                ),
-                themeMode: themeMode.value,
-                routerConfig: router,
-              ),
+                  darkTheme: ThemeData(
+                    useMaterial3: true,
+                    colorScheme: ColorScheme.fromSeed(
+                      seedColor: tokens.primary,
+                      brightness: Brightness.dark,
+                    ).copyWith(surface: const Color(0xFF011219)),
+                  ),
+                  themeMode: themeMode.value,
+                  routerConfig: router,
+                );
+              },
             ),
           ),
         ),
