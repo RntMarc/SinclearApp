@@ -108,15 +108,20 @@ class _StoryViewerState extends State<StoryViewer> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+    } else {
+      _close();
     }
   }
 
   void _onPageChanged(int page) {
+    if (page == _pages.length) {
+      _close();
+      return;
+    }
     setState(() => _currentPage = page);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.currentStoryId.value = widget.storyIds[page];
     });
-    if (page == _pages.length - 1) _close();
   }
 
   // ---------------------------------------------------------------------------
@@ -237,7 +242,6 @@ class _StoryViewerState extends State<StoryViewer> {
   Widget build(BuildContext context) {
     final storyId = widget.storyIds[_currentPage];
     final groupIndex = _groupIndexForPage(_currentPage);
-    final group = widget.items[groupIndex];
 
     return Container(
       color: Colors.black,
@@ -251,9 +255,12 @@ class _StoryViewerState extends State<StoryViewer> {
             // Story pages
             PageView.builder(
               controller: _pageController,
-              itemCount: _pages.length,
+              itemCount: _pages.length + 1,
               onPageChanged: _onPageChanged,
-              itemBuilder: (context, index) => _pages[index],
+              itemBuilder: (context, index) {
+                if (index >= _pages.length) return const SizedBox.expand();
+                return _pages[index];
+              },
             ),
 
             // Tap zones: left third = prev, right two-thirds = next
@@ -267,13 +274,13 @@ class _StoryViewerState extends State<StoryViewer> {
                       onTap: _canGoBack ? _goBack : null,
                     ),
                   ),
-                  Expanded(
-                    flex: 2,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: _canGoForward ? _goForward : null,
+                    Expanded(
+                      flex: 2,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _goForward,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
