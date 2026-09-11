@@ -83,7 +83,7 @@ class ForumWidgetSpec extends DashboardWidgetSpec {
   String get listRoute => '/forum';
 
   @override
-  Future<List<DashboardRow>> fetch(int count) async {
+  Future<List<DashboardRow>> fetch(int count, {DashboardWidgetConfig? config}) async {
     final response = await _service.getFeed(page: 1, limit: count);
     return [
       for (final post in response.data)

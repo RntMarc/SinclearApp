@@ -18,12 +18,14 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('DashboardLayout', () {
-    test('Defaults: alle Widgets einmal, gültige Anzahlen', () {
+    test('Defaults: alle Widgets außer weather und recipes', () {
       final layout = DashboardLayout.defaults;
-      expect(layout.widgets.length, DashboardWidgetType.values.length);
-      expect({
+      final defaultTypes = {
         for (final config in layout.widgets) config.type,
-      }, DashboardWidgetType.values.toSet());
+      };
+      expect(defaultTypes.contains(DashboardWidgetType.weather), isFalse);
+      expect(defaultTypes.contains(DashboardWidgetType.recipes), isFalse);
+      expect(defaultTypes.length, DashboardWidgetType.values.length - 2);
       for (final config in layout.widgets) {
         expect(config.count, inInclusiveRange(1, 5));
       }
@@ -80,7 +82,7 @@ void main() {
       });
       expect(
         (await SharedPreferencesDashboardLayoutStore().load()).widgets.length,
-        DashboardWidgetType.values.length,
+        DashboardWidgetType.values.length - 2,
       );
     });
   });
@@ -149,7 +151,7 @@ void main() {
       expect(controller.configFor(DashboardWidgetType.recipes).count, 2);
 
       final reloaded = await controller.store.load();
-      expect(reloaded.widgets.length, DashboardWidgetType.values.length);
+      expect(reloaded.widgets.length, DashboardWidgetType.values.length - 2);
       expect(reloaded.widgets.first.type, DashboardWidgetType.recipes);
     });
 
@@ -513,7 +515,11 @@ class _TestSpec extends DashboardWidgetSpec {
   String get listRoute => '/rezepte';
 
   @override
-  Future<List<DashboardRow>> fetch(int count) => fetchFn(count);
+  Future<List<DashboardRow>> fetch(
+    int count, {
+    DashboardWidgetConfig? config,
+  }) =>
+      fetchFn(count);
 
   @override
   DashboardRow rowFromJson(Map<String, dynamic> json) =>

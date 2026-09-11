@@ -116,12 +116,19 @@ class DashboardController extends ChangeNotifier with WidgetsBindingObserver {
     DashboardWidgetType type, {
     int? count,
     WidgetEmptyState? emptyState,
+    String? selectedLocationId,
+    bool clearLocationId = false,
   }) {
     _layout = DashboardLayout(
       widgets: [
         for (final config in _layout.widgets)
           config.type == type
-              ? config.copyWith(count: count, emptyState: emptyState)
+              ? config.copyWith(
+                  count: count,
+                  emptyState: emptyState,
+                  selectedLocationId: selectedLocationId,
+                  clearLocationId: clearLocationId,
+                )
               : config,
       ],
     );

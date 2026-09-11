@@ -149,6 +149,8 @@ class SinclearApp extends StatelessWidget {
          travel: travel,
          forum: forum,
          subscription: subscription,
+         weather: weather,
+         weatherLocations: weatherLocations,
        ),
        designVariant = DesignController(initialDesignVariant),
        grainOpacity = GrainController(initialGrainOpacity),

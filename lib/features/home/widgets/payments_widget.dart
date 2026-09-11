@@ -80,7 +80,7 @@ class PaymentsWidgetSpec extends DashboardWidgetSpec {
   String get listRoute => '/abos';
 
   @override
-  Future<List<DashboardRow>> fetch(int count) async {
+  Future<List<DashboardRow>> fetch(int count, {DashboardWidgetConfig? config}) async {
     final open =
         (await _service.list())
             .where((subscription) => !subscription.hasPaid)

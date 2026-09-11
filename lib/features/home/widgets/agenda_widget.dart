@@ -70,7 +70,7 @@ class AgendaWidgetSpec extends DashboardWidgetSpec {
   String get listRoute => '/kalender';
 
   @override
-  Future<List<DashboardRow>> fetch(int count) async {
+  Future<List<DashboardRow>> fetch(int count, {DashboardWidgetConfig? config}) async {
     final now = DateTime.now();
     final response = await _service.list(
       page: 1,

@@ -61,6 +61,14 @@ enum DashboardWidgetType {
     emptyText: 'Keine offenen Zahlungen.',
     countFixed: 3,
     emptyDefault: WidgetEmptyState.card,
+  ),
+  weather(
+    'Wetter',
+    Icons.wb_sunny_rounded,
+    'Aktuelles Wetter für deinen gewählten Ort.',
+    emptyText: 'Noch kein Ort gewählt.',
+    countFixed: 1,
+    emptyDefault: WidgetEmptyState.hide,
   );
 
   const DashboardWidgetType(
@@ -105,11 +113,13 @@ class DashboardWidgetConfig {
   final DashboardWidgetType type;
   final int count;
   final WidgetEmptyState emptyState;
+  final String? selectedLocationId;
 
   const DashboardWidgetConfig({
     required this.type,
     required this.count,
     required this.emptyState,
+    this.selectedLocationId,
   });
 
   factory DashboardWidgetConfig.initial(DashboardWidgetType type) {
@@ -120,11 +130,18 @@ class DashboardWidgetConfig {
     );
   }
 
-  DashboardWidgetConfig copyWith({int? count, WidgetEmptyState? emptyState}) {
+  DashboardWidgetConfig copyWith({
+    int? count,
+    WidgetEmptyState? emptyState,
+    String? selectedLocationId,
+    bool clearLocationId = false,
+  }) {
     return DashboardWidgetConfig(
       type: type,
       count: type.clampCount(count ?? this.count),
       emptyState: emptyState ?? this.emptyState,
+      selectedLocationId:
+          clearLocationId ? null : (selectedLocationId ?? this.selectedLocationId),
     );
   }
 
@@ -132,6 +149,7 @@ class DashboardWidgetConfig {
     'type': type.name,
     'count': count,
     'emptyState': emptyState.name,
+    if (selectedLocationId != null) 'selectedLocationId': selectedLocationId,
   };
 }
 
@@ -142,11 +160,15 @@ class DashboardLayout {
   const DashboardLayout({required this.widgets});
 
   /// Standardlayout: alle Widgets, in fester Startreihenfolge.
+  /// Weather und Recipes sind absichtlich ausgeblendet – nur im Katalog
+  /// verfügbar, damit Nutzer sie bei Bedarf selbst hinzufügen können.
   static DashboardLayout get defaults {
     return DashboardLayout(
       widgets: [
         for (final type in DashboardWidgetType.values)
-          DashboardWidgetConfig.initial(type),
+          if (type != DashboardWidgetType.weather &&
+              type != DashboardWidgetType.recipes)
+            DashboardWidgetConfig.initial(type),
       ],
     );
   }
@@ -167,6 +189,7 @@ class DashboardLayout {
           type: type,
           count: type.clampCount(count ?? type.initialCount()),
           emptyState: emptyState,
+          selectedLocationId: map['selectedLocationId'] as String?,
         ),
       );
     }

@@ -11,7 +11,7 @@ import 'dashboard_widget.dart';
 abstract class DashboardWidgetSpec {
   DashboardWidgetType get type;
   String get listRoute;
-  Future<List<DashboardRow>> fetch(int count);
+  Future<List<DashboardRow>> fetch(int count, {DashboardWidgetConfig? config});
   DashboardRow rowFromJson(Map<String, dynamic> json);
   Widget rowBuilder(
     BuildContext context,
