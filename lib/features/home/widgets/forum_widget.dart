@@ -84,11 +84,16 @@ class ForumWidgetSpec extends DashboardWidgetSpec {
 
   @override
   Future<List<DashboardRow>> fetch(int count, {DashboardWidgetConfig? config}) async {
-    final response = await _service.getFeed(page: 1, limit: count);
-    return [
-      for (final post in response.data)
-        ForumRow.fromPost(post, post.forumName ?? ''),
-    ];
+    final response = await _service.getFeed(page: 1, limit: count * 3);
+    final cutoff = DateTime.now().subtract(const Duration(days: 14));
+    final rows = <ForumRow>[];
+    for (final post in response.data) {
+      if (parseApiDate(post.createdAt).isAfter(cutoff)) {
+        rows.add(ForumRow.fromPost(post, post.forumName ?? ''));
+      }
+      if (rows.length >= count) break;
+    }
+    return rows;
   }
 
   @override

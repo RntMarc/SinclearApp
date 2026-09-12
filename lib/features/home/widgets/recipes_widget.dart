@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
@@ -77,9 +78,17 @@ class RecipesWidgetSpec extends DashboardWidgetSpec {
     final response = await _service.list(
       sort: 'created_desc',
       page: 1,
-      limit: count,
+      limit: count * 3,
     );
-    return [for (final recipe in response.data) RecipeRow.fromListItem(recipe)];
+    final cutoff = DateTime.now().subtract(const Duration(days: 14));
+    final rows = <RecipeRow>[];
+    for (final recipe in response.data) {
+      if (parseApiDate(recipe.createdAt).isAfter(cutoff)) {
+        rows.add(RecipeRow.fromListItem(recipe));
+      }
+      if (rows.length >= count) break;
+    }
+    return rows;
   }
 
   @override

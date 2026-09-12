@@ -72,14 +72,18 @@ class AgendaWidgetSpec extends DashboardWidgetSpec {
   @override
   Future<List<DashboardRow>> fetch(int count, {DashboardWidgetConfig? config}) async {
     final now = DateTime.now();
+    final cutoff = now.add(const Duration(days: 14));
     final response = await _service.list(
       page: 1,
       limit: 100,
       start: now,
-      end: now.add(const Duration(days: 90)),
+      end: cutoff,
     );
     final events = response.data
-        .where((event) => event.endTime.isAfter(now))
+        .where(
+          (event) =>
+              event.endTime.isAfter(now) && event.startTime.isBefore(cutoff),
+        )
         .toList();
     events.sort((a, b) {
       final aOngoing = a.startTime.isBefore(now);
