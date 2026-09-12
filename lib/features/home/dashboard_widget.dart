@@ -24,17 +24,17 @@ enum DashboardWidgetType {
     countDefault: 3,
     countMin: 2,
     countMax: 5,
-    emptyDefault: WidgetEmptyState.card,
+    emptyDefault: WidgetEmptyState.hide,
   ),
   calendarAgenda(
     'Kommende Events',
     Icons.calendar_month_rounded,
     'Die nächsten Kalender-Events.',
     emptyText: 'Keine kommenden Events.',
-    countDefault: 2,
+    countDefault: 3,
     countMin: 1,
-    countMax: 3,
-    emptyDefault: WidgetEmptyState.card,
+    countMax: 5,
+    emptyDefault: WidgetEmptyState.hide,
   ),
   nextTrip(
     'Nächster Ausflug',
@@ -60,7 +60,7 @@ enum DashboardWidgetType {
     'Abos, die noch nicht bezahlt wurden.',
     emptyText: 'Keine offenen Zahlungen.',
     countFixed: 3,
-    emptyDefault: WidgetEmptyState.card,
+    emptyDefault: WidgetEmptyState.hide,
   ),
   weather(
     'Wetter',
@@ -159,16 +159,16 @@ class DashboardLayout {
 
   const DashboardLayout({required this.widgets});
 
-  /// Standardlayout: alle Widgets, in fester Startreihenfolge.
+  /// Standardlayout in fester Startreihenfolge.
   /// Weather und Recipes sind absichtlich ausgeblendet – nur im Katalog
   /// verfügbar, damit Nutzer sie bei Bedarf selbst hinzufügen können.
   static DashboardLayout get defaults {
     return DashboardLayout(
       widgets: [
-        for (final type in DashboardWidgetType.values)
-          if (type != DashboardWidgetType.weather &&
-              type != DashboardWidgetType.recipes)
-            DashboardWidgetConfig.initial(type),
+        DashboardWidgetConfig.initial(DashboardWidgetType.openPayments),
+        DashboardWidgetConfig.initial(DashboardWidgetType.nextTrip),
+        DashboardWidgetConfig.initial(DashboardWidgetType.calendarAgenda),
+        DashboardWidgetConfig.initial(DashboardWidgetType.forumPosts),
       ],
     );
   }

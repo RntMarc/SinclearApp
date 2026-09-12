@@ -100,12 +100,15 @@ class TripWidgetSpec extends DashboardWidgetSpec {
       limit: 100,
     )).data;
     final now = DateTime.now();
+    final cutoff = now.add(const Duration(days: 28));
 
     final rows = <TripRow>[
       for (final trip in trips) TripRow.fromTrip(trip),
       for (final event in events) TripRow.fromEvent(event),
     ];
-    rows.removeWhere((row) => row.end.isBefore(now));
+    rows.removeWhere(
+      (row) => row.end.isBefore(now) || row.start.isAfter(cutoff),
+    );
     rows.sort((a, b) {
       final aOngoing = a.start.isBefore(now);
       final bOngoing = b.start.isBefore(now);

@@ -18,14 +18,21 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('DashboardLayout', () {
-    test('Defaults: alle Widgets außer weather und recipes', () {
+    test('Defaults: 4 Widgets in fester Reihenfolge', () {
       final layout = DashboardLayout.defaults;
-      final defaultTypes = {
-        for (final config in layout.widgets) config.type,
-      };
-      expect(defaultTypes.contains(DashboardWidgetType.weather), isFalse);
-      expect(defaultTypes.contains(DashboardWidgetType.recipes), isFalse);
-      expect(defaultTypes.length, DashboardWidgetType.values.length - 2);
+      expect(layout.widgets.length, 4);
+      expect(layout.widgets[0].type, DashboardWidgetType.openPayments);
+      expect(layout.widgets[1].type, DashboardWidgetType.nextTrip);
+      expect(layout.widgets[2].type, DashboardWidgetType.calendarAgenda);
+      expect(layout.widgets[3].type, DashboardWidgetType.forumPosts);
+      expect(
+        layout.widgets.any((c) => c.type == DashboardWidgetType.weather),
+        isFalse,
+      );
+      expect(
+        layout.widgets.any((c) => c.type == DashboardWidgetType.recipes),
+        isFalse,
+      );
       for (final config in layout.widgets) {
         expect(config.count, inInclusiveRange(1, 5));
       }
@@ -82,7 +89,7 @@ void main() {
       });
       expect(
         (await SharedPreferencesDashboardLayoutStore().load()).widgets.length,
-        DashboardWidgetType.values.length - 2,
+        4,
       );
     });
   });
@@ -126,7 +133,7 @@ void main() {
       controller.removeWidget(0);
       expect(
         controller.layout.widgets.first.type,
-        DashboardWidgetType.calendarAgenda,
+        DashboardWidgetType.nextTrip,
       );
 
       controller.addWidget(DashboardWidgetType.recipes);
@@ -151,7 +158,7 @@ void main() {
       expect(controller.configFor(DashboardWidgetType.recipes).count, 2);
 
       final reloaded = await controller.store.load();
-      expect(reloaded.widgets.length, DashboardWidgetType.values.length - 2);
+      expect(reloaded.widgets.length, 4);
       expect(reloaded.widgets.first.type, DashboardWidgetType.recipes);
     });
 
