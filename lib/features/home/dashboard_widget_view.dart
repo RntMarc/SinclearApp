@@ -461,7 +461,7 @@ class _WidgetSettingsSheetState extends State<_WidgetSettingsSheet> {
             GestureDetector(
               onTap: () {
                 Navigator.pop(context);
-                context.go('/wetter');
+                context.go('/reisen/wetter');
               },
               child: Container(
                 padding: EdgeInsets.all(tokens.spaceMd),
