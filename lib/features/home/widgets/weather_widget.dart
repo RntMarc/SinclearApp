@@ -66,7 +66,7 @@ class WeatherWidgetSpec extends DashboardWidgetSpec {
   DashboardWidgetType get type => DashboardWidgetType.weather;
 
   @override
-  String get listRoute => '/reisen/wetter';
+  String get listRoute => '/wetter';
 
   @override
   Future<List<DashboardRow>> fetch(

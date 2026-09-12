@@ -132,10 +132,6 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
             builder: (context, state) => const TravelScreen(),
             routes: [
               GoRoute(
-                path: 'wetter',
-                builder: (context, state) => const WeatherScreen(),
-              ),
-              GoRoute(
                 path: ':id',
                 builder: (context, state) =>
                     TripDetailScreen(id: state.pathParameters['id']!),
@@ -152,6 +148,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                     TravelEventDetailScreen(id: state.pathParameters['id']!),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/wetter',
+            builder: (context, state) => const WeatherScreen(),
           ),
           GoRoute(
             path: '/entdecken',
