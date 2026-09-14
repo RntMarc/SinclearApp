@@ -67,11 +67,17 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
       final loggedIn = auth.isLoggedIn;
       final location = state.matchedLocation;
 
+      // /reisen/wetter war die alte Position des Wetter-Screens (jetzt
+      // Top-Level /wetter). Alte Deep Links/Share-URLs nicht als Reise
+      // (/reisen/:id) interpretieren, sondern auf den Wetter-Screen mappen.
+      if (location.startsWith('/reisen/wetter')) return '/wetter';
+
       final isAuth =
           location.startsWith('/home') ||
           location.startsWith('/kalender') ||
           (location.startsWith('/entdecken') && !_isGuestExplore(location)) ||
           location.startsWith('/reisen') ||
+          location.startsWith('/wetter') ||
           location.startsWith('/kontakte') ||
           location.startsWith('/standort') ||
           location.startsWith('/einstellungen') ||

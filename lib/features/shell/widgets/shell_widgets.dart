@@ -18,7 +18,7 @@ import '../../../design/widgets/primitives/press_scale.dart';
 String shellTitleForLocation(String location) {
   if (location.startsWith('/kalender')) return 'KALENDER';
   if (location.startsWith('/entdecken')) return 'ENTDECKEN';
-  if (location.startsWith('/reisen/wetter')) return 'WETTER';
+  if (location.startsWith('/wetter')) return 'WETTER';
   if (location.startsWith('/reisen')) return 'REISEN & EVENTS';
   if (location.startsWith('/kontakte')) return 'KONTAKTE';
   if (location.startsWith('/standort')) return 'STANDORT';
@@ -54,6 +54,7 @@ ShellNavCategory shellCategoryForLocation(String location) {
   }
   if (location.startsWith('/entdecken') ||
       location.startsWith('/reisen') ||
+      location.startsWith('/wetter') ||
       location.startsWith('/standort')) {
     return ShellNavCategory.unterwegs;
   }
@@ -107,7 +108,7 @@ class ShellCategorySheet extends StatelessWidget {
               final isPlaceholder = item.route == null;
               final showBadge = isPlaceholder;
 
-              // For nested routes (e.g. /reisen/wetter vs /reisen), only the
+              // For nested routes (e.g. /reisen/:id vs /reisen), only the
               // longest matching route should be considered active.
               final dominatedByLonger =
                   item.route != null &&
@@ -175,11 +176,6 @@ class ShellNavContent extends StatelessWidget {
     // Exact match or route boundary (next char is '/').
     if (currentLocation.length == route.length) return true;
     if (currentLocation[route.length] != '/') return false;
-    // /reisen/wetter is independent from /reisen — exclude child routes
-    // that are top-level screens on their own.
-    if (route == '/reisen' && currentLocation.startsWith('/reisen/wetter')) {
-      return false;
-    }
     return true;
   }
 
@@ -303,8 +299,8 @@ class ShellNavContent extends StatelessWidget {
               context,
               icon: Icons.wb_sunny_rounded,
               label: 'Wetter',
-              active: _isActive('/reisen/wetter'),
-              onTap: () => onNavigate('/reisen/wetter'),
+              active: _isActive('/wetter'),
+              onTap: () => onNavigate('/wetter'),
             ),
             _tile(
               context,
@@ -666,7 +662,7 @@ class ShellMobileBottomNav extends StatelessWidget {
             const ShellSheetItem(
               'Wetter',
               Icons.wb_sunny_rounded,
-              '/reisen/wetter',
+              '/wetter',
             ),
             const ShellSheetItem(
               'Standort',
