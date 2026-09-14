@@ -5,6 +5,7 @@ import '../features/welcome/welcome_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/verify_screen.dart';
 import '../features/onboarding/screens/onboarding_screen.dart';
+import '../features/notifications/screens/notification_setup_screen.dart';
 import '../features/calendar/screens/calendar_screen.dart';
 import '../features/calendar/screens/event_detail_screen.dart';
 import '../features/home/home_screen.dart';
@@ -91,12 +92,16 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
           location.startsWith('/chat') ||
           location.startsWith('/design-showcase');
 
-      if (loggedIn && !auth.onboardingCompleted && location != '/onboarding') {
+      if (loggedIn &&
+          !auth.onboardingCompleted &&
+          location != '/onboarding' &&
+          location != '/benachrichtigungen/einrichten') {
         return '/onboarding';
       }
       if (loggedIn && auth.onboardingCompleted && location == '/onboarding') {
         return '/home';
       }
+      if (!loggedIn && location == '/benachrichtigungen/einrichten') return '/';
       if (loggedIn &&
           location.startsWith('/design-showcase') &&
           !auth.isAdmin) {
@@ -116,6 +121,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/benachrichtigungen/einrichten',
+        builder: (context, state) => const NotificationSetupScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),

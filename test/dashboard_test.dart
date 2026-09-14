@@ -30,7 +30,9 @@ import 'package:sinclear_beyond/features/home/widgets/recipes_widget.dart';
 import 'package:sinclear_beyond/features/location_sharing/services/location_sharing_service.dart';
 import 'package:sinclear_beyond/features/moderation/services/moderation_service.dart';
 import 'package:sinclear_beyond/features/notifications/services/notification_content_resolver.dart';
+import 'package:sinclear_beyond/features/notifications/services/notification_method_coordinator.dart';
 import 'package:sinclear_beyond/features/notifications/services/notification_service.dart';
+import 'package:sinclear_beyond/features/notifications/services/foreground_polling_service.dart';
 import 'package:sinclear_beyond/features/notifications/services/unified_push_service.dart';
 import 'package:sinclear_beyond/features/notifications/services/web_push_service.dart';
 import 'package:sinclear_beyond/features/photos/services/photos_service.dart';
@@ -594,7 +596,10 @@ void main() {
           client: client,
         );
         final auth = AuthService(api: api, storage: TokenStorage());
-        final weatherLocations = UserWeatherLocationService(api: api, auth: auth);
+        final weatherLocations = UserWeatherLocationService(
+          api: api,
+          auth: auth,
+        );
         final controller = DashboardController(
           initialLayout: const DashboardLayout(
             widgets: [
@@ -710,6 +715,14 @@ AppScope _buildScope({
     api: api,
     contentResolver: notificationContent,
   );
+  final unifiedPush = UnifiedPushService(api: api);
+  final foregroundPolling = ForegroundPollingService();
+  final notificationCoordinator = NotificationMethodCoordinator(
+    unifiedPush: unifiedPush,
+    notification: notification,
+    foregroundPolling: foregroundPolling,
+    getToken: auth.getAccessToken,
+  );
 
   return AppScope(
     auth: auth,
@@ -745,8 +758,10 @@ AppScope _buildScope({
     weather: weather,
     weatherLocations: weatherLocations,
     notificationContent: notificationContent,
-    unifiedPush: UnifiedPushService(api: api),
+    unifiedPush: unifiedPush,
     webPush: WebPushService(api: api),
+    foregroundPolling: foregroundPolling,
+    notificationCoordinator: notificationCoordinator,
     notificationMethod: ValueNotifier<NotificationMethod>(
       NotificationMethod.polling,
     ),
@@ -791,8 +806,7 @@ class _TestSpec extends DashboardWidgetSpec {
   Future<List<DashboardRow>> fetch(
     int count, {
     DashboardWidgetConfig? config,
-  }) =>
-      fetchFn(count);
+  }) => fetchFn(count);
 
   @override
   DashboardRow rowFromJson(Map<String, dynamic> json) =>

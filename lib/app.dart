@@ -30,7 +30,9 @@ import 'features/weather/services/user_weather_location_service.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_widget_repository.dart';
 import 'features/notifications/services/notification_content_resolver.dart';
+import 'features/notifications/services/notification_method_coordinator.dart';
 import 'features/notifications/services/notification_service.dart';
+import 'features/notifications/services/foreground_polling_service.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
 import 'features/settings/models/notification_preference.dart';
@@ -64,6 +66,8 @@ class SinclearApp extends StatelessWidget {
   final NotificationContentResolver notificationContent;
   final UnifiedPushService unifiedPush;
   final WebPushService webPush;
+  final ForegroundPollingService foregroundPolling;
+  final NotificationMethodCoordinator notificationCoordinator;
   final WeatherService weather;
   final UserWeatherLocationService weatherLocations;
   final GoRouter router;
@@ -139,6 +143,8 @@ class SinclearApp extends StatelessWidget {
     required this.notificationContent,
     required this.unifiedPush,
     required this.webPush,
+    required this.foregroundPolling,
+    required this.notificationCoordinator,
     required this.weather,
     required this.weatherLocations,
     required this.initialNotificationMethod,
@@ -192,6 +198,8 @@ class SinclearApp extends StatelessWidget {
       notificationContent: notificationContent,
       unifiedPush: unifiedPush,
       webPush: webPush,
+      foregroundPolling: foregroundPolling,
+      notificationCoordinator: notificationCoordinator,
       weather: weather,
       weatherLocations: weatherLocations,
       notificationMethod: notificationMethod,
@@ -210,6 +218,7 @@ class SinclearApp extends StatelessWidget {
             notificationService: notification,
             getToken: () => auth.getAccessToken(),
             getNotificationMethod: () => notificationMethod.value,
+            isForegroundPollingActive: () => foregroundPolling.isActive,
             child: ListenableBuilder(
               listenable: Listenable.merge([
                 designVariant,

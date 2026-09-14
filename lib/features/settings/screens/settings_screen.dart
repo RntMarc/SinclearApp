@@ -518,6 +518,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       scope.notification.stopPolling();
       scope.notification.clear();
       try {
+        await scope.foregroundPolling.reset();
+      } catch (e) {
+        developer.log(
+          'Foreground polling reset failed: $e',
+          name: 'settings.logout',
+        );
+      }
+      try {
         await scope.davSync.disable();
       } catch (e) {
         developer.log(

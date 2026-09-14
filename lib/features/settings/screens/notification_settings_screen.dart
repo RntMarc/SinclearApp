@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/config/notification_config.dart';
 import '../../../core/di/app_scope.dart';
-import '../../../core/notifications/local_notification_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
@@ -16,13 +14,14 @@ import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
-import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../../notifications/models/notification_type_preference.dart';
 import '../../notifications/screens/push_setup_screens.dart';
+import '../../notifications/services/notification_method_coordinator.dart';
+import '../../notifications/widgets/notification_method_selector.dart';
 import '../models/notification_preference.dart';
 
 /// Reihenfolge der Kategorien im Screen; Typen mit unbekannter Kategorie
@@ -221,50 +220,10 @@ class _NotificationSettingsScreenState
         children: [
           if (!kIsWeb) ...<Widget>[
             _sectionHeader(context, 'Zustellung', tokens),
-            DesignCard.list(
-              children: [
-                for (final method in NotificationMethodX.availableFor())
-                  DesignListTile(
-                    leading: Icon(
-                      method == NotificationMethod.unifiedPush
-                          ? Icons.push_pin_rounded
-                          : Icons.sync_rounded,
-                      color: tokens.textHigh,
-                    ),
-                    title: method.label,
-                    subtitle: method.description,
-                    trailing: _savingNotificationMethod
-                        ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: tokens.primary,
-                            ),
-                          )
-                        : Icon(
-                            AppScope.of(context).notificationMethod.value ==
-                                    method
-                                ? Icons.radio_button_checked_rounded
-                                : Icons.radio_button_unchecked_rounded,
-                            color:
-                                AppScope.of(context).notificationMethod.value ==
-                                    method
-                                ? tokens.primary
-                                : tokens.textLow,
-                          ),
-                    onTap: _savingNotificationMethod
-                        ? null
-                        : () => _applyNotificationMethod(method),
-                  ),
-                if (Platform.isAndroid)
-                  const DesignListTile(
-                    leading: Icon(Icons.cloud_rounded),
-                    title: 'FCM',
-                    subtitle: 'Google Firebase Cloud Messaging – geplant',
-                    trailing: DesignBadge(label: 'Bald verfügbar'),
-                  ),
-              ],
+            NotificationMethodSelector(
+              selected: AppScope.of(context).notificationMethod.value,
+              saving: _savingNotificationMethod,
+              onSelect: _applyNotificationMethod,
             ),
             SizedBox(height: tokens.spaceMd),
           ],
@@ -395,37 +354,8 @@ class _NotificationSettingsScreenState
 
   // --- Zustell-Methode (aus dem Haupt-Settings hierher verschoben) ---
 
-  Future<void> _setupPush() async {
-    final scope = AppScope.of(context);
-    await LocalNotificationHelper.requestPermission();
-    scope.unifiedPush.init(
-      token: await scope.auth.getAccessToken(),
-      onMessage: (item) {
-        scope.notification.registerIncoming(item);
-        unawaited(scope.notificationContent.showLocal(item));
-      },
-    );
-    if (!mounted) return;
-    await scope.unifiedPush.checkAndSetup(
-      context: context,
-      onDistributorsFound: (distributors) async {
-        if (!mounted) return;
-        await showDistributorPickerSheet(
-          context: context,
-          distributors: distributors,
-          onSelect: scope.unifiedPush.selectDistributor,
-        );
-      },
-      onNoDistributor: () async {
-        if (!mounted) return;
-        await Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const NoDistributorScreen()));
-      },
-    );
-  }
-
-  /// Stoppt den bisherigen Service und startet die gewählte Methode.
+  /// Stoppt den bisherigen Service und startet die gewählte Methode über den
+  /// gemeinsamen Koordinator (Setup + Prüfungen an einer Stelle).
   Future<void> _applyNotificationMethod(NotificationMethod method) async {
     final scope = AppScope.of(context);
     final previous = scope.notificationMethod.value;
@@ -433,38 +363,58 @@ class _NotificationSettingsScreenState
 
     setState(() => _savingNotificationMethod = true);
     try {
-      switch (method) {
-        case NotificationMethod.polling:
-          if (previous == NotificationMethod.unifiedPush) {
-            await scope.unifiedPush.unregister();
-          }
-          await LocalNotificationHelper.requestPermission();
-          scope.notification.startPolling(getToken: scope.auth.getAccessToken);
-        case NotificationMethod.unifiedPush:
-          scope.notification.stopPolling();
-          await _setupPush();
-        case NotificationMethod.fcm:
+      final coordinator = scope.notificationCoordinator;
+      final outcome = await coordinator.apply(method, previous: previous);
+      if (!mounted) return;
+
+      switch (outcome) {
+        case NotificationMethodOutcome.applied:
+          await _commitMethod(scope, method);
+        case NotificationMethodOutcome.needsDistributor:
+          final selected = await showDistributorPickerSheet(
+            context: context,
+            distributors: coordinator.pendingDistributors,
+          );
+          if (selected == null || !mounted) return;
+          await coordinator.selectDistributor(selected);
+          if (!mounted) return;
+          await _commitMethod(scope, method);
+        case NotificationMethodOutcome.noDistributor:
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const NoDistributorScreen()),
+          );
+        case NotificationMethodOutcome.permissionDenied:
+          _showSnack(
+            'Benachrichtigungen sind nicht erlaubt. Bitte in den '
+            'Systemeinstellungen aktivieren.',
+          );
+        case NotificationMethodOutcome.unavailable:
           break;
       }
-      scope.notificationMethod.value = method;
-      await NotificationPreference.save(method);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Benachrichtigungs-Methode: ${method.label}')),
-      );
-    } catch (e) {
+    } catch (e, st) {
       developer.log(
         'Notification method switch failed',
         error: e,
+        stackTrace: st,
         name: 'settings.notifications',
       );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Methode konnte nicht gewechselt werden')),
-      );
+      if (mounted) _showSnack('Methode konnte nicht gewechselt werden');
     } finally {
       if (mounted) setState(() => _savingNotificationMethod = false);
     }
+  }
+
+  Future<void> _commitMethod(AppScope scope, NotificationMethod method) async {
+    scope.notificationMethod.value = method;
+    await NotificationPreference.save(method);
+    if (!mounted) return;
+    _showSnack('Benachrichtigungs-Methode: ${method.label}');
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

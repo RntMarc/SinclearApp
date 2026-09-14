@@ -23,13 +23,13 @@ final _distributorLinks = <(String, Uri)>[
   ),
 ];
 
-/// Zeigt die gefundenen UnifiedPush-Distributoren als Auswahl-Sheet.
-Future<void> showDistributorPickerSheet({
+/// Zeigt die gefundenen UnifiedPush-Distributoren als Auswahl-Sheet und
+/// liefert den gewählten Namen (oder `null` bei Abbruch).
+Future<String?> showDistributorPickerSheet({
   required BuildContext context,
   required List<String> distributors,
-  required Future<void> Function(String distributor) onSelect,
 }) async {
-  await showDesignSheet<void>(
+  return showDesignSheet<String>(
     context: context,
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -50,10 +50,7 @@ Future<void> showDistributorPickerSheet({
             leading: const Icon(Icons.push_pin_rounded),
             title: name,
             trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () {
-              Navigator.pop(context);
-              onSelect(name);
-            },
+            onTap: () => Navigator.pop(context, name),
           ),
       ],
     ),
@@ -61,8 +58,8 @@ Future<void> showDistributorPickerSheet({
 }
 
 /// Erscheint, wenn kein UnifiedPush-Distributor installiert ist. Bietet die
-/// empfohlenen Distributoren als Store-Links an; „Ohne UnifiedPush
-/// fortfahren" führt zur Akku-Hinweis-Seite.
+/// empfohlenen Distributoren als Store-Links an; „Zurück zur Auswahl" führt
+/// ohne Übernahme der Option zurück zur Methoden-Auswahl.
 class NoDistributorScreen extends StatelessWidget {
   const NoDistributorScreen({super.key});
 
@@ -121,14 +118,10 @@ class NoDistributorScreen extends StatelessWidget {
                     ),
                     SizedBox(height: tokens.spaceLg),
                     DesignButton(
-                      label: 'Ohne UnifiedPush fortfahren',
+                      label: 'Zurück zur Auswahl',
                       variant: DesignButtonVariant.outlined,
                       fullWidth: true,
-                      onPressed: () => Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => const PollingHintScreen(),
-                        ),
-                      ),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),

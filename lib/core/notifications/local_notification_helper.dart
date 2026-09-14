@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
@@ -14,27 +15,40 @@ class LocalNotificationHelper {
 
   /// Einmalige Initialisierung. Muss nach [setNotificationTapHandler]
   /// aufgerufen werden, damit der Handler auch Cold-Starts abfängt.
+  ///
+  /// Fehler werden geschluckt: Im Hintergrund-Isolate darf eine fehlende
+  /// Plugin-Bindung das Polling nicht abbrechen.
   static Future<bool> init() async {
     if (kIsWeb || _initialized) return false;
 
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
-    const linuxSettings = LinuxInitializationSettings(
-      defaultActionName: 'Open',
-    );
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      linux: linuxSettings,
-    );
+    try {
+      const androidSettings = AndroidInitializationSettings(
+        '@mipmap/ic_launcher',
+      );
+      const linuxSettings = LinuxInitializationSettings(
+        defaultActionName: 'Open',
+      );
+      const initSettings = InitializationSettings(
+        android: androidSettings,
+        linux: linuxSettings,
+      );
 
-    final result = await _plugin.initialize(
-      settings: initSettings,
-      onDidReceiveNotificationResponse: _handleResponse,
-    );
-    _initialized = result ?? false;
-    if (_initialized) await _checkAppLaunchDetails();
-    return _initialized;
+      final result = await _plugin.initialize(
+        settings: initSettings,
+        onDidReceiveNotificationResponse: _handleResponse,
+      );
+      _initialized = result ?? false;
+      if (_initialized) await _checkAppLaunchDetails();
+      return _initialized;
+    } catch (e, st) {
+      developer.log(
+        'Local notification init failed',
+        error: e,
+        stackTrace: st,
+        name: 'notifications',
+      );
+      return false;
+    }
   }
 
   static Future<bool> requestPermission() async {

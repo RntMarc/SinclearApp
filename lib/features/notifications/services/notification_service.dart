@@ -8,6 +8,7 @@ import '../../../core/utils/date_utils.dart';
 import '../models/notification_item.dart';
 import '../models/notification_type_preference.dart';
 import 'notification_content_resolver.dart';
+import 'polling_background_store.dart';
 
 class NotificationService extends ChangeNotifier {
   final ApiClient _api;
@@ -15,6 +16,11 @@ class NotificationService extends ChangeNotifier {
   /// Bereitet rohe Benachrichtigungen (nur `type` + Relation-IDs) für die
   /// lokale Anzeige auf: lädt fehlende Daten nach und erzeugt Titel/Text.
   final NotificationContentResolver? _contentResolver;
+
+  /// Teilt den `since`-Cursor mit dem Hintergrund-Polling (Foreground-Service
+  /// und WorkManager), damit dieselbe Benachrichtigung nicht doppelt angezeigt
+  /// wird.
+  final PollingBackgroundStore? _backgroundStore;
 
   Timer? _pollingTimer;
   String? _lastSeen;
@@ -37,8 +43,10 @@ class NotificationService extends ChangeNotifier {
   NotificationService({
     required ApiClient api,
     NotificationContentResolver? contentResolver,
+    PollingBackgroundStore? backgroundStore,
   }) : _api = api,
-       _contentResolver = contentResolver;
+       _contentResolver = contentResolver,
+       _backgroundStore = backgroundStore;
 
   void startPolling({
     required Future<String> Function() getToken,
@@ -58,6 +66,7 @@ class NotificationService extends ChangeNotifier {
   Future<void> _poll(Future<String> Function() getToken) async {
     try {
       final token = await getToken();
+      _lastSeen ??= await _backgroundStore?.lastSeen();
       final queryParams = <String, String>{};
       if (_lastSeen != null) {
         queryParams['since'] = _lastSeen!;
@@ -78,6 +87,7 @@ class NotificationService extends ChangeNotifier {
 
       if (items.isNotEmpty) {
         _lastSeen = toApiDate(items.first.createdAt, withMilliseconds: true);
+        unawaited(_backgroundStore?.setLastSeen(_lastSeen!));
         final newItems = items.where((item) => _seenIds.add(item.id)).toList();
 
         var registryChanged = false;

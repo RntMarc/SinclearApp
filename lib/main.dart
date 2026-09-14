@@ -31,6 +31,10 @@ import 'features/forum/services/forum_service.dart';
 import 'features/chat/services/chat_service.dart';
 import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
+import 'features/notifications/services/background_poller.dart';
+import 'features/notifications/services/foreground_polling_service.dart';
+import 'features/notifications/services/notification_method_coordinator.dart';
+import 'features/notifications/services/polling_background_store.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
 import 'features/photos/services/photos_service.dart';
@@ -138,11 +142,21 @@ Future<void> _bootstrap() async {
     user: user,
     forum: forum,
   );
+  final pollingStore = PollingBackgroundStore();
   final notification = NotificationService(
     api: api,
     contentResolver: notificationContent,
+    backgroundStore: pollingStore,
   );
   final unifiedPush = UnifiedPushService(api: api);
+  final foregroundPolling = ForegroundPollingService(store: pollingStore);
+  final notificationCoordinator = NotificationMethodCoordinator(
+    unifiedPush: unifiedPush,
+    notification: notification,
+    foregroundPolling: foregroundPolling,
+    getToken: auth.getAccessToken,
+    onPushMessage: (item) => unawaited(notificationContent.showLocal(item)),
+  );
   final webPush = WebPushService(api: api);
   final androidUpdate = AndroidUpdateService(baseUrl: baseUrl);
   final webUpdate = WebUpdateService(
@@ -169,6 +183,8 @@ Future<void> _bootstrap() async {
       ),
     );
     await LocalNotificationHelper.init();
+    foregroundPolling.initialize();
+    await initBackgroundPolling();
 
     // Gespeicherte Zustell-Methode beim App-Start aktivieren (Cold-Start
     // liefert sonst erst nach einem Resume wieder Benachrichtigungen).
@@ -177,6 +193,10 @@ Future<void> _bootstrap() async {
         final token = await auth.getAccessToken();
         switch (initialNotificationMethod) {
           case NotificationMethod.polling:
+            // Ohne Berechtigungsdialog (nur prüfen) — hat der Nutzer Polling
+            // gewählt, ist die Berechtigung bereits erteilt; sonst greift der
+            // WorkManager-Fallback.
+            await foregroundPolling.start(requestPermission: false);
             notification.startPolling(getToken: auth.getAccessToken);
           case NotificationMethod.unifiedPush:
             unifiedPush.init(
@@ -251,6 +271,8 @@ Future<void> _bootstrap() async {
       notificationContent: notificationContent,
       unifiedPush: unifiedPush,
       webPush: webPush,
+      foregroundPolling: foregroundPolling,
+      notificationCoordinator: notificationCoordinator,
       initialNotificationMethod: initialNotificationMethod,
       initialMapApp: initialMapApp,
       initialDesignVariant: initialDesign,
