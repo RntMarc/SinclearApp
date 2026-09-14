@@ -300,3 +300,131 @@ class SavedLocation {
     'source': source,
   };
 }
+
+class WeatherWarning {
+  final String event;
+  final int level;
+  final String headline;
+  final DateTime? start;
+  final DateTime? end;
+  final bool isSpecial;
+
+  const WeatherWarning({
+    required this.event,
+    required this.level,
+    required this.headline,
+    this.start,
+    this.end,
+    this.isSpecial = false,
+  });
+
+  factory WeatherWarning.fromJson(
+    Map<String, dynamic> json, {
+    bool isSpecial = false,
+  }) {
+    return WeatherWarning(
+      event: json['event'] as String? ?? '',
+      level: json['level'] as int? ?? 0,
+      headline: json['headline'] as String? ?? '',
+      start: json['start'] != null
+          ? DateTime.tryParse(json['start'] as String)
+          : null,
+      end: json['end'] != null
+          ? DateTime.tryParse(json['end'] as String)
+          : null,
+      isSpecial: isSpecial,
+    );
+  }
+}
+
+class WeatherWarningsData {
+  final List<WeatherWarning> warnings;
+  final List<WeatherWarning> specialWarnings;
+  final int maxLevel;
+  final int count;
+  final WeatherAttribution? attribution;
+
+  const WeatherWarningsData({
+    this.warnings = const [],
+    this.specialWarnings = const [],
+    this.maxLevel = 0,
+    this.count = 0,
+    this.attribution,
+  });
+
+  List<WeatherWarning> get allWarnings => [...warnings, ...specialWarnings];
+
+  factory WeatherWarningsData.fromJson(Map<String, dynamic> json) {
+    return WeatherWarningsData(
+      warnings:
+          (json['warnings'] as List?)
+              ?.map((e) => WeatherWarning.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      specialWarnings:
+          (json['special_warnings'] as List?)
+              ?.map(
+                (e) => WeatherWarning.fromJson(
+                  e as Map<String, dynamic>,
+                  isSpecial: true,
+                ),
+              )
+              .toList() ??
+          [],
+      maxLevel: json['max_level'] as int? ?? 0,
+      count: json['count'] as int? ?? 0,
+      attribution: json['_attribution'] != null
+          ? WeatherAttribution.fromJson(
+              json['_attribution'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+}
+
+class WeatherWarningsMeta {
+  final List<String> missingSections;
+  final List<String> availableSections;
+  final String? source;
+  final String? citySlug;
+
+  const WeatherWarningsMeta({
+    this.missingSections = const [],
+    this.availableSections = const [],
+    this.source,
+    this.citySlug,
+  });
+
+  factory WeatherWarningsMeta.fromJson(Map<String, dynamic> json) {
+    return WeatherWarningsMeta(
+      missingSections:
+          (json['missing_sections'] as List?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      availableSections:
+          (json['available_sections'] as List?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      source: json['source'] as String?,
+      citySlug: json['city_slug'] as String?,
+    );
+  }
+}
+
+class WeatherWarningsResponse {
+  final WeatherWarningsData data;
+  final WeatherWarningsMeta meta;
+
+  const WeatherWarningsResponse({required this.data, required this.meta});
+
+  factory WeatherWarningsResponse.fromJson(Map<String, dynamic> json) {
+    return WeatherWarningsResponse(
+      data: WeatherWarningsData.fromJson(json['data'] as Map<String, dynamic>),
+      meta: WeatherWarningsMeta.fromJson(
+        json['meta'] as Map<String, dynamic>? ?? {},
+      ),
+    );
+  }
+}

@@ -51,6 +51,7 @@ class _WeatherDetailBodyState extends State<_WeatherDetailBody> {
   late final WeatherService _service = widget.weatherService;
 
   WeatherResponse? _weather;
+  WeatherWarningsResponse? _warnings;
   bool _loading = true;
   String? _error;
 
@@ -66,14 +67,22 @@ class _WeatherDetailBodyState extends State<_WeatherDetailBody> {
       _error = null;
     });
     try {
-      final response = await _service.getWeather(
-        citySlug: widget.citySlug,
-        lat: widget.lat,
-        lon: widget.lon,
-      );
+      final results = await Future.wait([
+        _service.getWeather(
+          citySlug: widget.citySlug,
+          lat: widget.lat,
+          lon: widget.lon,
+        ),
+        _service.getWeatherWarnings(
+          citySlug: widget.citySlug,
+          lat: widget.lat,
+          lon: widget.lon,
+        ),
+      ]);
       if (!mounted) return;
       setState(() {
-        _weather = response;
+        _weather = results[0] as WeatherResponse;
+        _warnings = results[1] as WeatherWarningsResponse;
         _loading = false;
       });
     } catch (e, st) {
@@ -119,6 +128,11 @@ class _WeatherDetailBodyState extends State<_WeatherDetailBody> {
             ),
           )
         else ...[
+          if (_warnings?.data.maxLevel != null &&
+              _warnings!.data.maxLevel > 0) ...[
+            _WarningsSection(warnings: _warnings!),
+            SizedBox(height: tokens.spaceMd),
+          ],
           if (_weather?.data.current != null) ...[
             _CurrentSection(current: _weather!.data.current!),
             SizedBox(height: tokens.spaceMd),
@@ -391,6 +405,110 @@ class _DailySection extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _WarningsSection extends StatelessWidget {
+  final WeatherWarningsResponse warnings;
+
+  const _WarningsSection({required this.warnings});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final allWarnings = warnings.data.allWarnings
+      ..sort((a, b) => b.level.compareTo(a.level));
+
+    if (allWarnings.isEmpty) return const SizedBox.shrink();
+
+    return DesignCard(
+      margin: EdgeInsets.zero,
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 14,
+                color: tokens.warning,
+              ),
+              SizedBox(width: tokens.spaceSm),
+              DesignText(
+                'Warnungen (${allWarnings.length})',
+                style: DesignTextStyle.label,
+                color: tokens.warning,
+              ),
+            ],
+          ),
+          SizedBox(height: tokens.spaceSm),
+          ...allWarnings.map(
+            (w) => Padding(
+              padding: EdgeInsets.only(bottom: tokens.spaceXs),
+              child: _WarningRow(warning: w),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WarningRow extends StatelessWidget {
+  final WeatherWarning warning;
+
+  const _WarningRow({required this.warning});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final color = warning.level >= 3 ? tokens.danger : tokens.warning;
+    final icon = switch (warning.event) {
+      'HEAT_STRESS' => Icons.wb_sunny_rounded,
+      'UV_WARNING' => Icons.wb_sunny_outlined,
+      _ => Icons.water_drop_outlined,
+    };
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: color),
+        SizedBox(width: tokens.spaceSm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DesignText(
+                warning.headline.isNotEmpty ? warning.headline : warning.event,
+                style: DesignTextStyle.label,
+                color: color,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (warning.start != null || warning.end != null)
+                DesignText(
+                  _formatRange(warning.start, warning.end),
+                  style: DesignTextStyle.label,
+                  color: tokens.textLow,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatRange(DateTime? start, DateTime? end) {
+    final s = start?.toLocal();
+    final e = end?.toLocal();
+    if (s == null && e == null) return '';
+    String fmt(DateTime d) =>
+        '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')} '
+        '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    if (s != null && e != null) return '${fmt(s)} – ${fmt(e)}';
+    if (s != null) return 'ab ${fmt(s)}';
+    return 'bis ${fmt(e!)}';
   }
 }
 

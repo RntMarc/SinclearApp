@@ -4,6 +4,7 @@ import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_pulse_dot.dart';
 import '../models/weather_models.dart';
 import '../services/weather_service.dart';
 import 'weather_detail_sheet.dart';
@@ -37,6 +38,7 @@ class _WeatherSummaryCardState extends State<WeatherSummaryCard> {
   WeatherService get _service => AppScope.of(context).weather;
 
   WeatherResponse? _weather;
+  WeatherWarningsResponse? _warnings;
   bool _loading = true;
   String? _error;
   bool _hasLoaded = false;
@@ -74,14 +76,22 @@ class _WeatherSummaryCardState extends State<WeatherSummaryCard> {
       _error = null;
     });
     try {
-      final response = await _service.getWeather(
-        citySlug: widget.citySlug,
-        lat: widget.lat,
-        lon: widget.lon,
-      );
+      final results = await Future.wait([
+        _service.getWeather(
+          citySlug: widget.citySlug,
+          lat: widget.lat,
+          lon: widget.lon,
+        ),
+        _service.getWeatherWarnings(
+          citySlug: widget.citySlug,
+          lat: widget.lat,
+          lon: widget.lon,
+        ),
+      ]);
       if (!mounted) return;
       setState(() {
-        _weather = response;
+        _weather = results[0] as WeatherResponse;
+        _warnings = results[1] as WeatherWarningsResponse;
         _loading = false;
       });
     } catch (e, st) {
@@ -143,10 +153,25 @@ class _WeatherSummaryCardState extends State<WeatherSummaryCard> {
         color: tokens.textLow,
       );
     }
-    return _iconContainer(
-      tokens,
-      icon: Icons.wb_sunny_rounded,
-      color: tokens.primary,
+    final hasWarning = (_warnings?.data.maxLevel ?? 0) > 0;
+    final warningColor = (_warnings?.data.maxLevel ?? 0) >= 3
+        ? tokens.danger
+        : tokens.warning;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _iconContainer(
+          tokens,
+          icon: Icons.wb_sunny_rounded,
+          color: tokens.primary,
+        ),
+        if (hasWarning)
+          Positioned(
+            top: -4,
+            right: -4,
+            child: DesignPulseDot(size: 10, color: warningColor),
+          ),
+      ],
     );
   }
 

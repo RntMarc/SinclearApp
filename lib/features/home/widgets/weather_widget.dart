@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_pulse_dot.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../../weather/models/weather_models.dart';
 import '../../weather/services/user_weather_location_service.dart';
@@ -16,17 +17,20 @@ class WeatherRow implements DashboardRow {
   final double? temperatureC;
   final String? condition;
   final int? weatherCode;
+  final int maxWarningLevel;
 
   const WeatherRow({
     required this.locationName,
     this.temperatureC,
     this.condition,
     this.weatherCode,
+    this.maxWarningLevel = 0,
   });
 
   factory WeatherRow.fromResponse({
     required String locationName,
     required WeatherResponse response,
+    required WeatherWarningsResponse? warnings,
   }) {
     final current = response.data.current;
     return WeatherRow(
@@ -34,6 +38,7 @@ class WeatherRow implements DashboardRow {
       temperatureC: current?.temperatureC,
       condition: current?.condition,
       weatherCode: current?.weatherCode,
+      maxWarningLevel: warnings?.data.maxLevel ?? 0,
     );
   }
 
@@ -43,6 +48,7 @@ class WeatherRow implements DashboardRow {
       temperatureC: (json['temperatureC'] as num?)?.toDouble(),
       condition: json['condition'] as String?,
       weatherCode: json['weatherCode'] as int?,
+      maxWarningLevel: (json['maxWarningLevel'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -52,6 +58,7 @@ class WeatherRow implements DashboardRow {
     'temperatureC': temperatureC,
     'condition': condition,
     'weatherCode': weatherCode,
+    'maxWarningLevel': maxWarningLevel,
   };
 }
 
@@ -82,13 +89,24 @@ class WeatherWidgetSpec extends DashboardWidgetSpec {
         (l) => l.id == locationId,
         orElse: () => throw Exception('Location not found'),
       );
-      final response = await _weather.getWeather(
-        citySlug: location.slug,
-        lat: location.lat,
-        lon: location.lon,
-      );
+      final results = await Future.wait([
+        _weather.getWeather(
+          citySlug: location.slug,
+          lat: location.lat,
+          lon: location.lon,
+        ),
+        _weather.getWeatherWarnings(
+          citySlug: location.slug,
+          lat: location.lat,
+          lon: location.lon,
+        ),
+      ]);
       return [
-        WeatherRow.fromResponse(locationName: location.name, response: response),
+        WeatherRow.fromResponse(
+          locationName: location.name,
+          response: results[0] as WeatherResponse,
+          warnings: results[1] as WeatherWarningsResponse,
+        ),
       ];
     } catch (_) {
       return const [];
@@ -123,18 +141,34 @@ class WeatherWidgetSpec extends DashboardWidgetSpec {
       onTap: onTap,
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: tokens.surfaceVariant,
-              borderRadius: BorderRadius.circular(tokens.radiusMd),
-            ),
-            child: Icon(
-              Icons.wb_sunny_rounded,
-              size: 18,
-              color: tokens.primary,
-            ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: tokens.surfaceVariant,
+                  borderRadius: BorderRadius.circular(tokens.radiusMd),
+                ),
+                child: Icon(
+                  Icons.wb_sunny_rounded,
+                  size: 18,
+                  color: tokens.primary,
+                ),
+              ),
+              if (weather.maxWarningLevel > 0)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: DesignPulseDot(
+                    size: 8,
+                    color: weather.maxWarningLevel >= 3
+                        ? tokens.danger
+                        : tokens.warning,
+                  ),
+                ),
+            ],
           ),
           SizedBox(width: tokens.spaceMd),
           Expanded(
