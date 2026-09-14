@@ -37,6 +37,28 @@ class WeatherService {
     return WeatherResponse.fromJson(data);
   }
 
+  Future<WeatherWarningsResponse> getWeatherWarnings({
+    String? citySlug,
+    double? lat,
+    double? lon,
+  }) async {
+    final params = <String, String>{};
+    if (citySlug != null && citySlug.isNotEmpty) {
+      params['city_slug'] = citySlug;
+    }
+    if (lat != null && lon != null) {
+      params['lat'] = lat.toString();
+      params['lon'] = lon.toString();
+    }
+
+    final data = await _api.get(
+      '/external-data/weather/warnings',
+      queryParams: params,
+      token: await _token(),
+    );
+    return WeatherWarningsResponse.fromJson(data);
+  }
+
   /// Searches for locations by [query] string.
   Future<List<LocationSearchResult>> searchLocations(String query) async {
     final data = await _api.get(
