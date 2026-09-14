@@ -176,6 +176,9 @@ FCM als „Bald verfügbar" sichtbar (nicht wählbar), inkl. Info-Button.
   automatisiert ausgeführt, kein Auto-Deploy).
 
 ## Nicht-Teil des Umfangs
-- Web Push / iOS bleiben unverändert (Setup-Screen gilt nur Android).
+- Web Push / iOS / Linux bleiben unverändert (Setup-Screen gilt nur Android).
 - Keine FCM-Integration; keine Änderung an `web/sw.js` oder Notification-Typen
   (kein neuer Typ).
+- Auf Linux wird der Setup-Screen weder nach Login noch per Deep-Link angezeigt;
+  `verify_screen.dart` überspringt ihn direkt, und der Router leitet
+  `/benachrichtigungen/einrichten` auf Linux per Redirect zur Startseite weiter.

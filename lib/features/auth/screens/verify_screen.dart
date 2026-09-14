@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -90,10 +91,13 @@ class _VerifyScreenState extends State<VerifyScreen> {
         await _setupWebPush(token: await auth.getAccessToken());
         if (!mounted) return;
         context.go(auth.onboardingCompleted ? '/home' : '/onboarding');
-      } else {
+      } else if (Platform.isAndroid) {
         // Android: verpflichtendes, geprüftes Benachrichtigungs-Setup. Der
         // Setup-Screen führt danach nach /home bzw. /onboarding.
         context.go('/benachrichtigungen/einrichten');
+      } else {
+        // Linux etc.: kein Setup nötig, direkt weiter.
+        context.go(auth.onboardingCompleted ? '/home' : '/onboarding');
       }
     } on ApiException catch (e) {
       developer.log(

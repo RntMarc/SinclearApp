@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/services/auth_service.dart';
@@ -100,6 +101,13 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
       }
       if (loggedIn && auth.onboardingCompleted && location == '/onboarding') {
         return '/home';
+      }
+      // Setup-Screen nur auf Android erlauben (Web hat Web-Push, Linux/Linux
+      // brauchen kein Setup). Bei Deep-Links auf andere Plattformen → Start.
+      if (!kIsWeb &&
+          defaultTargetPlatform != TargetPlatform.android &&
+          location == '/benachrichtigungen/einrichten') {
+        return '/';
       }
       if (!loggedIn && location == '/benachrichtigungen/einrichten') return '/';
       if (loggedIn &&
