@@ -1,18 +1,52 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sinclear_beyond/core/di/app_scope.dart';
+import 'package:sinclear_beyond/core/network/api_client.dart';
+import 'package:sinclear_beyond/core/services/android_update_service.dart';
+import 'package:sinclear_beyond/core/storage/token_storage.dart';
 import 'package:sinclear_beyond/design/design_variant.dart';
 import 'package:sinclear_beyond/design/theme/design_theme.dart';
 import 'package:sinclear_beyond/design/widgets/primitives/design_card.dart';
+import 'package:sinclear_beyond/features/auth/services/auth_service.dart';
+import 'package:sinclear_beyond/features/calendar/services/calendar_service.dart';
+import 'package:sinclear_beyond/features/chat/services/chat_service.dart';
+import 'package:sinclear_beyond/features/explore/services/explore_service.dart';
+import 'package:sinclear_beyond/features/feedback/services/feedback_service.dart';
+import 'package:sinclear_beyond/features/forum/services/forum_service.dart';
 import 'package:sinclear_beyond/features/home/dashboard_cache.dart';
 import 'package:sinclear_beyond/features/home/dashboard_controller.dart';
 import 'package:sinclear_beyond/features/home/dashboard_layout_store.dart';
 import 'package:sinclear_beyond/features/home/dashboard_widget.dart';
+import 'package:sinclear_beyond/features/home/dashboard_widget_repository.dart';
 import 'package:sinclear_beyond/features/home/dashboard_widget_spec.dart';
 import 'package:sinclear_beyond/features/home/dashboard_widget_view.dart';
 import 'package:sinclear_beyond/features/home/widgets/recipes_widget.dart';
+import 'package:sinclear_beyond/features/location_sharing/services/location_sharing_service.dart';
+import 'package:sinclear_beyond/features/moderation/services/moderation_service.dart';
+import 'package:sinclear_beyond/features/notifications/services/notification_content_resolver.dart';
+import 'package:sinclear_beyond/features/notifications/services/notification_service.dart';
+import 'package:sinclear_beyond/features/notifications/services/unified_push_service.dart';
+import 'package:sinclear_beyond/features/notifications/services/web_push_service.dart';
+import 'package:sinclear_beyond/features/photos/services/photos_service.dart';
+import 'package:sinclear_beyond/features/recipes/services/recipes_service.dart';
+import 'package:sinclear_beyond/features/settings/models/map_app_preference.dart';
+import 'package:sinclear_beyond/features/settings/models/notification_preference.dart';
+import 'package:sinclear_beyond/features/settings/services/dav_sync_service.dart';
+import 'package:sinclear_beyond/features/settings/services/dav_token_service.dart';
+import 'package:sinclear_beyond/features/settings/services/mcp_key_service.dart';
+import 'package:sinclear_beyond/features/stories/services/stories_service.dart';
+import 'package:sinclear_beyond/features/subscription/services/subscription_service.dart';
+import 'package:sinclear_beyond/features/travel/services/pt_service.dart';
+import 'package:sinclear_beyond/features/travel/services/travel_service.dart';
+import 'package:sinclear_beyond/features/user/services/user_service.dart';
+import 'package:sinclear_beyond/features/weather/services/user_weather_location_service.dart';
+import 'package:sinclear_beyond/features/weather/services/weather_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -467,6 +501,152 @@ void main() {
 
       controller.dispose();
     });
+
+    testWidgets(
+      'Config-Änderung (selectedLocationId) löst neuen Datenabruf aus',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        var fetchCalls = 0;
+        var fakeNow = DateTime(2026, 1, 1, 12);
+        final controller = DashboardController(
+          initialLayout: const DashboardLayout(
+            widgets: [
+              DashboardWidgetConfig(
+                type: DashboardWidgetType.weather,
+                count: 1,
+                emptyState: WidgetEmptyState.card,
+              ),
+            ],
+          ),
+          store: SharedPreferencesDashboardLayoutStore(),
+          cache: DashboardCache(),
+          clock: () => fakeNow,
+        );
+        addTearDown(controller.dispose);
+
+        await tester.pumpWidget(
+          _wrap(
+            controller,
+            _TestSpec(
+              type: DashboardWidgetType.weather,
+              fetchFn: (count) async {
+                fetchCalls++;
+                return <DashboardRow>[];
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(fetchCalls, 1);
+
+        // Location-Änderung in den Einstellungen muss sofort neu laden.
+        fakeNow = fakeNow.add(const Duration(seconds: 21));
+        controller.updateConfig(
+          DashboardWidgetType.weather,
+          selectedLocationId: 'loc-1',
+        );
+        await tester.pumpAndSettle();
+        expect(fetchCalls, 2);
+      },
+    );
+
+    testWidgets(
+      'Settings-Sheet: Weather-Ort wird aus der API geladen und angezeigt',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({'refresh_token': 'refresh'});
+        final prefs = await SharedPreferences.getInstance();
+        final client = MockClient((request) async {
+          if (request.url.path.endsWith('/auth/refresh')) {
+            return http.Response(
+              jsonEncode({
+                'access_token': 'access',
+                'expires_in': 3600,
+                'refresh_token': 'refresh',
+                'expires_at': 0,
+              }),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/user/me/weather-locations')) {
+            return http.Response(
+              jsonEncode({
+                'data': [
+                  {
+                    'id': 'loc-1',
+                    'name': 'Berlin',
+                    'slug': 'berlin',
+                    'lat': 52.52,
+                    'lon': 13.40,
+                    'source': 'infranode',
+                    'sortOrder': 0,
+                    'createdAt': '2026-01-01 00:00:00',
+                    'updatedAt': '2026-01-01 00:00:00',
+                  },
+                ],
+              }),
+              200,
+            );
+          }
+          return http.Response('{"error":"not_found"}', 404);
+        });
+        final api = ApiClient(
+          baseUrl: 'http://localhost:8000/api/v2',
+          client: client,
+        );
+        final auth = AuthService(api: api, storage: TokenStorage());
+        final weatherLocations = UserWeatherLocationService(api: api, auth: auth);
+        final controller = DashboardController(
+          initialLayout: const DashboardLayout(
+            widgets: [
+              DashboardWidgetConfig(
+                type: DashboardWidgetType.weather,
+                count: 1,
+                emptyState: WidgetEmptyState.card,
+              ),
+            ],
+          ),
+          store: SharedPreferencesDashboardLayoutStore(),
+          cache: DashboardCache(),
+        );
+        addTearDown(controller.dispose);
+        controller.toggleEditing();
+
+        await tester.pumpWidget(
+          _buildScope(
+            api: api,
+            auth: auth,
+            prefs: prefs,
+            dashboard: controller,
+            weatherLocations: weatherLocations,
+            child: DesignScope(
+              variant: ValueNotifier<DesignVariant>(DesignVariant.materiaPop),
+              child: MaterialApp(
+                home: Scaffold(
+                  body: Center(
+                    child: DashboardWidgetView(
+                      controller: controller,
+                      spec: _TestSpec(
+                        type: DashboardWidgetType.weather,
+                        fetchFn: (count) async => <DashboardRow>[],
+                      ),
+                      index: 0,
+                      total: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(DesignCard));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Berlin'), findsOneWidget);
+        expect(find.textContaining('Erst Orte'), findsNothing);
+      },
+    );
   });
 }
 
@@ -488,6 +668,92 @@ Widget _wrap(DashboardController controller, DashboardWidgetSpec spec) {
         ),
       ),
     ),
+  );
+}
+
+AppScope _buildScope({
+  required ApiClient api,
+  required AuthService auth,
+  required SharedPreferences prefs,
+  required DashboardController dashboard,
+  required UserWeatherLocationService weatherLocations,
+  required Widget child,
+}) {
+  final explore = ExploreService(api: api, auth: auth);
+  final travel = TravelService(api: api, auth: auth);
+  final publicTransport = PublicTransportService(api: api, auth: auth);
+  final user = UserService(api: api, auth: auth);
+  final calendar = CalendarService(api: api, auth: auth);
+  final feedback = FeedbackService(api: api, auth: auth);
+  final forum = ForumService(api: api, auth: auth);
+  final chat = ChatService(api: api, auth: auth);
+  final locationSharing = LocationSharingService(api: api, auth: auth);
+  final recipes = RecipesService(api: api, auth: auth);
+  final photos = PhotosService(api: api, auth: auth);
+  final moderation = ModerationService(api: api, auth: auth);
+  final subscription = SubscriptionService(api: api, auth: auth);
+  final stories = StoriesService(api: api, auth: auth);
+  final weather = WeatherService(api: api, auth: auth);
+  final mcpKeys = McpKeyService(api: api, auth: auth);
+  final davTokens = DavTokenService(api: api, auth: auth);
+  final davSync = DavSyncService(
+    davTokens: davTokens,
+    user: user,
+    apiBaseUrl: api.baseUrl,
+    prefs: prefs,
+  );
+  final notificationContent = NotificationContentResolver(
+    user: user,
+    forum: forum,
+  );
+  final notification = NotificationService(
+    api: api,
+    contentResolver: notificationContent,
+  );
+
+  return AppScope(
+    auth: auth,
+    explore: explore,
+    travel: travel,
+    publicTransport: publicTransport,
+    user: user,
+    calendar: calendar,
+    feedback: feedback,
+    forum: forum,
+    chat: chat,
+    locationSharing: locationSharing,
+    recipes: recipes,
+    photos: photos,
+    moderation: moderation,
+    subscription: subscription,
+    stories: stories,
+    mcpKeys: mcpKeys,
+    davTokens: davTokens,
+    davSync: davSync,
+    androidUpdate: AndroidUpdateService(baseUrl: api.baseUrl),
+    dashboard: dashboard,
+    dashboardWidgets: DashboardWidgetRepository(
+      recipes: recipes,
+      calendar: calendar,
+      travel: travel,
+      forum: forum,
+      subscription: subscription,
+      weather: weather,
+      weatherLocations: weatherLocations,
+    ),
+    notification: notification,
+    weather: weather,
+    weatherLocations: weatherLocations,
+    notificationContent: notificationContent,
+    unifiedPush: UnifiedPushService(api: api),
+    webPush: WebPushService(api: api),
+    notificationMethod: ValueNotifier<NotificationMethod>(
+      NotificationMethod.polling,
+    ),
+    mapApp: ValueNotifier<MapApp>(MapApp.ask),
+    appBaseUrl: api.baseUrl,
+    apiBaseUrl: api.baseUrl,
+    child: child,
   );
 }
 
