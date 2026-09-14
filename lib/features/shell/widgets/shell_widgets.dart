@@ -26,6 +26,7 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/mod-anfragen')) return 'MOD-ANFRAGEN';
   if (location.startsWith('/forum')) return 'FORUM';
+  if (location.startsWith('/fotos')) return 'FOTOS';
   if (location.startsWith('/chat')) return 'CHAT';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
   if (location.startsWith('/abos')) return 'ABOS';
@@ -47,6 +48,7 @@ ShellNavCategory shellCategoryForLocation(String location) {
   }
   if (location.startsWith('/kontakte') ||
       location.startsWith('/forum') ||
+      location.startsWith('/fotos') ||
       location.startsWith('/rezepte')) {
     return ShellNavCategory.gemeinschaft;
   }
@@ -107,11 +109,14 @@ class ShellCategorySheet extends StatelessWidget {
 
               // For nested routes (e.g. /reisen/wetter vs /reisen), only the
               // longest matching route should be considered active.
-              final dominatedByLonger = item.route != null &&
-                  items.any((other) =>
-                      other.route != null &&
-                      other.route!.length > item.route!.length &&
-                      currentLocation.startsWith(other.route!));
+              final dominatedByLonger =
+                  item.route != null &&
+                  items.any(
+                    (other) =>
+                        other.route != null &&
+                        other.route!.length > item.route!.length &&
+                        currentLocation.startsWith(other.route!),
+                  );
               final effectiveActive = isActive && !dominatedByLonger;
 
               return Opacity(
@@ -172,8 +177,7 @@ class ShellNavContent extends StatelessWidget {
     if (currentLocation[route.length] != '/') return false;
     // /reisen/wetter is independent from /reisen — exclude child routes
     // that are top-level screens on their own.
-    if (route == '/reisen' &&
-        currentLocation.startsWith('/reisen/wetter')) {
+    if (route == '/reisen' && currentLocation.startsWith('/reisen/wetter')) {
       return false;
     }
     return true;
@@ -265,6 +269,13 @@ class ShellNavContent extends StatelessWidget {
               label: 'Rezepte',
               active: _isActive('/rezepte'),
               onTap: () => onNavigate('/rezepte'),
+            ),
+            _tile(
+              context,
+              icon: Icons.photo_library_rounded,
+              label: 'Fotos',
+              active: _isActive('/fotos'),
+              onTap: () => onNavigate('/fotos'),
             ),
             _tile(
               context,
@@ -633,7 +644,11 @@ class ShellMobileBottomNav extends StatelessWidget {
               Icons.restaurant_rounded,
               '/rezepte',
             ),
-            const ShellSheetItem('Fotos', Icons.photo_library_rounded, null),
+            const ShellSheetItem(
+              'Fotos',
+              Icons.photo_library_rounded,
+              '/fotos',
+            ),
             const ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
           ],
         );

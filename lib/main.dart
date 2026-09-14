@@ -33,6 +33,7 @@ import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
+import 'features/photos/services/photos_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
 import 'features/settings/models/notification_preference.dart';
@@ -119,6 +120,7 @@ Future<void> _bootstrap() async {
   final chat = ChatService(api: api, auth: auth);
   final locationSharing = LocationSharingService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
+  final photos = PhotosService(api: api, auth: auth);
   final stories = StoriesService(api: api, auth: auth);
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
@@ -234,6 +236,7 @@ Future<void> _bootstrap() async {
       locationSharing: locationSharing,
       recipes: recipes,
       stories: stories,
+      photos: photos,
       moderation: moderation,
       subscription: subscription,
       weather: weather,

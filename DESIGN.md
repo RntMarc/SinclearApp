@@ -89,6 +89,7 @@ Sub-Seiten gehören immer zur Kategorie ihrer übergeordneten Seite:
 - `/einstellungen/*` → System
 - `/feedback/*` → System
 - `/forum/*` → Gemeinschaft
+- `/fotos` → Gemeinschaft
 - `/kontakte/*` → Gemeinschaft
 - `/entdecken/*` → Unterwegs
 - `/reisen/*` → Unterwegs
@@ -362,3 +363,22 @@ Design-Tokens bekommt.
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste
 (Screens sortiert nach mobiler Menüposition, mit allen Widgets) hinterlegt.
+
+### Feature-Adapter: Fotos
+
+Die Seite **Fotos** (`lib/features/photos/`, Route `/fotos`) zeigt den
+Unsplash-Foto-Feed im Masonry-Grid. Sie nutzt ausschließlich den Katalog
+(`DesignSurface`, `DesignText`, `DesignButton`, `PressScale`, `DesignTheme`)
+und hält nur zwei feature-spezifische Adapter:
+
+- **`PhotoTile`** (`widgets/photo_tile.dart`) — Masonry-Kachel mit
+  `cached_network_image` (bereits Projekt-Dependency) und dezenter
+  Fotograf-Attribution unten.
+- **`PhotoViewer`** (`widgets/photo_viewer.dart`) — schwarz hinterlegter
+  Vollbild-Viewer (analog zum Story-Viewer) mit Wisch-Navigation,
+  Pinch-Zoom und vollständiger Attribution (Autor + Unsplash-Link).
+
+Das Masonry-Layout kommt ohne zusätzliche Dependency aus: die reine
+Hilfsfunktion `distributeIntoColumns` (`utils/masonry.dart`) verteilt die
+Kacheln greedy auf 2/3/4 Spalten (mobil/Tablet/Desktop).
+
