@@ -50,6 +50,8 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
   Object? _error;
   bool _initialized = false;
   int _lastCount = 0;
+  String? _lastSelectedLocationId;
+  WidgetEmptyState? _lastEmptyState;
   int _refreshEpoch = 0;
   late final AnimationController _pulseController;
   late final Animation<double> _pulse;
@@ -83,6 +85,8 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
     if (!_initialized) {
       _initialized = true;
       _lastCount = _config.count;
+      _lastSelectedLocationId = _config.selectedLocationId;
+      _lastEmptyState = _config.emptyState;
       _load();
     }
   }
@@ -90,9 +94,25 @@ class _DashboardWidgetViewState extends State<DashboardWidgetView>
   @override
   void didUpdateWidget(covariant DashboardWidgetView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final count = _config.count;
-    if (count != _lastCount) {
-      _lastCount = count;
+    final config = _config;
+    bool shouldRefresh = false;
+
+    if (config.count != _lastCount) {
+      _lastCount = config.count;
+      shouldRefresh = true;
+    }
+
+    if (config.selectedLocationId != _lastSelectedLocationId) {
+      _lastSelectedLocationId = config.selectedLocationId;
+      shouldRefresh = true;
+    }
+
+    if (config.emptyState != _lastEmptyState) {
+      _lastEmptyState = config.emptyState;
+      shouldRefresh = true;
+    }
+
+    if (shouldRefresh) {
       refresh();
     }
   }
