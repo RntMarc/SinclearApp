@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
@@ -98,6 +99,8 @@ class _NotificationSetupScreenState extends State<NotificationSetupScreen> {
   Future<void> _commit(AppScope scope, NotificationMethod method) async {
     scope.notificationMethod.value = method;
     await NotificationPreference.save(method);
+    await (await SharedPreferences.getInstance())
+        .setBool('notification_setup_completed', true);
     if (!mounted) return;
     final target = scope.auth.onboardingCompleted ? '/home' : '/onboarding';
     context.go(target);

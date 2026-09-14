@@ -153,6 +153,15 @@ FCM als „Bald verfügbar" sichtbar (nicht wählbar), inkl. Info-Button.
   `unifiedPush.unregister`).
 - [x] `app_scope.dart`/`app.dart`: Koordinator + Foreground-Polling-Service in
   `AppScope` bereitstellen (Konstruktor-Injektion).
+- [x] **Persistenter `notification_setup_completed`-Flag** (SharedPreferences):
+  In `PollingBackgroundStore` als `notificationSetupCompleted`/`setNotificationSetupCompleted`.
+  Nach erfolgreichem Setup (`_commit`) auf `true` setzen; beim Logout via
+  `store.reset()` mit löschen. In `main.dart` Bootstrap: Flag prüfen;
+  wenn Android + eingeloggt + `false` → `initialLocation` auf
+  `/benachrichtigungen/einrichten` setzen. So sieht jeder Android-Nutzer
+  nach einem Update (der zuvor kein Setup hatte) einmal den Setup-Screen,
+  selbst ohne frischen Login. Router-Redirect für Deep-Links auf
+  Nicht-Android-Plattformen bereits in Schritt G ergänzt.
 
 ### I. Tests & Verifikation
 - [x] Unit-Test `test/notification_method_coordinator_test.dart`: Polling ohne
@@ -171,7 +180,10 @@ FCM als „Bald verfügbar" sichtbar (nicht wählbar), inkl. Info-Button.
   Zusätzlich `flutter build apk --debug` erfolgreich (Manifest/Plugins/Gradle).
 - [ ] Manuell (Gerät): Login-Flow → Setup-Screen; UP ohne Distributor wird
   abgelehnt; Polling zeigt FG-Benachrichtigung; Dismiss → workmanager-Fallback;
-  Akku-Verhalten. **Kein** Auto-Deploy (deploy.py-Regel).
+  Akku-Verhalten; **Update-Test**: Bestehendes APK (ohne Setup) updaten →
+  Setup-Screen erscheint beim nächsten Start; Flag `notification_setup_completed`
+  in SharedPreferences prüfen (true nach Setup, gelöscht nach Logout).
+  **Kein** Auto-Deploy (deploy.py-Regel).
   → Erfordert ein physisches Gerät; durch den Admin zu prüfen (nicht vom Agent
   automatisiert ausgeführt, kein Auto-Deploy).
 

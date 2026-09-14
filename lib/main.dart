@@ -222,8 +222,24 @@ Future<void> _bootstrap() async {
 
   // Ein Cold-Start-Tap hat die Ziel-Route vorgemerkt: Sie wird direkt die
   // erste Route des Routers (redirect-gesichert über auth/onboarding).
-  final router = createRouter(auth, initialLocation: _pendingNotificationRoute);
+  var effectiveInitialLocation = _pendingNotificationRoute;
   _pendingNotificationRoute = null;
+
+  // Auf Android: Wenn das Benachrichtigungs-Setup noch nicht ausgeführt wurde,
+  // den Setup-Screen als erste Route setzen – auch nach einem Update, bei dem
+  // der Nutzer bereits eingeloggt war.
+  if (effectiveInitialLocation == null &&
+      !kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.android &&
+      auth.isLoggedIn &&
+      !(prefs.getBool('notification_setup_completed') ?? false)) {
+    effectiveInitialLocation = '/benachrichtigungen/einrichten';
+  }
+
+  final router = createRouter(
+    auth,
+    initialLocation: effectiveInitialLocation,
+  );
   _router = router;
 
   if (!kIsWeb) {
