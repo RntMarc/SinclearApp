@@ -404,6 +404,7 @@ class _WidgetSettingsSheetState extends State<_WidgetSettingsSheet> {
   String? _selectedLocationId;
   List<_WeatherLocationOption> _weatherLocations = [];
   bool _loadingLocations = false;
+  bool _locationsLoaded = false;
 
   bool get _isWeather => widget.config.type == DashboardWidgetType.weather;
 
@@ -411,7 +412,16 @@ class _WidgetSettingsSheetState extends State<_WidgetSettingsSheet> {
   void initState() {
     super.initState();
     _selectedLocationId = widget.config.selectedLocationId;
-    if (_isWeather) {
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Orte erst hier laden: AppScope.of(context) ruft
+    // dependOnInheritedWidgetOfExactType auf, was in initState eine
+    // Assertion wirft und im catch verschluckt würde.
+    if (_isWeather && !_locationsLoaded) {
+      _locationsLoaded = true;
       _loadWeatherLocations();
     }
   }
