@@ -15,6 +15,7 @@ class DesignFab extends StatelessWidget {
     required this.onPressed,
     this.tooltip,
     this.size = DesignFabSize.regular,
+    this.loading = false,
   });
 
   /// Icon shown inside the button.
@@ -29,25 +30,41 @@ class DesignFab extends StatelessWidget {
   /// Size variant; use [DesignFabSize.small] for stacked secondary actions.
   final DesignFabSize size;
 
+  /// Replaces the icon with a spinner and blocks taps while an action runs.
+  final bool loading;
+
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final isSmall = size == DesignFabSize.small;
+    final dimension = isSmall ? 40.0 : 56.0;
+    final iconSize = isSmall ? 20.0 : 28.0;
     return Material(
       type: MaterialType.transparency,
       child: Tooltip(
         message: tooltip ?? '',
         child: PressScale(
-          onTap: onPressed,
+          onTap: loading ? null : onPressed,
           child: Container(
-            width: isSmall ? 40 : 56,
-            height: isSmall ? 40 : 56,
+            width: dimension,
+            height: dimension,
             decoration: BoxDecoration(
               color: tokens.primary,
               shape: BoxShape.circle,
               boxShadow: tokens.glowShadow,
             ),
-            child: Icon(icon, color: tokens.onPrimary, size: isSmall ? 20 : 28),
+            child: loading
+                ? Center(
+                    child: SizedBox(
+                      width: iconSize,
+                      height: iconSize,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: tokens.onPrimary,
+                      ),
+                    ),
+                  )
+                : Icon(icon, color: tokens.onPrimary, size: iconSize),
           ),
         ),
       ),

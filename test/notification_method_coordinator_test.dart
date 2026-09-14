@@ -43,10 +43,12 @@ class _FakeUnifiedPush extends UnifiedPushService {
     ApiClient api, {
     this.distributor,
     this.distributors = const [],
+    this.selectFails = false,
   }) : super(api: api);
 
   final String? distributor;
   final List<String> distributors;
+  final bool selectFails;
   bool registered = false;
 
   @override
@@ -63,6 +65,11 @@ class _FakeUnifiedPush extends UnifiedPushService {
 
   @override
   Future<void> register() async => registered = true;
+
+  @override
+  Future<void> selectDistributor(String distributor) async {
+    if (selectFails) throw Exception('select failed');
+  }
 }
 
 void main() {
@@ -72,6 +79,8 @@ void main() {
     bool pollingStarts = true,
     String? distributor,
     List<String> distributors = const [],
+    bool permissionGranted = true,
+    bool selectFails = false,
   }) {
     final api = ApiClient(baseUrl: 'http://test');
     return NotificationMethodCoordinator(
@@ -79,10 +88,12 @@ void main() {
         api,
         distributor: distributor,
         distributors: distributors,
+        selectFails: selectFails,
       ),
       notification: _FakeNotificationService(api),
       foregroundPolling: _FakeForegroundPolling(startResult: pollingStarts),
       getToken: () async => 'token',
+      requestPermission: () async => permissionGranted,
     );
   }
 
@@ -110,10 +121,23 @@ void main() {
     expect(outcome, NotificationMethodOutcome.needsDistributor);
   });
 
+  test('UnifiedPush ohne Berechtigung → permissionDenied', () async {
+    final outcome = await build(
+      distributor: 'ntfy',
+      permissionGranted: false,
+    ).apply(NotificationMethod.unifiedPush);
+    expect(outcome, NotificationMethodOutcome.permissionDenied);
+  });
+
   test('UnifiedPush mit eingerichtetem Distributor → applied', () async {
     final outcome = await build(
       distributor: 'ntfy',
     ).apply(NotificationMethod.unifiedPush);
     expect(outcome, NotificationMethodOutcome.applied);
+  });
+
+  test('selectDistributor meldet Fehler als false', () async {
+    final coordinator = build(distributor: 'ntfy', selectFails: true);
+    expect(await coordinator.selectDistributor('ntfy'), isFalse);
   });
 }

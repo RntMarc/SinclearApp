@@ -376,7 +376,12 @@ class _NotificationSettingsScreenState
             distributors: coordinator.pendingDistributors,
           );
           if (selected == null || !mounted) return;
-          await coordinator.selectDistributor(selected);
+          if (!await coordinator.selectDistributor(selected)) {
+            if (mounted) {
+              _showSnack('UnifiedPush konnte nicht eingerichtet werden');
+            }
+            return;
+          }
           if (!mounted) return;
           await _commitMethod(scope, method);
         case NotificationMethodOutcome.noDistributor:

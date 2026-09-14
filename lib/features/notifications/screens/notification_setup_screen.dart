@@ -10,6 +10,7 @@ import '../../../design/widgets/composite/design_app_bar.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_card.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../settings/models/notification_preference.dart';
 import '../services/notification_method_coordinator.dart';
 import '../widgets/notification_method_selector.dart';
@@ -17,10 +18,11 @@ import 'push_setup_screens.dart';
 
 /// Verpflichtendes Benachrichtigungs-Setup direkt nach dem Login (Android).
 ///
-/// Der Nutzer wählt eine Methode; die Auswahl wird sofort geprüft und
-/// eingerichtet. Schlägt die Prüfung fehl (kein Distributor, fehlende
-/// Berechtigung), wird die Option nicht übernommen und der Nutzer muss eine
-/// andere wählen. Ohne Auswahl geht es nicht weiter.
+/// Der Nutzer markiert eine Methode; erst ein Tipp auf den Weiter-FAB richtet
+/// sie ein. Schlägt die Prüfung fehl (kein Distributor, fehlende Berechtigung),
+/// bleibt der Screen offen, das Ladesymbol weicht wieder dem Pfeil und der
+/// Nutzer kann eine andere Option wählen. Ohne erfolgreiches Setup geht es
+/// nicht weiter.
 class NotificationSetupScreen extends StatefulWidget {
   const NotificationSetupScreen({super.key});
 
@@ -30,52 +32,72 @@ class NotificationSetupScreen extends StatefulWidget {
 }
 
 class _NotificationSetupScreenState extends State<NotificationSetupScreen> {
+  NotificationMethod? _selected;
   bool _working = false;
+  bool _needsPermission = false;
   String? _error;
 
-  Future<void> _select(NotificationMethod method) async {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _selected ??= AppScope.of(context).notificationMethod.value;
+  }
+
+  /// Markiert nur die Auswahl — eingerichtet wird erst über [_submit].
+  void _select(NotificationMethod method) {
+    if (_working) return;
+    setState(() => _selected = method);
+  }
+
+  Future<void> _submit() async {
     if (_working) return;
     final scope = AppScope.of(context);
+    final method = _selected ?? NotificationPreference.defaultMethod();
     setState(() {
       _working = true;
       _error = null;
+      _needsPermission = false;
     });
     try {
       final coordinator = scope.notificationCoordinator;
-      final outcome = await coordinator.apply(
+      var outcome = await coordinator.apply(
         method,
         previous: scope.notificationMethod.value,
       );
+
+      if (outcome == NotificationMethodOutcome.needsDistributor) {
+        if (!mounted) return;
+        final distributor = await showDistributorPickerSheet(
+          context: context,
+          distributors: coordinator.pendingDistributors,
+        );
+        if (distributor == null) return;
+        if (!await coordinator.selectDistributor(distributor)) {
+          if (mounted) {
+            setState(() {
+              _error =
+                  'UnifiedPush konnte nicht eingerichtet werden. Bitte wähle '
+                  'eine andere Option.';
+            });
+          }
+          return;
+        }
+        outcome = NotificationMethodOutcome.applied;
+      }
       if (!mounted) return;
 
       switch (outcome) {
         case NotificationMethodOutcome.applied:
           await _commit(scope, method);
-        case NotificationMethodOutcome.needsDistributor:
-          final selected = await showDistributorPickerSheet(
-            context: context,
-            distributors: coordinator.pendingDistributors,
-          );
-          if (selected == null || !mounted) return;
-          await coordinator.selectDistributor(selected);
-          if (!mounted) return;
-          await _commit(scope, method);
-        case NotificationMethodOutcome.noDistributor:
-          await Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const NoDistributorScreen()),
-          );
-          if (!mounted) return;
-          setState(() {
-            _error =
-                'Kein UnifiedPush-Distributor gefunden. Bitte wähle eine '
-                'andere Option.';
-          });
         case NotificationMethodOutcome.permissionDenied:
+          setState(() => _needsPermission = true);
+        case NotificationMethodOutcome.noDistributor:
           setState(() {
             _error =
-                'Benachrichtigungen sind nicht erlaubt. Bitte erlaube sie in '
-                'den Systemeinstellungen oder wähle eine andere Option.';
+                'Kein UnifiedPush-Distributor gefunden. Installiere einen '
+                'Distributor oder wähle eine andere Option.';
           });
+        case NotificationMethodOutcome.needsDistributor:
         case NotificationMethodOutcome.unavailable:
           break;
       }
@@ -99,8 +121,10 @@ class _NotificationSetupScreenState extends State<NotificationSetupScreen> {
   Future<void> _commit(AppScope scope, NotificationMethod method) async {
     scope.notificationMethod.value = method;
     await NotificationPreference.save(method);
-    await (await SharedPreferences.getInstance())
-        .setBool('notification_setup_completed', true);
+    await (await SharedPreferences.getInstance()).setBool(
+      'notification_setup_completed',
+      true,
+    );
     if (!mounted) return;
     final target = scope.auth.onboardingCompleted ? '/home' : '/onboarding';
     context.go(target);
@@ -114,6 +138,12 @@ class _NotificationSetupScreenState extends State<NotificationSetupScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: const DesignAppBar(title: 'Benachrichtigungen einrichten'),
+        floatingActionButton: DesignFab(
+          icon: Icons.arrow_forward_rounded,
+          tooltip: 'Einrichtung abschließen',
+          loading: _working,
+          onPressed: _submit,
+        ),
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -138,41 +168,76 @@ class _NotificationSetupScreenState extends State<NotificationSetupScreen> {
                     ),
                     SizedBox(height: tokens.spaceXs),
                     DesignText(
-                      'Wähle eine Option. Die Einrichtung prüft automatisch, '
-                      'ob sie auf deinem Gerät funktioniert. Über das '
-                      'Info-Symbol erfährst du Vor- und Nachteile.',
+                      'Wähle eine Option und tippe dann auf den Pfeil unten '
+                      'rechts. Die Einrichtung prüft automatisch, ob sie auf '
+                      'deinem Gerät funktioniert. Über das Info-Symbol '
+                      'erfährst du Vor- und Nachteile.',
                       style: DesignTextStyle.body,
                       color: tokens.textLow,
                     ),
                     SizedBox(height: tokens.spaceLg),
                     NotificationMethodSelector(
-                      selected: AppScope.of(context).notificationMethod.value,
-                      saving: _working,
+                      selected:
+                          _selected ?? NotificationPreference.defaultMethod(),
                       onSelect: _select,
                     ),
-                    if (_error != null) ...[
+                    if (_needsPermission) ...[
                       SizedBox(height: tokens.spaceMd),
-                      DesignCard(
-                        child: DesignText(
-                          _error!,
-                          style: DesignTextStyle.body,
-                          color: tokens.danger,
-                        ),
+                      _InfoBox(
+                        icon: Icons.notifications_off_rounded,
+                        color: tokens.warning,
+                        text:
+                            'Benachrichtigungen sind nicht erlaubt. Öffne die '
+                            'Einstellungen deines Smartphones (Apps → Beyond → '
+                            'Benachrichtigungen), erlaube sie und tippe danach '
+                            'erneut auf Weiter.',
                       ),
                     ],
-                    SizedBox(height: tokens.spaceMd),
-                    DesignText(
-                      'Ohne Auswahl kannst du nicht fortfahren.',
-                      style: DesignTextStyle.label,
-                      color: tokens.textLow,
-                      textAlign: TextAlign.center,
-                    ),
+                    if (_error != null) ...[
+                      SizedBox(height: tokens.spaceMd),
+                      _InfoBox(
+                        icon: Icons.error_outline_rounded,
+                        color: tokens.danger,
+                        text: _error!,
+                      ),
+                    ],
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Hinweis-Box im Setup: Icon + erklärender Text, token-farbig.
+class _InfoBox extends StatelessWidget {
+  const _InfoBox({required this.icon, required this.color, required this.text});
+
+  final IconData icon;
+  final Color color;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return DesignCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: DesignText(
+              text,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+          ),
+        ],
       ),
     );
   }
