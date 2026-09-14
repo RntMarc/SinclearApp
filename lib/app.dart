@@ -15,6 +15,7 @@ import 'features/forum/services/forum_service.dart';
 import 'features/chat/services/chat_service.dart';
 import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
+import 'features/photos/services/photos_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
 import 'features/settings/services/dav_sync_service.dart';
@@ -48,6 +49,7 @@ class SinclearApp extends StatelessWidget {
   final ChatService chat;
   final LocationSharingService locationSharing;
   final RecipesService recipes;
+  final PhotosService photos;
   final ModerationService moderation;
   final SubscriptionService subscription;
   final StoriesService stories;
@@ -123,6 +125,7 @@ class SinclearApp extends StatelessWidget {
     required this.chat,
     required this.locationSharing,
     required this.recipes,
+    required this.photos,
     required this.moderation,
     required this.subscription,
     required this.stories,
@@ -175,6 +178,7 @@ class SinclearApp extends StatelessWidget {
       chat: chat,
       locationSharing: locationSharing,
       recipes: recipes,
+      photos: photos,
       moderation: moderation,
       subscription: subscription,
       stories: stories,

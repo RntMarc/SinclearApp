@@ -13,6 +13,7 @@ import '../../features/notifications/services/notification_content_resolver.dart
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/notifications/services/unified_push_service.dart';
 import '../../features/notifications/services/web_push_service.dart';
+import '../../features/photos/services/photos_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
 import '../../features/settings/models/notification_preference.dart';
 import '../../features/settings/models/map_app_preference.dart';
@@ -41,6 +42,7 @@ class AppScope extends InheritedWidget {
   final ChatService chat;
   final LocationSharingService locationSharing;
   final RecipesService recipes;
+  final PhotosService photos;
   final ModerationService moderation;
   final SubscriptionService subscription;
   final StoriesService stories;
@@ -83,6 +85,7 @@ class AppScope extends InheritedWidget {
     required this.chat,
     required this.locationSharing,
     required this.recipes,
+    required this.photos,
     required this.moderation,
     required this.subscription,
     required this.stories,

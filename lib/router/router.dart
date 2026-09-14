@@ -26,6 +26,7 @@ import '../features/travel/screens/trip_detail_screen.dart';
 import '../features/travel/screens/pt_journey_detail_screen.dart';
 import '../features/weather/screens/weather_screen.dart';
 import '../features/user/screens/contacts_screen.dart';
+import '../features/photos/screens/photos_screen.dart';
 import '../features/user/screens/user_detail_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/settings/screens/notification_settings_screen.dart';
@@ -77,6 +78,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
           location.startsWith('/feedback') ||
           location.startsWith('/mod-anfragen') ||
           location.startsWith('/forum') ||
+          location.startsWith('/fotos') ||
           (location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
           location.startsWith('/abos') ||
           location.startsWith('/stories') ||
@@ -205,6 +207,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                     DetailScreen(id: state.pathParameters['id']!),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/fotos',
+            builder: (context, state) => const PhotosScreen(),
           ),
           GoRoute(
             path: '/kontakte',
