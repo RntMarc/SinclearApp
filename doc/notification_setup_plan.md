@@ -163,27 +163,50 @@ FCM als „Bald verfügbar" sichtbar (nicht wählbar), inkl. Info-Button.
   selbst ohne frischen Login. Router-Redirect für Deep-Links auf
   Nicht-Android-Plattformen bereits in Schritt G ergänzt.
 
+### J. Setup-Screen: Auswahl + Weiter-FAB (statt Sofort-Setup)
+- [x] Auswahl im `NotificationMethodSelector` markiert nur (`_select` →
+  lokaler State); eingerichtet wird erst über den `DesignFab`
+  (`Icons.arrow_forward_rounded`, unten rechts) via `_submit`.
+- [x] Während des Setups zeigt der FAB `loading` (Spinner, Taps gesperrt);
+  erst nach erfolgreichem `applied` wird `_commit` ausgeführt und der Screen
+  verlassen.
+- [x] Bei `permissionDenied`/`noDistributor`/Fehler bleibt der Screen offen,
+  der FAB wechselt zurück zum Pfeil und es erscheint eine `_InfoBox`
+  (Berechtigung → Hinweis auf die Smartphone-Einstellungen).
+- [x] `DesignFab` erhält einen `loading`-Zustand (Spinner + gesperrte Taps),
+  dokumentiert in `DESIGN.md`.
+- [x] `NotificationMethodCoordinator` erzwingt die Benachrichtigungs-
+  Berechtigung auch für UnifiedPush (injizierbar via `requestPermission`);
+  die `requestPermission`-Prüfung ersetzt den bisher ignorierten Aufruf.
+
 ### I. Tests & Verifikation
 - [x] Unit-Test `test/notification_method_coordinator_test.dart`: Polling ohne
   Berechtigung → `permissionDenied`; UP ohne Distributor → `noDistributor`;
-  erfolgreiche Pfade → `applied`.
+  UP ohne Berechtigung → `permissionDenied`; erfolgreiche Pfade → `applied`.
 - [x] Unit-Test `test/polling_background_store_test.dart`: Flag/Cursor
   read/write/reset.
 - [x] Unit-Test `test/background_poller_test.dart`: `since`-Cursor-Advance +
   Dedupe (Fake `ApiClient`/`TokenStorage`).
 - [x] Widget-Test `test/notification_method_selector_test.dart`: Rendering +
   Info-Button öffnet Sheet.
+- [x] Widget-Test `test/notification_setup_screen_test.dart`: Auswahl richtet
+  nicht sofort ein (erst der FAB); `permissionDenied` zeigt Infobox und bleibt
+  offen; `noDistributor` zeigt Fehler und bleibt offen.
+- [x] Widget-Test `test/design_fab_test.dart`: `DesignFab.loading` zeigt Spinner
+  statt Icon und sperrt Taps.
 - [x] `dart format`, `dart analyze` (bzw. `analyze_files`), `flutter test`.
   → `flutter analyze`: keine Issues; neue Tests grün; die gesamte Suite läuft
   bis auf einen **vorbestehenden**, unabhängigen Fehler in
   `test/guest_public_endpoints_test.dart` (auch auf unverändertem Stand rot).
   Zusätzlich `flutter build apk --debug` erfolgreich (Manifest/Plugins/Gradle).
-- [ ] Manuell (Gerät): Login-Flow → Setup-Screen; UP ohne Distributor wird
-  abgelehnt; Polling zeigt FG-Benachrichtigung; Dismiss → workmanager-Fallback;
-  Akku-Verhalten; **Update-Test**: Bestehendes APK (ohne Setup) updaten →
-  Setup-Screen erscheint beim nächsten Start; Flag `notification_setup_completed`
-  in SharedPreferences prüfen (true nach Setup, gelöscht nach Logout).
-  **Kein** Auto-Deploy (deploy.py-Regel).
+- [ ] Manuell (Gerät): Login-Flow → Setup-Screen; Auswahl markiert nur,
+  Weiter-FAB richtet ein (Spinner im FAB); lehnt der Nutzer die Berechtigung ab
+  bzw. fehlt ein Distributor, bleibt der Screen offen und zeigt die Infobox;
+  UP ohne Distributor wird abgelehnt; Polling zeigt FG-Benachrichtigung;
+  Dismiss → workmanager-Fallback; Akku-Verhalten; **Update-Test**: Bestehendes
+  APK (ohne Setup) updaten → Setup-Screen erscheint beim nächsten Start; Flag
+  `notification_setup_completed` in SharedPreferences prüfen (true nach Setup,
+  gelöscht nach Logout). **Kein** Auto-Deploy (deploy.py-Regel).
   → Erfordert ein physisches Gerät; durch den Admin zu prüfen (nicht vom Agent
   automatisiert ausgeführt, kein Auto-Deploy).
 

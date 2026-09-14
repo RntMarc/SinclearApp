@@ -41,6 +41,10 @@ class NotificationMethodCoordinator {
   /// Wird bei eingehenden UnifiedPush-Nachrichten aufgerufen (Anzeige).
   final void Function(NotificationItem item)? onPushMessage;
 
+  /// Fragt die Benachrichtigungs-Berechtigung des Geräts an. Injizierbar, damit
+  /// Tests die Berechtigung ohne Plugin steuern können.
+  final Future<bool> Function() requestPermission;
+
   List<String> _pendingDistributors = const [];
 
   NotificationMethodCoordinator({
@@ -49,7 +53,9 @@ class NotificationMethodCoordinator {
     required this.foregroundPolling,
     required this.getToken,
     this.onPushMessage,
-  });
+    Future<bool> Function()? requestPermission,
+  }) : requestPermission =
+           requestPermission ?? LocalNotificationHelper.requestPermission;
 
   /// Zuletzt gefundene Distributoren (nach [NotificationMethodOutcome
   /// .needsDistributor]).
@@ -76,7 +82,9 @@ class NotificationMethodCoordinator {
       case NotificationMethod.unifiedPush:
         await foregroundPolling.stop();
         notification.stopPolling();
-        await LocalNotificationHelper.requestPermission();
+        if (!await requestPermission()) {
+          return NotificationMethodOutcome.permissionDenied;
+        }
         unifiedPush.init(
           token: await getToken(),
           onMessage: (item) {
@@ -102,9 +110,13 @@ class NotificationMethodCoordinator {
   }
 
   /// Registriert die App beim gewählten Distributor.
-  Future<void> selectDistributor(String distributor) async {
+  ///
+  /// Liefert `false`, wenn die Registrierung fehlschlägt — dann darf das Setup
+  /// nicht als erfolgreich gelten.
+  Future<bool> selectDistributor(String distributor) async {
     try {
       await unifiedPush.selectDistributor(distributor);
+      return true;
     } catch (e, st) {
       developer.log(
         'Failed to select distributor',
@@ -112,6 +124,7 @@ class NotificationMethodCoordinator {
         stackTrace: st,
         name: 'notification_method',
       );
+      return false;
     }
   }
 }

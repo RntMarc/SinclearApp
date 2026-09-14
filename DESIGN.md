@@ -334,7 +334,9 @@ Design-Tokens bekommt.
   gefüllter Primärfarben-Kreis (56 px, Icon 28 px) mit `glowShadow` und
   `PressScale`-Feedback (Referenz: Explore-Screen). `DesignFabSize.small`
   (40 px, Icon 20 px) für sekundäre Aktionen, die über dem Haupt-FAB gestapelt
-  werden (z.B. Entwürfe über „Neuer Beitrag"/„Neues Rezept").
+  werden (z.B. Entwürfe über „Neuer Beitrag"/„Neues Rezept"). `loading: true`
+  ersetzt das Icon durch einen Spinner und sperrt Taps, solange eine Aktion
+  läuft (z.B. „Weiter" im Notification-Setup).
 - **`DesignSlider`** (`primitives`) – Katalog-Slider mit `label`,
   `valueText`-Readout (deutsch) und gradientfähiger Track. `min`/`max`/
   `onChanged` steuern den Wert; der Thumb ist ein token-typischer Glow-Kreis.
