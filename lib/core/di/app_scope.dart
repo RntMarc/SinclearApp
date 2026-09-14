@@ -10,7 +10,9 @@ import '../../features/chat/services/chat_service.dart';
 import '../../features/location_sharing/services/location_sharing_service.dart';
 import '../../features/moderation/services/moderation_service.dart';
 import '../../features/notifications/services/notification_content_resolver.dart';
+import '../../features/notifications/services/notification_method_coordinator.dart';
 import '../../features/notifications/services/notification_service.dart';
+import '../../features/notifications/services/foreground_polling_service.dart';
 import '../../features/notifications/services/unified_push_service.dart';
 import '../../features/notifications/services/web_push_service.dart';
 import '../../features/photos/services/photos_service.dart';
@@ -63,6 +65,12 @@ class AppScope extends InheritedWidget {
   final UnifiedPushService unifiedPush;
   final WebPushService webPush;
 
+  /// Steuert das Hintergrund-Polling (Foreground-Service + WorkManager).
+  final ForegroundPollingService foregroundPolling;
+
+  /// Einzige Stelle für Auswahl/Prüfung/Setup der Zustell-Methode.
+  final NotificationMethodCoordinator notificationCoordinator;
+
   /// Aktuell gewählte Benachrichtigungs-Methode (lokal persistiert).
   final ValueNotifier<NotificationMethod> notificationMethod;
 
@@ -101,6 +109,8 @@ class AppScope extends InheritedWidget {
     required this.notificationContent,
     required this.unifiedPush,
     required this.webPush,
+    required this.foregroundPolling,
+    required this.notificationCoordinator,
     required this.notificationMethod,
     required this.mapApp,
     this.webUpdate,

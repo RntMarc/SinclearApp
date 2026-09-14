@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
-import '../../../core/notifications/local_notification_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_app_bar.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
@@ -16,8 +15,6 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
-import '../../notifications/screens/push_setup_screens.dart';
-import '../../settings/models/notification_preference.dart';
 
 class VerifyScreen extends StatefulWidget {
   const VerifyScreen({super.key});
@@ -78,21 +75,6 @@ class _VerifyScreenState extends State<VerifyScreen> {
       );
       if (!mounted) return;
 
-      final method = scope.notificationMethod.value;
-      if (kIsWeb) {
-        await _setupPush(token: await auth.getAccessToken());
-      } else if (method == NotificationMethod.polling) {
-        await LocalNotificationHelper.requestPermission();
-        try {
-          scope.notification.startPolling(getToken: auth.getAccessToken);
-        } catch (e) {
-          developer.log('Failed to start polling: $e', name: 'auth.verify');
-        }
-      } else {
-        await _setupPush(token: await auth.getAccessToken());
-      }
-
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -102,8 +84,17 @@ class _VerifyScreenState extends State<VerifyScreen> {
           ),
         ),
       );
-      final target = auth.onboardingCompleted ? '/home' : '/onboarding';
-      context.go(target);
+
+      if (kIsWeb) {
+        // Web: Push (VAPID) direkt einrichten, kein Android-Setup nötig.
+        await _setupWebPush(token: await auth.getAccessToken());
+        if (!mounted) return;
+        context.go(auth.onboardingCompleted ? '/home' : '/onboarding');
+      } else {
+        // Android: verpflichtendes, geprüftes Benachrichtigungs-Setup. Der
+        // Setup-Screen führt danach nach /home bzw. /onboarding.
+        context.go('/benachrichtigungen/einrichten');
+      }
     } on ApiException catch (e) {
       developer.log(
         'Code verification failed: ${e.errorCode}',
@@ -128,39 +119,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
     }
   }
 
-  Future<void> _setupPush({required String token}) async {
-    final scope = AppScope.of(context);
-    if (kIsWeb) {
-      scope.webPush.setup(token: token);
-      return;
-    }
-
-    await LocalNotificationHelper.requestPermission();
-    scope.unifiedPush.init(
-      token: token,
-      onMessage: (item) {
-        scope.notification.registerIncoming(item);
-        unawaited(scope.notificationContent.showLocal(item));
-      },
-    );
-    if (!mounted) return;
-    await scope.unifiedPush.checkAndSetup(
-      context: context,
-      onDistributorsFound: (distributors) async {
-        if (!mounted) return;
-        await showDistributorPickerSheet(
-          context: context,
-          distributors: distributors,
-          onSelect: scope.unifiedPush.selectDistributor,
-        );
-      },
-      onNoDistributor: () async {
-        if (!mounted) return;
-        await Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const NoDistributorScreen()));
-      },
-    );
+  Future<void> _setupWebPush({required String token}) async {
+    if (!kIsWeb) return;
+    AppScope.of(context).webPush.setup(token: token);
   }
 
   void _copyDiscordUrl() {

@@ -12,12 +12,18 @@ class NotificationLifecycleObserver extends StatefulWidget {
   /// [NotificationMethod.polling] wird bei Resume neu gepollt.
   final NotificationMethod Function() getNotificationMethod;
 
+  /// `true`, wenn der Foreground-Service das Hintergrund-Polling übernimmt.
+  /// Dann wird das In-App-Polling beim Pausieren nicht gestoppt, damit der
+  /// Timer auf Geräten, die den Prozess am Leben halten, weiterläuft.
+  final bool Function()? isForegroundPollingActive;
+
   const NotificationLifecycleObserver({
     super.key,
     required this.child,
     required this.notificationService,
     required this.getToken,
     required this.getNotificationMethod,
+    this.isForegroundPollingActive,
   });
 
   @override
@@ -61,7 +67,9 @@ class _NotificationLifecycleObserverState
       case AppLifecycleState.paused:
         if (!_wasPaused) {
           _wasPaused = true;
-          widget.notificationService.stopPolling();
+          if (!(widget.isForegroundPollingActive?.call() ?? false)) {
+            widget.notificationService.stopPolling();
+          }
         }
         break;
       default:

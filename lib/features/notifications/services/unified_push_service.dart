@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:unifiedpush/unifiedpush.dart';
 import '../../../core/network/api_client.dart';
 import '../models/notification_item.dart';
@@ -29,7 +28,10 @@ class UnifiedPushService extends ChangeNotifier {
         _registerEndpoint(endpoint.url);
       },
       onRegistrationFailed: (FailedReason reason, String? instance) {
-        developer.log('UnifiedPush registration failed: $reason', name: 'unifiedpush');
+        developer.log(
+          'UnifiedPush registration failed: $reason',
+          name: 'unifiedpush',
+        );
       },
       onUnregistered: (String instance) {
         if (_savedEndpoint != null) {
@@ -50,26 +52,22 @@ class UnifiedPushService extends ChangeNotifier {
     _initialized = true;
   }
 
-  Future<void> checkAndSetup({
-    required BuildContext context,
-    required Future<void> Function(List<String> distributors)
-    onDistributorsFound,
-    required Future<void> Function() onNoDistributor,
-  }) async {
+  /// Der aktuell eingerichtete Distributor, oder `null`.
+  Future<String?> registeredDistributor() {
+    if (kIsWeb) return Future.value(null);
+    return UnifiedPush.getDistributor();
+  }
+
+  /// Installierte UnifiedPush-Distributoren.
+  Future<List<String>> availableDistributors() {
+    if (kIsWeb) return Future.value(const []);
+    return UnifiedPush.getDistributors();
+  }
+
+  /// Registriert die App beim aktuell eingerichteten Distributor.
+  Future<void> register() async {
     if (kIsWeb) return;
-
-    final distributor = await UnifiedPush.getDistributor();
-    if (distributor != null) {
-      await UnifiedPush.register();
-      return;
-    }
-
-    final distributors = await UnifiedPush.getDistributors();
-    if (distributors.isNotEmpty) {
-      await onDistributorsFound(distributors);
-    } else {
-      await onNoDistributor();
-    }
+    await UnifiedPush.register();
   }
 
   Future<void> selectDistributor(String distributor) async {
@@ -109,7 +107,14 @@ class UnifiedPushService extends ChangeNotifier {
   }
 
   Future<void> unregister() async {
-    await UnifiedPush.unregister();
+    try {
+      await UnifiedPush.unregister();
+    } catch (e) {
+      developer.log(
+        'Failed to unregister from distributor: $e',
+        name: 'unifiedpush',
+      );
+    }
     if (_savedEndpoint != null) {
       await _unregisterEndpoint(_savedEndpoint!);
       _savedEndpoint = null;
