@@ -11,6 +11,7 @@ class PollingBackgroundStore {
   static const _lastSeenKey = 'notification_last_seen';
   static const _foregroundActiveKey = 'polling_foreground_active';
   static const _heartbeatKey = 'polling_foreground_heartbeat';
+  static const _setupCompletedKey = 'notification_setup_completed';
 
   /// Zeitpunkt des letzten Heartbeats, ab dem der Foreground-Service als
   /// tot gilt, obwohl das Flag noch gesetzt ist.
@@ -54,11 +55,20 @@ class PollingBackgroundStore {
     return age < foregroundStaleAfter;
   }
 
-  /// Setzt Flag, Heartbeat und Cursor zurück (Logout).
+  /// `true`, wenn das Benachrichtigungs-Setup auf diesem Gerät bereits
+  /// einmal erfolgreich ausgeführt wurde (nur Android relevant).
+  Future<bool> notificationSetupCompleted() async =>
+      (await _prefs).getBool(_setupCompletedKey) ?? false;
+
+  Future<void> setNotificationSetupCompleted(bool value) async =>
+      (await _prefs).setBool(_setupCompletedKey, value);
+
+  /// Setzt Flag, Heartbeat, Cursor und Setup-Status zurück (Logout).
   Future<void> reset() async {
     final prefs = await _prefs;
     await prefs.remove(_lastSeenKey);
     await prefs.remove(_foregroundActiveKey);
     await prefs.remove(_heartbeatKey);
+    await prefs.remove(_setupCompletedKey);
   }
 }
