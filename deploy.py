@@ -20,11 +20,13 @@ Versionierte Verzeichnisstruktur:
       └── ...
 
 Usage:
-  python deploy.py            # Vollautomatischer Durchlauf
+  python deploy.py            # Vollautomatischer Durchlauf (fragt Ziel)
   python deploy.py --dry-run  # Nur Simulation, keine Änderungen
 
 Umgebungsvariablen in .env (siehe .env.example):
-  FTP_HOST, FTP_USER, FTP_PASS, FTP_PROJECT_ROOT_PATH
+  API_BASE_URL, PREVIEW_API_BASE_URL,
+  FTP_HOST, FTP_USER, FTP_PASS,
+  FTP_PROJECT_ROOT_PATH, PREVIEW_FTP_PROJECT_ROOT_PATH
 """
 
 import ftplib
@@ -136,6 +138,24 @@ def load_env():
     return env
 
 
+def prompt_environment():
+    """Fragt, ob ein RELEASE- oder PREVIEW-Deploy durchgeführt wird."""
+    print(f'  {B}Deploy-Ziel:{R}')
+    print(f'    {B}[1]{R} RELEASE  – Produktiv-Instanz')
+    print(f'    {B}[2]{R} PREVIEW  – Preview-Instanz (experimentell)')
+    while True:
+        try:
+            answer = input(f'  Auswahl [{B}1{R}/2]: ').strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            sys.exit(130)
+        if answer in ('', '1', 'r', 'release'):
+            return 'release'
+        if answer in ('2', 'p', 'preview'):
+            return 'preview'
+        print(f'  {Y}⚠  Bitte 1 (RELEASE) oder 2 (PREVIEW) eingeben.{R}')
+
+
 def parse_version():
     """Extrahiert Version aus pubspec.yaml und den versionCode.
 
@@ -213,7 +233,7 @@ def prompt_changelog(old_data):
 #  FTP-HELFER
 # ══════════════════════════════════════════════════════════════════════════
 
-def ftp_connect(env):
+def ftp_connect(env, remote_root):
     """Verbindet per FTPS (TLS) zum Server und wechselt ins Projektverzeichnis."""
     if DRY_RUN:
         return None
@@ -222,7 +242,7 @@ def ftp_connect(env):
     ftp.auth()
     ftp.login(env['FTP_USER'], env['FTP_PASS'])
     ftp.prot_p()
-    root = env['FTP_PROJECT_ROOT_PATH'].rstrip('/')
+    root = remote_root.rstrip('/')
     if root:
         try:
             ftp.cwd(root)
@@ -594,12 +614,22 @@ def main():
     # ── 1. Konfiguration lesen ─────────────────────────────────────────
     step('📋  Konfiguration')
     env = load_env()
+    is_preview = prompt_environment() == 'preview'
+    environment_label = 'PREVIEW' if is_preview else 'RELEASE'
+    remote_root = (
+        env['PREVIEW_FTP_PROJECT_ROOT_PATH'] if is_preview
+        else env['FTP_PROJECT_ROOT_PATH']
+    ).rstrip('/') or '.'
+    api_base_url = (
+        env['PREVIEW_API_BASE_URL'] if is_preview else env['API_BASE_URL']
+    )
     version, version_code = parse_version()
     apk_name = "app-release.apk"
-    remote_root = env['FTP_PROJECT_ROOT_PATH'].rstrip('/') or '.'
 
+    print(f'    Umgebung:      {environment_label}')
     print(f'    Version:       {version}')
     print(f'    VersionCode:   {version_code}')
+    print(f'    API:           {api_base_url}')
     print(f'    APK-Datei:     {apk_name}')
     print(f'    FTP-Server:    {env["FTP_HOST"]}')
     print(f'    Remote-Pfad:   {remote_root}')
@@ -607,7 +637,7 @@ def main():
     # ── 2. Alte Version vom Server holen ──────────────────────────────
     step('🌐  Alte Version vom Server')
     try:
-        ftp_temp = ftp_connect(env)
+        ftp_temp = ftp_connect(env, remote_root)
         old_data = ftp_fetch_json(ftp_temp, 'api/app_version.json')
         if ftp_temp:
             ftp_temp.quit()
@@ -626,11 +656,17 @@ def main():
     changelog = prompt_changelog(old_data)
 
     # ── 4. Build ──────────────────────────────────────────────────────
+    # Im Preview-Deploy wird die Preview-API zur Build-Zeit eingebacken,
+    # damit Web- und APK-Build ohne Änderung der `.env` auf die Preview-
+    # Instanz zeigen. Der Release-Deploy bleibt unverändert.
     step('🔨  Build')
+    dart_define = (
+        f' --dart-define=API_BASE_URL={api_base_url}' if is_preview else ''
+    )
     run_cmd('flutter clean')
     run_cmd('flutter pub get')
-    run_cmd('flutter build web --release')
-    run_cmd('flutter build apk --release')
+    run_cmd(f'flutter build web --release{dart_define}')
+    run_cmd(f'flutter build apk --release{dart_define}')
 
     if not BUILD_APK.is_file():
         fail(f'APK nicht gefunden: {BUILD_APK}\n'
@@ -677,7 +713,7 @@ def main():
     else:
         print(f'    Verbinde zu {env["FTP_HOST"]} (FTPS/TLS) …')
         try:
-            ftp = ftp_connect(env)
+            ftp = ftp_connect(env, remote_root)
         except Exception as e:
             fail(f'FTPS-Verbindung fehlgeschlagen: {e}\n'
                  f'  Prüfe FTP_HOST, FTP_USER, FTP_PASS in .env\n'
@@ -745,6 +781,9 @@ def main():
     # ── 8. Zusammenfassung ────────────────────────────────────────────
     step(f'✅  Deployment abgeschlossen')
     host = env['FTP_HOST']
+    print(f'    Umgebung:  {C}{environment_label}{R}')
+    print(f'    API:       {C}{api_base_url}{R}')
+    print(f'    Remote:    {C}{remote_root}{R}')
     print(f'    Web:       {C}https://{host}/{R}')
     print(f'    Version:   {C}/{version}/{R}')
     print(f'    APK:       {C}https://{host}/downloads/{apk_name}{R}')

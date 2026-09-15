@@ -40,6 +40,7 @@ import 'features/notifications/services/web_push_service.dart';
 import 'features/photos/services/photos_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
+import 'features/settings/models/api_environment.dart';
 import 'features/settings/models/notification_preference.dart';
 import 'features/settings/models/map_app_preference.dart';
 import 'features/settings/services/dav_token_service.dart';
@@ -97,7 +98,18 @@ Future<void> _bootstrap() async {
   await initializeDateFormatting('de');
   await dotenv.load();
 
-  final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v2';
+  final releaseUrl =
+      dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v2';
+  final previewUrl = dotenv.env['PREVIEW_API_BASE_URL'] ?? releaseUrl;
+  final apiEnvironment = apiEnvironmentSwitchEnabled
+      ? await ApiEnvironmentPreference.load()
+      : ApiEnvironment.release;
+  final baseUrl = resolveApiBaseUrl(
+    selected: apiEnvironment,
+    releaseUrl: releaseUrl,
+    previewUrl: previewUrl,
+    allowSelection: apiEnvironmentSwitchEnabled,
+  );
   final appId = dotenv.env['APP_ID'] ?? 'de.example.beyond';
   final apiUri = Uri.tryParse(baseUrl);
   final appBaseUrl = apiUri != null
