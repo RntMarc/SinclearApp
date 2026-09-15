@@ -22,6 +22,7 @@ import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../../update/update_dialog.dart';
 import '../../user/models/user_models.dart';
+import '../models/api_environment.dart';
 import '../models/notification_preference.dart';
 import '../models/map_app_preference.dart';
 
@@ -38,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _error;
   bool _hasLoaded = false;
   PackageInfo? _packageInfo;
+  ApiEnvironment? _apiEnvironment;
   bool _checkingUpdate = false;
   String? _updateError;
 
@@ -57,10 +59,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await scope.auth.getAccessToken();
       final user = await scope.user.getMe();
       final packageInfo = await PackageInfo.fromPlatform();
+      final apiEnvironment = await ApiEnvironmentPreference.load();
       if (!mounted) return;
       setState(() {
         _user = user;
         _packageInfo = packageInfo;
+        _apiEnvironment = apiEnvironment;
         _loading = false;
         _error = null;
       });
@@ -394,6 +398,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ? '${_packageInfo!.version} (${_packageInfo!.buildNumber})'
                           : 'Wird geladen...',
                     ),
+                    if (apiEnvironmentSwitchEnabled)
+                      DesignListTile(
+                        leading: const Icon(Icons.dns_rounded),
+                        title: 'API-Instanz',
+                        subtitle: _apiEnvironment?.label ?? 'Wird geladen...',
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: _apiEnvironment == null
+                            ? null
+                            : _selectApiEnvironment,
+                      ),
                     if (!kIsWeb && kReleaseMode)
                       DesignListTile(
                         leading: Icon(
@@ -548,6 +562,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       context.go('/');
     }
+  }
+
+  Future<void> _selectApiEnvironment() async {
+    final current = _apiEnvironment ?? ApiEnvironment.release;
+    final selected = await showDesignSheet<ApiEnvironment>(
+      context: context,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const DesignText('API-Instanz', style: DesignTextStyle.title),
+            const SizedBox(height: 8),
+            const DesignText(
+              'Wähle, welche API die App im Debug-Build anspricht. '
+              'Die Änderung wird nach einem Neustart aktiv.',
+              style: DesignTextStyle.body,
+            ),
+            const SizedBox(height: 16),
+            for (final environment in ApiEnvironment.values)
+              DesignListTile(
+                leading: Icon(
+                  current == environment
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                ),
+                title: environment.label,
+                subtitle: environment.description,
+                onTap: () => Navigator.pop(context, environment),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null || selected == current || !mounted) return;
+    await ApiEnvironmentPreference.save(selected);
+    if (!mounted) return;
+    setState(() => _apiEnvironment = selected);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'API-Instanz geändert – bitte App neu starten, damit sie aktiv wird.',
+        ),
+      ),
+    );
   }
 
   Future<void> _checkForUpdateManually() async {
