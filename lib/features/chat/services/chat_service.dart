@@ -9,29 +9,37 @@ import 'package:flutter/widgets.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/chat_models.dart';
+import 'centrifugo_service.dart';
 
 /// Hält den Chat-Zustand: Konversationsliste, Nachrichten je Konversation
-/// und den Sync-Loop über `GET /chat/sync` (Short Polling, adaptiv).
+/// und die Echtzeit-Events aus Centrifugo.
 ///
-/// Polling läuft nur, solange mindestens ein UI-Teilnehmer aktiv ist
-/// ([registerActive]/[unregisterActive], z. B. Chat-Tab oder geöffnete
-/// Konversation). Chat-Liste und offene Konversation gelten dabei gleich als
-/// aktiv und nutzen den schnellen 2-s-Takt; ohne aktiven Teilnehmer stoppt
-/// der Sync komplett (Hintergrund).
+/// Die REST-API bleibt Quelle der Wahrheit und wird zum Laden (Liste,
+/// Verlauf), Senden sowie für Bearbeiten/Löschen/Lesestand genutzt. Alle
+/// laufenden Änderungen kommen über den WebSocket des [CentrifugoService];
+/// es gibt kein Polling mehr.
+///
+/// Die Verbindung wird nur gehalten, solange ein UI-Teilnehmer aktiv ist
+/// ([registerActive]/[unregisterActive]) und die App im Vordergrund läuft.
 class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   ChatService({
     required ApiClient api,
     required AuthService auth,
+    CentrifugoService? centrifugo,
     this.conversationsTtl = const Duration(seconds: 60),
     DateTime Function() clock = DateTime.now,
   }) : _api = api,
        _auth = auth,
+       _centrifugo = centrifugo ?? CentrifugoService(auth: auth),
        _clock = clock {
+    _eventSub = _centrifugo.events.listen(_onCentrifugoEvent);
     WidgetsBinding.instance.addObserver(this);
   }
 
   final ApiClient _api;
   final AuthService _auth;
+  final CentrifugoService _centrifugo;
+  StreamSubscription<CentrifugoEvent>? _eventSub;
 
   /// Mindestabstand zwischen zwei vollen Konversationslisten-Abrufen.
   /// Verhindert, dass jeder Tab-Wechsel die Liste (inkl. Base64-Profilbilder)
@@ -46,17 +54,19 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   /// Zeitpunkt des letzten erfolgreichen [refreshConversations].
   DateTime? _lastConversationsRefresh;
 
-  /// Höchster gesehener Event-seq (Cursor für `after`).
-  int? _lastEventSeq;
-  Timer? _syncTimer;
-  bool _syncInFlight = false;
   int _activeCount = 0;
-  Map<String, List<String>> _typingUsers = {};
+  final Set<String> _watched = {};
+
+  /// Channels, für die aktuell eine Centrifugo-Subscription besteht.
+  final Set<String> _subscribed = {};
+
+  final Map<String, List<String>> _typingUsers = {};
+  final Map<String, Timer> _typingExpiry = {};
   Timer? _typingTimer;
   bool _typingSent = false;
   AppLifecycleState _lifecycle = AppLifecycleState.resumed;
 
-  /// Nur wenn die App im Vordergrund ist (resumed) wird gepollt.
+  /// Nur wenn die App im Vordergrund ist (resumed) wird verbunden.
   bool get _foreground => _lifecycle == AppLifecycleState.resumed;
 
   Future<String> _token() => _auth.getAccessToken();
@@ -71,28 +81,190 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     return list == null ? null : List.unmodifiable(list);
   }
 
-  bool get syncing => _syncInFlight;
+  bool get syncing => false;
 
-  /// Tippzustand des Gegenübers (aus Sync-Poll).
+  /// Tippzustand je Konversation aus den Centrifugo-Events.
   /// Map: conversationId → [userId, …].
   Map<String, List<String>> get typingUsers => _typingUsers;
 
-  /// Chat-UI sichtbar: Startet/erhält den Sync-Loop (ref-counted, damit
+  /// Chat-UI sichtbar: hält die Echtzeitverbindung aktiv (ref-counted, damit
   /// Tab und Konversations-Screen sich nicht gegenseitig stoppen).
   void registerActive() {
     _activeCount++;
-    _restartSyncTimer();
+    _syncRealtime();
   }
 
   void unregisterActive() {
     if (_activeCount > 0) _activeCount--;
-    _restartSyncTimer();
+    _syncRealtime();
+  }
+
+  /// Abonniert einen Channel, solange die Konversation sichtbar ist.
+  void watchConversation(String conversationId) {
+    _watched.add(conversationId);
+    _syncRealtime();
+  }
+
+  void unwatchConversation(String conversationId) {
+    _watched.remove(conversationId);
+    _syncRealtime();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _lifecycle = state;
-    _restartSyncTimer();
+    _syncRealtime();
+  }
+
+  /// Hält Verbindung und Subscriptions im Einklang mit Aktivität und
+  /// Vordergrund. Bei Hintergrund/Inaktivität wird getrennt.
+  void _syncRealtime() {
+    if (_activeCount == 0 || !_foreground) {
+      _subscribed.clear();
+      unawaited(_centrifugo.disconnect());
+      return;
+    }
+    unawaited(_centrifugo.connect());
+    final targets = {..._watched};
+    if (_activeCount > 0) {
+      targets.addAll(_conversations.map((c) => c.id));
+    }
+    for (final id in targets) {
+      if (_subscribed.contains(id)) continue;
+      _subscribed.add(id);
+      unawaited(_centrifugo.subscribe(id));
+    }
+  }
+
+  // ─── Echtzeit-Events (Centrifugo) ─────────────────────────────────────
+
+  void _onCentrifugoEvent(CentrifugoEvent event) {
+    final data = event.data;
+    switch (data['type']) {
+      case 'message_created':
+      case 'message_edited':
+        final raw = data['message'];
+        if (raw is Map<String, dynamic>) {
+          final message = DirectMessage.fromJson(raw);
+          _upsertMessage(event.conversationId, message);
+          if (data['type'] == 'message_created') {
+            _updatePreview(event.conversationId, message);
+          } else {
+            _updatePreviewIfCurrent(event.conversationId, message);
+          }
+          notifyListeners();
+        }
+      case 'message_deleted':
+        final messageId = data['messageId'] as String?;
+        if (messageId != null) {
+          _applyDeleted(event.conversationId, messageId);
+          notifyListeners();
+        }
+      case 'read':
+        _applyRead(
+          event.conversationId,
+          userId: data['userId'] as String?,
+          lastReadSeq: data['lastReadSeq'] as int?,
+        );
+        notifyListeners();
+      case 'typing':
+        _applyTyping(
+          event.conversationId,
+          userId: data['userId'] as String?,
+          typing: data['typing'] == true,
+        );
+        notifyListeners();
+      case 'recovered_gap':
+        unawaited(_recoverGap(event.conversationId));
+      default:
+        break;
+    }
+  }
+
+  /// Nach einer nicht vollständig recovernen Subscription den Verlauf per
+  /// REST nachladen, damit keine Nachricht verloren geht.
+  Future<void> _recoverGap(String conversationId) async {
+    if (!_messages.containsKey(conversationId)) return;
+    try {
+      await getMessages(conversationId);
+    } catch (e, st) {
+      developer.log(
+        'Recover gap for $conversationId failed',
+        error: e,
+        stackTrace: st,
+        name: 'chat_service',
+      );
+    }
+  }
+
+  void _applyDeleted(String conversationId, String messageId) {
+    final list = _messages[conversationId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.id == messageId);
+    if (idx < 0) return;
+    final old = list[idx];
+    final deleted = _asDeleted(old);
+    list[idx] = deleted;
+    _updatePreviewIfCurrent(conversationId, deleted);
+  }
+
+  void _applyRead(String conversationId, {String? userId, int? lastReadSeq}) {
+    if (userId == null || lastReadSeq == null) return;
+    final index = _conversations.indexWhere((c) => c.id == conversationId);
+    if (index < 0) return;
+    final c = _conversations[index];
+    final isOwn = userId == _auth.userId;
+    _conversations[index] = ChatConversation(
+      id: c.id,
+      type: c.type,
+      name: c.name,
+      image: c.image,
+      otherUser: c.otherUser,
+      lastMessage: c.lastMessage,
+      unreadCount: c.unreadCount,
+      lastSeenAt: c.lastSeenAt,
+      lastReadSeq: isOwn ? lastReadSeq : c.lastReadSeq,
+      otherLastReadSeq: isOwn ? c.otherLastReadSeq : lastReadSeq,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    );
+  }
+
+  void _applyTyping(
+    String conversationId, {
+    String? userId,
+    required bool typing,
+  }) {
+    if (userId == null || userId == _auth.userId) return;
+    final current = {...(_typingUsers[conversationId] ?? const <String>[])};
+    final timerKey = '$conversationId:$userId';
+    _typingExpiry[timerKey]?.cancel();
+    if (typing) {
+      current.add(userId);
+      _typingExpiry[timerKey] = Timer(
+        const Duration(seconds: 5),
+        () => _removeTyping(conversationId, userId),
+      );
+    } else {
+      current.remove(userId);
+    }
+    if (current.isEmpty) {
+      _typingUsers.remove(conversationId);
+    } else {
+      _typingUsers[conversationId] = current.toList();
+    }
+  }
+
+  void _removeTyping(String conversationId, String userId) {
+    final current = _typingUsers[conversationId];
+    if (current == null) return;
+    final next = current.where((u) => u != userId).toList();
+    if (next.isEmpty) {
+      _typingUsers.remove(conversationId);
+    } else {
+      _typingUsers[conversationId] = next;
+    }
+    notifyListeners();
   }
 
   // ─── REST-API ─────────────────────────────────────────────────────────
@@ -100,8 +272,8 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   /// Vollständige Konversationsliste (`GET /chat/conversations`).
   ///
   /// Überspringt den Abruf, wenn die Liste innerhalb von [conversationsTtl]
-  /// zuletzt geladen wurde (außer [force]); die Sync-Zusammenfassung hält
-  /// Unread und Vorschau derweil aktuell. Der volle Abruf transportiert die
+  /// zuletzt geladen wurde (außer [force]); Echtzeit-Events halten Unread
+  /// und Vorschau derweil aktuell. Der volle Abruf transportiert die
   /// Base64-Profilbilder und soll daher nicht bei jedem Tab-Wechsel laufen.
   Future<void> refreshConversations({bool force = false}) async {
     final now = _clock();
@@ -123,6 +295,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
       ..addAll(list);
     _sortConversations();
     _lastConversationsRefresh = _clock();
+    _syncRealtime();
     notifyListeners();
   }
 
@@ -142,7 +315,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Konversations-Details (`GET /chat/conversations/{id}`), z. B. beim
-  /// Deep-Link oder für unbekannte Konversationen aus dem Sync.
+  /// Deep-Link oder für unbekannte Konversationen aus einem Event.
   Future<ChatConversation> loadConversation(String id) async {
     final data = await _api.get(
       '/chat/conversations/$id',
@@ -179,7 +352,8 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Sendet eine Nachricht (`POST .../messages`). Wartet auf den Server;
-  /// die [clientId] macht Retries idempotent.
+  /// die [clientId] macht Retries idempotent. Die Empfänger erhalten die
+  /// Nachricht über den Centrifugo-Publish der API.
   Future<DirectMessage> sendMessage(
     String conversationId,
     String content,
@@ -205,9 +379,9 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   /// Setzt den eigenen Lesestand (`POST .../read`) auf den höchsten
   /// lokal bekannten `seq` und markiert die Konversation lokal gelesen.
   ///
-  /// No-op, wenn bereits alles gelesen ist — der Screen ruft dies bei
-  /// jedem Sync auf, ohne Guard würde das POST- und notify-Schleifen
-  /// erzeugen. Ohne geladene Nachrichten gibt es nichts zu markieren.
+  /// No-op, wenn bereits alles gelesen ist — würde man ohne Guard bei jedem
+  /// Echtzeit-Event aufrufen, entstünden POST-Schleifen. Ohne geladene
+  /// Nachrichten gibt es nichts zu markieren.
   Future<void> markConversationRead(String conversationId) async {
     final messages = _messages[conversationId];
     if (messages == null || messages.isEmpty) return;
@@ -224,7 +398,6 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
           token: await _token(),
         );
       } catch (e, st) {
-        // Optimistisch: Der nächste Sync spiegelt den echten Serverstand.
         developer.log(
           'markConversationRead($conversationId) failed',
           error: e,
@@ -277,148 +450,18 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   /// eigener Sender. Setzt `deleted=true` und leert Inhalt/Payload lokal.
   Future<void> deleteMessage(String conversationId, String messageId) async {
     await _api.delete('/chat/messages/$messageId', token: await _token());
-    final list = _messages[conversationId];
-    if (list != null) {
-      final idx = list.indexWhere((m) => m.id == messageId);
-      if (idx >= 0) {
-        final old = list[idx];
-        final deleted = DirectMessage(
-          id: old.id,
-          seq: old.seq,
-          conversationId: old.conversationId,
-          senderId: old.senderId,
-          sender: old.sender,
-          type: old.type,
-          content: '',
-          payload: null,
-          clientId: old.clientId,
-          editedAt: old.editedAt,
-          deleted: true,
-          createdAt: old.createdAt,
-        );
-        list[idx] = deleted;
-        _updatePreviewIfCurrent(conversationId, deleted);
-      }
-    }
+    _applyDeleted(conversationId, messageId);
     notifyListeners();
   }
 
-  /// Sendet den Tippindikator (`POST …/typing`), debounced (max alle 3 s).
-  /// Fire-and-forget — Fehler werden still ignoriert.
+  /// Sendet den Tippindikator über den Centrifugo-Publish-Proxy, debounced
+  /// (max alle 3 s). Fire-and-forget — Fehler werden still ignoriert.
   void sendTyping(String conversationId) {
     if (_typingSent) return;
     _typingSent = true;
-    unawaited(_sendTypingRequest(conversationId));
+    unawaited(_centrifugo.publishTyping(conversationId, true));
     _typingTimer?.cancel();
     _typingTimer = Timer(const Duration(seconds: 3), () => _typingSent = false);
-  }
-
-  Future<void> _sendTypingRequest(String conversationId) async {
-    try {
-      await _api.post(
-        '/chat/conversations/$conversationId/typing',
-        body: {'typing': true},
-        token: await _token(),
-      );
-    } catch (_) {}
-  }
-
-  // ─── Sync-Loop ────────────────────────────────────────────────────────
-
-  void _restartSyncTimer() {
-    _syncTimer?.cancel();
-    _syncTimer = null;
-    if (_activeCount == 0 || !_foreground) return;
-    unawaited(_pollSync());
-    const interval = Duration(seconds: 2);
-    _syncTimer = Timer.periodic(interval, (_) => unawaited(_pollSync()));
-  }
-
-  /// Ein Sync-Durchlauf; bei `meta.hasMore` direkt nachziehen.
-  Future<void> _pollSync() async {
-    if (_syncInFlight || _activeCount == 0 || !_foreground) return;
-    _syncInFlight = true;
-    try {
-      var after = _lastEventSeq;
-      while (true) {
-        final query = <String, String>{'limit': '200'};
-        if (after != null) query['after'] = '$after';
-        final response = await _api.get(
-          '/chat/sync',
-          queryParams: query,
-          token: await _token(),
-        );
-        final sync = ChatSyncResponse.fromJson(response);
-        _applySync(sync);
-        _lastEventSeq = sync.seq;
-        after = sync.seq;
-        if (!sync.hasMore || _activeCount == 0 || !_foreground) break;
-      }
-    } catch (e, st) {
-      developer.log(
-        'Chat sync failed',
-        error: e,
-        stackTrace: st,
-        name: 'chat_service',
-      );
-    } finally {
-      _syncInFlight = false;
-    }
-  }
-
-  void _applySync(ChatSyncResponse sync) {
-    var changed = false;
-    for (final summary in sync.conversations) {
-      final index = _conversations.indexWhere(
-        (c) => c.id == summary.conversationId,
-      );
-      if (index >= 0) {
-        final c = _conversations[index];
-        _conversations[index] = ChatConversation(
-          id: c.id,
-          type: c.type,
-          name: c.name,
-          image: c.image,
-          otherUser: c.otherUser,
-          lastMessage: c.lastMessage,
-          unreadCount: summary.unreadCount,
-          lastSeenAt: summary.lastSeenAt ?? c.lastSeenAt,
-          lastReadSeq: c.lastReadSeq,
-          otherLastReadSeq: summary.otherLastReadSeq ?? c.otherLastReadSeq,
-          createdAt: c.createdAt,
-          updatedAt: c.updatedAt,
-        );
-        changed = true;
-      } else {
-        // Neue Konversation (z. B. vom Gegenüber erstellt): Details
-        // nachladen — die Sync-Zusammenfassung enthält keine Anzeige-Daten.
-        unawaited(_ensureConversation(summary.conversationId));
-      }
-    }
-    for (final event in sync.events) {
-      final message = event.message;
-      if (message == null) continue;
-      _upsertMessage(event.conversationId, message);
-      if (event.type == 'message_created') {
-        _updatePreview(event.conversationId, message);
-      }
-      changed = true;
-    }
-    _typingUsers = sync.typing;
-    if (changed) notifyListeners();
-  }
-
-  Future<void> _ensureConversation(String id) async {
-    try {
-      await loadConversation(id);
-    } catch (e, st) {
-      developer.log(
-        'Loading unknown conversation $id failed',
-        error: e,
-        stackTrace: st,
-        name: 'chat_service',
-      );
-    }
   }
 
   // ─── Lokale Caches ────────────────────────────────────────────────────
@@ -448,31 +491,11 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     list.sort((a, b) => a.seq.compareTo(b.seq));
   }
 
-  /// Aktualisiert die Vorschau (letzte Nachricht) der Konversation —
-  /// die Sync-Zusammenfassung enthält keine `lastMessage`-Daten.
   void _updatePreview(String conversationId, DirectMessage message) {
     final index = _conversations.indexWhere((c) => c.id == conversationId);
     if (index < 0) return;
     final c = _conversations[index];
-    _conversations[index] = ChatConversation(
-      id: c.id,
-      type: c.type,
-      name: c.name,
-      image: c.image,
-      otherUser: c.otherUser,
-      lastMessage: ChatMessageSummary(
-        content: message.content,
-        senderId: message.senderId,
-        createdAt: message.createdAt,
-        deleted: message.deleted,
-      ),
-      unreadCount: c.unreadCount,
-      lastSeenAt: c.lastSeenAt,
-      lastReadSeq: c.lastReadSeq,
-      otherLastReadSeq: c.otherLastReadSeq,
-      createdAt: c.createdAt,
-      updatedAt: message.createdAt,
-    );
+    _conversations[index] = _withPreview(c, message);
     _sortConversations();
   }
 
@@ -485,27 +508,45 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     if (c.lastMessage == null || c.lastMessage!.senderId != message.senderId) {
       return;
     }
-    _conversations[index] = ChatConversation(
-      id: c.id,
-      type: c.type,
-      name: c.name,
-      image: c.image,
-      otherUser: c.otherUser,
-      lastMessage: ChatMessageSummary(
-        content: message.deleted ? '' : message.content,
-        senderId: message.senderId,
-        createdAt: message.createdAt,
-        deleted: message.deleted,
-      ),
-      unreadCount: c.unreadCount,
-      lastSeenAt: c.lastSeenAt,
-      lastReadSeq: c.lastReadSeq,
-      otherLastReadSeq: c.otherLastReadSeq,
-      createdAt: c.createdAt,
-      updatedAt: message.createdAt,
-    );
+    _conversations[index] = _withPreview(c, message);
     _sortConversations();
   }
+
+  ChatConversation _withPreview(ChatConversation c, DirectMessage message) =>
+      ChatConversation(
+        id: c.id,
+        type: c.type,
+        name: c.name,
+        image: c.image,
+        otherUser: c.otherUser,
+        lastMessage: ChatMessageSummary(
+          content: message.deleted ? '' : message.content,
+          senderId: message.senderId,
+          createdAt: message.createdAt,
+          deleted: message.deleted,
+        ),
+        unreadCount: c.unreadCount,
+        lastSeenAt: c.lastSeenAt,
+        lastReadSeq: c.lastReadSeq,
+        otherLastReadSeq: c.otherLastReadSeq,
+        createdAt: c.createdAt,
+        updatedAt: message.createdAt,
+      );
+
+  DirectMessage _asDeleted(DirectMessage old) => DirectMessage(
+    id: old.id,
+    seq: old.seq,
+    conversationId: old.conversationId,
+    senderId: old.senderId,
+    sender: old.sender,
+    type: old.type,
+    content: '',
+    payload: null,
+    clientId: old.clientId,
+    editedAt: old.editedAt,
+    deleted: true,
+    createdAt: old.createdAt,
+  );
 
   /// Idempotenz-Schlüssel für [sendMessage]: eindeutig genug ohne
   /// zusätzliches Paket (Zeitstempel + Zufall).
@@ -516,8 +557,13 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _syncTimer?.cancel();
+    _eventSub?.cancel();
     _typingTimer?.cancel();
+    for (final timer in _typingExpiry.values) {
+      timer.cancel();
+    }
+    unawaited(_centrifugo.close());
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 }

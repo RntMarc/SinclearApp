@@ -51,6 +51,7 @@ class _ConversationBodyState extends State<ConversationBody> {
     _initialized = true;
     _scope = AppScope.of(context);
     _scope!.chat.registerActive();
+    _scope!.chat.watchConversation(widget.conversationId);
     _scroll.addListener(_maybeMarkRead);
     _scope!.chat.addListener(_onChatChanged);
     _load();
@@ -59,6 +60,7 @@ class _ConversationBodyState extends State<ConversationBody> {
   @override
   void dispose() {
     _scope?.chat.removeListener(_onChatChanged);
+    _scope?.chat.unwatchConversation(widget.conversationId);
     _scope?.chat.unregisterActive();
     _scroll.dispose();
     super.dispose();

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';
 import 'package:sinclear_beyond/core/storage/token_storage.dart';
 import 'package:sinclear_beyond/features/auth/services/auth_service.dart';
+import 'package:sinclear_beyond/features/chat/services/centrifugo_service.dart';
 import 'package:sinclear_beyond/features/chat/services/chat_service.dart';
 
 class _MockApiClient extends ApiClient {
@@ -67,6 +70,37 @@ class _FakeAuth extends AuthService {
 
   @override
   Future<String> getAccessToken() async => 'test-token';
+
+  @override
+  String? get userId => 'u1';
+}
+
+/// Fake-Transport: streamt testbare Events und protokolliert Publish-Aufrufe.
+class _FakeCentrifugo extends CentrifugoService {
+  _FakeCentrifugo(AuthService auth) : super(auth: auth);
+
+  final _controller = StreamController<CentrifugoEvent>.broadcast();
+  final List<String> subscribed = [];
+  final List<({String conversationId, bool typing})> typingCalls = [];
+  int connectCalls = 0;
+
+  @override
+  Stream<CentrifugoEvent> get events => _controller.stream;
+
+  @override
+  Future<void> connect() async => connectCalls++;
+
+  @override
+  Future<void> subscribe(String conversationId) async {
+    subscribed.add(conversationId);
+  }
+
+  @override
+  Future<void> publishTyping(String conversationId, bool typing) async {
+    typingCalls.add((conversationId: conversationId, typing: typing));
+  }
+
+  void emit(CentrifugoEvent event) => _controller.add(event);
 }
 
 Map<String, dynamic> _conversationJson(
@@ -114,26 +148,22 @@ Map<String, dynamic> _messageJson(
   'createdAt': '2026-08-16 10:00:00',
 };
 
-Map<String, dynamic> _syncJson({
-  required int seq,
-  bool hasMore = false,
-  List<Map<String, dynamic>> events = const [],
-  List<Map<String, dynamic>> conversations = const [],
-}) => {
-  'data': {'events': events, 'conversations': conversations, 'typing': {}},
-  'meta': {'seq': seq, 'hasMore': hasMore},
-};
-
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _MockApiClient api;
+  late _FakeCentrifugo centrifugo;
   late ChatService service;
   var notified = 0;
 
   setUp(() {
     api = _MockApiClient();
-    service = ChatService(api: api, auth: _FakeAuth(api));
+    centrifugo = _FakeCentrifugo(_FakeAuth(api));
+    service = ChatService(
+      api: api,
+      auth: _FakeAuth(api),
+      centrifugo: centrifugo,
+    );
     notified = 0;
     service.addListener(() => notified++);
   });
@@ -162,44 +192,24 @@ void main() {
   );
 
   test(
-    'Sync folgt hasMore, übernimmt Events und Unread-Zusammenfassung',
+    'message_created-Event fügt Nachricht hinzu und aktualisiert Vorschau',
     () async {
       api.responses.add({
-        'data': [_conversationJson('convA')],
+        'data': [_conversationJson('convA', lastContent: 'Alt')],
       });
       await service.refreshConversations();
 
-      api.responses.add(
-        _syncJson(
-          seq: 10,
-          hasMore: true,
-          conversations: [
-            {'conversationId': 'convA', 'unreadCount': 5},
-          ],
+      centrifugo.emit(
+        CentrifugoEvent(
+          conversationId: 'convA',
+          data: {
+            'type': 'message_created',
+            'message': _messageJson('m2', 9, 'convA', 'Wie geht es dir?'),
+          },
         ),
       );
-      api.responses.add(
-        _syncJson(
-          seq: 12,
-          events: [
-            {
-              'seq': 11,
-              'conversationId': 'convA',
-              'actorId': 'u2',
-              'type': 'message_created',
-              'messageId': 'm2',
-              'message': _messageJson('m2', 9, 'convA', 'Wie geht es dir?'),
-            },
-          ],
-        ),
-      );
+      await Future<void>.delayed(Duration.zero);
 
-      service.registerActive();
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      expect(api.calledQueryParams[1], {'limit': '200'});
-      expect(api.calledQueryParams[2], {'limit': '200', 'after': '10'});
-      expect(service.conversations.first.unreadCount, 5);
       expect(
         service.conversations.first.lastMessage?.content,
         'Wie geht es dir?',
@@ -209,24 +219,81 @@ void main() {
     },
   );
 
-  test('unbekannte Konversation im Sync wird nachgeladen', () async {
-    api.responses.add(
-      _syncJson(
-        seq: 3,
-        conversations: [
-          {'conversationId': 'convX', 'unreadCount': 1},
-        ],
+  test('message_deleted-Event markiert Nachricht lokal als gelöscht', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+    api.responses.add({
+      'data': [_messageJson('m1', 5, 'convA', 'Inhalt')],
+    });
+    await service.getMessages('convA');
+
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {'type': 'message_deleted', 'messageId': 'm1'},
       ),
     );
-    api.responses.add({'data': _conversationJson('convX')});
+    await Future<void>.delayed(Duration.zero);
 
-    service.registerActive();
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    expect(api.calledPaths, contains('/chat/conversations/convX'));
-    expect(service.conversations.map((c) => c.id), ['convX']);
-    expect(service.conversations.first.otherUser?.displayName, 'Anna');
+    final msg = service.messagesOf('convA')!.single;
+    expect(msg.deleted, isTrue);
+    expect(msg.content, isEmpty);
   });
+
+  test('read-Event setzt otherLastReadSeq', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {'type': 'read', 'userId': 'u2', 'lastReadSeq': 7},
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(service.conversations.first.otherLastReadSeq, 7);
+  });
+
+  test('typing-Event trägt User ein und entfernt ihn wieder', () async {
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {'type': 'typing', 'userId': 'u2', 'typing': true},
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(service.typingUsers['convA'], ['u2']);
+
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {'type': 'typing', 'userId': 'u2', 'typing': false},
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(service.typingUsers['convA'], isNull);
+  });
+
+  test(
+    'registerActive verbindet und abonniert bekannte Konversationen',
+    () async {
+      api.responses.add({
+        'data': [_conversationJson('convA')],
+      });
+      await service.refreshConversations();
+
+      service.registerActive();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(centrifugo.connectCalls, greaterThan(0));
+      expect(centrifugo.subscribed, contains('convA'));
+    },
+  );
 
   test('sendMessage schickt clientId und aktualisiert die Vorschau', () async {
     api.responses.add({
@@ -320,7 +387,14 @@ void main() {
     'refreshConversations überspringt Abruf innerhalb der TTL, force lädt neu',
     () async {
       var now = DateTime(2026, 8, 16, 12, 0, 0);
-      service = ChatService(api: api, auth: _FakeAuth(api), clock: () => now);
+      final previous = service;
+      service = ChatService(
+        api: api,
+        auth: _FakeAuth(api),
+        centrifugo: centrifugo,
+        clock: () => now,
+      );
+      addTearDown(previous.dispose);
 
       int conversationCalls() =>
           api.calledPaths.where((p) => p == '/chat/conversations').length;
@@ -364,9 +438,7 @@ void main() {
     });
     await service.getMessages('convA');
 
-    api.responses.add({
-      'data': _messageJson('m1', 5, 'convA', 'Neu'),
-    });
+    api.responses.add({'data': _messageJson('m1', 5, 'convA', 'Neu')});
 
     final updated = await service.editMessage('convA', 'm1', 'Neu');
 
@@ -397,37 +469,15 @@ void main() {
   });
 
   test(
-    'sendTyping debounced: zwei Aufrufe innerhalb 3 s → nur ein POST',
+    'sendTyping debounced: zwei Aufrufe innerhalb 3 s → nur ein Publish',
     () async {
       service.sendTyping('convA');
       service.sendTyping('convA');
 
       await Future.delayed(const Duration(milliseconds: 50));
 
-      final typingCalls = api.calledPaths
-          .where((p) => p == '/chat/conversations/convA/typing')
-          .length;
-      expect(typingCalls, 1);
+      expect(centrifugo.typingCalls, hasLength(1));
+      expect(centrifugo.typingCalls.single.typing, isTrue);
     },
   );
-
-  test('typingUsers wird aus Sync übernommen', () async {
-    api.responses.add({
-      'data': {
-        'events': <Map<String, dynamic>>[],
-        'conversations': <Map<String, dynamic>>[],
-        'typing': {
-          'convA': ['u2'],
-        },
-      },
-      'meta': {'seq': 1, 'hasMore': false},
-    });
-
-    service.registerActive();
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    expect(service.typingUsers, {
-      'convA': ['u2'],
-    });
-  });
 }

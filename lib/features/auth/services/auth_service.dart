@@ -158,6 +158,22 @@ class AuthService extends ChangeNotifier {
     return _accessToken!;
   }
 
+  /// Holt einen Centrifugo-Connection-Token samt WebSocket-URL.
+  ///
+  /// Die API ist die Quelle der Wahrheit: die Antwort enthält `token` und
+  /// `url`. Wird als SDK-`getToken`-Callback (Token-Refresh) verwendet.
+  Future<CentrifugoToken> getCentrifugoToken() async {
+    final data = await _api.get(
+      '/chat/centrifugo/token',
+      token: await getAccessToken(),
+    );
+    final payload = data['data'] as Map<String, dynamic>? ?? const {};
+    return CentrifugoToken(
+      token: payload['token'] as String? ?? '',
+      url: payload['url'] as String? ?? '',
+    );
+  }
+
   Future<void> requestOtp(String email) async {
     final body = OtpRequest(email: email).toJson();
     await _api.post('/auth/login/otp/request', body: body);
@@ -176,10 +192,7 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _fetchOnboardingStatus() async {
     try {
-      final data = await _api.get(
-        '/user/me',
-        token: await getAccessToken(),
-      );
+      final data = await _api.get('/user/me', token: await getAccessToken());
       _onboardingCompleted =
           (data['data']['onboardingCompleted'] as bool?) ?? true;
     } catch (e) {

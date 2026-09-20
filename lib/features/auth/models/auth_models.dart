@@ -35,6 +35,13 @@ class DiscordStartResponse {
   }
 }
 
+/// Centrifugo-Connection-Token samt WebSocket-URL, wie von der API geliefert.
+class CentrifugoToken {
+  final String token;
+  final String url;
+  const CentrifugoToken({required this.token, required this.url});
+}
+
 class RefreshTokenResponse {
   final String refreshToken;
   final int expiresAt;
