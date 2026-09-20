@@ -1,15 +1,17 @@
 // ignore_for_file: prefer_initializing_formals
 
 import 'dart:async';
-import 'dart:developer' as developer;
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
+import 'package:logging/logging.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/chat_models.dart';
 import 'centrifugo_service.dart';
+
+final _log = Logger('chat.service');
 
 /// Hält den Chat-Zustand: Konversationsliste, Nachrichten je Konversation
 /// und die Echtzeit-Events aus Centrifugo.
@@ -33,6 +35,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
        _centrifugo = centrifugo ?? CentrifugoService(auth: auth),
        _clock = clock {
     _eventSub = _centrifugo.events.listen(_onCentrifugoEvent);
+    _reconnectedSub = _centrifugo.onReconnected.listen(_onReconnected);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -40,6 +43,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   final AuthService _auth;
   final CentrifugoService _centrifugo;
   StreamSubscription<CentrifugoEvent>? _eventSub;
+  StreamSubscription<void>? _reconnectedSub;
 
   /// Mindestabstand zwischen zwei vollen Konversationslisten-Abrufen.
   /// Verhindert, dass jeder Tab-Wechsel die Liste (inkl. Base64-Profilbilder)
@@ -56,9 +60,6 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
 
   int _activeCount = 0;
   final Set<String> _watched = {};
-
-  /// Channels, für die aktuell eine Centrifugo-Subscription besteht.
-  final Set<String> _subscribed = {};
 
   final Map<String, List<String>> _typingUsers = {};
   final Map<String, Timer> _typingExpiry = {};
@@ -91,21 +92,25 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   /// Tab und Konversations-Screen sich nicht gegenseitig stoppen).
   void registerActive() {
     _activeCount++;
+    _log.info('registerActive → activeCount=$_activeCount');
     _syncRealtime();
   }
 
   void unregisterActive() {
     if (_activeCount > 0) _activeCount--;
+    _log.info('unregisterActive → activeCount=$_activeCount');
     _syncRealtime();
   }
 
   /// Abonniert einen Channel, solange die Konversation sichtbar ist.
   void watchConversation(String conversationId) {
+    _log.fine('watchConversation($conversationId)');
     _watched.add(conversationId);
     _syncRealtime();
   }
 
   void unwatchConversation(String conversationId) {
+    _log.fine('unwatchConversation($conversationId)');
     _watched.remove(conversationId);
     _syncRealtime();
   }
@@ -113,14 +118,19 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _lifecycle = state;
+    _log.info('Lifecycle → $state');
     _syncRealtime();
   }
 
   /// Hält Verbindung und Subscriptions im Einklang mit Aktivität und
   /// Vordergrund. Bei Hintergrund/Inaktivität wird getrennt.
   void _syncRealtime() {
+    _log.fine(
+      '_syncRealtime: activeCount=$_activeCount foreground=$_foreground '
+      'watched=$_watched convCount=${_conversations.length}',
+    );
     if (_activeCount == 0 || !_foreground) {
-      _subscribed.clear();
+      _log.info('_syncRealtime: disconnecting (inactive or background)');
       unawaited(_centrifugo.disconnect());
       return;
     }
@@ -130,9 +140,31 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
       targets.addAll(_conversations.map((c) => c.id));
     }
     for (final id in targets) {
-      if (_subscribed.contains(id)) continue;
-      _subscribed.add(id);
+      if (_centrifugo.isSubscribed(id)) continue;
+      _log.info('_syncRealtime: subscribing to $id');
       unawaited(_centrifugo.subscribe(id));
+    }
+  }
+
+  // ─── Reconnect-Catch-up ─────────────────────────────────────────────
+
+  void _onReconnected(void _) {
+    _log.info('Reconnected – catching up messages');
+    final ids = {..._watched, ..._messages.keys};
+    for (final id in ids) {
+      unawaited(_catchUpConversation(id));
+    }
+    unawaited(refreshConversations(force: true));
+  }
+
+  Future<void> _catchUpConversation(String conversationId) async {
+    try {
+      final before = _messages[conversationId]?.length ?? 0;
+      await getMessages(conversationId);
+      final after = _messages[conversationId]?.length ?? 0;
+      _log.info('Catch-up $conversationId: $before → $after messages');
+    } catch (e, st) {
+      _log.warning('Catch-up for $conversationId failed', e, st);
     }
   }
 
@@ -140,44 +172,70 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
 
   void _onCentrifugoEvent(CentrifugoEvent event) {
     final data = event.data;
-    switch (data['type']) {
-      case 'message_created':
-      case 'message_edited':
-        final raw = data['message'];
-        if (raw is Map<String, dynamic>) {
-          final message = DirectMessage.fromJson(raw);
-          _upsertMessage(event.conversationId, message);
-          if (data['type'] == 'message_created') {
-            _updatePreview(event.conversationId, message);
+    final type = data['type'] as String?;
+    _log.info('Event on ${event.conversationId}: type=$type');
+    try {
+      switch (type) {
+        case 'message_created':
+        case 'message_edited':
+          final raw = data['message'];
+          if (raw is Map<String, dynamic>) {
+            final message = DirectMessage.fromJson(raw);
+            _upsertMessage(event.conversationId, message);
+            if (type == 'message_created') {
+              _updatePreview(event.conversationId, message);
+            } else {
+              _updatePreviewIfCurrent(event.conversationId, message);
+            }
+            _log.info(
+              '  → ${type == 'message_created' ? 'created' : 'edited'} '
+              'msg id=${message.id} seq=${message.seq}',
+            );
+            notifyListeners();
           } else {
-            _updatePreviewIfCurrent(event.conversationId, message);
+            _log.warning(
+              '  → $type: data[message] is ${raw.runtimeType}, '
+              'expected Map – event dropped',
+            );
           }
+        case 'message_deleted':
+          final messageId = data['messageId'] as String?;
+          if (messageId != null) {
+            _applyDeleted(event.conversationId, messageId);
+            _log.info('  → deleted msg id=$messageId');
+            notifyListeners();
+          }
+        case 'read':
+          _applyRead(
+            event.conversationId,
+            userId: data['userId'] as String?,
+            lastReadSeq: data['lastReadSeq'] as int?,
+          );
+          _log.fine(
+            '  → read userId=${data['userId']} '
+            'lastReadSeq=${data['lastReadSeq']}',
+          );
           notifyListeners();
-        }
-      case 'message_deleted':
-        final messageId = data['messageId'] as String?;
-        if (messageId != null) {
-          _applyDeleted(event.conversationId, messageId);
+        case 'typing':
+          _applyTyping(
+            event.conversationId,
+            userId: data['userId'] as String?,
+            typing: data['typing'] == true,
+          );
           notifyListeners();
-        }
-      case 'read':
-        _applyRead(
-          event.conversationId,
-          userId: data['userId'] as String?,
-          lastReadSeq: data['lastReadSeq'] as int?,
-        );
-        notifyListeners();
-      case 'typing':
-        _applyTyping(
-          event.conversationId,
-          userId: data['userId'] as String?,
-          typing: data['typing'] == true,
-        );
-        notifyListeners();
-      case 'recovered_gap':
-        unawaited(_recoverGap(event.conversationId));
-      default:
-        break;
+        case 'recovered_gap':
+          _log.info('  → recovered_gap – reloading via REST');
+          unawaited(_recoverGap(event.conversationId));
+        default:
+          _log.warning('  → unknown type: $type – event dropped');
+      }
+    } catch (e, st) {
+      _log.severe(
+        'Event handling failed for type=$type '
+        'on ${event.conversationId}',
+        e,
+        st,
+      );
     }
   }
 
@@ -188,12 +246,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await getMessages(conversationId);
     } catch (e, st) {
-      developer.log(
-        'Recover gap for $conversationId failed',
-        error: e,
-        stackTrace: st,
-        name: 'chat_service',
-      );
+      _log.warning('Recover gap for $conversationId failed', e, st);
     }
   }
 
@@ -270,37 +323,38 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   // ─── REST-API ─────────────────────────────────────────────────────────
 
   /// Vollständige Konversationsliste (`GET /chat/conversations`).
-  ///
-  /// Überspringt den Abruf, wenn die Liste innerhalb von [conversationsTtl]
-  /// zuletzt geladen wurde (außer [force]); Echtzeit-Events halten Unread
-  /// und Vorschau derweil aktuell. Der volle Abruf transportiert die
-  /// Base64-Profilbilder und soll daher nicht bei jedem Tab-Wechsel laufen.
   Future<void> refreshConversations({bool force = false}) async {
     final now = _clock();
     final last = _lastConversationsRefresh;
     if (!force && last != null && now.difference(last) < conversationsTtl) {
       return;
     }
-    final data = await _api.get(
-      '/chat/conversations',
-      queryParams: const {'limit': '100'},
-      token: await _token(),
-    );
-    final list = (data['data'] as List? ?? const [])
-        .whereType<Map<String, dynamic>>()
-        .map(ChatConversation.fromJson)
-        .toList();
-    _conversations
-      ..clear()
-      ..addAll(list);
-    _sortConversations();
-    _lastConversationsRefresh = _clock();
-    _syncRealtime();
-    notifyListeners();
+    _log.info('refreshConversations(force=$force)');
+    try {
+      final data = await _api.get(
+        '/chat/conversations',
+        queryParams: const {'limit': '100'},
+        token: await _token(),
+      );
+      final list = (data['data'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(ChatConversation.fromJson)
+          .toList();
+      _conversations
+        ..clear()
+        ..addAll(list);
+      _sortConversations();
+      _lastConversationsRefresh = _clock();
+      _syncRealtime();
+      notifyListeners();
+      _log.info('refreshConversations: ${list.length} conversations');
+    } catch (e, st) {
+      _log.severe('refreshConversations failed', e, st);
+      rethrow;
+    }
   }
 
-  /// Öffnet (get-or-create) die 1:1-Konversation mit [userId]
-  /// (`POST /chat/conversations`).
+  /// Öffnet (get-or-create) die 1:1-Konversation mit [userId].
   Future<ChatConversation> openConversation(String userId) async {
     final data = await _api.post(
       '/chat/conversations',
@@ -314,8 +368,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     return conversation;
   }
 
-  /// Konversations-Details (`GET /chat/conversations/{id}`), z. B. beim
-  /// Deep-Link oder für unbekannte Konversationen aus einem Event.
+  /// Konversations-Details (`GET /chat/conversations/{id}`).
   Future<ChatConversation> loadConversation(String id) async {
     final data = await _api.get(
       '/chat/conversations/$id',
@@ -347,13 +400,12 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     for (final message in list) {
       _upsertMessage(conversationId, message);
     }
+    _log.fine('getMessages($conversationId): ${list.length} messages');
     notifyListeners();
     return list;
   }
 
-  /// Sendet eine Nachricht (`POST .../messages`). Wartet auf den Server;
-  /// die [clientId] macht Retries idempotent. Die Empfänger erhalten die
-  /// Nachricht über den Centrifugo-Publish der API.
+  /// Sendet eine Nachricht (`POST .../messages`).
   Future<DirectMessage> sendMessage(
     String conversationId,
     String content,
@@ -376,12 +428,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     return message;
   }
 
-  /// Setzt den eigenen Lesestand (`POST .../read`) auf den höchsten
-  /// lokal bekannten `seq` und markiert die Konversation lokal gelesen.
-  ///
-  /// No-op, wenn bereits alles gelesen ist — würde man ohne Guard bei jedem
-  /// Echtzeit-Event aufrufen, entstünden POST-Schleifen. Ohne geladene
-  /// Nachrichten gibt es nichts zu markieren.
+  /// Setzt den eigenen Lesestand (`POST .../read`).
   Future<void> markConversationRead(String conversationId) async {
     final messages = _messages[conversationId];
     if (messages == null || messages.isEmpty) return;
@@ -398,12 +445,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
           token: await _token(),
         );
       } catch (e, st) {
-        developer.log(
-          'markConversationRead($conversationId) failed',
-          error: e,
-          stackTrace: st,
-          name: 'chat_service',
-        );
+        _log.warning('markConversationRead($conversationId) failed', e, st);
       }
     }
     _conversations[index] = ChatConversation(
@@ -425,8 +467,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
 
   // ─── Nachrichten-Aktionen ──────────────────────────────────────────────
 
-  /// Bearbeitet eine Nachricht (`PATCH /chat/messages/{id}`). Nur eigener
-  /// Sender, 10-Min-Fenster. Aktualisiert Inhalt und `editedAt` lokal.
+  /// Bearbeitet eine Nachricht (`PATCH /chat/messages/{id}`).
   Future<DirectMessage> editMessage(
     String conversationId,
     String messageId,
@@ -446,16 +487,14 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     return updated;
   }
 
-  /// Löscht eine Nachricht für alle (`DELETE /chat/messages/{id}`). Nur
-  /// eigener Sender. Setzt `deleted=true` und leert Inhalt/Payload lokal.
+  /// Löscht eine Nachricht für alle (`DELETE /chat/messages/{id}`).
   Future<void> deleteMessage(String conversationId, String messageId) async {
     await _api.delete('/chat/messages/$messageId', token: await _token());
     _applyDeleted(conversationId, messageId);
     notifyListeners();
   }
 
-  /// Sendet den Tippindikator über den Centrifugo-Publish-Proxy, debounced
-  /// (max alle 3 s). Fire-and-forget — Fehler werden still ignoriert.
+  /// Sendet den Tippindikator über den Centrifugo-Publish-Proxy.
   void sendTyping(String conversationId) {
     if (_typingSent) return;
     _typingSent = true;
@@ -499,8 +538,6 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     _sortConversations();
   }
 
-  /// Aktualisiert die Vorschau nur, wenn die Nachricht aktuell die letzte
-  /// der Konversation ist (z. B. Bearbeiten/Löschen der letzten Nachricht).
   void _updatePreviewIfCurrent(String conversationId, DirectMessage message) {
     final index = _conversations.indexWhere((c) => c.id == conversationId);
     if (index < 0) return;
@@ -548,8 +585,6 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     createdAt: old.createdAt,
   );
 
-  /// Idempotenz-Schlüssel für [sendMessage]: eindeutig genug ohne
-  /// zusätzliches Paket (Zeitstempel + Zufall).
   static String _generateClientId() {
     final random = Random.secure();
     return '${DateTime.now().microsecondsSinceEpoch}-${random.nextInt(0x7fffffff)}';
@@ -558,6 +593,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void dispose() {
     _eventSub?.cancel();
+    _reconnectedSub?.cancel();
     _typingTimer?.cancel();
     for (final timer in _typingExpiry.values) {
       timer.cancel();
