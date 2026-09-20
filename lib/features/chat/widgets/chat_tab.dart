@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
@@ -11,6 +11,8 @@ import '../../../design/widgets/composite/design_conversation_tile.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import 'new_chat_sheet.dart';
+
+final _log = Logger('chat.ui');
 
 /// Chat-Reiter im Home-Screen: Konversationsliste mit Unread-Badges.
 ///
@@ -52,12 +54,7 @@ class _ChatTabState extends State<ChatTab> {
         token: await scope.auth.getAccessToken(),
       );
     } catch (e, st) {
-      developer.log(
-        'ChatTab load failed',
-        error: e,
-        stackTrace: st,
-        name: 'chat_tab',
-      );
+      _log.severe('ChatTab load failed', e, st);
     }
   }
 

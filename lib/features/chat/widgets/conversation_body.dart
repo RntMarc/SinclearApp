@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:logging/logging.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
@@ -17,6 +17,8 @@ import '../../forum/widgets/og_preview_card.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/chat_models.dart';
+
+final _log = Logger('chat.ui');
 
 /// Eingebettete Konversations-Ansicht: Nachrichtenverlauf mit Live-Sync,
 /// Composer, Read-Marking, Edit/Delete, Tippindikator und lastSeenAt.
@@ -101,12 +103,7 @@ class _ConversationBodyState extends State<ConversationBody> {
       });
       await _markRead();
     } catch (e, st) {
-      developer.log(
-        'Loading conversation failed',
-        error: e,
-        stackTrace: st,
-        name: 'conversation_body',
-      );
+      _log.severe('Loading conversation failed', e, st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -129,12 +126,7 @@ class _ConversationBodyState extends State<ConversationBody> {
           token: await scope.auth.getAccessToken(),
         );
       } catch (e, st) {
-        developer.log(
-          'markRead failed',
-          error: e,
-          stackTrace: st,
-          name: 'conversation_body',
-        );
+        _log.warning('markRead failed', e, st);
       }
     }
   }
@@ -157,12 +149,7 @@ class _ConversationBodyState extends State<ConversationBody> {
       await scope.chat.sendMessage(widget.conversationId, text);
       _maybeMarkRead();
     } catch (e, st) {
-      developer.log(
-        'Sending message failed',
-        error: e,
-        stackTrace: st,
-        name: 'conversation_body',
-      );
+      _log.warning('Sending message failed', e, st);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -196,12 +183,7 @@ class _ConversationBodyState extends State<ConversationBody> {
     try {
       await scope.chat.editMessage(widget.conversationId, msg.id, newContent);
     } catch (e, st) {
-      developer.log(
-        'Editing message failed',
-        error: e,
-        stackTrace: st,
-        name: 'conversation_body',
-      );
+      _log.warning('Editing message failed', e, st);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
