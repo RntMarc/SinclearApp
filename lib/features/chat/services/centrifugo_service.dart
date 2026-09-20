@@ -30,6 +30,9 @@ class CentrifugoService {
   /// Bereits abonnierte Channels (conversationId → Subscription).
   final Map<String, centrifuge.Subscription> _subscriptions = {};
 
+  /// Letzte Fehlermeldung je Channel (für Log-Deduplizierung).
+  final Map<String, String> _lastSubscribeError = {};
+
   /// Roh-Events aus allen Channels. Der Consumer filtert nach Channel.
   final _events = StreamController<CentrifugoEvent>.broadcast();
 
@@ -120,6 +123,7 @@ class CentrifugoService {
     final client = _client;
     _client = null;
     _subscriptions.clear();
+    _lastSubscribeError.clear();
     _connected = false;
     unawaited(_reconnectedController.close());
     if (client == null) return;
@@ -216,6 +220,7 @@ class CentrifugoService {
       }
     });
     sub.subscribed.listen((event) {
+      _lastSubscribeError.remove(channel);
       _log.info(
         'Subscribed to $channel '
         '(wasRecovering=${event.wasRecovering}, '
@@ -242,7 +247,10 @@ class CentrifugoService {
       _subscriptions.remove(conversationId);
     });
     sub.error.listen((event) {
-      _log.severe('Subscription error on $channel: ${event.error}');
+      final msg = event.error.toString();
+      if (_lastSubscribeError[channel] == msg) return;
+      _lastSubscribeError[channel] = msg;
+      _log.warning('Subscription error on $channel: $msg');
     });
     sub.subscribe();
     _log.info('Subscribe initiated for $channel');
