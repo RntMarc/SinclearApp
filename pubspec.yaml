@@ -41,6 +41,7 @@ dependencies:
   stories_for_flutter: ^1.3.3
   flutter_foreground_task: ^11.0.3
   workmanager: ^0.10.10
+  centrifuge: ^0.20.1
 
 dev_dependencies:
   flutter_test:
