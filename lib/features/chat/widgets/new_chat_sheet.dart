@@ -1,7 +1,6 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
@@ -11,6 +10,8 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../user/models/user_models.dart';
+
+final _log = Logger('chat.ui');
 
 /// Sheet zum Starten einer neuen 1:1-Unterhaltung: Nutzersuche (Name)
 /// und Start per Antippen.
@@ -50,12 +51,7 @@ class _NewChatSheetState extends State<NewChatSheet> {
         _error = null;
       });
     } catch (e, st) {
-      developer.log(
-        'Loading users for new chat failed',
-        error: e,
-        stackTrace: st,
-        name: 'new_chat_sheet',
-      );
+      _log.severe('Loading users for new chat failed', e, st);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -72,12 +68,7 @@ class _NewChatSheetState extends State<NewChatSheet> {
       Navigator.pop(context);
       context.push('/chat/${conversation.id}');
     } catch (e, st) {
-      developer.log(
-        'openConversation failed',
-        error: e,
-        stackTrace: st,
-        name: 'new_chat_sheet',
-      );
+      _log.warning('openConversation failed', e, st);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

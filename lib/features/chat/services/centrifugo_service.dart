@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
 
 // ignore_for_file: prefer_initializing_formals
 
 import 'package:centrifuge/centrifuge.dart' as centrifuge;
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:logging/logging.dart';
 
 import '../../auth/services/auth_service.dart';
+
+final _log = Logger('chat.realtime');
 
 /// Echtzeit-Transport für den Chat über einen Centrifugo-Server.
 ///
@@ -28,6 +30,9 @@ class CentrifugoService {
   /// Bereits abonnierte Channels (conversationId → Subscription).
   final Map<String, centrifuge.Subscription> _subscriptions = {};
 
+  /// Letzte Fehlermeldung je Channel (für Log-Deduplizierung).
+  final Map<String, String> _lastSubscribeError = {};
+
   /// Roh-Events aus allen Channels. Der Consumer filtert nach Channel.
   final _events = StreamController<CentrifugoEvent>.broadcast();
 
@@ -35,9 +40,22 @@ class CentrifugoService {
   bool _connected = false;
   bool get connected => _connected;
 
+  /// Nach dem ersten Connect `true`. Für Reconnect-Erkennung.
+  bool _everConnected = false;
+
+  /// Feuert bei jeder Wiederverbindung (nicht beim ersten Connect).
+  final _reconnectedController = StreamController<void>.broadcast();
+
+  /// Stream der bei Reconnect feuert (nach initialem Connect).
+  Stream<void> get onReconnected => _reconnectedController.stream;
+
   /// Publikationen (`message_created`/`message_edited`/`message_deleted`/
   /// `read`/`typing`) samt Channel.
   Stream<CentrifugoEvent> get events => _events.stream;
+
+  /// Ob aktuell eine Subscription für [conversationId] existiert.
+  bool isSubscribed(String conversationId) =>
+      _subscriptions.containsKey(conversationId);
 
   /// Verbindet, falls noch nicht geschehen, und abonniert [conversationId].
   ///
@@ -50,12 +68,7 @@ class CentrifugoService {
       if (client == null) return;
       _addSubscription(client, conversationId);
     } catch (e, st) {
-      developer.log(
-        'Centrifugo subscribe($conversationId) failed',
-        error: e,
-        stackTrace: st,
-        name: 'centrifugo',
-      );
+      _log.warning('subscribe($conversationId) failed', e, st);
     }
   }
 
@@ -66,13 +79,9 @@ class CentrifugoService {
     if (sub == null || client == null) return;
     try {
       await client.removeSubscription(sub);
+      _log.info('Unsubscribed from chat:$conversationId');
     } catch (e, st) {
-      developer.log(
-        'Centrifugo unsubscribe($conversationId) failed',
-        error: e,
-        stackTrace: st,
-        name: 'centrifugo',
-      );
+      _log.warning('unsubscribe($conversationId) failed', e, st);
     }
   }
 
@@ -83,12 +92,7 @@ class CentrifugoService {
     try {
       await sub.publish(_encode({'typing': typing}));
     } catch (e, st) {
-      developer.log(
-        'Centrifugo publishTyping($conversationId) failed',
-        error: e,
-        stackTrace: st,
-        name: 'centrifugo',
-      );
+      _log.warning('publishTyping($conversationId) failed', e, st);
     }
   }
 
@@ -97,12 +101,7 @@ class CentrifugoService {
     try {
       await _ensureConnected();
     } catch (e, st) {
-      developer.log(
-        'Centrifugo connect failed',
-        error: e,
-        stackTrace: st,
-        name: 'centrifugo',
-      );
+      _log.warning('connect failed', e, st);
     }
   }
 
@@ -113,13 +112,9 @@ class CentrifugoService {
     if (client == null) return;
     try {
       await client.disconnect();
+      _log.info('Disconnected');
     } catch (e, st) {
-      developer.log(
-        'Centrifugo disconnect failed',
-        error: e,
-        stackTrace: st,
-        name: 'centrifugo',
-      );
+      _log.warning('disconnect failed', e, st);
     }
   }
 
@@ -128,27 +123,46 @@ class CentrifugoService {
     final client = _client;
     _client = null;
     _subscriptions.clear();
+    _lastSubscribeError.clear();
     _connected = false;
+    unawaited(_reconnectedController.close());
     if (client == null) return;
     try {
       await client.close();
     } catch (e, st) {
-      developer.log(
-        'Centrifugo close failed',
-        error: e,
-        stackTrace: st,
-        name: 'centrifugo',
-      );
+      _log.warning('close failed', e, st);
     }
   }
 
+  // ─── Interne Verbindungslogik ────────────────────────────────────────
+
+  /// Seriellisiert: verhindert parallele Client-Erstellung durch
+  /// mehrfach gleichzeitige [_ensureConnected]-Aufrufe.
+  Future<void>? _connecting;
+
   Future<void> _ensureConnected() async {
+    final pending = _connecting;
+    if (pending != null) {
+      await pending;
+      return;
+    }
+    _connecting = _doConnect();
+    try {
+      await _connecting;
+    } finally {
+      _connecting = null;
+    }
+  }
+
+  Future<void> _doConnect() async {
     var client = _client;
     if (client == null) {
+      _log.info('Creating Centrifugo client');
       final token = await _auth.getCentrifugoToken();
       if (token.url.isEmpty) {
         throw StateError('Centrifugo-URL fehlt in der API-Antwort');
       }
+      _log.info('Centrifugo URL: ${token.url}');
       client = centrifuge.createClient(
         token.url,
         centrifuge.ClientConfig(
@@ -160,30 +174,45 @@ class CentrifugoService {
       _client = client;
     }
     if (client.state == centrifuge.State.disconnected) {
+      _log.info('Connecting to Centrifugo...');
       await client.connect();
     }
   }
 
   void _listenLifecycle(centrifuge.Client client) {
     client.connected.listen((_) {
+      if (_everConnected) {
+        _log.info('Reconnected to Centrifugo');
+        _reconnectedController.add(null);
+      } else {
+        _log.info('Connected to Centrifugo');
+      }
+      _everConnected = true;
       _connected = true;
     });
-    client.disconnected.listen((_) {
+    client.disconnected.listen((event) {
+      _log.warning(
+        'Disconnected from Centrifugo: code=${event.code} '
+        'reason=${event.reason}',
+      );
       _connected = false;
     });
     client.error.listen((event) {
-      developer.log(
-        'Centrifugo client error: ${event.error}',
-        name: 'centrifugo',
-      );
+      _log.severe('Centrifugo client error: ${event.error}');
     });
   }
 
+  // ─── Subscriptions ──────────────────────────────────────────────────
+
   void _addSubscription(centrifuge.Client client, String conversationId) {
     final channel = 'chat:$conversationId';
+    if (_subscriptions.containsKey(conversationId)) return;
     final sub = client.newSubscription(channel);
+    _subscriptions[conversationId] = sub;
+
     sub.publication.listen((event) {
       final data = decodePayload(event.data);
+      _log.fine('Publication on $channel: ${data?['type']}');
       if (data != null) {
         _events.add(
           CentrifugoEvent(conversationId: conversationId, data: data),
@@ -191,8 +220,17 @@ class CentrifugoService {
       }
     });
     sub.subscribed.listen((event) {
-      // Recovery-Lücke -> Consumer muss per REST nachladen.
+      _lastSubscribeError.remove(channel);
+      _log.info(
+        'Subscribed to $channel '
+        '(wasRecovering=${event.wasRecovering}, '
+        'recovered=${event.recovered}, '
+        'recoverable=${event.recoverable})',
+      );
       if (event.wasRecovering && !event.recovered) {
+        _log.warning(
+          'Recovery gap on $channel – consumer must reload via REST',
+        );
         _events.add(
           CentrifugoEvent(
             conversationId: conversationId,
@@ -201,9 +239,24 @@ class CentrifugoService {
         );
       }
     });
+    sub.unsubscribed.listen((event) {
+      _log.warning(
+        'Unsubscribed from $channel: code=${event.code} '
+        'reason=${event.reason}',
+      );
+      _subscriptions.remove(conversationId);
+    });
+    sub.error.listen((event) {
+      final msg = event.error.toString();
+      if (_lastSubscribeError[channel] == msg) return;
+      _lastSubscribeError[channel] = msg;
+      _log.warning('Subscription error on $channel: $msg');
+    });
     sub.subscribe();
-    _subscriptions[conversationId] = sub;
+    _log.info('Subscribe initiated for $channel');
   }
+
+  // ─── Payload-Kodierung ──────────────────────────────────────────────
 
   static List<int> _encode(Map<String, dynamic> data) =>
       utf8.encode(jsonEncode(data));
@@ -214,14 +267,11 @@ class CentrifugoService {
     if (bytes.isEmpty) return null;
     try {
       final decoded = jsonDecode(utf8.decode(bytes));
-      return decoded is Map<String, dynamic> ? decoded : null;
+      if (decoded is Map<String, dynamic>) return decoded;
+      _log.warning('Unexpected payload type: ${decoded.runtimeType}');
+      return null;
     } catch (e, st) {
-      developer.log(
-        'Centrifugo payload decode failed',
-        error: e,
-        stackTrace: st,
-        name: 'centrifugo',
-      );
+      _log.severe('Payload decode failed (${bytes.length} bytes)', e, st);
       return null;
     }
   }
