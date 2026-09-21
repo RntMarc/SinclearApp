@@ -134,7 +134,9 @@ class _ConversationBodyState extends State<ConversationBody> {
   void _maybeMarkRead() {
     if (!_scroll.hasClients) return;
     final position = _scroll.position;
-    if (position.pixels >= position.maxScrollExtent - 40) {
+    // reverse: true → pixels=0 ist unten (neueste Nachrichten).
+    // Nutzer ist "unten" wenn pixels <= 200 (nahe am unteren Rand).
+    if (position.pixels <= 200) {
       unawaited(_markRead());
     }
   }
