@@ -361,6 +361,16 @@ Design-Tokens bekommt.
   Abstand). Parameter: `title` (`title`-Style, normal case), `leading`
   (z.B. Zurück-Button), `actions` (Liste). Einsatz in Sub-Seiten, die einen
   eigenen Zurück-Button/Titel/Aktionen brauchen.
+- **`DesignPulseDot`** (`primitives`) – Pulsierender Statuspunkt. Parameter:
+  `size`, `color`, `semanticLabel`. Markiert ungelesene Aktivität (Standard-
+  color `accentA`), dient aber auch als Online-Indikator (`success`, Label
+  „Online"). Respektiert reduzierte Bewegung.
+- **`DesignConversationTile`** (`composite`) – Chat-Listeneintrag aus
+  `DesignCard` + `DesignAvatar` + `DesignText` + `DesignBadge`. Zeigt
+  Ungelesen-Glow (`pulseColor`), Tippindikator und Presence: bei 1:1 einen
+  grünen Online-Punkt auf dem Avatar (`isOnline`, `DesignPulseDot`), bei
+  Gruppen `onlineCount`/`memberCount` als farbigen Punkt mit Zahl
+  (grün = alle online, gelb = teilweise, grau = keiner).
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste

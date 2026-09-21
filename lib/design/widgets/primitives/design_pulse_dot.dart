@@ -8,12 +8,20 @@ import '../../theme/design_theme.dart';
 /// Punkt. Der Punkt ist klein genug, um neben Menü-Einträgen oder Icons zu
 /// sitzen, ohne Layout zu verbrauchen.
 class DesignPulseDot extends StatefulWidget {
-  const DesignPulseDot({this.size = 8, this.color, super.key});
+  const DesignPulseDot({
+    this.size = 8,
+    this.color,
+    this.semanticLabel = 'Ungelesene Aktivität',
+    super.key,
+  });
 
   final double size;
 
   /// Punktfarbe; Standard ist [DesignTokens.accentA].
   final Color? color;
+
+  /// Screenreader-Label des Punktes.
+  final String semanticLabel;
 
   @override
   State<DesignPulseDot> createState() => _DesignPulseDotState();
@@ -57,7 +65,7 @@ class _DesignPulseDotState extends State<DesignPulseDot>
 
   Widget _dot(Color color, double opacity, double scale) {
     return Semantics(
-      label: 'Ungelesene Aktivität',
+      label: widget.semanticLabel,
       child: Transform.scale(
         scale: scale,
         child: Container(

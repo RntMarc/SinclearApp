@@ -148,6 +148,25 @@ Map<String, dynamic> _messageJson(
   'createdAt': '2026-08-16 10:00:00',
 };
 
+Map<String, dynamic> _groupConversationJson(
+  String id, {
+  required int memberCount,
+}) => {
+  'id': id,
+  'type': 'group',
+  'name': 'Sommerurlaub',
+  'image': null,
+  'otherUser': null,
+  'lastMessage': null,
+  'unreadCount': 0,
+  'lastSeenAt': null,
+  'lastReadSeq': 0,
+  'otherLastReadSeq': null,
+  'memberCount': memberCount,
+  'createdAt': '2026-08-10 10:00:00',
+  'updatedAt': '2026-08-16 10:00:00',
+};
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -480,4 +499,114 @@ void main() {
       expect(centrifugo.typingCalls.single.typing, isTrue);
     },
   );
+
+  // ─── Presence & Live-Unread ───────────────────────────────────────────
+
+  test('eingehende Fremd-Nachricht erhöht Unread lokal', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+    expect(service.unreadConversationIds, isEmpty);
+
+    centrifugo.emit(
+      CentrifugoEvent(
+        conversationId: 'convA',
+        data: {
+          'type': 'message_created',
+          'message': _messageJson('m1', 9, 'convA', 'Hi'),
+        },
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(service.conversations.first.unreadCount, 1);
+    expect(service.unreadConversationIds, contains('convA'));
+  });
+
+  test(
+    'eigene Nachricht und gewatchte Konversation erhöhen Unread nicht',
+    () async {
+      api.responses.add({
+        'data': [_conversationJson('convA')],
+      });
+      await service.refreshConversations();
+
+      final own = {
+        ..._messageJson('m1', 9, 'convA', 'Hi'),
+        'senderId': 'u1',
+        'sender': {'id': 'u1', 'displayName': 'Ich', 'avatar': null},
+      };
+      centrifugo.emit(
+        CentrifugoEvent(
+          conversationId: 'convA',
+          data: {'type': 'message_created', 'message': own},
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(service.conversations.first.unreadCount, 0);
+
+      service.watchConversation('convA');
+      centrifugo.emit(
+        CentrifugoEvent(
+          conversationId: 'convA',
+          data: {
+            'type': 'message_created',
+            'message': _messageJson('m2', 10, 'convA', 'Hi'),
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(service.conversations.first.unreadCount, 0);
+    },
+  );
+
+  test('presence_snapshot setzt anwesende Nutzer', () async {
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {
+          'type': 'presence_snapshot',
+          'clients': {'c1': 'u1', 'c2': 'u2'},
+        },
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(service.isPresent('convA', 'u2'), isTrue);
+    expect(service.isPresent('convA', 'u3'), isFalse);
+    expect(service.presentCount('convA'), 2);
+  });
+
+  test('presence_join/leave pflegt Anwesenheit und zuletzt online', () async {
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {'type': 'presence_join', 'client': 'c3', 'user': 'u3'},
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(service.isPresent('convA', 'u3'), isTrue);
+    expect(service.lastSeenAt('u3'), isNull);
+
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {'type': 'presence_leave', 'client': 'c3', 'user': 'u3'},
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(service.isPresent('convA', 'u3'), isFalse);
+    expect(service.lastSeenAt('u3'), isNotNull);
+  });
+
+  test('Gruppen-Konversation parst memberCount', () async {
+    api.responses.add({
+      'data': [_groupConversationJson('groupA', memberCount: 4)],
+    });
+    await service.refreshConversations();
+
+    expect(service.conversations.single.type, 'group');
+    expect(service.conversations.single.memberCount, 4);
+  });
 }

@@ -21,7 +21,7 @@ import '../models/chat_models.dart';
 final _log = Logger('chat.ui');
 
 /// Eingebettete Konversations-Ansicht: Nachrichtenverlauf mit Live-Sync,
-/// Composer, Read-Marking, Edit/Delete, Tippindikator und lastSeenAt.
+/// Composer, Read-Marking, Edit/Delete, Tippindikator und Online-Status.
 ///
 /// Wird in [TripDetailScreen] und [TravelEventDetailScreen] als Chat-Tab
 /// verwendet, sowie als Basis für den eigenen [ConversationScreen].
@@ -357,24 +357,45 @@ class _ConversationBodyState extends State<ConversationBody> {
     bool isTyping,
     DesignTokens tokens,
   ) {
-    final lastSeen = conversation?.lastSeenAt;
-    if (!isTyping && lastSeen == null) return const SizedBox.shrink();
+    if (conversation == null) return const SizedBox.shrink();
+    final scope = _scope;
+    final isGroup = conversation.type == 'group';
+    String? label;
+    var color = tokens.textLow;
+
+    if (isTyping) {
+      label = 'schreibt...';
+      color = tokens.primary;
+    } else if (isGroup) {
+      final total = conversation.memberCount;
+      if (total != null) {
+        final online = scope?.chat.presentCount(conversation.id) ?? 0;
+        label = '$online von $total online';
+      }
+    } else {
+      final otherId = conversation.otherUser?.id;
+      final online =
+          otherId != null &&
+          scope != null &&
+          scope.chat.isPresent(conversation.id, otherId);
+      if (online == true) {
+        label = 'online';
+        color = tokens.success;
+      } else {
+        final seen =
+            (otherId != null ? scope?.chat.lastSeenAt(otherId) : null) ??
+            conversation.lastSeenAt;
+        if (seen != null) label = 'zuletzt online ${_relativeTime(seen)}';
+      }
+    }
+
+    if (label == null) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: tokens.spaceLg,
         vertical: tokens.spaceXs,
       ),
-      child: isTyping
-          ? DesignText(
-              'schreibt...',
-              style: DesignTextStyle.label,
-              color: tokens.primary,
-            )
-          : DesignText(
-              'zuletzt online ${_relativeTime(lastSeen!)}',
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
-            ),
+      child: DesignText(label, style: DesignTextStyle.label, color: color),
     );
   }
 
