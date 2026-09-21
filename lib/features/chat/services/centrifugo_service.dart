@@ -30,9 +30,6 @@ class CentrifugoService {
   /// Bereits abonnierte Channels (conversationId → Subscription).
   final Map<String, centrifuge.Subscription> _subscriptions = {};
 
-  /// Abonnierte User-Presence-Channels (userId → Subscription).
-  final Map<String, centrifuge.Subscription> _userPresenceSubscriptions = {};
-
   /// Letzte Fehlermeldung je Channel (für Log-Deduplizierung).
   final Map<String, String> _lastSubscribeError = {};
 
@@ -88,34 +85,6 @@ class CentrifugoService {
     }
   }
 
-  /// Abonniert den User-Presence-Channel `user:<userId>` für Online-Status.
-  ///
-  /// Nur ein Subscription pro User möglich. Fehler werden geloggt, nicht geworfen.
-  Future<void> subscribeUserPresence(String userId) async {
-    if (_userPresenceSubscriptions.containsKey(userId)) return;
-    try {
-      await _ensureConnected();
-      final client = _client;
-      if (client == null) return;
-      _addUserPresenceSubscription(client, userId);
-    } catch (e, st) {
-      _log.warning('subscribeUserPresence($userId) failed', e, st);
-    }
-  }
-
-  /// Entfernt die User-Presence-Subscription aus der Registry.
-  Future<void> unsubscribeUserPresence(String userId) async {
-    final sub = _userPresenceSubscriptions.remove(userId);
-    final client = _client;
-    if (sub == null || client == null) return;
-    try {
-      await client.removeSubscription(sub);
-      _log.info('Unsubscribed from user:$userId');
-    } catch (e, st) {
-      _log.warning('unsubscribeUserPresence($userId) failed', e, st);
-    }
-  }
-
   /// Sendet ein Typing-Event über den Publish-Proxy (fire-and-forget).
   Future<void> publishTyping(String conversationId, bool typing) async {
     final sub = _subscriptions[conversationId];
@@ -154,7 +123,6 @@ class CentrifugoService {
     final client = _client;
     _client = null;
     _subscriptions.clear();
-    _userPresenceSubscriptions.clear();
     _lastSubscribeError.clear();
     _connected = false;
     unawaited(_reconnectedController.close());
@@ -239,7 +207,11 @@ class CentrifugoService {
   void _addSubscription(centrifuge.Client client, String conversationId) {
     final channel = 'chat:$conversationId';
     if (_subscriptions.containsKey(conversationId)) return;
-    final sub = client.newSubscription(channel);
+    // joinLeave aktiviert Join/Leave-Push für Presence im Chat-Channel.
+    final sub = client.newSubscription(
+      channel,
+      centrifuge.SubscriptionConfig(joinLeave: true),
+    );
     _subscriptions[conversationId] = sub;
 
     sub.publication.listen((event) {
@@ -250,6 +222,30 @@ class CentrifugoService {
           CentrifugoEvent(conversationId: conversationId, data: data),
         );
       }
+    });
+    sub.join.listen((event) {
+      _events.add(
+        CentrifugoEvent(
+          conversationId: conversationId,
+          data: {
+            'type': 'presence_join',
+            'client': event.client,
+            'user': event.user,
+          },
+        ),
+      );
+    });
+    sub.leave.listen((event) {
+      _events.add(
+        CentrifugoEvent(
+          conversationId: conversationId,
+          data: {
+            'type': 'presence_leave',
+            'client': event.client,
+            'user': event.user,
+          },
+        ),
+      );
     });
     sub.subscribed.listen((event) {
       _lastSubscribeError.remove(channel);
@@ -270,6 +266,7 @@ class CentrifugoService {
           ),
         );
       }
+      unawaited(_emitPresenceSnapshot(sub, conversationId));
     });
     sub.unsubscribed.listen((event) {
       _log.warning(
@@ -288,40 +285,31 @@ class CentrifugoService {
     _log.info('Subscribe initiated for $channel');
   }
 
-  void _addUserPresenceSubscription(centrifuge.Client client, String userId) {
-    final channel = 'user:$userId';
-    if (_userPresenceSubscriptions.containsKey(userId)) return;
-    final sub = client.newSubscription(channel);
-    _userPresenceSubscriptions[userId] = sub;
-
-    sub.publication.listen((event) {
-      final data = decodePayload(event.data);
-      _log.fine('Publication on $channel: ${data?['type']}');
-      if (data != null) {
-        _events.add(
-          CentrifugoEvent(conversationId: 'user:$userId', data: data),
-        );
-      }
-    });
-    sub.subscribed.listen((event) {
-      _lastSubscribeError.remove(channel);
-      _log.info('Subscribed to $channel');
-    });
-    sub.unsubscribed.listen((event) {
-      _log.warning(
-        'Unsubscribed from $channel: code=${event.code} '
-        'reason=${event.reason}',
+  /// Liest nach dem Subscribe die aktuelle Presence des Channels aus.
+  ///
+  /// Der Snapshot ersetzt clientseitig den Presence-Stand (Selbst- und
+  /// Fremd-Clients). Join/Leave-Deltas kommen danach über [sub.join]/[leave].
+  Future<void> _emitPresenceSnapshot(
+    centrifuge.Subscription sub,
+    String conversationId,
+  ) async {
+    try {
+      final result = await sub.presence();
+      _events.add(
+        CentrifugoEvent(
+          conversationId: conversationId,
+          data: {
+            'type': 'presence_snapshot',
+            'clients': {
+              for (final entry in result.clients.entries)
+                entry.key: entry.value.user,
+            },
+          },
+        ),
       );
-      _userPresenceSubscriptions.remove(userId);
-    });
-    sub.error.listen((event) {
-      final msg = event.error.toString();
-      if (_lastSubscribeError[channel] == msg) return;
-      _lastSubscribeError[channel] = msg;
-      _log.warning('Subscription error on $channel: $msg');
-    });
-    sub.subscribe();
-    _log.info('Subscribe initiated for $channel');
+    } catch (e, st) {
+      _log.warning('presence($conversationId) failed', e, st);
+    }
   }
 
   // ─── Payload-Kodierung ──────────────────────────────────────────────

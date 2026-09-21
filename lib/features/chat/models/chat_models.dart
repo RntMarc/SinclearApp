@@ -54,6 +54,9 @@ class ChatConversation {
   final DateTime? lastSeenAt;
   final int lastReadSeq;
   final int otherLastReadSeq;
+
+  /// Anzahl der Teilnehmer (nur bei Gruppen; `null` bei 1:1).
+  final int? memberCount;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -68,6 +71,7 @@ class ChatConversation {
     this.lastSeenAt,
     this.lastReadSeq = 0,
     this.otherLastReadSeq = 0,
+    this.memberCount,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -92,6 +96,7 @@ class ChatConversation {
           : null,
       lastReadSeq: json['lastReadSeq'] as int? ?? 0,
       otherLastReadSeq: json['otherLastReadSeq'] as int? ?? 0,
+      memberCount: json['memberCount'] as int?,
       createdAt: parseApiDate(json['createdAt'] as String),
       updatedAt: parseApiDate(json['updatedAt'] as String),
     );

@@ -67,6 +67,17 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   bool _typingSent = false;
   AppLifecycleState _lifecycle = AppLifecycleState.resumed;
 
+  /// Anwesende Clients je Konversation: conversationId → {clientId → userId}.
+  ///
+  /// Centrifugo liefert die Presence pro Channel (`chat:<id>`) – Join/Leave
+  /// eines Teilnehmers bedeuten „hat diesen Chat geöffnet". Wird beim
+  /// Subscribe als Snapshot befüllt und über Join/Leave-Deltas gepflegt.
+  final Map<String, Map<String, String>> _presentClients = {};
+
+  /// Lokal beobachteter Zeitpunkt des letzten Verlassens eines Users
+  /// (aus dem Leave-Event), für „zuletzt online".
+  final Map<String, DateTime> _lastSeenAt = {};
+
   /// Nur wenn die App im Vordergrund ist (resumed) wird verbunden.
   bool get _foreground => _lifecycle == AppLifecycleState.resumed;
 
@@ -74,6 +85,12 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Konversationen, neueste Aktivität zuerst.
   List<ChatConversation> get conversations => List.unmodifiable(_conversations);
+
+  /// IDs der Konversationen mit ungelesenen Nachrichten (lokaler Zähler).
+  Set<String> get unreadConversationIds => {
+    for (final c in _conversations)
+      if (c.unreadCount > 0) c.id,
+  };
 
   /// Nachrichten einer Konversation (aufsteigend nach `seq`), `null` wenn
   /// noch nicht geladen.
@@ -87,6 +104,17 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   /// Tippzustand je Konversation aus den Centrifugo-Events.
   /// Map: conversationId → [userId, …].
   Map<String, List<String>> get typingUsers => _typingUsers;
+
+  /// Ob [userId] gerade im Chat-Channel von [conversationId] anwesend ist.
+  bool isPresent(String conversationId, String userId) =>
+      _presentClients[conversationId]?.containsValue(userId) ?? false;
+
+  /// Anzahl anwesender Nutzer in [conversationId] (dedupliziert).
+  int presentCount(String conversationId) =>
+      _presentClients[conversationId]?.values.toSet().length ?? 0;
+
+  /// Zuletzt beobachteter Zeitpunkt, an dem [userId] den Chat verließ.
+  DateTime? lastSeenAt(String userId) => _lastSeenAt[userId];
 
   /// Chat-UI sichtbar: hält die Echtzeitverbindung aktiv (ref-counted, damit
   /// Tab und Konversations-Screen sich nicht gegenseitig stoppen).
@@ -184,6 +212,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
             _upsertMessage(event.conversationId, message);
             if (type == 'message_created') {
               _updatePreview(event.conversationId, message);
+              _bumpUnreadIfIncoming(event.conversationId, message);
             } else {
               _updatePreviewIfCurrent(event.conversationId, message);
             }
@@ -223,6 +252,20 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
             typing: data['typing'] == true,
           );
           notifyListeners();
+        case 'presence_snapshot':
+          _applyPresenceSnapshot(event.conversationId, data['clients']);
+        case 'presence_join':
+          _applyPresenceJoin(
+            event.conversationId,
+            clientId: data['client'] as String?,
+            userId: data['user'] as String?,
+          );
+        case 'presence_leave':
+          _applyPresenceLeave(
+            event.conversationId,
+            clientId: data['client'] as String?,
+            userId: data['user'] as String?,
+          );
         case 'recovered_gap':
           _log.info('  → recovered_gap – reloading via REST');
           unawaited(_recoverGap(event.conversationId));
@@ -278,6 +321,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
       lastSeenAt: c.lastSeenAt,
       lastReadSeq: isOwn ? lastReadSeq : c.lastReadSeq,
       otherLastReadSeq: isOwn ? c.otherLastReadSeq : lastReadSeq,
+      memberCount: c.memberCount,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     );
@@ -317,6 +361,57 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       _typingUsers[conversationId] = next;
     }
+    notifyListeners();
+  }
+
+  /// Erhöht den lokalen Unread-Zähler bei eingehenden Fremd-Nachrichten.
+  ///
+  /// Eigene Nachrichten und Konversationen, die gerade geöffnet sind
+  /// ([_watched]), zählen nicht – dort markiert der Screen selbst als gelesen.
+  void _bumpUnreadIfIncoming(String conversationId, DirectMessage message) {
+    if (message.senderId == _auth.userId) return;
+    if (_watched.contains(conversationId)) return;
+    final index = _conversations.indexWhere((c) => c.id == conversationId);
+    if (index < 0) return;
+    _conversations[index] = _withUnread(
+      _conversations[index],
+      _conversations[index].unreadCount + 1,
+    );
+  }
+
+  void _applyPresenceSnapshot(String conversationId, Object? clients) {
+    if (clients is! Map) return;
+    _presentClients[conversationId] = {
+      for (final entry in clients.entries) '${entry.key}': '${entry.value}',
+    };
+    _log.fine('presence_snapshot $conversationId: ${clients.length} clients');
+    notifyListeners();
+  }
+
+  void _applyPresenceJoin(
+    String conversationId, {
+    String? clientId,
+    String? userId,
+  }) {
+    if (clientId == null || userId == null) return;
+    (_presentClients[conversationId] ??= {})[clientId] = userId;
+    _log.fine('presence_join $conversationId: $userId');
+    notifyListeners();
+  }
+
+  void _applyPresenceLeave(
+    String conversationId, {
+    String? clientId,
+    String? userId,
+  }) {
+    final map = _presentClients[conversationId];
+    if (map == null || clientId == null) return;
+    map.remove(clientId);
+    if (userId != null && userId != _auth.userId) {
+      _lastSeenAt[userId] = DateTime.now();
+    }
+    if (map.isEmpty) _presentClients.remove(conversationId);
+    _log.fine('presence_leave $conversationId: $userId');
     notifyListeners();
   }
 
@@ -459,6 +554,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
       lastSeenAt: c.lastSeenAt,
       lastReadSeq: maxSeq,
       otherLastReadSeq: c.otherLastReadSeq,
+      memberCount: c.memberCount,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     );
@@ -566,8 +662,26 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
         lastSeenAt: c.lastSeenAt,
         lastReadSeq: c.lastReadSeq,
         otherLastReadSeq: c.otherLastReadSeq,
+        memberCount: c.memberCount,
         createdAt: c.createdAt,
         updatedAt: message.createdAt,
+      );
+
+  ChatConversation _withUnread(ChatConversation c, int unreadCount) =>
+      ChatConversation(
+        id: c.id,
+        type: c.type,
+        name: c.name,
+        image: c.image,
+        otherUser: c.otherUser,
+        lastMessage: c.lastMessage,
+        unreadCount: unreadCount,
+        lastSeenAt: c.lastSeenAt,
+        lastReadSeq: c.lastReadSeq,
+        otherLastReadSeq: c.otherLastReadSeq,
+        memberCount: c.memberCount,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
       );
 
   DirectMessage _asDeleted(DirectMessage old) => DirectMessage(

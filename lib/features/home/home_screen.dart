@@ -116,9 +116,12 @@ class _HomeTabBar extends StatelessWidget {
     final tokens = DesignTheme.of(context);
     final scope = AppScope.of(context);
     return ListenableBuilder(
-      listenable: scope.notification,
+      listenable: Listenable.merge([scope.notification, scope.chat]),
       builder: (context, _) {
-        final unreadIds = scope.notification.unreadConversationIds;
+        final unreadIds = {
+          ...scope.notification.unreadConversationIds,
+          ...scope.chat.unreadConversationIds,
+        };
         return Padding(
           padding: EdgeInsets.fromLTRB(
             tokens.spaceLg,

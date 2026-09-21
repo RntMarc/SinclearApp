@@ -92,6 +92,10 @@ class _ChatTabState extends State<ChatTab> {
                                   .typingUsers[conversation.id]
                                   ?.isNotEmpty ==
                               true;
+                          final isGroup = conversation.type == 'group';
+                          final isOnline =
+                              other != null &&
+                              scope.chat.isPresent(conversation.id, other.id);
                           final displayName =
                               other?.displayName.isNotEmpty == true
                               ? other!.displayName
@@ -108,6 +112,13 @@ class _ChatTabState extends State<ChatTab> {
                             lastMessageAt: conversation.lastMessage?.createdAt,
                             unreadCount: conversation.unreadCount,
                             isTyping: typing,
+                            isOnline: isOnline,
+                            onlineCount: isGroup
+                                ? scope.chat.presentCount(conversation.id)
+                                : null,
+                            memberCount: isGroup
+                                ? conversation.memberCount
+                                : null,
                             onTap: () =>
                                 context.push('/chat/${conversation.id}'),
                           );
