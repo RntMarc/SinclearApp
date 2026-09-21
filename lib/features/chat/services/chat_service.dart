@@ -213,6 +213,12 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
             if (type == 'message_created') {
               _updatePreview(event.conversationId, message);
               _bumpUnreadIfIncoming(event.conversationId, message);
+              // Sofort als gelesen markieren, wenn Konversation offen (_watched)
+              // und Nachricht von anderem Nutzer kommt.
+              if (_watched.contains(event.conversationId) &&
+                  message.senderId != _auth.userId) {
+                unawaited(markConversationRead(event.conversationId));
+              }
             } else {
               _updatePreviewIfCurrent(event.conversationId, message);
             }
@@ -246,6 +252,9 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
           );
           notifyListeners();
         case 'typing':
+          _log.fine(
+            'Typing event: conversationId=${event.conversationId}, userId=${data['userId']}, typing=${data['typing']}',
+          );
           _applyTyping(
             event.conversationId,
             userId: data['userId'] as String?,
