@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:stories_for_flutter/stories_for_flutter.dart';
 
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
@@ -8,11 +7,11 @@ import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
+import '../models/stories_models.dart';
 import '../services/stories_service.dart';
 import 'story_viewers_sheet.dart';
 
-/// Eigener Vollbild-Viewer mit eigenem [PageView] statt des paket-internen
-/// [FullPageView]. Timeline, Nutzername und Buttons werden in einem einzigen
+/// Eigener Vollbild-Viewer mit eigenem [PageView]. Timeline, Nutzername und Buttons werden in einem einzigen
 /// [SafeArea]-Header am oberen Bildschirmrand verankert.
 class StoryViewer extends StatefulWidget {
   const StoryViewer({

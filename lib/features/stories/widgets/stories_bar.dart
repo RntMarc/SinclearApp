@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:stories_for_flutter/stories_for_flutter.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';

@@ -6,7 +6,7 @@ import '../models/stories_models.dart';
 import '../services/stories_service.dart';
 
 /// Erstellt eine [Scaffold]-Seite für eine einzelne Story (Bild + Caption +
-/// Zeitstempel + ViewCount) für die Anzeige im [FullPageView].
+/// Zeitstempel + ViewCount) für die Anzeige im [StoryViewer].
 ///
 /// Meldet die Story-ID via [onShown], sobald die Seite angezeigt wird
 /// (View-Markierung + Benachrichtigungs-Read). Ruft bei Bedarf die Detail-
