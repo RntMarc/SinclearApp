@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 /// Eine einzelne Story eines Nutzers.
 ///
 /// `image` ist Base64 (ggf. mit `data:`-Präfix) und wird vom Client dekodiert.
@@ -180,6 +182,23 @@ class StoryDetailResponse {
       data: StoryDetail.fromJson(json['data'] as Map<String, dynamic>),
     );
   }
+}
+
+/// Lokales Datenmodell für eine Story-Gruppe im Viewer.
+///
+/// Enthält den Anzeigennamen, das Avatar-Bild und die einzelnen
+/// Story-Seiten als [Scaffold]-Widgets. Ersetzt das frühere
+/// `StoryItem` aus dem `stories_for_flutter`-Paket.
+class StoryItem {
+  const StoryItem({
+    required this.name,
+    required this.thumbnail,
+    required this.stories,
+  });
+
+  final String name;
+  final ImageProvider thumbnail;
+  final List<Scaffold> stories;
 }
 
 /// Antwort von `GET /stories/{id}/viewers`.
