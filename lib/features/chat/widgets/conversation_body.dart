@@ -343,8 +343,8 @@ class _ConversationBodyState extends State<ConversationBody> {
     final messages = scope.chat.messagesOf(widget.conversationId);
 
     final typingUsers = scope.chat.typingUsers[widget.conversationId] ?? [];
-    final otherUserId = conversation?.otherUser?.id;
-    final isTyping = otherUserId != null && typingUsers.contains(otherUserId);
+    // _applyTyping filtert den eigenen Nutzer bereits heraus.
+    final isTyping = typingUsers.isNotEmpty;
 
     return Column(
       children: [
@@ -366,8 +366,7 @@ class _ConversationBodyState extends State<ConversationBody> {
     var color = tokens.textLow;
 
     if (isTyping) {
-      label = 'schreibt...';
-      color = tokens.primary;
+      return _TypingIndicator(tokens: tokens);
     } else if (isGroup) {
       final total = conversation.memberCount;
       if (total != null) {
@@ -511,5 +510,120 @@ class _ConversationBodyState extends State<ConversationBody> {
     final match = _urlPattern.firstMatch(message.content);
     if (match == null) return null;
     return OgPreviewCard(url: match.group(0)!);
+  }
+}
+
+/// Animierter Typing-Indikator: "schreibt..." mit pulsierenden Punkten.
+class _TypingIndicator extends StatefulWidget {
+  final DesignTokens tokens;
+
+  const _TypingIndicator({required this.tokens});
+
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = widget.tokens;
+    if (MediaQuery.of(context).disableAnimations) {
+      return _buildStatic(tokens);
+    }
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => _buildAnimated(tokens, _controller.value),
+    );
+  }
+
+  Widget _buildStatic(DesignTokens tokens) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.spaceLg,
+        vertical: tokens.spaceXs,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'schreibt',
+            style: DesignTextStyle.label,
+            color: tokens.primary,
+          ),
+          SizedBox(width: tokens.spaceXs),
+          _Dot(color: tokens.primary, opacity: 1.0),
+          SizedBox(width: tokens.spaceXs / 2),
+          _Dot(color: tokens.primary, opacity: 1.0),
+          SizedBox(width: tokens.spaceXs / 2),
+          _Dot(color: tokens.primary, opacity: 1.0),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnimated(DesignTokens tokens, double progress) {
+    // Drei Punkte mit versetzter Animation
+    final double phase1 = (progress * 3) % 1.0;
+    final double phase2 = ((progress + 0.33) * 3) % 1.0;
+    final double phase3 = ((progress + 0.66) * 3) % 1.0;
+
+    double opacity(double phase) {
+      // Pulsiert zwischen 0.3 und 1.0
+      return 0.3 + 0.7 * (0.5 - (phase - 0.5).abs());
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.tokens.spaceLg,
+        vertical: widget.tokens.spaceXs,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'schreibt',
+            style: DesignTextStyle.label,
+            color: widget.tokens.primary,
+          ),
+          SizedBox(width: widget.tokens.spaceXs),
+          _Dot(color: widget.tokens.primary, opacity: opacity(phase1)),
+          SizedBox(width: widget.tokens.spaceXs / 2),
+          _Dot(color: widget.tokens.primary, opacity: opacity(phase2)),
+          SizedBox(width: widget.tokens.spaceXs / 2),
+          _Dot(color: widget.tokens.primary, opacity: opacity(phase3)),
+        ],
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  final Color color;
+  final double opacity;
+
+  const _Dot({required this.color, required this.opacity});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        width: 6,
+        height: 6,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      ),
+    );
   }
 }
