@@ -203,6 +203,20 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     final type = data['type'] as String?;
     _log.info('Event on ${event.conversationId}: type=$type');
     try {
+      // Handle typing events that come without a 'type' wrapper
+      // (direct payload: { "typing": true/false, "userId": "..." })
+      if (type == null && data.containsKey('typing')) {
+        _log.fine(
+          'Typing event (no type wrapper): conversationId=${event.conversationId}, userId=${data['userId']}, typing=${data['typing']}',
+        );
+        _applyTyping(
+          event.conversationId,
+          userId: data['userId'] as String?,
+          typing: data['typing'] == true,
+        );
+        notifyListeners();
+        return;
+      }
       switch (type) {
         case 'message_created':
         case 'message_edited':

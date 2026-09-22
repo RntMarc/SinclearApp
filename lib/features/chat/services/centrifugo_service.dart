@@ -216,12 +216,19 @@ class CentrifugoService {
 
     sub.publication.listen((event) {
       final data = decodePayload(event.data);
-      _log.fine('Publication on $channel: ${data?['type']}');
-      if (data != null) {
-        _events.add(
-          CentrifugoEvent(conversationId: conversationId, data: data),
-        );
-      }
+      if (data == null) return;
+      // Client-Publishes (z. B. Typing) tragen den Absender nur im
+      // Publication-Info — der Publish-Proxy entfernt ein `userId` aus dem
+      // Payload. Der Server hängt `info` an client-seitige Publikationen an.
+      final publisher = event.info?.user;
+      final enriched = withPublisherUserId(data, publisher);
+      _log.fine(
+        'Publication on $channel: type=${data['type']} '
+        'publisher=$publisher',
+      );
+      _events.add(
+        CentrifugoEvent(conversationId: conversationId, data: enriched),
+      );
     });
     sub.join.listen((event) {
       _events.add(
@@ -334,6 +341,23 @@ class CentrifugoService {
 
   @visibleForTesting
   static List<int> encodePayload(Map<String, dynamic> data) => _encode(data);
+
+  /// Hängt den [publisher] als `userId` an [data], wenn dieses keinen eigenen
+  /// `userId` enthält.
+  ///
+  /// Client-Publishes (z. B. Typing) liefern den Absender nur über das
+  /// Centrifugo-Publication-Info; der Publish-Proxy entfernt ein `userId` aus
+  /// dem Payload. Ohne diese Ergänzung ist der Empfänger nicht bestimmbar.
+  @visibleForTesting
+  static Map<String, dynamic> withPublisherUserId(
+    Map<String, dynamic> data,
+    String? publisher,
+  ) {
+    if (publisher == null || publisher.isEmpty || data['userId'] != null) {
+      return data;
+    }
+    return {...data, 'userId': publisher};
+  }
 }
 
 /// Eine Publication aus einem Chat-Channel, bereits JSON-dekodiert.
