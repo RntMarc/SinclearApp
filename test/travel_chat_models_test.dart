@@ -112,6 +112,36 @@ void main() {
     });
   });
 
+  group('allDay parsing', () {
+    test('TravelTrip reads the API TINYINT allDay (0/1)', () {
+      final trip = TravelTrip.fromJson({
+        'id': 'trip-1',
+        'name': 'Urlaub',
+        'allDay': 1,
+        'startDate': '2025-08-01',
+        'endDate': '2025-08-15',
+        'hastickets': '0',
+      });
+
+      expect(trip.allDay, isTrue);
+    });
+
+    test('TravelEvent reads the API TINYINT allDay (0/1)', () {
+      final event = TravelEvent.fromJson({
+        'ID': 'evt-1',
+        'name': 'Konzert',
+        'allDay': 0,
+        'startDate': '2025-08-10',
+        'endDate': '2025-08-10',
+        'startTime': '20:00:00',
+        'endTime': '23:00:00',
+        'hastickets': '0',
+      });
+
+      expect(event.allDay, isFalse);
+    });
+  });
+
   group('TravelEvent conversationId', () {
     test('parses conversationId from JSON', () {
       final event = TravelEvent.fromJson({

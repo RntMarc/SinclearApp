@@ -227,6 +227,22 @@ void main() {
       expect(event.startInstant, DateTime(2026, 7, 1));
       expect(event.endInstant, DateTime(2026, 7, 2, 23, 59));
     });
+
+    test('liest das API-TINYINT allDay (0/1) neben bool', () {
+      final event = CalendarEvent.fromJson({
+        'id': 'event-3',
+        'creatorId': 'user-1',
+        'title': 'Feiertag',
+        'allDay': 1,
+        'startDate': '2026-07-01',
+        'endDate': '2026-07-01',
+        'visibility': 0,
+        'createdAt': '2026-06-26 10:00:00',
+        'updatedAt': '2026-06-26 10:00:00',
+      });
+
+      expect(event.allDay, isTrue);
+    });
   });
 
   group('CalendarEntry.fromCalendarEvent', () {
