@@ -70,7 +70,7 @@ class CalendarEvent {
       creatorImage: json['creatorImage'] as String?,
       title: json['title'] as String,
       description: json['description'] as String?,
-      allDay: json['allDay'] == true,
+      allDay: json['allDay'] == true || json['allDay'] == 1,
       startDate: parseApiDateOnly(json['startDate'] as String),
       endDate: parseApiDateOnly(json['endDate'] as String),
       startTime: parseApiTime(json['startTime'] as String?),
@@ -219,7 +219,7 @@ class CalendarEntry {
       type: json['type'] as String,
       id: json['id'] as String,
       title: json['title'] as String?,
-      allDay: json['allDay'] == true,
+      allDay: json['allDay'] == true || json['allDay'] == 1,
       startDate: (rawStart == null || rawStart.isEmpty)
           ? null
           : parseApiDateOnly(rawStart),
