@@ -46,18 +46,15 @@ Color _entryColor(String type, DesignTokens tokens) {
 List<MapEntry<DateTime, List<CalendarEntry>>> groupByDay(
   List<CalendarEntry> entries,
 ) {
-  final sorted = entries.where((e) => e.startTime != null).toList()
-    ..sort((a, b) => a.startTime!.compareTo(b.startTime!));
+  final sorted = entries.where((e) => e.sortInstant != null).toList()
+    ..sort((a, b) => a.sortInstant!.compareTo(b.sortInstant!));
 
   // ponytail: mehrtägige Einträge (Reisen) erscheinen nur an ihrem
   // Starttag — wie bisher bei mehreren Tagen übergreifenden Events.
   final map = <DateTime, List<CalendarEntry>>{};
   for (final entry in sorted) {
-    final day = DateTime(
-      entry.startTime!.year,
-      entry.startTime!.month,
-      entry.startTime!.day,
-    );
+    final date = entry.startDate!;
+    final day = DateTime(date.year, date.month, date.day);
     map.putIfAbsent(day, () => []).add(entry);
   }
 
@@ -275,13 +272,23 @@ class _EntryTile extends StatelessWidget {
   String _timeLabel() {
     if (entry.allDay) return 'Ganztägig';
     final start = entry.startTime;
-    return start == null ? '–' : formatTime(start);
+    return start == null ? '–' : formatTimeOfDay(start);
   }
 
   String _endLabel() {
-    if (entry.allDay) return '';
+    if (entry.allDay) {
+      final start = entry.startDate;
+      final end = entry.endDate;
+      final multiDay =
+          start != null &&
+          end != null &&
+          !(start.year == end.year &&
+              start.month == end.month &&
+              start.day == end.day);
+      return multiDay ? 'bis ${DateFormat('dd.MM.').format(end)}' : '';
+    }
     final end = entry.endTime;
-    return end == null ? '' : formatTime(end);
+    return end == null ? '' : formatTimeOfDay(end);
   }
 
   /// Unterzeile: Typ-Label für alle Nicht-Kalender-Events; echte

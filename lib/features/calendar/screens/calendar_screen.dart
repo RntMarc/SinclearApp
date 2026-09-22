@@ -123,9 +123,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _addEntries(CalendarAllResponse response) {
     for (final entry in response.data) {
-      final start = entry.startTime;
-      if (start == null) continue;
-      final day = DateTime(start.year, start.month, start.day);
+      final date = entry.startDate;
+      if (date == null) continue;
+      final day = DateTime(date.year, date.month, date.day);
+      _dayKeys.putIfAbsent(day, () => GlobalKey());
       final entries = _entriesByDay.putIfAbsent(day, () => []);
       if (!entries.any((e) => e.key == entry.key)) {
         entries.add(entry);
@@ -193,7 +194,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     for (final entries in _entriesByDay.values) {
       all.addAll(entries);
     }
-    all.sort((a, b) => a.startTime!.compareTo(b.startTime!));
+    all.sort(
+      (a, b) => (a.sortInstant ?? DateTime(0)).compareTo(
+        b.sortInstant ?? DateTime(0),
+      ),
+    );
     return all;
   }
 
@@ -211,21 +216,62 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final grouped = groupByDay(_getAllSortedEntries());
     if (grouped.isEmpty) return;
     final target = DateTime(day.year, day.month, day.day);
-    final idx = grouped.indexWhere((e) => !e.key.isBefore(target));
-    final d = idx >= 0 ? grouped[idx].key : grouped.last.key;
-    final key = _dayKeys[d];
-    if (key?.currentContext == null) return;
-    Scrollable.ensureVisible(
-      key!.currentContext!,
-      alignment: 0.1,
-      duration: const Duration(milliseconds: 250),
-    );
+    var idx = grouped.indexWhere((e) => e.key == target);
+    if (idx < 0) {
+      // Tag ohne Einträge: nächstgelegenen Eintragstag danach nehmen,
+      // sonst den letzten.
+      idx = grouped.indexWhere((e) => !e.key.isBefore(target));
+      if (idx < 0) idx = grouped.length - 1;
+    }
+    final key = _dayKeys[grouped[idx].key];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        alignment: 0.1,
+        duration: const Duration(milliseconds: 250),
+      );
+      return;
+    }
+    // Ziel ist (noch) nicht gemountet: geschätzten Offset anspringen und
+    // nach dem nächsten Frame feinjustieren, sobald der Kontext existiert.
+    _jumpToEstimatedDay(grouped, idx);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx2 = key?.currentContext;
+      if (ctx2 != null) {
+        Scrollable.ensureVisible(
+          ctx2,
+          alignment: 0.1,
+          duration: const Duration(milliseconds: 250),
+        );
+      }
+    });
+  }
+
+  /// Springt zu einem Tag, dessen [DaySection] noch nicht gemountet ist.
+  ///
+  /// ponytail: Höhen werden geschätzt (Tages-Header + Einträge); die
+  /// anschließende [Scrollable.ensureVisible]-Feinjustierung korrigiert die
+  /// Abweichung. Upgrade-Pfad: scrollable_positioned_list.
+  void _jumpToEstimatedDay(
+    List<MapEntry<DateTime, List<CalendarEntry>>> grouped,
+    int idx,
+  ) {
+    if (!_agendaScrollController.hasClients) return;
+    const headerExtent = 44.0;
+    const tileExtent = 68.0;
+    var offset = 0.0;
+    for (var i = 0; i < idx; i++) {
+      offset += headerExtent + grouped[i].value.length * tileExtent;
+    }
+    final max = _agendaScrollController.position.maxScrollExtent;
+    _agendaScrollController.jumpTo(offset.clamp(0.0, max));
   }
 
   Future<void> _createEvent({DateTime? initialDate}) async {
     final result = await showDesignSheet<Map<String, dynamic>>(
       context: context,
-      child: const EventFormSheet(),
+      child: EventFormSheet(initialDate: initialDate),
     );
 
     if (result == null || !mounted) return;
@@ -234,18 +280,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final event = await _service.create(
         title: result['title'] as String,
         description: result['description'] as String?,
-        startTime: result['startTime'] as DateTime,
-        endTime: result['endTime'] as DateTime,
+        allDay: result['allDay'] as bool,
+        startDate: result['startDate'] as DateTime,
+        endDate: result['endDate'] as DateTime,
+        startTime: result['startTime'] as TimeOfDay?,
+        endTime: result['endTime'] as TimeOfDay?,
         visibility: result['visibility'] as int,
         participantIds: result['participantIds'] as List<String>?,
       );
       final entry = CalendarEntry.fromCalendarEvent(event);
       final day = DateTime(
-        entry.startTime!.year,
-        entry.startTime!.month,
-        entry.startTime!.day,
+        event.startDate.year,
+        event.startDate.month,
+        event.startDate.day,
       );
       setState(() {
+        _dayKeys.putIfAbsent(day, () => GlobalKey());
         _entriesByDay.putIfAbsent(day, () => []).add(entry);
       });
     } catch (e, st) {
@@ -294,11 +344,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final result = await context.push('/kalender/${entry.id}');
     if (result == true && mounted) {
       setState(() {
-        final day = DateTime(
-          entry.startTime!.year,
-          entry.startTime!.month,
-          entry.startTime!.day,
-        );
+        final date = entry.startDate!;
+        final day = DateTime(date.year, date.month, date.day);
         _entriesByDay[day]?.removeWhere((e) => e.key == entry.key);
         if (_entriesByDay[day]?.isEmpty == true) {
           _entriesByDay.remove(day);
@@ -451,10 +498,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           delegate: SliverChildListDelegate([
                             for (final entry in grouped)
                               DaySection(
-                                key: _dayKeys.putIfAbsent(
-                                  entry.key,
-                                  () => GlobalKey(),
-                                ),
+                                key: _dayKeys[entry.key],
                                 date: entry.key,
                                 entries: entry.value,
                                 onEntryTap: _onEntryTap,
@@ -535,88 +579,120 @@ class _CalendarHeaderDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     final tokens = DesignTheme.of(context);
-    final collapsed = shrinkOffset > maxExtent - minExtent - 8;
+    final range = maxExtent - minExtent;
+    final t = range <= 0 ? 1.0 : (shrinkOffset / range).clamp(0.0, 1.0);
     final monthLabel = DateFormat('MMMM yyyy', 'de').format(focusedDay);
 
-    if (collapsed) {
-      return Material(
-        color: tokens.surface,
-        child: InkWell(
-          onTap: () {
-            final scrollable = Scrollable.of(context);
-            scrollable.position.animateTo(
-              0,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut,
-            );
-          },
-          child: SizedBox(
-            height: minExtent,
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DesignText(
-                    monthLabel,
-                    style: DesignTextStyle.subtitle,
-                    color: tokens.textHigh,
+    return Material(
+      color: tokens.surface,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Voller Kalender: beim Scrollen ausgeblendet und auf die
+          // aktuelle Höhe beschnitten (kein Überlaufen/Überlappen).
+          IgnorePointer(
+            ignoring: t > 0.5,
+            child: Opacity(
+              opacity: (1 - t).clamp(0.0, 1.0),
+              child: ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.topCenter,
+                  minHeight: 0,
+                  maxHeight: maxExtent,
+                  child: SizedBox(
+                    height: maxExtent,
+                    child: _buildCalendar(tokens),
                   ),
-                  SizedBox(width: tokens.spaceSm),
-                  Icon(
-                    Icons.expand_less_rounded,
-                    size: 20,
-                    color: tokens.textLow,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      );
-    }
+          // Kompakte Leiste: blendet beim Scrollen ein.
+          Align(
+            alignment: Alignment.center,
+            child: IgnorePointer(
+              ignoring: t < 0.5,
+              child: Opacity(
+                opacity: t.clamp(0.0, 1.0),
+                child: InkWell(
+                  onTap: () {
+                    final scrollable = Scrollable.of(context);
+                    scrollable.position.animateTo(
+                      0,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOut,
+                    );
+                  },
+                  child: SizedBox(
+                    height: minExtent,
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DesignText(
+                            monthLabel,
+                            style: DesignTextStyle.subtitle,
+                            color: tokens.textHigh,
+                          ),
+                          SizedBox(width: tokens.spaceSm),
+                          Icon(
+                            Icons.expand_less_rounded,
+                            size: 20,
+                            color: tokens.textLow,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    return Material(
-      type: MaterialType.transparency,
-      child: TableCalendar(
-        firstDay: DateTime(2020),
-        lastDay: DateTime(2035),
-        focusedDay: focusedDay,
-        startingDayOfWeek: StartingDayOfWeek.monday,
-        rowHeight: _rowHeight,
-        daysOfWeekHeight: _daysOfWeekHeight,
-        sixWeekMonthsEnforced: true,
-        selectedDayPredicate: (day) => isSameDay(selectedDay, day),
-        onDaySelected: (selected, focused) => onDaySelected(selected, focused),
-        onPageChanged: onPageChanged,
-        calendarFormat: CalendarFormat.month,
-        availableCalendarFormats: const {CalendarFormat.month: 'Monat'},
-        locale: 'de',
-        eventLoader: eventLoader,
-        calendarStyle: CalendarStyle(
-          cellMargin: const EdgeInsets.all(4),
-          defaultTextStyle: const TextStyle(fontSize: 14),
-          todayDecoration: BoxDecoration(
-            color: tokens.primary.withValues(alpha: 0.2),
-            shape: BoxShape.circle,
-          ),
-          selectedDecoration: BoxDecoration(
-            color: tokens.primary,
-            shape: BoxShape.circle,
-          ),
-          markerDecoration: BoxDecoration(
-            color: tokens.primary,
-            shape: BoxShape.circle,
-          ),
-          markersMaxCount: 3,
-          markerSize: 6,
-          markerMargin: const EdgeInsets.symmetric(horizontal: 1),
+  Widget _buildCalendar(DesignTokens tokens) {
+    return TableCalendar(
+      firstDay: DateTime(2020),
+      lastDay: DateTime(2035),
+      focusedDay: focusedDay,
+      startingDayOfWeek: StartingDayOfWeek.monday,
+      rowHeight: _rowHeight,
+      daysOfWeekHeight: _daysOfWeekHeight,
+      sixWeekMonthsEnforced: true,
+      selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+      onDaySelected: (selected, focused) => onDaySelected(selected, focused),
+      onPageChanged: onPageChanged,
+      calendarFormat: CalendarFormat.month,
+      availableCalendarFormats: const {CalendarFormat.month: 'Monat'},
+      locale: 'de',
+      eventLoader: eventLoader,
+      calendarStyle: CalendarStyle(
+        cellMargin: const EdgeInsets.all(4),
+        defaultTextStyle: const TextStyle(fontSize: 14),
+        todayDecoration: BoxDecoration(
+          color: tokens.primary.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
         ),
-        headerStyle: const HeaderStyle(
-          formatButtonVisible: false,
-          titleCentered: true,
-          headerPadding: EdgeInsets.symmetric(vertical: 4),
-          titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        selectedDecoration: BoxDecoration(
+          color: tokens.primary,
+          shape: BoxShape.circle,
         ),
+        markerDecoration: BoxDecoration(
+          color: tokens.primary,
+          shape: BoxShape.circle,
+        ),
+        markersMaxCount: 3,
+        markerSize: 6,
+        markerMargin: const EdgeInsets.symmetric(horizontal: 1),
+      ),
+      headerStyle: const HeaderStyle(
+        formatButtonVisible: false,
+        titleCentered: true,
+        headerPadding: EdgeInsets.symmetric(vertical: 4),
+        titleTextStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     );
   }

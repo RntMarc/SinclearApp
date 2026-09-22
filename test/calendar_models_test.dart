@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/features/calendar/models/calendar_models.dart';
 
@@ -5,6 +6,8 @@ Map<String, dynamic> _entry({
   required String type,
   required String id,
   String? title,
+  String? startDate,
+  String? endDate,
   String? startTime,
   String? endTime,
   bool allDay = false,
@@ -14,6 +17,8 @@ Map<String, dynamic> _entry({
     'type': type,
     'id': id,
     'title': title,
+    'startDate': startDate,
+    'endDate': endDate,
     'startTime': startTime,
     'endTime': endTime,
     'allDay': allDay,
@@ -30,31 +35,35 @@ void main() {
             type: 'calendar_event',
             id: 'event-1',
             title: 'Team Meeting',
-            startTime: '2026-07-01 10:00:00',
-            endTime: '2026-07-01 11:00:00',
+            startDate: '2026-07-01',
+            endDate: '2026-07-01',
+            startTime: '10:00:00',
+            endTime: '11:00:00',
             detail: {'description': 'Weekly'},
           ),
           _entry(
             type: 'travel_event',
             id: 'travel-event-1',
             title: 'Konzert',
-            startTime: '2026-07-02 20:00:00',
-            endTime: '2026-07-02 23:00:00',
+            startDate: '2026-07-02',
+            endDate: '2026-07-02',
+            startTime: '20:00:00',
+            endTime: '23:00:00',
           ),
           _entry(
             type: 'trip',
             id: 'trip-1',
             title: 'Berlin',
-            startTime: '2026-07-03 00:00:00',
-            endTime: '2026-07-06 23:59:59',
+            startDate: '2026-07-03',
+            endDate: '2026-07-06',
             allDay: true,
           ),
           _entry(
             type: 'birthday',
             id: '2026-07-04-user-1',
             title: 'Geburtstag: Max',
-            startTime: '2026-07-04 00:00:00',
-            endTime: '2026-07-04 23:59:59',
+            startDate: '2026-07-04',
+            endDate: '2026-07-04',
             allDay: true,
             detail: {'userId': 'user-1'},
           ),
@@ -62,8 +71,10 @@ void main() {
             type: 'pt_journey',
             id: 'journey-1',
             title: 'Hamburg → Berlin',
-            startTime: '2026-07-05 08:00:00',
-            endTime: '2026-07-05 10:30:00',
+            startDate: '2026-07-05',
+            endDate: '2026-07-05',
+            startTime: '08:00:00',
+            endTime: '10:30:00',
             detail: {'legs': <Map<String, dynamic>>[]},
           ),
         ],
@@ -80,11 +91,14 @@ void main() {
       expect(event.id, 'event-1');
       expect(event.title, 'Team Meeting');
       expect(event.allDay, isFalse);
-      expect(event.startTime!.toUtc(), DateTime.utc(2026, 7, 1, 10, 0, 0));
-      expect(event.endTime!.toUtc(), DateTime.utc(2026, 7, 1, 11, 0, 0));
+      expect(event.startDate, DateTime(2026, 7, 1));
+      expect(event.endDate, DateTime(2026, 7, 1));
+      expect(event.startTime, const TimeOfDay(hour: 10, minute: 0));
+      expect(event.endTime, const TimeOfDay(hour: 11, minute: 0));
       expect(event.detail['description'], 'Weekly');
 
       expect(response.data[2].allDay, isTrue);
+      expect(response.data[2].startTime, isNull);
       expect(response.data[4].detail['legs'], isEmpty);
     });
 
@@ -92,10 +106,36 @@ void main() {
       final entry = CalendarEntry.fromJson(_entry(type: 'trip', id: 'trip-1'));
 
       expect(entry.title, isNull);
+      expect(entry.startDate, isNull);
+      expect(entry.endDate, isNull);
       expect(entry.startTime, isNull);
-      expect(entry.endTime, isNull);
       expect(entry.allDay, isFalse);
       expect(entry.detail, isEmpty);
+    });
+
+    test('sortInstant kombiniert Datum und Uhrzeit, ganztägig = Tagesbeginn', () {
+      final timed = CalendarEntry.fromJson(
+        _entry(
+          type: 'calendar_event',
+          id: 'e',
+          startDate: '2026-07-01',
+          endDate: '2026-07-01',
+          startTime: '10:30:00',
+          endTime: '11:00:00',
+        ),
+      );
+      expect(timed.sortInstant, DateTime(2026, 7, 1, 10, 30));
+
+      final allDay = CalendarEntry.fromJson(
+        _entry(
+          type: 'trip',
+          id: 't',
+          startDate: '2026-07-01',
+          endDate: '2026-07-03',
+          allDay: true,
+        ),
+      );
+      expect(allDay.sortInstant, DateTime(2026, 7, 1));
     });
 
     test('fehlende meta ergibt truncated == false', () {
@@ -147,14 +187,59 @@ void main() {
     });
   });
 
+  group('CalendarEvent.fromJson', () {
+    test('parst Datum, Uhrzeit und allDay', () {
+      final event = CalendarEvent.fromJson({
+        'id': 'event-1',
+        'creatorId': 'user-1',
+        'title': 'Meeting',
+        'allDay': false,
+        'startDate': '2026-07-01',
+        'endDate': '2026-07-01',
+        'startTime': '10:00:00',
+        'endTime': '11:00:00',
+        'visibility': 0,
+        'createdAt': '2026-06-26 10:00:00',
+        'updatedAt': '2026-06-26 10:00:00',
+      });
+
+      expect(event.startDate, DateTime(2026, 7, 1));
+      expect(event.startTime, const TimeOfDay(hour: 10, minute: 0));
+      expect(event.startInstant, DateTime(2026, 7, 1, 10, 0));
+      expect(event.endInstant, DateTime(2026, 7, 1, 11, 0));
+    });
+
+    test('ganztägig: keine Uhrzeit, endInstant = Tagesende', () {
+      final event = CalendarEvent.fromJson({
+        'id': 'event-2',
+        'creatorId': 'user-1',
+        'title': 'Feiertag',
+        'allDay': true,
+        'startDate': '2026-07-01',
+        'endDate': '2026-07-02',
+        'visibility': 0,
+        'createdAt': '2026-06-26 10:00:00',
+        'updatedAt': '2026-06-26 10:00:00',
+      });
+
+      expect(event.allDay, isTrue);
+      expect(event.startTime, isNull);
+      expect(event.startInstant, DateTime(2026, 7, 1));
+      expect(event.endInstant, DateTime(2026, 7, 2, 23, 59));
+    });
+  });
+
   group('CalendarEntry.fromCalendarEvent', () {
     test('mappt ein echtes Kalender-Event auf den Feed-Typ', () {
       final event = CalendarEvent(
         id: 'event-1',
         creatorId: 'user-1',
         title: 'Meeting',
-        startTime: DateTime.utc(2026, 7, 1, 10),
-        endTime: DateTime.utc(2026, 7, 1, 11),
+        allDay: false,
+        startDate: DateTime(2026, 7, 1),
+        endDate: DateTime(2026, 7, 1),
+        startTime: const TimeOfDay(hour: 10, minute: 0),
+        endTime: const TimeOfDay(hour: 11, minute: 0),
         visibility: 0,
         createdAt: DateTime.utc(2026, 6, 26),
         updatedAt: DateTime.utc(2026, 6, 26),
@@ -165,9 +250,9 @@ void main() {
       expect(entry.type, 'calendar_event');
       expect(entry.id, 'event-1');
       expect(entry.title, 'Meeting');
-      expect(entry.startTime, DateTime.utc(2026, 7, 1, 10));
-      expect(entry.endTime, DateTime.utc(2026, 7, 1, 11));
       expect(entry.allDay, isFalse);
+      expect(entry.startDate, DateTime(2026, 7, 1));
+      expect(entry.startTime, const TimeOfDay(hour: 10, minute: 0));
       expect(entry.targetId, 'event-1');
     });
   });

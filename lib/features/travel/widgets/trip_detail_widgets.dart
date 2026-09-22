@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../core/widgets/async_section.dart';
 import '../../../design/theme/design_theme.dart';
@@ -42,11 +43,6 @@ class TripOverviewSection extends StatelessWidget {
     this.onSelectMapTab,
   });
 
-  String _formatDate(DateTime date) {
-    final local = date.toLocal();
-    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
@@ -64,7 +60,9 @@ class TripOverviewSection extends StatelessWidget {
           ],
           SizedBox(height: tokens.spaceSm),
           DesignText(
-            '${_formatDate(trip.start)} \u2013 ${_formatDate(trip.end)}',
+            trip.allDay
+                ? formatDayRange(trip.startDate, trip.endDate)
+                : formatDateRange(trip.startInstant, trip.endInstant),
             style: DesignTextStyle.label,
             color: tokens.textLow,
           ),
@@ -312,18 +310,18 @@ class TripEventsTab extends StatelessWidget {
     final past = <TravelEvent>[];
 
     for (final e in events) {
-      if (e.start.isBefore(now) && e.end.isAfter(now)) {
+      if (e.startInstant.isBefore(now) && e.endInstant.isAfter(now)) {
         current.add(e);
-      } else if (e.start.isAfter(now)) {
+      } else if (e.startInstant.isAfter(now)) {
         future.add(e);
       } else {
         past.add(e);
       }
     }
 
-    current.sort((a, b) => a.start.compareTo(b.start));
-    future.sort((a, b) => a.start.compareTo(b.start));
-    past.sort((a, b) => b.end.compareTo(a.end));
+    current.sort((a, b) => a.startInstant.compareTo(b.startInstant));
+    future.sort((a, b) => a.startInstant.compareTo(b.startInstant));
+    past.sort((a, b) => b.endInstant.compareTo(a.endInstant));
 
     Widget section(String title, List<TravelEvent> items) {
       return Column(
@@ -371,15 +369,6 @@ class TripEventCard extends StatelessWidget {
   bool get _isParticipating =>
       currentUserId != null &&
       event.participants.any((p) => p.id == currentUserId);
-
-  String _formatDateTime(DateTime dt) {
-    final local = dt.toLocal();
-    final day =
-        '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
-    final time =
-        '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-    return '$day $time';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -430,7 +419,9 @@ class TripEventCard extends StatelessWidget {
             ),
             SizedBox(height: tokens.spaceXs),
             DesignText(
-              '${_formatDateTime(event.start)} \u2013 ${_formatDateTime(event.end)}',
+              event.allDay
+                  ? formatDayRange(event.startDate, event.endDate)
+                  : formatDateRange(event.startInstant, event.endInstant),
               style: DesignTextStyle.label,
               color: tokens.textLow,
             ),

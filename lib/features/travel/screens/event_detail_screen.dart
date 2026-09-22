@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
@@ -157,16 +158,6 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
     }
 
     final event = _event!;
-    final localStart = event.start.toLocal();
-    final localEnd = event.end.toLocal();
-
-    String fmt(DateTime dt) {
-      final d =
-          '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
-      final t =
-          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-      return '$d $t';
-    }
 
     final hasCoords = event.latitude != null && event.longitude != null;
 
@@ -200,9 +191,25 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
               ),
             ],
             SizedBox(height: tokens.spaceLg),
-            _infoRow(tokens, Icons.schedule_rounded, fmt(localStart)),
-            SizedBox(height: tokens.spaceXs),
-            _infoRow(tokens, Icons.schedule_rounded, 'bis ${fmt(localEnd)}'),
+            if (event.allDay)
+              _infoRow(
+                tokens,
+                Icons.schedule_rounded,
+                formatDayRange(event.startDate, event.endDate),
+              )
+            else ...[
+              _infoRow(
+                tokens,
+                Icons.schedule_rounded,
+                formatDateTime(event.startInstant),
+              ),
+              SizedBox(height: tokens.spaceXs),
+              _infoRow(
+                tokens,
+                Icons.schedule_rounded,
+                'bis ${formatDateTime(event.endInstant)}',
+              ),
+            ],
             if (event.organizer != null) ...[
               SizedBox(height: tokens.spaceXs),
               _infoRow(tokens, Icons.person_rounded, event.organizer!),

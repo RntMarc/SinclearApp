@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../auth/services/auth_service.dart';
@@ -24,8 +25,8 @@ class CalendarService {
     };
 
     if (start != null && end != null) {
-      params['start'] = toApiDate(start);
-      params['end'] = toApiDate(end);
+      params['start'] = toApiDateOnly(start);
+      params['end'] = toApiDateOnly(end);
     } else if (range != null) {
       params['range'] = range;
     }
@@ -54,8 +55,8 @@ class CalendarService {
   }) async {
     final params = <String, String>{};
     if (start != null && end != null) {
-      params['start'] = toApiDate(start);
-      params['end'] = toApiDate(end);
+      params['start'] = toApiDateOnly(start);
+      params['end'] = toApiDateOnly(end);
     }
     if (types != null && types.isNotEmpty) {
       params['types'] = types.join(',');
@@ -72,17 +73,25 @@ class CalendarService {
   Future<CalendarEvent> create({
     required String title,
     String? description,
-    required DateTime startTime,
-    required DateTime endTime,
+    required bool allDay,
+    required DateTime startDate,
+    required DateTime endDate,
+    TimeOfDay? startTime,
+    TimeOfDay? endTime,
     int visibility = 0,
     List<String>? participantIds,
   }) async {
     final body = <String, dynamic>{
       'title': title,
-      'startTime': toApiDate(startTime),
-      'endTime': toApiDate(endTime),
+      'allDay': allDay,
+      'startDate': toApiDateOnly(startDate),
+      'endDate': toApiDateOnly(endDate),
       'visibility': visibility,
     };
+    if (!allDay && startTime != null && endTime != null) {
+      body['startTime'] = toApiTime(startTime);
+      body['endTime'] = toApiTime(endTime);
+    }
     if (description != null) body['description'] = description;
     if (participantIds != null && participantIds.isNotEmpty) {
       body['participants'] = participantIds;
@@ -96,22 +105,31 @@ class CalendarService {
     return CalendarEventDetailResponse.fromJson(data).data;
   }
 
+  /// Partielles Update. Beim Umschalten auf ganztägig werden `startTime`/
+  /// `endTime` als `null` gesendet, damit die API die Uhrzeiten leert.
   Future<CalendarEvent> update(
     String id, {
     String? title,
     String? description,
-    DateTime? startTime,
-    DateTime? endTime,
+    bool? allDay,
+    DateTime? startDate,
+    DateTime? endDate,
+    TimeOfDay? startTime,
+    TimeOfDay? endTime,
     int? visibility,
   }) async {
     final body = <String, dynamic>{};
     if (title != null) body['title'] = title;
     if (description != null) body['description'] = description;
-    if (startTime != null) {
-      body['startTime'] = toApiDate(startTime);
-    }
-    if (endTime != null) {
-      body['endTime'] = toApiDate(endTime);
+    if (allDay != null) body['allDay'] = allDay;
+    if (startDate != null) body['startDate'] = toApiDateOnly(startDate);
+    if (endDate != null) body['endDate'] = toApiDateOnly(endDate);
+    if (allDay == true) {
+      body['startTime'] = null;
+      body['endTime'] = null;
+    } else {
+      if (startTime != null) body['startTime'] = toApiTime(startTime);
+      if (endTime != null) body['endTime'] = toApiTime(endTime);
     }
     if (visibility != null) body['visibility'] = visibility;
 

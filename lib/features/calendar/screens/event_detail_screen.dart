@@ -97,8 +97,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         _event!.id,
         title: result['title'] as String,
         description: result['description'] as String?,
-        startTime: result['startTime'] as DateTime,
-        endTime: result['endTime'] as DateTime,
+        allDay: result['allDay'] as bool,
+        startDate: result['startDate'] as DateTime,
+        endDate: result['endDate'] as DateTime,
+        startTime: result['startTime'] as TimeOfDay?,
+        endTime: result['endTime'] as TimeOfDay?,
         visibility: result['visibility'] as int,
       );
       if (!mounted) return;
@@ -392,7 +395,12 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       tokens: tokens,
                       icon: Icons.access_time_rounded,
                       label: 'Zeitraum',
-                      value: formatDateRange(event.startTime, event.endTime),
+                      value: event.allDay
+                          ? formatDayRange(event.startDate, event.endDate)
+                          : formatDateRange(
+                              event.startInstant,
+                              event.endInstant,
+                            ),
                     ),
                     SizedBox(height: tokens.spaceSm),
                     _infoRow(

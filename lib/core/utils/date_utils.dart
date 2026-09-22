@@ -1,8 +1,11 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:intl/intl.dart';
 
 /// API-Zeitformat: UTC, kein T, kein Z, keine Millisekunden.
 const _apiDateFormat = 'yyyy-MM-dd HH:mm:ss';
 final _apiFormatter = DateFormat(_apiDateFormat);
+
+final _apiDateOnlyFormatter = DateFormat('yyyy-MM-dd');
 
 /// API-Zeitformat mit Millisekunden für exklusive Vergleiche.
 const _apiDateFormatMs = 'yyyy-MM-dd HH:mm:ss.SSS';
@@ -46,6 +49,57 @@ DateTime parseApiDate(String value) {
 /// Kompatibilitäts-alias – nutzt jetzt [parseApiDate].
 DateTime parseUtcToLocal(String iso) => parseApiDate(iso);
 
+/// Formatiert ein Datum als zivilen API-Datumsstring `YYYY-MM-DD`.
+///
+/// Verwendet die lokalen Datumsfelder (kein [DateTime.toUtc]), da es sich um
+/// ein Kalenderdatum ohne Uhrzeit/Zeitzone handelt.
+String toApiDateOnly(DateTime date) => _apiDateOnlyFormatter.format(date);
+
+/// Parst einen zivilen API-Datumsstring `YYYY-MM-DD` als lokales Datum.
+///
+/// Anders als [parseApiDate] wird ein Datum ohne Uhrzeit **nicht** als
+/// UTC-Mitternacht interpretiert und verschoben, sondern als ziviler Tag
+/// beibehalten – sonst landet ein ganztägiger Eintrag westlich von UTC am
+/// Vortag.
+DateTime parseApiDateOnly(String value) {
+  final trimmed = value.trim();
+  if (trimmed.length == 10) return DateTime.parse(trimmed);
+  return DateTime.parse('${trimmed.substring(0, 10)}T00:00:00');
+}
+
+/// Parst eine API-Uhrzeit `HH:MM:SS` (oder `HH:MM`) als [TimeOfDay].
+TimeOfDay? parseApiTime(String? value) {
+  if (value == null || value.trim().isEmpty) return null;
+  final parts = value.trim().split(':');
+  if (parts.length < 2) return null;
+  final hour = int.tryParse(parts[0]);
+  final minute = int.tryParse(parts[1]);
+  if (hour == null || minute == null) return null;
+  return TimeOfDay(hour: hour, minute: minute);
+}
+
+/// Formatiert eine [TimeOfDay] als API-Uhrzeit `HH:MM:SS`.
+String toApiTime(TimeOfDay time) =>
+    '${time.hour.toString().padLeft(2, '0')}:'
+    '${time.minute.toString().padLeft(2, '0')}:00';
+
+/// Formatiert eine [TimeOfDay] als `HH:mm` für die Anzeige.
+String formatTimeOfDay(TimeOfDay time) =>
+    '${time.hour.toString().padLeft(2, '0')}:'
+    '${time.minute.toString().padLeft(2, '0')}';
+
+/// Kombiniert ein ziviles Datum mit einer optionalen Uhrzeit zu einem
+/// lokalen Zeitpunkt.
+///
+/// Ohne Uhrzeit wird der Tagesbeginn (bzw. mit [endOfDay] 23:59) verwendet –
+/// passend für ganztägige Einträge.
+DateTime combineDateAndTime(DateTime date, TimeOfDay? time, {bool endOfDay = false}) {
+  if (time != null) {
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+  return DateTime(date.year, date.month, date.day, endOfDay ? 23 : 0, endOfDay ? 59 : 0);
+}
+
 String formatDate(DateTime date) {
   final local = date.toLocal();
   return DateFormat('dd.MM.yyyy').format(local);
@@ -68,6 +122,17 @@ String formatDateRange(DateTime start, DateTime end) {
     return '${DateFormat('dd.MM.yyyy').format(s)} ${DateFormat('HH:mm').format(s)} – ${DateFormat('HH:mm').format(e)}';
   }
   return '${DateFormat('dd.MM.yyyy HH:mm').format(s)} – ${DateFormat('dd.MM.yyyy HH:mm').format(e)}';
+}
+
+/// Datumsbereich ohne Uhrzeit für ganztägige Einträge: `dd.MM.yyyy` bei
+/// eintägigen, sonst `dd.MM.yyyy – dd.MM.yyyy`.
+String formatDayRange(DateTime start, DateTime end) {
+  final s = start.toLocal();
+  final e = end.toLocal();
+  if (s.year == e.year && s.month == e.month && s.day == e.day) {
+    return DateFormat('dd.MM.yyyy').format(s);
+  }
+  return '${DateFormat('dd.MM.yyyy').format(s)} – ${DateFormat('dd.MM.yyyy').format(e)}';
 }
 
 String formatRelativeDate(String iso) {
