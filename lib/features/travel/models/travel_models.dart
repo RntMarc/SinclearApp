@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import '../../../core/utils/date_utils.dart';
 
 class ForumBrief {
@@ -27,8 +28,11 @@ class TravelTrip {
   final String id;
   final String name;
   final String? description;
-  final DateTime start;
-  final DateTime end;
+  final bool allDay;
+  final DateTime startDate;
+  final DateTime endDate;
+  final TimeOfDay? startTime;
+  final TimeOfDay? endTime;
   final String hastickets;
   final String? ticket;
   final String? ticketUrl;
@@ -41,8 +45,11 @@ class TravelTrip {
     required this.id,
     required this.name,
     this.description,
-    required this.start,
-    required this.end,
+    this.allDay = true,
+    required this.startDate,
+    required this.endDate,
+    this.startTime,
+    this.endTime,
     required this.hastickets,
     this.ticket,
     this.ticketUrl,
@@ -52,13 +59,22 @@ class TravelTrip {
     this.subscriptionCount = 0,
   });
 
+  DateTime get startInstant =>
+      combineDateAndTime(startDate, allDay ? null : startTime);
+
+  DateTime get endInstant =>
+      combineDateAndTime(endDate, allDay ? null : endTime, endOfDay: true);
+
   factory TravelTrip.fromJson(Map<String, dynamic> json) {
     return TravelTrip(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
-      start: parseApiDate(json['start'] as String),
-      end: parseApiDate(json['end'] as String),
+      allDay: json['allDay'] == true,
+      startDate: parseApiDateOnly(json['startDate'] as String),
+      endDate: parseApiDateOnly(json['endDate'] as String),
+      startTime: parseApiTime(json['startTime'] as String?),
+      endTime: parseApiTime(json['endTime'] as String?),
       hastickets: json['hastickets'] as String,
       ticket: json['ticket'] as String?,
       ticketUrl: json['ticketUrl'] as String?,
@@ -77,8 +93,11 @@ class TravelEvent {
   final String? trip;
   final String name;
   final String? description;
-  final DateTime start;
-  final DateTime end;
+  final bool allDay;
+  final DateTime startDate;
+  final DateTime endDate;
+  final TimeOfDay? startTime;
+  final TimeOfDay? endTime;
   final String hastickets;
   final String? ticket;
   final String? ticketUrl;
@@ -98,8 +117,11 @@ class TravelEvent {
     this.trip,
     required this.name,
     this.description,
-    required this.start,
-    required this.end,
+    this.allDay = false,
+    required this.startDate,
+    required this.endDate,
+    this.startTime,
+    this.endTime,
     required this.hastickets,
     this.ticket,
     this.ticketUrl,
@@ -115,14 +137,23 @@ class TravelEvent {
     this.participants = const [],
   });
 
+  DateTime get startInstant =>
+      combineDateAndTime(startDate, allDay ? null : startTime);
+
+  DateTime get endInstant =>
+      combineDateAndTime(endDate, allDay ? null : endTime, endOfDay: true);
+
   factory TravelEvent.fromJson(Map<String, dynamic> json) {
     return TravelEvent(
       id: json['ID'] as String,
       trip: json['trip'] as String?,
       name: json['name'] as String,
       description: json['description'] as String?,
-      start: parseApiDate(json['start'] as String),
-      end: parseApiDate(json['end'] as String),
+      allDay: json['allDay'] == true,
+      startDate: parseApiDateOnly(json['startDate'] as String),
+      endDate: parseApiDateOnly(json['endDate'] as String),
+      startTime: parseApiTime(json['startTime'] as String?),
+      endTime: parseApiTime(json['endTime'] as String?),
       hastickets: json['hastickets'] as String,
       ticket: json['ticket'] as String?,
       ticketUrl: json['ticketUrl'] as String?,
@@ -283,18 +314,30 @@ class TimelineEntry {
   final String id;
   final String name;
   final String? description;
-  final DateTime start;
-  final DateTime end;
+  final bool allDay;
+  final DateTime startDate;
+  final DateTime endDate;
+  final TimeOfDay? startTime;
+  final TimeOfDay? endTime;
   final bool isTrip;
 
   const TimelineEntry({
     required this.id,
     required this.name,
     this.description,
-    required this.start,
-    required this.end,
+    this.allDay = false,
+    required this.startDate,
+    required this.endDate,
+    this.startTime,
+    this.endTime,
     required this.isTrip,
   });
+
+  DateTime get startInstant =>
+      combineDateAndTime(startDate, allDay ? null : startTime);
+
+  DateTime get endInstant =>
+      combineDateAndTime(endDate, allDay ? null : endTime, endOfDay: true);
 }
 
 class PaginationMeta {

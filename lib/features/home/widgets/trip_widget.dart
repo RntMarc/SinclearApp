@@ -15,6 +15,7 @@ import '../dashboard_widget_spec.dart';
 class TripRow implements DashboardRow {
   final String id;
   final String name;
+  final bool allDay;
   final DateTime start;
   final DateTime end;
   final bool isTrip;
@@ -24,6 +25,7 @@ class TripRow implements DashboardRow {
   const TripRow({
     required this.id,
     required this.name,
+    this.allDay = true,
     required this.start,
     required this.end,
     required this.isTrip,
@@ -35,8 +37,9 @@ class TripRow implements DashboardRow {
     return TripRow(
       id: trip.id,
       name: trip.name,
-      start: trip.start,
-      end: trip.end,
+      allDay: trip.allDay,
+      start: trip.startInstant,
+      end: trip.endInstant,
       isTrip: true,
     );
   }
@@ -45,8 +48,9 @@ class TripRow implements DashboardRow {
     return TripRow(
       id: event.id,
       name: event.name,
-      start: event.start,
-      end: event.end,
+      allDay: event.allDay,
+      start: event.startInstant,
+      end: event.endInstant,
       isTrip: false,
       organizer: event.organizer,
       address: event.address,
@@ -57,6 +61,7 @@ class TripRow implements DashboardRow {
     return TripRow(
       id: json['id'] as String,
       name: json['name'] as String,
+      allDay: json['allDay'] as bool? ?? true,
       start: DateTime.fromMillisecondsSinceEpoch(json['start'] as int),
       end: DateTime.fromMillisecondsSinceEpoch(json['end'] as int),
       isTrip: json['isTrip'] as bool,
@@ -69,6 +74,7 @@ class TripRow implements DashboardRow {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
+    'allDay': allDay,
     'start': start.millisecondsSinceEpoch,
     'end': end.millisecondsSinceEpoch,
     'isTrip': isTrip,
@@ -130,7 +136,9 @@ class TripWidgetSpec extends DashboardWidgetSpec {
     final trip = row as TripRow;
     final tokens = DesignTheme.of(context);
     final subtitle = [
-      formatDateRange(trip.start, trip.end),
+      trip.allDay
+          ? formatDayRange(trip.start, trip.end)
+          : formatDateRange(trip.start, trip.end),
       if (!trip.isTrip && trip.organizer != null) trip.organizer!,
     ].join(' · ');
     return PressScale(

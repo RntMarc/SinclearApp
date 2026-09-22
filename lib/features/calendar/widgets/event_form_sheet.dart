@@ -12,7 +12,11 @@ import '../models/calendar_models.dart';
 class EventFormSheet extends StatefulWidget {
   final CalendarEvent? event;
 
-  const EventFormSheet({super.key, this.event});
+  /// Vorbelegtes Startdatum für neue Events (z. B. der im Kalender
+  /// ausgewählte Tag). Wird von [event] überschrieben, falls gesetzt.
+  final DateTime? initialDate;
+
+  const EventFormSheet({super.key, this.event, this.initialDate});
 
   @override
   State<EventFormSheet> createState() => _EventFormSheetState();
@@ -21,6 +25,7 @@ class EventFormSheet extends StatefulWidget {
 class _EventFormSheetState extends State<EventFormSheet> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
+  late bool _allDay;
   late DateTime _startDate;
   late TimeOfDay _startTime;
   late DateTime _endDate;
@@ -36,17 +41,19 @@ class _EventFormSheetState extends State<EventFormSheet> {
     super.initState();
     final event = widget.event;
     final now = DateTime.now();
+    final baseDate = widget.initialDate ?? now;
 
     _titleController = TextEditingController(text: event?.title ?? '');
     _descriptionController = TextEditingController(
       text: event?.description ?? '',
     );
-    _startDate = event?.startTime ?? now;
-    _startTime = TimeOfDay.fromDateTime(event?.startTime ?? now);
-    _endDate = event?.endTime ?? now.add(const Duration(hours: 1));
-    _endTime = TimeOfDay.fromDateTime(
-      event?.endTime ?? now.add(const Duration(hours: 1)),
-    );
+    _allDay = event?.allDay ?? false;
+    _startDate = event?.startDate ?? baseDate;
+    _startTime = event?.startTime ?? TimeOfDay.fromDateTime(now);
+    _endDate = event?.endDate ?? baseDate.add(const Duration(hours: 1));
+    _endTime =
+        event?.endTime ??
+        TimeOfDay.fromDateTime(now.add(const Duration(hours: 1)));
     _visibility = event?.visibility ?? 0;
     if (event != null) {
       _participantIds.addAll(event.participants.map((p) => p.id));
@@ -100,10 +107,27 @@ class _EventFormSheetState extends State<EventFormSheet> {
               ),
             ),
             SizedBox(height: tokens.spaceLg),
+            Row(
+              children: [
+                Expanded(
+                  child: DesignText(
+                    'Ganztägig',
+                    style: DesignTextStyle.label,
+                    color: tokens.textHigh,
+                  ),
+                ),
+                Switch(
+                  value: _allDay,
+                  onChanged: (v) => setState(() => _allDay = v),
+                ),
+              ],
+            ),
+            SizedBox(height: tokens.spaceSm),
             _DateTimePicker(
               label: 'Beginn',
               date: _startDate,
               time: _startTime,
+              showTime: !_allDay,
               onDateChanged: (d) => setState(() => _startDate = d),
               onTimeChanged: (t) => setState(() => _startTime = t),
             ),
@@ -112,6 +136,7 @@ class _EventFormSheetState extends State<EventFormSheet> {
               label: 'Ende',
               date: _endDate,
               time: _endTime,
+              showTime: !_allDay,
               onDateChanged: (d) => setState(() => _endDate = d),
               onTimeChanged: (t) => setState(() => _endTime = t),
             ),
@@ -182,27 +207,37 @@ class _EventFormSheetState extends State<EventFormSheet> {
   Future<void> _submit() async {
     if (_titleController.text.trim().isEmpty) return;
 
-    final start = DateTime(
+    final startDate = DateTime(
       _startDate.year,
       _startDate.month,
       _startDate.day,
-      _startTime.hour,
-      _startTime.minute,
     );
-    final end = DateTime(
-      _endDate.year,
-      _endDate.month,
-      _endDate.day,
-      _endTime.hour,
-      _endTime.minute,
-    );
+    final endDate = DateTime(_endDate.year, _endDate.month, _endDate.day);
 
-    if (end.isBefore(start) || end.isAtSameMomentAs(start)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Das Ende muss nach dem Beginn liegen.')),
+    if (_allDay) {
+      if (endDate.isBefore(startDate)) {
+        _showError('Das Enddatum darf nicht vor dem Startdatum liegen.');
+        return;
+      }
+    } else {
+      final start = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+        _startTime.hour,
+        _startTime.minute,
       );
-      return;
+      final end = DateTime(
+        endDate.year,
+        endDate.month,
+        endDate.day,
+        _endTime.hour,
+        _endTime.minute,
+      );
+      if (!end.isAfter(start)) {
+        _showError('Das Ende muss nach dem Beginn liegen.');
+        return;
+      }
     }
 
     Navigator.of(context).pop({
@@ -210,11 +245,19 @@ class _EventFormSheetState extends State<EventFormSheet> {
       'description': _descriptionController.text.trim().isEmpty
           ? null
           : _descriptionController.text.trim(),
-      'startTime': start,
-      'endTime': end,
+      'allDay': _allDay,
+      'startDate': startDate,
+      'endDate': endDate,
+      'startTime': _allDay ? null : _startTime,
+      'endTime': _allDay ? null : _endTime,
       'visibility': _visibility,
       'participantIds': _participantIds.toList(),
     });
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -222,6 +265,7 @@ class _DateTimePicker extends StatelessWidget {
   final String label;
   final DateTime date;
   final TimeOfDay time;
+  final bool showTime;
   final ValueChanged<DateTime> onDateChanged;
   final ValueChanged<TimeOfDay> onTimeChanged;
 
@@ -229,6 +273,7 @@ class _DateTimePicker extends StatelessWidget {
     required this.label,
     required this.date,
     required this.time,
+    this.showTime = true,
     required this.onDateChanged,
     required this.onTimeChanged,
   });
@@ -245,7 +290,7 @@ class _DateTimePicker extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              flex: 3,
+              flex: showTime ? 3 : 1,
               child: DesignButton(
                 label: DateFormat('dd.MM.yyyy').format(date),
                 variant: DesignButtonVariant.outlined,
@@ -253,16 +298,18 @@ class _DateTimePicker extends StatelessWidget {
                 onPressed: () => _pickDate(context),
               ),
             ),
-            SizedBox(width: tokens.spaceSm),
-            Expanded(
-              flex: 2,
-              child: DesignButton(
-                label: time.format(context),
-                variant: DesignButtonVariant.outlined,
-                icon: Icons.access_time_rounded,
-                onPressed: () => _pickTime(context),
+            if (showTime) ...[
+              SizedBox(width: tokens.spaceSm),
+              Expanded(
+                flex: 2,
+                child: DesignButton(
+                  label: time.format(context),
+                  variant: DesignButtonVariant.outlined,
+                  icon: Icons.access_time_rounded,
+                  onPressed: () => _pickTime(context),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ],

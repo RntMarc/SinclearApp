@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import '../../../core/utils/date_utils.dart';
 
 class UserBrief {
@@ -16,6 +17,8 @@ class UserBrief {
   }
 }
 
+/// Ein Kalender-Event im neuen API-Format: `startDate`/`endDate` (Datum, immer)
+/// plus optionale `startTime`/`endTime` (nur bei getakteten Events) und `allDay`.
 class CalendarEvent {
   final String id;
   final String creatorId;
@@ -23,8 +26,11 @@ class CalendarEvent {
   final String? creatorImage;
   final String title;
   final String? description;
-  final DateTime startTime;
-  final DateTime endTime;
+  final bool allDay;
+  final DateTime startDate;
+  final DateTime endDate;
+  final TimeOfDay? startTime;
+  final TimeOfDay? endTime;
   final int visibility;
   final List<UserBrief> participants;
   final DateTime createdAt;
@@ -37,13 +43,24 @@ class CalendarEvent {
     this.creatorImage,
     required this.title,
     this.description,
-    required this.startTime,
-    required this.endTime,
+    this.allDay = false,
+    required this.startDate,
+    required this.endDate,
+    this.startTime,
+    this.endTime,
     required this.visibility,
     this.participants = const [],
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// Sortierbarer Startzeitpunkt (Datum + Uhrzeit; ganztägig = Tagesbeginn).
+  DateTime get startInstant =>
+      combineDateAndTime(startDate, allDay ? null : startTime);
+
+  /// Sortierbarer Endzeitpunkt (ganztägig = Tagesende 23:59).
+  DateTime get endInstant =>
+      combineDateAndTime(endDate, allDay ? null : endTime, endOfDay: true);
 
   factory CalendarEvent.fromJson(Map<String, dynamic> json) {
     return CalendarEvent(
@@ -53,8 +70,11 @@ class CalendarEvent {
       creatorImage: json['creatorImage'] as String?,
       title: json['title'] as String,
       description: json['description'] as String?,
-      startTime: parseApiDate(json['startTime'] as String),
-      endTime: parseApiDate(json['endTime'] as String),
+      allDay: json['allDay'] == true,
+      startDate: parseApiDateOnly(json['startDate'] as String),
+      endDate: parseApiDateOnly(json['endDate'] as String),
+      startTime: parseApiTime(json['startTime'] as String?),
+      endTime: parseApiTime(json['endTime'] as String?),
       visibility: json['visibility'] as int,
       participants:
           (json['participants'] as List?)
@@ -64,16 +84,6 @@ class CalendarEvent {
       createdAt: parseApiDate(json['createdAt'] as String),
       updatedAt: parseApiDate(json['updatedAt'] as String),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'title': title,
-      'description': description,
-      'startTime': toApiDate(startTime),
-      'endTime': toApiDate(endTime),
-      'visibility': visibility,
-    };
   }
 }
 
@@ -160,18 +170,22 @@ class CalendarEntry {
   final String type;
   final String id;
   final String? title;
-  final DateTime? startTime;
-  final DateTime? endTime;
   final bool allDay;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final TimeOfDay? startTime;
+  final TimeOfDay? endTime;
   final Map<String, dynamic> detail;
 
   const CalendarEntry({
     required this.type,
     required this.id,
     this.title,
+    this.allDay = false,
+    this.startDate,
+    this.endDate,
     this.startTime,
     this.endTime,
-    this.allDay = false,
     this.detail = const {},
   });
 
@@ -189,17 +203,31 @@ class CalendarEntry {
     return userId is String && userId.isNotEmpty ? userId : null;
   }
 
+  /// Sortier-/Gruppierschlüssel: Datum + Uhrzeit (ganztägig = Tagesbeginn).
+  /// `null`, wenn der Eintrag kein Startdatum trägt.
+  DateTime? get sortInstant {
+    final date = startDate;
+    if (date == null) return null;
+    return combineDateAndTime(date, allDay ? null : startTime);
+  }
+
   factory CalendarEntry.fromJson(Map<String, dynamic> json) {
-    final rawStart = json['startTime'] as String?;
-    final rawEnd = json['endTime'] as String?;
+    final rawStart = json['startDate'] as String?;
+    final rawEnd = json['endDate'] as String?;
     final rawDetail = json['detail'];
     return CalendarEntry(
       type: json['type'] as String,
       id: json['id'] as String,
       title: json['title'] as String?,
-      startTime: rawStart == null ? null : parseApiDate(rawStart),
-      endTime: rawEnd == null ? null : parseApiDate(rawEnd),
       allDay: json['allDay'] == true,
+      startDate: (rawStart == null || rawStart.isEmpty)
+          ? null
+          : parseApiDateOnly(rawStart),
+      endDate: (rawEnd == null || rawEnd.isEmpty)
+          ? null
+          : parseApiDateOnly(rawEnd),
+      startTime: parseApiTime(json['startTime'] as String?),
+      endTime: parseApiTime(json['endTime'] as String?),
       detail: rawDetail is Map<String, dynamic> ? rawDetail : const {},
     );
   }
@@ -211,6 +239,9 @@ class CalendarEntry {
       type: CalendarEntryType.calendarEvent,
       id: event.id,
       title: event.title,
+      allDay: event.allDay,
+      startDate: event.startDate,
+      endDate: event.endDate,
       startTime: event.startTime,
       endTime: event.endTime,
     );

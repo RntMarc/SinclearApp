@@ -16,6 +16,7 @@ class AgendaRow implements DashboardRow {
   final String id;
   final String title;
   final String? creator;
+  final bool allDay;
   final DateTime startTime;
   final DateTime endTime;
 
@@ -23,6 +24,7 @@ class AgendaRow implements DashboardRow {
     required this.id,
     required this.title,
     this.creator,
+    this.allDay = false,
     required this.startTime,
     required this.endTime,
   });
@@ -32,8 +34,9 @@ class AgendaRow implements DashboardRow {
       id: event.id,
       title: event.title,
       creator: event.creatorDisplayName,
-      startTime: event.startTime,
-      endTime: event.endTime,
+      allDay: event.allDay,
+      startTime: event.startInstant,
+      endTime: event.endInstant,
     );
   }
 
@@ -42,6 +45,7 @@ class AgendaRow implements DashboardRow {
       id: json['id'] as String,
       title: json['title'] as String,
       creator: json['creator'] as String?,
+      allDay: json['allDay'] as bool? ?? false,
       startTime: DateTime.fromMillisecondsSinceEpoch(json['start'] as int),
       endTime: DateTime.fromMillisecondsSinceEpoch(json['end'] as int),
     );
@@ -52,6 +56,7 @@ class AgendaRow implements DashboardRow {
     'id': id,
     'title': title,
     'creator': creator,
+    'allDay': allDay,
     'start': startTime.millisecondsSinceEpoch,
     'end': endTime.millisecondsSinceEpoch,
   };
@@ -82,14 +87,15 @@ class AgendaWidgetSpec extends DashboardWidgetSpec {
     final events = response.data
         .where(
           (event) =>
-              event.endTime.isAfter(now) && event.startTime.isBefore(cutoff),
+              event.endInstant.isAfter(now) &&
+              event.startInstant.isBefore(cutoff),
         )
         .toList();
     events.sort((a, b) {
-      final aOngoing = a.startTime.isBefore(now);
-      final bOngoing = b.startTime.isBefore(now);
+      final aOngoing = a.startInstant.isBefore(now);
+      final bOngoing = b.startInstant.isBefore(now);
       if (aOngoing != bOngoing) return aOngoing ? -1 : 1;
-      return a.startTime.compareTo(b.startTime);
+      return a.startInstant.compareTo(b.startInstant);
     });
     return [for (final event in events.take(count)) AgendaRow.fromEvent(event)];
   }
@@ -151,7 +157,9 @@ class AgendaWidgetSpec extends DashboardWidgetSpec {
                 SizedBox(height: tokens.spaceXs),
                 DesignText(
                   [
-                    '${formatTime(event.startTime)} – ${formatTime(event.endTime)}',
+                    event.allDay
+                        ? 'Ganztägig'
+                        : '${formatTime(event.startTime)} – ${formatTime(event.endTime)}',
                     if (event.creator != null) event.creator!,
                   ].join(' · '),
                   style: DesignTextStyle.label,

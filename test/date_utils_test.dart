@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/utils/date_utils.dart';
 
@@ -171,6 +172,52 @@ void main() {
 
     test('Vergangenheit negativ', () {
       expect(daysBetween(DateTime(2026, 8, 17), DateTime(2026, 8, 16)), -1);
+    });
+  });
+
+  group('Datum-only- und Uhrzeit-Helfer', () {
+    test('toApiDateOnly nutzt das lokale Datum (kein UTC-Shift)', () {
+      expect(toApiDateOnly(DateTime(2026, 7, 1, 23, 30)), '2026-07-01');
+      expect(toApiDateOnly(DateTime(2026, 7, 1, 0, 5)), '2026-07-01');
+    });
+
+    test('parseApiDateOnly behält den zivilen Tag (kein UTC-Shift)', () {
+      expect(parseApiDateOnly('2026-07-01'), DateTime(2026, 7, 1));
+    });
+
+    test('parseApiTime liest HH:MM:SS und leere Werte', () {
+      expect(parseApiTime('10:30:00'), const TimeOfDay(hour: 10, minute: 30));
+      expect(parseApiTime(''), isNull);
+      expect(parseApiTime(null), isNull);
+      expect(parseApiTime('quatsch'), isNull);
+    });
+
+    test('toApiTime formatiert HH:MM:SS', () {
+      expect(toApiTime(const TimeOfDay(hour: 9, minute: 5)), '09:05:00');
+    });
+
+    test('combineDateAndTime: ganztägig = Tagesgrenzen', () {
+      final d = DateTime(2026, 7, 1);
+      expect(combineDateAndTime(d, null), DateTime(2026, 7, 1));
+      expect(
+        combineDateAndTime(d, null, endOfDay: true),
+        DateTime(2026, 7, 1, 23, 59),
+      );
+      expect(
+        combineDateAndTime(d, const TimeOfDay(hour: 10, minute: 30)),
+        DateTime(2026, 7, 1, 10, 30),
+      );
+    });
+
+    test('formatDayRange eintägig und mehrtägig', () {
+      expect(
+        formatDayRange(DateTime(2026, 7, 1), DateTime(2026, 7, 1)),
+        '01.07.2026',
+      );
+      expect(
+        formatDayRange(DateTime(2026, 7, 1), DateTime(2026, 7, 3)),
+        '01.07.2026 – 03.07.2026',
+      );
     });
   });
 }

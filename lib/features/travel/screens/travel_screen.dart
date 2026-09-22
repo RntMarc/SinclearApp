@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -76,8 +77,11 @@ class _TravelScreenState extends State<TravelScreen> {
             id: t.id,
             name: t.name,
             description: t.description,
-            start: t.start,
-            end: t.end,
+            allDay: t.allDay,
+            startDate: t.startDate,
+            endDate: t.endDate,
+            startTime: t.startTime,
+            endTime: t.endTime,
             isTrip: true,
           ),
         for (final e in standalone.data)
@@ -85,8 +89,11 @@ class _TravelScreenState extends State<TravelScreen> {
             id: e.id,
             name: e.name,
             description: e.description,
-            start: e.start,
-            end: e.end,
+            allDay: e.allDay,
+            startDate: e.startDate,
+            endDate: e.endDate,
+            startTime: e.startTime,
+            endTime: e.endTime,
             isTrip: false,
           ),
       ];
@@ -97,18 +104,19 @@ class _TravelScreenState extends State<TravelScreen> {
       final past = <TimelineEntry>[];
 
       for (final entry in entries) {
-        if (entry.start.isBefore(now) && entry.end.isAfter(now)) {
+        if (entry.startInstant.isBefore(now) &&
+            entry.endInstant.isAfter(now)) {
           current.add(entry);
-        } else if (entry.start.isAfter(now)) {
+        } else if (entry.startInstant.isAfter(now)) {
           future.add(entry);
         } else {
           past.add(entry);
         }
       }
 
-      current.sort((a, b) => a.start.compareTo(b.start));
-      future.sort((a, b) => a.start.compareTo(b.start));
-      past.sort((a, b) => b.end.compareTo(a.end));
+      current.sort((a, b) => a.startInstant.compareTo(b.startInstant));
+      future.sort((a, b) => a.startInstant.compareTo(b.startInstant));
+      past.sort((a, b) => b.endInstant.compareTo(a.endInstant));
 
       setState(() {
         _current = current;
@@ -133,11 +141,6 @@ class _TravelScreenState extends State<TravelScreen> {
       MaterialPageRoute(builder: (context) => const PtSearchScreen()),
     );
     if (result == true && mounted) _load();
-  }
-
-  String _formatDate(DateTime date) {
-    final local = date.toLocal();
-    return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}';
   }
 
   @override
@@ -321,7 +324,12 @@ class _TravelScreenState extends State<TravelScreen> {
                     ),
                     SizedBox(height: tokens.spaceXs),
                     DesignText(
-                      '${_formatDate(entry.start)} \u2013 ${_formatDate(entry.end)}',
+                      entry.allDay
+                          ? formatDayRange(entry.startDate, entry.endDate)
+                          : formatDateRange(
+                              entry.startInstant,
+                              entry.endInstant,
+                            ),
                       style: DesignTextStyle.label,
                       color: tokens.textLow,
                     ),
