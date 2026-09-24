@@ -408,36 +408,40 @@ class ShellDesktop extends StatelessWidget {
     final tokens = DesignTheme.of(context);
     final location = GoRouterState.of(context).matchedLocation;
 
-    return DesignSurface(
-      child: Column(
-        children: [
-          DesignAppBar(
-            title: shellTitleForLocation(location),
-            actions: [
-              if (location == '/home') const ShellDashboardEditButton(),
-              const ShellShareButton(),
-            ],
-          ),
-          Expanded(
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 288,
-                  child: ShellNavContent(
-                    currentLocation: location,
-                    onNavigate: (route) => context.go(route),
-                  ),
-                ),
-                VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: tokens.border.withValues(alpha: 0.6),
-                ),
-                Expanded(child: child),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true,
+      body: DesignSurface(
+        child: Column(
+          children: [
+            DesignAppBar(
+              title: shellTitleForLocation(location),
+              actions: [
+                if (location == '/home') const ShellDashboardEditButton(),
+                const ShellShareButton(),
               ],
             ),
-          ),
-        ],
+            Expanded(
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 288,
+                    child: ShellNavContent(
+                      currentLocation: location,
+                      onNavigate: (route) => context.go(route),
+                    ),
+                  ),
+                  VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    color: tokens.border.withValues(alpha: 0.6),
+                  ),
+                  Expanded(child: child),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
