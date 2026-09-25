@@ -57,6 +57,21 @@ class DesignMessageBubble extends StatelessWidget {
   /// aber nicht bei eigenen oder gelöschten Nachrichten.
   final String? senderName;
 
+  /// Name des Absenders der zitierten Nachricht (Antwort-Kontext).
+  final String? replySenderName;
+
+  /// Gekürzter Text der zitierten Nachricht (leer/`null` ohne Antwort).
+  final String? replySnippet;
+
+  /// `true`, wenn die zitierte Nachricht gelöscht wurde.
+  final bool replyDeleted;
+
+  /// Wird beim Tippen auf das Zitat ausgelöst (Sprung zur Originalnachricht).
+  final VoidCallback? onReplyTap;
+
+  /// Hebt die Blase kurz hervor (z. B. als Sprungziel).
+  final bool highlighted;
+
   /// Aggregierte Reaktionen, unter der Blase als Chips gezeigt.
   final List<DesignReaction> reactions;
 
@@ -74,10 +89,79 @@ class DesignMessageBubble extends StatelessWidget {
     this.onLongPress,
     this.read = false,
     this.senderName,
+    this.replySenderName,
+    this.replySnippet,
+    this.replyDeleted = false,
+    this.onReplyTap,
+    this.highlighted = false,
     this.reactions = const [],
     this.onReactionTap,
     super.key,
   });
+
+  Widget _buildReplyQuote(DesignTokens tokens) {
+    final accent = isOwn ? tokens.textOnPrimary : tokens.primary;
+    final bg = accent.withValues(alpha: 0.12);
+    final nameColor = isOwn
+        ? tokens.textOnPrimary.withValues(alpha: 0.9)
+        : tokens.primary;
+    final textColor = isOwn
+        ? tokens.textOnPrimary.withValues(alpha: 0.85)
+        : tokens.textHigh;
+    final snippet = replyDeleted ? 'Nachricht gelöscht' : (replySnippet ?? '');
+    final sender = replySenderName;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: tokens.spaceSm),
+      child: GestureDetector(
+        onTap: onReplyTap,
+        behavior: HitTestBehavior.opaque,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(tokens.radiusSm),
+          child: ColoredBox(
+            color: bg,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(width: 3, color: accent),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: tokens.spaceSm,
+                        vertical: tokens.spaceXs,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (sender != null && sender.isNotEmpty)
+                            DesignText(
+                              sender,
+                              style: DesignTextStyle.label,
+                              color: nameColor,
+                            ),
+                          DesignText(
+                            snippet,
+                            style: DesignTextStyle.label,
+                            color: replyDeleted
+                                ? textColor.withValues(alpha: 0.7)
+                                : textColor,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +191,9 @@ class DesignMessageBubble extends StatelessWidget {
               isOwn ? tokens.radiusSm : tokens.radiusLg,
             ),
           ),
+          border: highlighted
+              ? Border.all(color: tokens.accentA, width: 2)
+              : null,
           boxShadow: isOwn ? tokens.glowShadow : tokens.surfaceShadow,
         ),
         child: Column(
@@ -122,6 +209,7 @@ class DesignMessageBubble extends StatelessWidget {
                     : tokens.textLow,
               )
             else ...[
+              if (replySnippet != null) _buildReplyQuote(tokens),
               if (senderName != null && !isOwn)
                 Padding(
                   padding: EdgeInsets.only(bottom: tokens.spaceXs),

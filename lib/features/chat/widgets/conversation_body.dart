@@ -39,6 +39,10 @@ class ConversationBody extends StatefulWidget {
 class _ConversationBodyState extends State<ConversationBody> {
   static final _urlPattern = RegExp(r'https?://[^\s]+');
 
+  /// Grobe Bubble-Höhe für den Sprung zu einer noch nicht gerenderten
+  /// Nachricht (variable Höhen – wird per `ensureVisible` nachjustiert).
+  static const double _estimatedBubbleExtent = 90;
+
   final ScrollController _scroll = ScrollController();
   ChatConversation? _conversation;
   bool _loading = true;
@@ -47,6 +51,10 @@ class _ConversationBodyState extends State<ConversationBody> {
   AppScope? _scope;
   bool _initialized = false;
   DirectMessage? _editingMessage;
+  DirectMessage? _replyTo;
+  String? _highlightedMessageId;
+  Timer? _highlightTimer;
+  final Map<String, GlobalKey> _messageKeys = {};
 
   @override
   void didChangeDependencies() {
@@ -66,6 +74,7 @@ class _ConversationBodyState extends State<ConversationBody> {
     _scope?.chat.removeListener(_onChatChanged);
     _scope?.chat.unwatchConversation(widget.conversationId);
     _scope?.chat.unregisterActive();
+    _highlightTimer?.cancel();
     _scroll.dispose();
     super.dispose();
   }
@@ -148,9 +157,17 @@ class _ConversationBodyState extends State<ConversationBody> {
   Future<void> _send(String text) async {
     final scope = _scope;
     if (scope == null) return;
-    setState(() => _sending = true);
+    final replyTo = _replyTo;
+    setState(() {
+      _sending = true;
+      _replyTo = null;
+    });
     try {
-      await scope.chat.sendMessage(widget.conversationId, text);
+      await scope.chat.sendMessage(
+        widget.conversationId,
+        text,
+        replyToMessageId: replyTo?.id,
+      );
       _maybeMarkRead();
     } catch (e, st) {
       _log.warning('Sending message failed', e, st);
@@ -169,11 +186,31 @@ class _ConversationBodyState extends State<ConversationBody> {
   }
 
   void _startEdit(DirectMessage message) {
-    setState(() => _editingMessage = message);
+    setState(() {
+      _editingMessage = message;
+      _replyTo = null;
+    });
   }
 
   void _cancelEdit() {
     setState(() => _editingMessage = null);
+  }
+
+  void _startReply(DirectMessage message) {
+    setState(() {
+      _replyTo = message;
+      _editingMessage = null;
+    });
+  }
+
+  void _cancelReply() {
+    setState(() => _replyTo = null);
+  }
+
+  /// Anzeigename eines Absenders (eigene Nachrichten als „Du").
+  String _senderLabel(String senderId, String displayName) {
+    if (senderId == _scope?.auth.userId) return 'Du';
+    return displayName.isNotEmpty ? displayName : 'Unbekannt';
   }
 
   Future<void> _submitEdit(String newContent) async {
@@ -290,6 +327,15 @@ class _ConversationBodyState extends State<ConversationBody> {
           if (!message.deleted) ...[
             _reactionQuickRow(message, tokens),
             SizedBox(height: tokens.spaceSm),
+            DesignListTile(
+              leading: Icon(Icons.reply_rounded, color: tokens.textHigh),
+              title: 'Antworten',
+              padding: tilePadding,
+              onTap: () {
+                Navigator.pop(context);
+                _startReply(message);
+              },
+            ),
           ],
           if (isOwn && !message.deleted) ...[
             DesignListTile(
@@ -426,6 +472,75 @@ class _ConversationBodyState extends State<ConversationBody> {
         ],
       ),
     );
+  }
+
+  // ─── Sprung zur Nachricht ─────────────────────────────────────────────
+
+  /// Scrollt zur Nachricht [messageId] und hebt sie kurz hervor. Fehlt sie im
+  /// Puffer, wird älterer Verlauf nachgeladen.
+  Future<void> _jumpToMessage(String messageId) async {
+    final scope = _scope;
+    if (scope == null) return;
+
+    final loaded =
+        scope.chat.messagesOf(widget.conversationId)?.any(
+          (m) => m.id == messageId,
+        ) ??
+        false;
+    if (!loaded) {
+      try {
+        await scope.chat.ensureMessageLoaded(widget.conversationId, messageId);
+      } catch (e, st) {
+        _log.warning('ensureMessageLoaded($messageId) failed', e, st);
+        return;
+      }
+    }
+    if (!mounted) return;
+    setState(() {});
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+
+    var context = _messageKeys[messageId]?.currentContext;
+
+    // Nachricht ist (noch) nicht gerendert: grob in die Nähe scrollen und
+    // anschließend per ensureVisible exakt ausrichten.
+    if (context == null && _scroll.hasClients) {
+      final list = scope.chat.messagesOf(widget.conversationId) ?? const [];
+      final index = list.indexWhere((m) => m.id == messageId);
+      if (index < 0) return;
+      final fromBottom = list.length - 1 - index;
+      final target = (fromBottom * _estimatedBubbleExtent).clamp(
+        0.0,
+        _scroll.position.maxScrollExtent,
+      );
+      await _scroll.animateTo(
+        target,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+      );
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      context = _messageKeys[messageId]?.currentContext;
+    }
+
+    if (context != null && context.mounted) {
+      await Scrollable.ensureVisible(
+        context,
+        alignment: 0.3,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+    }
+    _highlight(messageId);
+  }
+
+  void _highlight(String messageId) {
+    _highlightTimer?.cancel();
+    if (mounted) setState(() => _highlightedMessageId = messageId);
+    _highlightTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      setState(() => _highlightedMessageId = null);
+    });
   }
 
   // ─── Build ────────────────────────────────────────────────────────────
@@ -567,9 +682,14 @@ class _ConversationBodyState extends State<ConversationBody> {
                   itemBuilder: (context, index) {
                     final message = allMessages[allMessages.length - 1 - index];
                     final isOwn = message.senderId == userId;
+                    final reply = message.replyTo;
                     return Padding(
                       padding: EdgeInsets.only(bottom: tokens.spaceMd),
                       child: DesignMessageBubble(
+                        key: _messageKeys.putIfAbsent(
+                          message.id,
+                          () => GlobalKey(),
+                        ),
                         text: message.content,
                         isOwn: isOwn,
                         time: message.createdAt,
@@ -578,6 +698,18 @@ class _ConversationBodyState extends State<ConversationBody> {
                         read: isOwn && message.seq <= otherLastReadSeq,
                         linkPreview: _linkPreview(message),
                         onLongPress: () => _showMessageActions(message),
+                        highlighted: _highlightedMessageId == message.id,
+                        replySenderName: reply != null
+                            ? _senderLabel(
+                                reply.senderId,
+                                reply.sender.displayName,
+                              )
+                            : null,
+                        replySnippet: reply?.content,
+                        replyDeleted: reply?.deleted ?? false,
+                        onReplyTap: reply != null
+                            ? () => _jumpToMessage(reply.id)
+                            : null,
                         reactions: [
                           for (final r in message.reactions)
                             DesignReaction(
@@ -612,6 +744,11 @@ class _ConversationBodyState extends State<ConversationBody> {
             editInitialText: _editingMessage?.content,
             editLabel: _editingMessage != null ? 'Nachricht bearbeiten' : null,
             onCancelEdit: _editingMessage != null ? _cancelEdit : null,
+            replySenderName: _replyTo != null
+                ? _senderLabel(_replyTo!.senderId, _replyTo!.sender.displayName)
+                : null,
+            replySnippet: _replyTo?.content,
+            onCancelReply: _replyTo != null ? _cancelReply : null,
             onTyping: () {
               _scope?.chat.sendTyping(widget.conversationId);
             },

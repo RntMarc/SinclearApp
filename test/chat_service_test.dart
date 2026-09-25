@@ -88,6 +88,16 @@ class _FakeCentrifugo extends CentrifugoService {
   >
   reactionCalls = [];
   Object? reactionException;
+  final List<
+    ({
+      String conversationId,
+      String clientId,
+      String content,
+      String? replyToMessageId,
+    })
+  >
+  messageCalls = [];
+  Object? messageException;
   int connectCalls = 0;
 
   @override
@@ -104,6 +114,23 @@ class _FakeCentrifugo extends CentrifugoService {
   @override
   Future<void> publishTyping(String conversationId, bool typing) async {
     typingCalls.add((conversationId: conversationId, typing: typing));
+  }
+
+  @override
+  Future<void> publishMessage(
+    String conversationId,
+    String clientId,
+    String content,
+    String? replyToMessageId,
+  ) async {
+    final error = messageException;
+    if (error != null) throw error;
+    messageCalls.add((
+      conversationId: conversationId,
+      clientId: clientId,
+      content: content,
+      replyToMessageId: replyToMessageId,
+    ));
   }
 
   @override
@@ -303,6 +330,119 @@ void main() {
     expect(service.conversations.first.otherLastReadSeq, 7);
   });
 
+  test('message_created parst das eingebettete Zitat', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {
+          'type': 'message_created',
+          'message': {
+            'id': 'm2',
+            'seq': 8,
+            'conversationId': 'convA',
+            'senderId': 'u1',
+            'sender': {'id': 'u1', 'displayName': 'Ich', 'avatar': null},
+            'type': 'text',
+            'content': 'Antwort',
+            'payload': null,
+            'clientId': 'c1',
+            'replyToMessageId': 'm1',
+            'replyTo': {
+              'id': 'm1',
+              'seq': 5,
+              'senderId': 'u2',
+              'sender': {'id': 'u2', 'displayName': 'Anna', 'avatar': null},
+              'type': 'text',
+              'content': 'Original',
+              'deleted': false,
+            },
+            'editedAt': null,
+            'deleted': false,
+            'reactions': [],
+            'createdAt': '2026-08-16 10:00:00',
+          },
+        },
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final msg = service.messagesOf('convA')!.singleWhere((m) => m.id == 'm2');
+    expect(msg.replyToMessageId, 'm1');
+    expect(msg.replyTo?.content, 'Original');
+    expect(msg.replyTo?.sender.displayName, 'Anna');
+  });
+
+  test('message_deleted aktualisiert Zitate in Antworten', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+    api.responses.add({
+      'data': [
+        {
+          'id': 'm1',
+          'seq': 5,
+          'conversationId': 'convA',
+          'senderId': 'u2',
+          'sender': {'id': 'u2', 'displayName': 'Anna', 'avatar': null},
+          'type': 'text',
+          'content': 'Original',
+          'payload': null,
+          'clientId': null,
+          'replyToMessageId': null,
+          'replyTo': null,
+          'editedAt': null,
+          'deleted': false,
+          'reactions': [],
+          'createdAt': '2026-08-16 10:00:00',
+        },
+        {
+          'id': 'm2',
+          'seq': 8,
+          'conversationId': 'convA',
+          'senderId': 'u1',
+          'sender': {'id': 'u1', 'displayName': 'Ich', 'avatar': null},
+          'type': 'text',
+          'content': 'Antwort',
+          'payload': null,
+          'clientId': 'c1',
+          'replyToMessageId': 'm1',
+          'replyTo': {
+            'id': 'm1',
+            'seq': 5,
+            'senderId': 'u2',
+            'sender': {'id': 'u2', 'displayName': 'Anna', 'avatar': null},
+            'type': 'text',
+            'content': 'Original',
+            'deleted': false,
+          },
+          'editedAt': null,
+          'deleted': false,
+          'reactions': [],
+          'createdAt': '2026-08-16 10:01:00',
+        },
+      ],
+    });
+    await service.getMessages('convA');
+
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {'type': 'message_deleted', 'messageId': 'm1'},
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final reply = service.messagesOf('convA')!.firstWhere((m) => m.id == 'm2');
+    expect(reply.replyTo?.deleted, isTrue);
+    expect(reply.replyTo?.content, isEmpty);
+  });
+
   test('reaction_updated-Event ersetzt die Reaktions-Summary', () async {
     api.responses.add({
       'data': [_conversationJson('convA')],
@@ -477,21 +617,49 @@ void main() {
     },
   );
 
-  test('sendMessage schickt clientId und aktualisiert die Vorschau', () async {
+  test('sendMessage sendet über WS mit clientId', () async {
     api.responses.add({
       'data': [_conversationJson('convA')],
     });
     await service.refreshConversations();
 
-    api.responses.add({'data': _messageJson('m1', 7, 'convA', 'Hi!')});
+    await service.sendMessage('convA', 'Hi!');
 
-    final message = await service.sendMessage('convA', 'Hi!');
+    expect(centrifugo.messageCalls, hasLength(1));
+    final call = centrifugo.messageCalls.single;
+    expect(call.conversationId, 'convA');
+    expect(call.content, 'Hi!');
+    expect(call.clientId, isNotEmpty);
+    expect(call.replyToMessageId, isNull);
+    // Kein REST-Send mehr.
+    expect(
+      api.calledPaths.where((p) => p.endsWith('/messages')),
+      isEmpty,
+    );
+  });
 
-    expect(message.content, 'Hi!');
-    expect(api.calledBodies.first?['type'], 'text');
-    expect(api.calledBodies.first?['clientId'], isNotEmpty);
-    expect(service.conversations.first.lastMessage?.content, 'Hi!');
-    expect(service.messagesOf('convA'), hasLength(1));
+  test('sendMessage überträgt replyToMessageId', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+
+    await service.sendMessage('convA', 'Antwort', replyToMessageId: 'm1');
+
+    expect(centrifugo.messageCalls.single.replyToMessageId, 'm1');
+  });
+
+  test('sendMessage reicht Publish-Fehler weiter', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+    centrifugo.messageException = StateError('rate limit');
+
+    expect(
+      () => service.sendMessage('convA', 'Hi!'),
+      throwsA(isA<StateError>()),
+    );
   });
 
   test(

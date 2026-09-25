@@ -378,6 +378,14 @@ Design-Tokens bekommt.
   `selected`) wird als `Wrap` aus `DesignChip` unter der Blase gezeigt;
   `onReactionTap(emoji)` toggelt die eigene Reaktion, `selected` hebt sie
   hervor. Feature-Ebene mappt `MessageReaction` → `DesignReaction`.
+  **Antwort-Zitat:** Über dem Text rendert die Blase optional ein antippbares
+  Zitat (`replySenderName`, `replySnippet`, `replyDeleted`) mit Akzentbalken,
+  Absender und max. zwei Zeilen (`onReplyTap` springt zur Originalnachricht).
+  `highlighted` hebt die Blase kurz als Sprungziel hervor (Akzentrahmen).
+- **`DesignChatComposer`** (`composite`) – Eingabefeld mit Edit- und
+  Antwort-Modus. Im Antwort-Modus (`replySenderName`, `replySnippet`,
+  `onCancelReply`) erscheint ein Banner über dem Feld (analog Edit-Banner,
+  beide Modi sind exklusiv).
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste

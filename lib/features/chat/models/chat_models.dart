@@ -14,6 +14,10 @@ const List<String> kReactionEmojis = [
   '👏',
 ];
 
+/// Maximale Zeichenzahl des serverseitig gekürzten Zitats. Spiegelt
+/// `DirectMessageService::REPLY_PREVIEW_LENGTH`.
+const int kReplyPreviewLength = 150;
+
 /// Nutzer-Kurzform, wie sie die Chat-Endpunkte liefern (`id`,
 /// `displayName`, `avatar`).
 class ChatUser {
@@ -55,6 +59,45 @@ class MessageReaction {
             .map(ChatUser.fromJson)
             .toList(),
       );
+}
+
+/// Eingebettetes Zitat der Nachricht, auf die geantwortet wurde.
+///
+/// Der Text ist serverseitig auf 150 Zeichen gekürzt; bei einer gelöschten
+/// Elternnachricht ist [deleted] `true` und [content] leer.
+class MessageReply {
+  final String id;
+  final int seq;
+  final String senderId;
+  final ChatUser sender;
+  final String type;
+  final String content;
+  final bool deleted;
+
+  const MessageReply({
+    required this.id,
+    required this.seq,
+    required this.senderId,
+    required this.sender,
+    this.type = 'text',
+    this.content = '',
+    this.deleted = false,
+  });
+
+  factory MessageReply.fromJson(Map<String, dynamic> json) {
+    final rawSender = json['sender'];
+    return MessageReply(
+      id: json['id'] as String? ?? '',
+      seq: json['seq'] as int? ?? 0,
+      senderId: json['senderId'] as String? ?? '',
+      sender: rawSender is Map<String, dynamic>
+          ? ChatUser.fromJson(rawSender)
+          : ChatUser(id: json['senderId'] as String? ?? ''),
+      type: json['type'] as String? ?? 'text',
+      content: json['content'] as String? ?? '',
+      deleted: json['deleted'] == true,
+    );
+  }
 }
 
 /// Vorschau der letzten Nachricht einer Konversation.
@@ -155,6 +198,12 @@ class DirectMessage {
   final String content;
   final Map<String, dynamic>? payload;
   final String? clientId;
+
+  /// ID der beantworteten Nachricht (null, wenn keine Antwort).
+  final String? replyToMessageId;
+
+  /// Eingebettetes Zitat der beantworteten Nachricht (null ohne Antwort).
+  final MessageReply? replyTo;
   final DateTime? editedAt;
   final bool deleted;
 
@@ -173,14 +222,20 @@ class DirectMessage {
     this.content = '',
     this.payload,
     this.clientId,
+    this.replyToMessageId,
+    this.replyTo,
     this.editedAt,
     this.deleted = false,
     this.reactions = const [],
     required this.createdAt,
   });
 
-  /// Kopie mit ersetzten Reaktionen (alle anderen Felder bleiben gleich).
-  DirectMessage copyWith({List<MessageReaction>? reactions}) => DirectMessage(
+  /// Kopie mit ersetzten Reaktionen bzw. Zitat (alle anderen Felder bleiben
+  /// gleich). `null` bedeutet „unverändert".
+  DirectMessage copyWith({
+    List<MessageReaction>? reactions,
+    MessageReply? replyTo,
+  }) => DirectMessage(
     id: id,
     seq: seq,
     conversationId: conversationId,
@@ -190,6 +245,8 @@ class DirectMessage {
     content: content,
     payload: payload,
     clientId: clientId,
+    replyToMessageId: replyToMessageId,
+    replyTo: replyTo ?? this.replyTo,
     editedAt: editedAt,
     deleted: deleted,
     reactions: reactions ?? this.reactions,
@@ -198,6 +255,7 @@ class DirectMessage {
 
   factory DirectMessage.fromJson(Map<String, dynamic> json) {
     final rawSender = json['sender'];
+    final rawReply = json['replyTo'];
     return DirectMessage(
       id: json['id'] as String,
       seq: json['seq'] as int,
@@ -212,6 +270,10 @@ class DirectMessage {
           ? json['payload'] as Map<String, dynamic>
           : null,
       clientId: json['clientId'] as String?,
+      replyToMessageId: json['replyToMessageId'] as String?,
+      replyTo: rawReply is Map<String, dynamic>
+          ? MessageReply.fromJson(rawReply)
+          : null,
       editedAt: json['editedAt'] != null
           ? parseApiDate(json['editedAt'] as String)
           : null,
