@@ -119,6 +119,33 @@ class CentrifugoService {
     );
   }
 
+  /// Sendet eine Nachricht (inkl. optionaler Antwort) über den Publish-Proxy.
+  ///
+  /// Fehler (Validierung, Rate-Limit) werden nach oben gereicht; die
+  /// Subscription muss bestehen. Die Nachricht kommt über das
+  /// `message_created`-Event zurück (inkl. Sender).
+  Future<void> publishMessage(
+    String conversationId,
+    String clientId,
+    String content,
+    String? replyToMessageId,
+  ) async {
+    final sub = _subscriptions[conversationId];
+    if (sub == null) {
+      throw StateError('Nicht mit chat:$conversationId verbunden');
+    }
+    await sub.publish(
+      _encode({
+        'message': {
+          'clientId': clientId,
+          'type': 'text',
+          'content': content,
+          'replyToMessageId': ?replyToMessageId,
+        },
+      }),
+    );
+  }
+
   /// Stellt die Verbindung ins Vordergrund (Resubscribe läuft automatisch).
   Future<void> connect() async {
     try {

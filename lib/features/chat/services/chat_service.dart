@@ -223,10 +223,12 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
           final raw = data['message'];
           if (raw is Map<String, dynamic>) {
             final message = DirectMessage.fromJson(raw);
-            _upsertMessage(event.conversationId, message);
+            final wasNew = _upsertMessage(event.conversationId, message);
             if (type == 'message_created') {
               _updatePreview(event.conversationId, message);
-              _bumpUnreadIfIncoming(event.conversationId, message);
+              if (wasNew) {
+                _bumpUnreadIfIncoming(event.conversationId, message);
+              }
               // Sofort als gelesen markieren, wenn Konversation offen (_watched)
               // und Nachricht von anderem Nutzer kommt.
               if (_watched.contains(event.conversationId) &&
@@ -235,6 +237,14 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
               }
             } else {
               _updatePreviewIfCurrent(event.conversationId, message);
+              // Zitate dieser Nachricht in sichtbaren Antworten mitziehen.
+              if (!message.deleted) {
+                _patchReplyQuotes(
+                  event.conversationId,
+                  message.id,
+                  content: message.content,
+                );
+              }
             }
             _log.info(
               '  → ${type == 'message_created' ? 'created' : 'edited'} '
@@ -251,6 +261,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
           final messageId = data['messageId'] as String?;
           if (messageId != null) {
             _applyDeleted(event.conversationId, messageId);
+            _patchReplyQuotes(event.conversationId, messageId, deleted: true);
             _log.info('  → deleted msg id=$messageId');
             notifyListeners();
           }
@@ -352,6 +363,45 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     final idx = list.indexWhere((m) => m.id == messageId);
     if (idx < 0) return;
     list[idx] = list[idx].copyWith(reactions: reactions);
+  }
+
+  /// Zieht eingebettete Zitate in sichtbaren Antworten nach, wenn die
+  /// Elternnachricht bearbeitet oder gelöscht wurde.
+  void _patchReplyQuotes(
+    String conversationId,
+    String messageId, {
+    String? content,
+    bool deleted = false,
+  }) {
+    final list = _messages[conversationId];
+    if (list == null) return;
+    for (var i = 0; i < list.length; i++) {
+      final reply = list[i].replyTo;
+      if (reply == null || reply.id != messageId) continue;
+      list[i] = list[i].copyWith(
+        replyTo: MessageReply(
+          id: reply.id,
+          seq: reply.seq,
+          senderId: reply.senderId,
+          sender: reply.sender,
+          type: reply.type,
+          content: deleted
+              ? ''
+              : _truncateReply(content ?? reply.content),
+          deleted: deleted || reply.deleted,
+        ),
+      );
+    }
+  }
+
+  /// Kürzt einen Zitat-Text wie der Server (`REPLY_PREVIEW_LENGTH = 150`).
+  static String _truncateReply(String content) {
+    final preview = content.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final runes = preview.runes.toList();
+    if (runes.length > kReplyPreviewLength) {
+      return '${String.fromCharCodes(runes.take(kReplyPreviewLength))}…';
+    }
+    return preview;
   }
 
   void _applyRead(String conversationId, {String? userId, int? lastReadSeq}) {
@@ -550,27 +600,54 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     return list;
   }
 
-  /// Sendet eine Nachricht (`POST .../messages`).
-  Future<DirectMessage> sendMessage(
+  /// Sendet eine Nachricht (optional als Antwort) über den Centrifugo-Kanal.
+  ///
+  /// Es gibt bewusst keinen REST-Sendepfad: Der Client publiziert über die
+  /// offene Subscription, der Publish-Proxy persistiert und broadcastet
+  /// `message_created` (inkl. Sender). Fehler (Validierung, Rate-Limit,
+  /// offline) werden nach oben gereicht. [replyToMessageId] referenziert die
+  /// beantwortete Nachricht.
+  Future<void> sendMessage(
     String conversationId,
-    String content,
-  ) async {
-    final data = await _api.post(
-      '/chat/conversations/$conversationId/messages',
-      body: {
-        'clientId': _generateClientId(),
-        'type': 'text',
-        'content': content,
-      },
-      token: await _token(),
+    String content, {
+    String? replyToMessageId,
+  }) async {
+    // Sicherstellen, dass die Subscription registriert ist (Race direkt nach
+    // dem Öffnen des Chats). `subscribe` ist bei bestehender Subscription ein
+    // No-op.
+    if (!_centrifugo.isSubscribed(conversationId)) {
+      await _centrifugo.subscribe(conversationId);
+    }
+    await _centrifugo.publishMessage(
+      conversationId,
+      _generateClientId(),
+      content,
+      replyToMessageId,
     );
-    final message = DirectMessage.fromJson(
-      data['data'] as Map<String, dynamic>,
-    );
-    _upsertMessage(conversationId, message);
-    _updatePreview(conversationId, message);
-    notifyListeners();
-    return message;
+  }
+
+  /// Stellt sicher, dass [messageId] im lokalen Puffer liegt, und lädt dafür
+  /// bei Bedarf älteren Verlauf über den `before`-Cursor nach.
+  ///
+  /// Gibt `true` zurück, wenn die Nachricht anschließend vorhanden ist.
+  Future<bool> ensureMessageLoaded(
+    String conversationId,
+    String messageId, {
+    int maxPages = 20,
+  }) async {
+    for (var i = 0; i < maxPages; i++) {
+      final list = _messages[conversationId];
+      if (list != null && list.any((m) => m.id == messageId)) return true;
+      if (list == null || list.isEmpty) {
+        await getMessages(conversationId);
+        continue;
+      }
+      final oldest = list.first.seq;
+      if (oldest <= 1) return false;
+      final fetched = await getMessages(conversationId, before: oldest);
+      if (fetched.isEmpty) return false;
+    }
+    return _messages[conversationId]?.any((m) => m.id == messageId) ?? false;
   }
 
   /// Setzt den eigenen Lesestand (`POST .../read`).
@@ -743,15 +820,18 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     _conversations.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
 
-  void _upsertMessage(String conversationId, DirectMessage message) {
+  /// Fügt [message] ein oder ersetzt sie. Gibt `true` zurück, wenn die
+  /// Nachricht neu war (für den Unread-Zähler).
+  bool _upsertMessage(String conversationId, DirectMessage message) {
     final list = _messages.putIfAbsent(conversationId, () => []);
     final index = list.indexWhere((m) => m.id == message.id);
     if (index >= 0) {
       list[index] = message;
-    } else {
-      list.add(message);
+      return false;
     }
+    list.add(message);
     list.sort((a, b) => a.seq.compareTo(b.seq));
+    return true;
   }
 
   void _updatePreview(String conversationId, DirectMessage message) {
@@ -822,6 +902,8 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     content: '',
     payload: null,
     clientId: old.clientId,
+    replyToMessageId: old.replyToMessageId,
+    replyTo: old.replyTo,
     editedAt: old.editedAt,
     deleted: true,
     createdAt: old.createdAt,

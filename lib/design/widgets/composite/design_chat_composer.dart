@@ -33,6 +33,15 @@ class DesignChatComposer extends StatefulWidget {
   /// Wird im Edit-Modus beim Tippen auf den Abbrechen-Button aufgerufen.
   final VoidCallback? onCancelEdit;
 
+  /// Antwort-Modus: Name des Absenders der zitierten Nachricht.
+  final String? replySenderName;
+
+  /// Antwort-Modus: gekürzter Text der zitierten Nachricht.
+  final String? replySnippet;
+
+  /// Antwort-Modus: wird beim Abbrechen der Antwort aufgerufen.
+  final VoidCallback? onCancelReply;
+
   /// Wird bei jeder Texteingabe aufgerufen (z. B. für Tippindikator).
   final VoidCallback? onTyping;
 
@@ -43,6 +52,9 @@ class DesignChatComposer extends StatefulWidget {
     this.editInitialText,
     this.editLabel,
     this.onCancelEdit,
+    this.replySenderName,
+    this.replySnippet,
+    this.onCancelReply,
     this.onTyping,
     super.key,
   });
@@ -109,34 +121,18 @@ class _DesignChatComposerState extends State<DesignChatComposer> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (_isEditing)
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: tokens.spaceMd,
-              vertical: tokens.spaceSm,
-            ),
-            decoration: BoxDecoration(
-              color: tokens.surfaceVariant.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(tokens.radiusLg),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.edit_rounded, size: 16, color: tokens.primary),
-                SizedBox(width: tokens.spaceSm),
-                Expanded(
-                  child: DesignText(
-                    widget.editLabel ?? 'Nachricht bearbeiten',
-                    style: DesignTextStyle.label,
-                    color: tokens.primary,
-                  ),
-                ),
-                DesignIconButton(
-                  icon: Icons.close_rounded,
-                  onPressed: widget.onCancelEdit,
-                ),
-              ],
-            ),
+          _ComposerBanner(
+            icon: Icons.edit_rounded,
+            label: widget.editLabel ?? 'Nachricht bearbeiten',
+            onCancel: widget.onCancelEdit,
+          )
+        else if (widget.replySnippet != null)
+          _ComposerBanner(
+            icon: Icons.reply_rounded,
+            label: 'Antwort an '
+                '${widget.replySenderName?.isNotEmpty == true ? widget.replySenderName : 'Nachricht'}',
+            snippet: widget.replySnippet,
+            onCancel: widget.onCancelReply,
           ),
         Container(
           decoration: BoxDecoration(
@@ -190,6 +186,70 @@ class _DesignChatComposerState extends State<DesignChatComposer> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Kontext-Banner über dem Eingabefeld (Edit- oder Antwort-Modus).
+class _ComposerBanner extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? snippet;
+  final VoidCallback? onCancel;
+
+  const _ComposerBanner({
+    required this.icon,
+    required this.label,
+    this.snippet,
+    this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final text = snippet;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.spaceMd,
+        vertical: tokens.spaceSm,
+      ),
+      decoration: BoxDecoration(
+        color: tokens.surfaceVariant.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(tokens.radiusLg),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: tokens.primary),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DesignText(
+                  label,
+                  style: DesignTextStyle.label,
+                  color: tokens.primary,
+                ),
+                if (text != null && text.isNotEmpty)
+                  DesignText(
+                    text,
+                    style: DesignTextStyle.label,
+                    color: tokens.textLow,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          DesignIconButton(
+            icon: Icons.close_rounded,
+            onPressed: onCancel,
+          ),
+        ],
+      ),
     );
   }
 }
