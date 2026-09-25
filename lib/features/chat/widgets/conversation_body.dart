@@ -12,7 +12,9 @@ import '../../../design/widgets/composite/design_chat_composer.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/composite/design_message_bubble.dart';
 import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
+import '../../../design/widgets/primitives/design_chip.dart';
 import '../../forum/widgets/og_preview_card.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
@@ -278,15 +280,22 @@ class _ConversationBodyState extends State<ConversationBody> {
   void _showMessageActions(DirectMessage message) {
     final isOwn = message.senderId == _scope?.auth.userId;
     final tokens = DesignTheme.of(context);
+    final tilePadding = EdgeInsets.symmetric(vertical: tokens.spaceSm);
+
     showDesignSheet(
       context: context,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (!message.deleted) ...[
+            _reactionQuickRow(message, tokens),
+            SizedBox(height: tokens.spaceSm),
+          ],
           if (isOwn && !message.deleted) ...[
             DesignListTile(
               leading: Icon(Icons.edit_rounded, color: tokens.textHigh),
               title: 'Bearbeiten',
+              padding: tilePadding,
               onTap: () {
                 Navigator.pop(context);
                 _startEdit(message);
@@ -295,6 +304,7 @@ class _ConversationBodyState extends State<ConversationBody> {
             DesignListTile(
               leading: Icon(Icons.delete_rounded, color: tokens.danger),
               title: 'Löschen',
+              padding: tilePadding,
               onTap: () {
                 Navigator.pop(context);
                 _confirmDelete(message);
@@ -305,19 +315,114 @@ class _ConversationBodyState extends State<ConversationBody> {
             DesignListTile(
               leading: Icon(Icons.content_copy_rounded, color: tokens.textHigh),
               title: 'Kopieren',
+              padding: tilePadding,
               onTap: () {
                 Navigator.pop(context);
                 _copyMessage(message);
               },
             ),
+          if (message.reactions.isNotEmpty)
+            DesignListTile(
+              leading: Icon(Icons.groups_rounded, color: tokens.textHigh),
+              title: 'Reaktionen anzeigen',
+              padding: tilePadding,
+              onTap: () {
+                Navigator.pop(context);
+                _showReactionUsers(message);
+              },
+            ),
           DesignListTile(
             leading: Icon(Icons.flag_rounded, color: tokens.warning),
             title: 'Melden',
+            padding: tilePadding,
             onTap: () {
               Navigator.pop(context);
               _reportMessage(message);
             },
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Kompakte Emoji-Reihe im Long-Press-Menü; ein Tipp toggelt die Reaktion.
+  Widget _reactionQuickRow(DirectMessage message, DesignTokens tokens) {
+    final userId = _scope?.auth.userId;
+    return Wrap(
+      spacing: tokens.spaceSm,
+      runSpacing: tokens.spaceSm,
+      alignment: WrapAlignment.center,
+      children: [
+        for (final emoji in kReactionEmojis)
+          DesignChip(
+            label: emoji,
+            selected: message.reactions.any(
+              (r) => r.emoji == emoji && r.isMine(userId),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _toggleReaction(message, emoji);
+            },
+          ),
+      ],
+    );
+  }
+
+  Future<void> _toggleReaction(DirectMessage message, String emoji) async {
+    final scope = _scope;
+    if (scope == null) return;
+    try {
+      await scope.chat.toggleReaction(widget.conversationId, message, emoji);
+    } catch (e, st) {
+      _log.warning('Reaction failed', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: DesignText(
+            'Reaktion fehlgeschlagen. Bitte erneut versuchen.',
+            color: DesignTheme.of(context).textOnPrimary,
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Zeigt, wer mit welchem Emoji reagiert hat (gruppiert nach Emoji).
+  void _showReactionUsers(DirectMessage message) {
+    final tokens = DesignTheme.of(context);
+    final userId = _scope?.auth.userId;
+    showDesignSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DesignText(
+            'Reaktionen',
+            style: DesignTextStyle.title,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          for (final reaction in message.reactions) ...[
+            DesignText(
+              reaction.count > 1
+                  ? '${reaction.emoji} ${reaction.count}'
+                  : reaction.emoji,
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            for (final user in reaction.users)
+              DesignListTile(
+                leading: DesignAvatar(
+                  imageUrl: user.avatar,
+                  name: user.displayName,
+                ),
+                title: user.displayName.isEmpty ? 'Unbekannt' : user.displayName,
+                subtitle: user.id == userId ? 'Das bist du' : null,
+                padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
+              ),
+            SizedBox(height: tokens.spaceSm),
+          ],
         ],
       ),
     );
@@ -473,6 +578,17 @@ class _ConversationBodyState extends State<ConversationBody> {
                         read: isOwn && message.seq <= otherLastReadSeq,
                         linkPreview: _linkPreview(message),
                         onLongPress: () => _showMessageActions(message),
+                        reactions: [
+                          for (final r in message.reactions)
+                            DesignReaction(
+                              emoji: r.emoji,
+                              count: r.count,
+                              selected: r.isMine(userId),
+                            ),
+                        ],
+                        onReactionTap: message.deleted
+                            ? null
+                            : (emoji) => _toggleReaction(message, emoji),
                         senderName: isGroup && !isOwn
                             ? message.sender.displayName.isNotEmpty
                                   ? message.sender.displayName

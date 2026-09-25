@@ -254,6 +254,9 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
             _log.info('  → deleted msg id=$messageId');
             notifyListeners();
           }
+        case 'reaction_updated':
+          _applyReactionUpdate(event.conversationId, data);
+          notifyListeners();
         case 'read':
           _applyRead(
             event.conversationId,
@@ -325,6 +328,30 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     final deleted = _asDeleted(old);
     list[idx] = deleted;
     _updatePreviewIfCurrent(conversationId, deleted);
+  }
+
+  /// Wendet eine Reaktions-Summary aus einem Centrifugo-Event an.
+  void _applyReactionUpdate(String conversationId, Map<String, dynamic> data) {
+    final messageId = data['messageId'] as String?;
+    final raw = data['reactions'];
+    if (messageId == null || raw is! List) return;
+    final reactions = raw
+        .whereType<Map<String, dynamic>>()
+        .map(MessageReaction.fromJson)
+        .toList();
+    _setReactions(conversationId, messageId, reactions);
+  }
+
+  void _setReactions(
+    String conversationId,
+    String messageId,
+    List<MessageReaction> reactions,
+  ) {
+    final list = _messages[conversationId];
+    if (list == null) return;
+    final idx = list.indexWhere((m) => m.id == messageId);
+    if (idx < 0) return;
+    list[idx] = list[idx].copyWith(reactions: reactions);
   }
 
   void _applyRead(String conversationId, {String? userId, int? lastReadSeq}) {
@@ -611,6 +638,84 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     await _api.delete('/chat/messages/$messageId', token: await _token());
     _applyDeleted(conversationId, messageId);
     notifyListeners();
+  }
+
+  /// Setzt oder entfernt die eigene Reaktion auf eine Nachricht.
+  ///
+  /// Aktualisiert die UI optimistisch und sendet die Reaktion über den
+  /// Centrifugo-Publish-Proxy (kein REST-Call). Schlägt das Senden fehl
+  /// (Rate-Limit, ungültiges Emoji, offline), wird der vorherige Stand
+  /// wiederhergestellt und der Fehler weitergereicht.
+  Future<void> toggleReaction(
+    String conversationId,
+    DirectMessage message,
+    String emoji,
+  ) async {
+    final userId = _auth.userId;
+    final list = _messages[conversationId];
+    if (userId == null || list == null) return;
+    final index = list.indexWhere((m) => m.id == message.id);
+    if (index < 0) return;
+
+    final current = list[index].reactions;
+    final add = !current.any((r) => r.emoji == emoji && r.isMine(userId));
+    final optimistic = _optimisticReactions(current, emoji, add, userId);
+    list[index] = list[index].copyWith(reactions: optimistic);
+    notifyListeners();
+
+    try {
+      await _centrifugo.publishReaction(conversationId, message.id, emoji, add);
+    } catch (e, st) {
+      _log.warning('toggleReaction(${message.id}, $emoji) failed', e, st);
+      final revertIndex = list.indexWhere((m) => m.id == message.id);
+      if (revertIndex >= 0) {
+        list[revertIndex] = list[revertIndex].copyWith(reactions: current);
+        notifyListeners();
+      }
+      rethrow;
+    }
+  }
+
+  /// Lokale, optimistische Reaktions-Summary vor der Server-Bestätigung.
+  ///
+  /// Der eigene Nutzer wird nur mit [userId] eingetragen; das autoritative
+  /// Event ersetzt die Summary samt `displayName`/`avatar` kurz darauf.
+  static List<MessageReaction> _optimisticReactions(
+    List<MessageReaction> current,
+    String emoji,
+    bool add,
+    String userId,
+  ) {
+    final result = <MessageReaction>[];
+    var found = false;
+    for (final r in current) {
+      if (r.emoji != emoji) {
+        result.add(r);
+        continue;
+      }
+      found = true;
+      if (!add) {
+        final users = r.users.where((u) => u.id != userId).toList();
+        if (users.isNotEmpty) {
+          result.add(
+            MessageReaction(emoji: emoji, count: users.length, users: users),
+          );
+        }
+      } else if (r.isMine(userId)) {
+        result.add(r);
+      } else {
+        final users = [...r.users, ChatUser(id: userId)];
+        result.add(
+          MessageReaction(emoji: emoji, count: users.length, users: users),
+        );
+      }
+    }
+    if (add && !found) {
+      result.add(
+        MessageReaction(emoji: emoji, count: 1, users: [ChatUser(id: userId)]),
+      );
+    }
+    return result;
   }
 
   /// Sendet den Tippindikator über den Centrifugo-Publish-Proxy.
