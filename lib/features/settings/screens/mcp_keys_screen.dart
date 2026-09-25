@@ -224,7 +224,7 @@ class _McpKeysScreenState extends State<McpKeysScreen> {
               icon: Icons.arrow_back_rounded,
               onPressed: () => context.pop(),
             ),
-            title: 'MCP-API-Keys',
+            title: 'Künstliche Dummheit (MCP)',
           ),
           Expanded(
             child: RefreshIndicator(

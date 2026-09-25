@@ -41,6 +41,7 @@ import 'package:sinclear_beyond/features/settings/models/map_app_preference.dart
 import 'package:sinclear_beyond/features/settings/models/notification_preference.dart';
 import 'package:sinclear_beyond/features/settings/services/dav_sync_service.dart';
 import 'package:sinclear_beyond/features/settings/services/dav_token_service.dart';
+import 'package:sinclear_beyond/features/settings/services/lametric_token_service.dart';
 import 'package:sinclear_beyond/features/settings/services/mcp_key_service.dart';
 import 'package:sinclear_beyond/features/stories/services/stories_service.dart';
 import 'package:sinclear_beyond/features/subscription/services/subscription_service.dart';
@@ -743,6 +744,7 @@ AppScope _buildScope({
     mcpKeys: mcpKeys,
     davTokens: davTokens,
     davSync: davSync,
+    lametricToken: LaMetricTokenService(api: api, auth: auth),
     androidUpdate: AndroidUpdateService(baseUrl: api.baseUrl),
     dashboard: dashboard,
     dashboardWidgets: DashboardWidgetRepository(

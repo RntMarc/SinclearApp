@@ -21,6 +21,7 @@ import '../../features/settings/models/notification_preference.dart';
 import '../../features/settings/models/map_app_preference.dart';
 import '../../features/settings/services/dav_token_service.dart';
 import '../../features/settings/services/dav_sync_service.dart';
+import '../../features/settings/services/lametric_token_service.dart';
 import '../../features/settings/services/mcp_key_service.dart';
 import '../../features/stories/services/stories_service.dart';
 import '../../features/subscription/services/subscription_service.dart';
@@ -51,6 +52,7 @@ class AppScope extends InheritedWidget {
   final McpKeyService mcpKeys;
   final DavTokenService davTokens;
   final DavSyncService davSync;
+  final LaMetricTokenService lametricToken;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService? webUpdate;
   final DashboardController dashboard;
@@ -100,6 +102,7 @@ class AppScope extends InheritedWidget {
     required this.mcpKeys,
     required this.davTokens,
     required this.davSync,
+    required this.lametricToken,
     required this.androidUpdate,
     required this.dashboard,
     required this.dashboardWidgets,

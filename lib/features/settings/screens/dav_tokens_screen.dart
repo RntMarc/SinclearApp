@@ -248,7 +248,7 @@ class _DavTokensScreenState extends State<DavTokensScreen> {
               icon: Icons.arrow_back_rounded,
               onPressed: () => context.pop(),
             ),
-            title: 'DAV-Tokens',
+            title: 'Kalender-Anbindung',
           ),
           Expanded(
             child: RefreshIndicator(
