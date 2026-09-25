@@ -85,18 +85,12 @@ void main() {
     expect(token.lastUsedAt, isNull);
   });
 
-  test('put() sendet die Bezeichnung und parst die Antwort', () async {
+  test('put() setzt ohne Rückfrage den festen Namen Time', () async {
     api.nextResponse = _tokenJson(token: 'neu456');
-    final token = await service.put(label: ' Wohnzimmer ');
+    final token = await service.put();
     expect(api.calls, ['PUT /lametric/token']);
-    expect(api.lastBody, {'label': 'Wohnzimmer'});
+    expect(api.lastBody, {'label': 'Time'});
     expect(token.token, 'neu456');
-  });
-
-  test('put() ohne Label sendet keinen Body', () async {
-    api.nextResponse = _tokenJson();
-    await service.put();
-    expect(api.lastBody, isNull);
   });
 
   test('delete() ruft den Token-Endpunkt auf', () async {

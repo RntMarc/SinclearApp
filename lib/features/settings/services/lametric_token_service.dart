@@ -25,12 +25,14 @@ class LaMetricTokenService {
   }
 
   /// Erzeugt oder ersetzt das Token und gibt es inkl. Klartext zurück.
-  Future<LaMetricToken> put({String? label}) async {
+  ///
+  /// Der Name ist nicht unterscheidungsberechtigt (es existiert ohnehin nur
+  /// dieses eine Token für alle Apps und Uhren), daher wird ohne Rückfrage
+  /// immer `Time` mitgesendet.
+  Future<LaMetricToken> put() async {
     final data = await _api.put(
       '/lametric/token',
-      body: label == null || label.trim().isEmpty
-          ? null
-          : {'label': label.trim()},
+      body: {'label': 'Time'},
       token: await _auth.getAccessToken(),
     );
     return LaMetricToken.fromJson(data['token'] as Map<String, dynamic>);
