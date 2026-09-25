@@ -20,6 +20,7 @@ import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
 import 'features/settings/services/dav_sync_service.dart';
 import 'features/settings/services/dav_token_service.dart';
+import 'features/settings/services/lametric_token_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
@@ -58,6 +59,7 @@ class SinclearApp extends StatelessWidget {
   final McpKeyService mcpKeys;
   final DavTokenService davTokens;
   final DavSyncService davSync;
+  final LaMetricTokenService lametricToken;
   final AndroidUpdateService androidUpdate;
   final WebUpdateService webUpdate;
   final DashboardController dashboardController;
@@ -136,6 +138,7 @@ class SinclearApp extends StatelessWidget {
     required this.mcpKeys,
     required this.davTokens,
     required this.davSync,
+    required this.lametricToken,
     required this.androidUpdate,
     required this.webUpdate,
     required this.dashboardController,
@@ -191,6 +194,7 @@ class SinclearApp extends StatelessWidget {
       mcpKeys: mcpKeys,
       davTokens: davTokens,
       davSync: davSync,
+      lametricToken: lametricToken,
       androidUpdate: androidUpdate,
       dashboard: dashboardController,
       dashboardWidgets: dashboardWidgets,

@@ -39,6 +39,7 @@ import '../features/settings/screens/email_change_screen.dart';
 import '../features/settings/screens/discord_relink_screen.dart';
 import '../features/settings/screens/mcp_keys_screen.dart';
 import '../features/settings/screens/dav_tokens_screen.dart';
+import '../features/settings/screens/lametric_screen.dart';
 import '../features/settings/screens/map_app_screen.dart';
 import '../features/settings/screens/location_sharing_settings_screen.dart';
 import '../features/settings/screens/location_sharing_create_screen.dart';
@@ -374,6 +375,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
               GoRoute(
                 path: 'dav',
                 builder: (context, state) => const DavTokensScreen(),
+              ),
+              GoRoute(
+                path: 'lametric',
+                builder: (context, state) => const LaMetricScreen(),
               ),
               GoRoute(
                 path: 'karte',

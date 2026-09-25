@@ -45,6 +45,7 @@ import 'features/settings/models/notification_preference.dart';
 import 'features/settings/models/map_app_preference.dart';
 import 'features/settings/services/dav_token_service.dart';
 import 'features/settings/services/dav_sync_service.dart';
+import 'features/settings/services/lametric_token_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
@@ -150,6 +151,7 @@ Future<void> _bootstrap() async {
     apiBaseUrl: baseUrl,
     prefs: prefs,
   );
+  final lametricToken = LaMetricTokenService(api: api, auth: auth);
   final notificationContent = NotificationContentResolver(
     user: user,
     forum: forum,
@@ -292,6 +294,7 @@ Future<void> _bootstrap() async {
       mcpKeys: mcpKeys,
       davTokens: davTokens,
       davSync: davSync,
+      lametricToken: lametricToken,
       androidUpdate: androidUpdate,
       webUpdate: webUpdate,
       dashboardController: dashboardController,
