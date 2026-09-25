@@ -96,6 +96,29 @@ class CentrifugoService {
     }
   }
 
+  /// Sendet eine Reaktion über den Publish-Proxy.
+  ///
+  /// [add] ist explizit (true = setzen, false = entfernen), damit ein
+  /// serverseitiger Retry idempotent bleibt. Fehler (z. B. Rate-Limit,
+  /// ungültiges Emoji) werden nach oben gereicht; die Subscription muss
+  /// bestehen.
+  Future<void> publishReaction(
+    String conversationId,
+    String messageId,
+    String emoji,
+    bool add,
+  ) async {
+    final sub = _subscriptions[conversationId];
+    if (sub == null) {
+      throw StateError('Nicht mit chat:$conversationId verbunden');
+    }
+    await sub.publish(
+      _encode({
+        'reaction': {'messageId': messageId, 'emoji': emoji, 'add': add},
+      }),
+    );
+  }
+
   /// Stellt die Verbindung ins Vordergrund (Resubscribe läuft automatisch).
   Future<void> connect() async {
     try {

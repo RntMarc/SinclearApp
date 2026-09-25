@@ -371,6 +371,13 @@ Design-Tokens bekommt.
   grünen Online-Punkt auf dem Avatar (`isOnline`, `DesignPulseDot`), bei
   Gruppen `onlineCount`/`memberCount` als farbigen Punkt mit Zahl
   (grün = alle online, gelb = teilweise, grau = keiner).
+- **`DesignMessageBubble`** (`composite`) – Chat-Sprechblase (eigene rechts,
+  fremde links) aus Token-Palette + `DesignText`. Zeigt optional Absendername
+  (Gruppen), Link-Vorschau, Bearbeitet-Hinweis, Zeitstempel und Lesestatus.
+  **Reaktionen:** model-freie `DesignReaction`-Liste (`emoji`, `count`,
+  `selected`) wird als `Wrap` aus `DesignChip` unter der Blase gezeigt;
+  `onReactionTap(emoji)` toggelt die eigene Reaktion, `selected` hebt sie
+  hervor. Feature-Ebene mappt `MessageReaction` → `DesignReaction`.
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste

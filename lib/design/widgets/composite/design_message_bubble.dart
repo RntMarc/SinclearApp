@@ -3,6 +3,23 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../theme/design_theme.dart';
 import '../foundation/design_text.dart';
+import '../primitives/design_chip.dart';
+
+/// Model-freie Reaktions-Summary für [DesignMessageBubble].
+///
+/// Feature-Ebenen mappen ihre Modelle (z. B. `MessageReaction`) auf diese
+/// Parameter; `lib/design/` bleibt frei von Feature-Modellen.
+class DesignReaction {
+  final String emoji;
+  final int count;
+  final bool selected;
+
+  const DesignReaction({
+    required this.emoji,
+    required this.count,
+    this.selected = false,
+  });
+}
 
 /// Chat-Sprachblase, die eine einzelne Nachricht darstellt.
 ///
@@ -11,6 +28,7 @@ import '../foundation/design_text.dart';
 /// [linkPreview] (z. B. eine URL-Vorschau) wird unter dem Text gerendert.
 /// In Gruppenchats kann [senderName] gesetzt werden, um den Absendernamen
 /// über dem Text anzuzeigen (bei eigenen Nachrichten wird er weggelassen).
+/// [reactions] werden als Chip-Reihe unter der Blase gezeigt.
 class DesignMessageBubble extends StatelessWidget {
   /// Anzeigetext; bei [deleted] wird ein Platzhalter gezeigt.
   final String text;
@@ -39,6 +57,13 @@ class DesignMessageBubble extends StatelessWidget {
   /// aber nicht bei eigenen oder gelöschten Nachrichten.
   final String? senderName;
 
+  /// Aggregierte Reaktionen, unter der Blase als Chips gezeigt.
+  final List<DesignReaction> reactions;
+
+  /// Wird mit dem Emoji aufgerufen, wenn eine Reaktion angetippt wird
+  /// (Toggle der eigenen Reaktion).
+  final ValueChanged<String>? onReactionTap;
+
   const DesignMessageBubble({
     required this.text,
     this.isOwn = false,
@@ -49,6 +74,8 @@ class DesignMessageBubble extends StatelessWidget {
     this.onLongPress,
     this.read = false,
     this.senderName,
+    this.reactions = const [],
+    this.onReactionTap,
     super.key,
   });
 
@@ -133,6 +160,35 @@ class DesignMessageBubble extends StatelessWidget {
           : CrossAxisAlignment.start,
       children: [
         bubble,
+        if (reactions.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(
+              top: tokens.spaceSm,
+              left: tokens.spaceSm,
+              right: tokens.spaceSm,
+            ),
+            child: Wrap(
+              spacing: tokens.spaceXs,
+              runSpacing: tokens.spaceXs,
+              alignment: isOwn ? WrapAlignment.end : WrapAlignment.start,
+              children: [
+                for (final reaction in reactions)
+                  Semantics(
+                    button: onReactionTap != null,
+                    label: 'Reaktion ${reaction.emoji}, ${reaction.count} Mal',
+                    child: DesignChip(
+                      label: reaction.count > 1
+                          ? '${reaction.emoji} ${reaction.count}'
+                          : reaction.emoji,
+                      selected: reaction.selected,
+                      onTap: onReactionTap == null
+                          ? null
+                          : () => onReactionTap!(reaction.emoji),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         Padding(
           padding: EdgeInsets.only(
             top: tokens.spaceXs,

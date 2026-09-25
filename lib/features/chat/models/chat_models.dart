@@ -1,5 +1,19 @@
 import '../../../core/utils/date_utils.dart';
 
+/// Allowlist der Reaktions-Emojis. Spiegelt exakt
+/// `MessageReactionService::ALLOWED_EMOJIS` der API (normalisiert, ohne
+/// Unicode-Variation-Selectoren).
+const List<String> kReactionEmojis = [
+  '👍',
+  '❤',
+  '😂',
+  '😮',
+  '😢',
+  '🎉',
+  '🔥',
+  '👏',
+];
+
 /// Nutzer-Kurzform, wie sie die Chat-Endpunkte liefern (`id`,
 /// `displayName`, `avatar`).
 class ChatUser {
@@ -14,6 +28,33 @@ class ChatUser {
     displayName: json['displayName'] as String? ?? '',
     avatar: json['avatar'] as String?,
   );
+}
+
+/// Aggregierte Reaktionen einer Nachricht, gruppiert nach Emoji.
+class MessageReaction {
+  final String emoji;
+  final int count;
+  final List<ChatUser> users;
+
+  const MessageReaction({
+    required this.emoji,
+    required this.count,
+    required this.users,
+  });
+
+  /// Ob [userId] mit diesem Emoji reagiert hat.
+  bool isMine(String? userId) =>
+      userId != null && users.any((u) => u.id == userId);
+
+  factory MessageReaction.fromJson(Map<String, dynamic> json) =>
+      MessageReaction(
+        emoji: json['emoji'] as String? ?? '',
+        count: json['count'] as int? ?? 0,
+        users: (json['users'] as List? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(ChatUser.fromJson)
+            .toList(),
+      );
 }
 
 /// Vorschau der letzten Nachricht einer Konversation.
@@ -116,6 +157,10 @@ class DirectMessage {
   final String? clientId;
   final DateTime? editedAt;
   final bool deleted;
+
+  /// Aggregierte Reaktionen, nach Emoji gruppiert (leer bei gelöschten
+  /// Nachrichten).
+  final List<MessageReaction> reactions;
   final DateTime createdAt;
 
   const DirectMessage({
@@ -130,8 +175,26 @@ class DirectMessage {
     this.clientId,
     this.editedAt,
     this.deleted = false,
+    this.reactions = const [],
     required this.createdAt,
   });
+
+  /// Kopie mit ersetzten Reaktionen (alle anderen Felder bleiben gleich).
+  DirectMessage copyWith({List<MessageReaction>? reactions}) => DirectMessage(
+    id: id,
+    seq: seq,
+    conversationId: conversationId,
+    senderId: senderId,
+    sender: sender,
+    type: type,
+    content: content,
+    payload: payload,
+    clientId: clientId,
+    editedAt: editedAt,
+    deleted: deleted,
+    reactions: reactions ?? this.reactions,
+    createdAt: createdAt,
+  );
 
   factory DirectMessage.fromJson(Map<String, dynamic> json) {
     final rawSender = json['sender'];
@@ -153,6 +216,10 @@ class DirectMessage {
           ? parseApiDate(json['editedAt'] as String)
           : null,
       deleted: json['deleted'] == true,
+      reactions: (json['reactions'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(MessageReaction.fromJson)
+          .toList(),
       createdAt: parseApiDate(json['createdAt'] as String),
     );
   }

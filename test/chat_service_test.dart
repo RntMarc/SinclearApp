@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';
 import 'package:sinclear_beyond/core/storage/token_storage.dart';
 import 'package:sinclear_beyond/features/auth/services/auth_service.dart';
+import 'package:sinclear_beyond/features/chat/models/chat_models.dart';
 import 'package:sinclear_beyond/features/chat/services/centrifugo_service.dart';
 import 'package:sinclear_beyond/features/chat/services/chat_service.dart';
 
@@ -82,6 +83,11 @@ class _FakeCentrifugo extends CentrifugoService {
   final _controller = StreamController<CentrifugoEvent>.broadcast();
   final List<String> subscribed = [];
   final List<({String conversationId, bool typing})> typingCalls = [];
+  final List<
+    ({String conversationId, String messageId, String emoji, bool add})
+  >
+  reactionCalls = [];
+  Object? reactionException;
   int connectCalls = 0;
 
   @override
@@ -98,6 +104,23 @@ class _FakeCentrifugo extends CentrifugoService {
   @override
   Future<void> publishTyping(String conversationId, bool typing) async {
     typingCalls.add((conversationId: conversationId, typing: typing));
+  }
+
+  @override
+  Future<void> publishReaction(
+    String conversationId,
+    String messageId,
+    String emoji,
+    bool add,
+  ) async {
+    final error = reactionException;
+    if (error != null) throw error;
+    reactionCalls.add((
+      conversationId: conversationId,
+      messageId: messageId,
+      emoji: emoji,
+      add: add,
+    ));
   }
 
   void emit(CentrifugoEvent event) => _controller.add(event);
@@ -132,8 +155,9 @@ Map<String, dynamic> _messageJson(
   String id,
   int seq,
   String conversationId,
-  String content,
-) => {
+  String content, {
+  List<Map<String, dynamic>> reactions = const [],
+}) => {
   'id': id,
   'seq': seq,
   'conversationId': conversationId,
@@ -145,6 +169,7 @@ Map<String, dynamic> _messageJson(
   'clientId': null,
   'editedAt': null,
   'deleted': false,
+  'reactions': reactions,
   'createdAt': '2026-08-16 10:00:00',
 };
 
@@ -276,6 +301,144 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(service.conversations.first.otherLastReadSeq, 7);
+  });
+
+  test('reaction_updated-Event ersetzt die Reaktions-Summary', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+    api.responses.add({
+      'data': [_messageJson('m1', 5, 'convA', 'Inhalt')],
+    });
+    await service.getMessages('convA');
+
+    centrifugo.emit(
+      const CentrifugoEvent(
+        conversationId: 'convA',
+        data: {
+          'type': 'reaction_updated',
+          'messageId': 'm1',
+          'reactions': [
+            {
+              'emoji': '👍',
+              'count': 2,
+              'users': [
+                {'id': 'u1', 'displayName': 'Ich', 'avatar': null},
+                {'id': 'u2', 'displayName': 'Anna', 'avatar': null},
+              ],
+            },
+          ],
+        },
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final reactions = service.messagesOf('convA')!.single.reactions;
+    expect(reactions, hasLength(1));
+    expect(reactions.single.emoji, '👍');
+    expect(reactions.single.count, 2);
+    expect(reactions.single.isMine('u1'), isTrue);
+  });
+
+  test('toggleReaction setzt optimistisch und sendet add=true', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+    api.responses.add({
+      'data': [_messageJson('m1', 5, 'convA', 'Inhalt')],
+    });
+    await service.getMessages('convA');
+    final message = service.messagesOf('convA')!.single;
+
+    await service.toggleReaction('convA', message, '👍');
+
+    expect(centrifugo.reactionCalls, hasLength(1));
+    final call = centrifugo.reactionCalls.single;
+    expect(call.messageId, 'm1');
+    expect(call.emoji, '👍');
+    expect(call.add, isTrue);
+    final reactions = service.messagesOf('convA')!.single.reactions;
+    expect(reactions.single.emoji, '👍');
+    expect(reactions.single.isMine('u1'), isTrue);
+  });
+
+  test('toggleReaction entfernt eigene Reaktion (add=false)', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+    api.responses.add({
+      'data': [
+        _messageJson(
+          'm1',
+          5,
+          'convA',
+          'Inhalt',
+          reactions: [
+            {
+              'emoji': '👍',
+              'count': 1,
+              'users': [
+                {'id': 'u1', 'displayName': 'Ich', 'avatar': null},
+              ],
+            },
+          ],
+        ),
+      ],
+    });
+    await service.getMessages('convA');
+    final message = service.messagesOf('convA')!.single;
+
+    await service.toggleReaction('convA', message, '👍');
+
+    expect(centrifugo.reactionCalls.single.add, isFalse);
+    expect(service.messagesOf('convA')!.single.reactions, isEmpty);
+  });
+
+  test('toggleReaction rollt bei Publish-Fehler zurück', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA')],
+    });
+    await service.refreshConversations();
+    api.responses.add({
+      'data': [_messageJson('m1', 5, 'convA', 'Inhalt')],
+    });
+    await service.getMessages('convA');
+    final message = service.messagesOf('convA')!.single;
+    centrifugo.reactionException = StateError('offline');
+
+    await expectLater(
+      service.toggleReaction('convA', message, '👍'),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(service.messagesOf('convA')!.single.reactions, isEmpty);
+  });
+
+  test('DirectMessage parst Reaktionen aus JSON', () {
+    final message = DirectMessage.fromJson(
+      _messageJson(
+        'm1',
+        5,
+        'convA',
+        'Inhalt',
+        reactions: [
+          {
+            'emoji': '❤',
+            'count': 1,
+            'users': [
+              {'id': 'u1', 'displayName': 'Ich', 'avatar': null},
+            ],
+          },
+        ],
+      ),
+    );
+
+    expect(message.reactions.single.emoji, '❤');
+    expect(message.reactions.single.isMine('u1'), isTrue);
+    expect(message.reactions.single.isMine('u2'), isFalse);
   });
 
   test('typing-Event trägt User ein und entfernt ihn wieder', () async {
