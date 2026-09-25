@@ -12,12 +12,10 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
-import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/lametric_token_models.dart';
 
-/// Verwaltung der LaMetric-Time-Verknüpfung: zeigt die Poll-URL für die
-/// Indicator-App und erlaubt das Erzeugen, Ersetzen und Widerrufen des
-/// persönlichen LaMetric-Tokens.
+/// Verwaltung des persönlichen LaMetric-Tokens: anzeigbar, ersetzbar und
+/// widerrufbar. Alle LaMetric-Apps und Uhren teilen sich dieses eine Token.
 class LaMetricScreen extends StatefulWidget {
   const LaMetricScreen({super.key});
 
@@ -31,9 +29,6 @@ class _LaMetricScreenState extends State<LaMetricScreen> {
   String? _error;
   bool _busy = false;
   bool _didLoad = false;
-
-  String get _pollUrl =>
-      '${AppScope.of(context).apiBaseUrl}/lametric/notification';
 
   @override
   void didChangeDependencies() {
@@ -74,15 +69,9 @@ class _LaMetricScreenState extends State<LaMetricScreen> {
   }
 
   Future<void> _createOrReplace() async {
-    final label = await showDesignSheet<String>(
-      context: context,
-      child: const _LabelSheet(),
-    );
-    if (label == null || !mounted) return;
-
     setState(() => _busy = true);
     try {
-      final token = await AppScope.of(context).lametricToken.put(label: label);
+      final token = await AppScope.of(context).lametricToken.put();
       if (!mounted) return;
       setState(() {
         _token = token;
@@ -178,98 +167,23 @@ class _LaMetricScreenState extends State<LaMetricScreen> {
               onRefresh: _load,
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(vertical: tokens.spaceMd),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _setupCard(),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      _errorCard(),
-                    ] else ...[
-                      const SizedBox(height: 16),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                        child: DesignText(
-                          'Token',
-                          style: DesignTextStyle.label,
-                          color: tokens.primary,
-                        ),
+                child: _error != null
+                    ? _errorCard()
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                            child: DesignText(
+                              'Token',
+                              style: DesignTextStyle.label,
+                              color: tokens.primary,
+                            ),
+                          ),
+                          _tokenSection(),
+                        ],
                       ),
-                      _tokenSection(),
-                    ],
-                  ],
-                ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _setupCard() {
-    final tokens = DesignTheme.of(context);
-    return DesignCard(
-      padding: EdgeInsets.all(tokens.spaceLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const DesignText('Einrichtung', style: DesignTextStyle.title),
-          const SizedBox(height: 4),
-          DesignText(
-            'Verknüpfe deine LaMetric Time über eine eigene Indicator-App. '
-            'Die Uhr ruft die folgende URL regelmäßig ab und zeigt die Anzahl '
-            'ungelesener Benachrichtigungen – es werden keine Inhalte '
-            'übertragen.',
-            style: DesignTextStyle.label,
-            color: tokens.textLow,
-          ),
-          const SizedBox(height: 12),
-          const DesignText('Poll-URL', style: DesignTextStyle.label),
-          const SizedBox(height: 4),
-          _copyRow(_pollUrl),
-          const SizedBox(height: 12),
-          _step(
-            '1',
-            'Auf developer.lametric.com eine Indicator-App erstellen.',
-          ),
-          _step(
-            '2',
-            'Kommunikationstyp „Poll" wählen und die Poll-URL oben '
-                'eintragen.',
-          ),
-          _step('3', 'Benutzerdefiniertes Feld mit ID „token" hinzufügen.'),
-          _step('4', 'App veröffentlichen und auf der Uhr installieren.'),
-          _step(
-            '5',
-            'In den App-Einstellungen der LaMetric-App das unten '
-                'erzeugte Token als „token" eintragen.',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _step(String number, String text) {
-    final tokens = DesignTheme.of(context);
-    return Padding(
-      padding: EdgeInsets.only(top: tokens.spaceSm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 20,
-            child: DesignText(
-              number,
-              style: DesignTextStyle.label,
-              color: tokens.primary,
-            ),
-          ),
-          Expanded(
-            child: DesignText(
-              text,
-              style: DesignTextStyle.label,
-              color: tokens.textLow,
             ),
           ),
         ],
@@ -317,7 +231,7 @@ class _LaMetricScreenState extends State<LaMetricScreen> {
   Widget _errorCard() {
     final tokens = DesignTheme.of(context);
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: tokens.spaceXl),
+      padding: EdgeInsets.all(tokens.spaceXl),
       child: Center(
         child: Column(
           children: [
@@ -368,8 +282,6 @@ class _LaMetricScreenState extends State<LaMetricScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DesignText(token.label, style: DesignTextStyle.title),
-                  const SizedBox(height: 4),
                   DesignText(
                     'Gültig bis ${formatDate(parseApiDate(token.expiresAt))}'
                     '${token.lastUsedAt != null ? ' · Zuletzt genutzt '
@@ -411,82 +323,6 @@ class _LaMetricScreenState extends State<LaMetricScreen> {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _LabelSheet extends StatefulWidget {
-  const _LabelSheet();
-
-  @override
-  State<_LabelSheet> createState() => _LabelSheetState();
-}
-
-class _LabelSheetState extends State<_LabelSheet> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: DesignText(
-                  'Token erzeugen',
-                  style: DesignTextStyle.title,
-                  color: tokens.textHigh,
-                ),
-              ),
-              DesignIconButton(
-                icon: Icons.close_rounded,
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          DesignText(
-            'Gib eine Bezeichnung an, z.B. „Wohnzimmer".',
-            style: DesignTextStyle.body,
-            color: tokens.textLow,
-          ),
-          const SizedBox(height: 16),
-          DesignTextField(
-            controller: _controller,
-            hint: 'Bezeichnung',
-            maxLength: 100,
-            prefixIcon: Icons.label_rounded,
-          ),
-          const SizedBox(height: 16),
-          DesignButton(
-            variant: DesignButtonVariant.filled,
-            label: 'Speichern',
-            fullWidth: true,
-            onPressed: _controller.text.trim().isEmpty
-                ? null
-                : () => Navigator.pop(context, _controller.text.trim()),
-          ),
-        ],
-      ),
     );
   }
 }
