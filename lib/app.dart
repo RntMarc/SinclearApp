@@ -6,6 +6,7 @@ import 'design/theme/design_theme.dart';
 import 'core/di/app_scope.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
+import 'core/services/time_zone_service.dart';
 import 'core/widgets/web_update_banner.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
@@ -72,6 +73,7 @@ class SinclearApp extends StatelessWidget {
   final NotificationMethodCoordinator notificationCoordinator;
   final WeatherService weather;
   final UserWeatherLocationService weatherLocations;
+  final TimeZoneService timeZones;
   final GoRouter router;
 
   /// Initial, lokal gespeicherte Benachrichtigungs-Methode.
@@ -150,6 +152,7 @@ class SinclearApp extends StatelessWidget {
     required this.notificationCoordinator,
     required this.weather,
     required this.weatherLocations,
+    required this.timeZones,
     required this.initialNotificationMethod,
     required this.initialMapApp,
     required this.router,
@@ -206,6 +209,7 @@ class SinclearApp extends StatelessWidget {
       notificationCoordinator: notificationCoordinator,
       weather: weather,
       weatherLocations: weatherLocations,
+      timeZones: timeZones,
       notificationMethod: notificationMethod,
       mapApp: mapApp,
       webUpdate: webUpdate,

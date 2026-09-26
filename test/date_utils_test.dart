@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/utils/date_utils.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
 
 void main() {
+  setUpAll(tzdata.initializeTimeZones);
   group('formatDuration', () {
     test('Jahre, Monate und Tage', () {
       expect(
@@ -217,6 +219,92 @@ void main() {
       expect(
         formatDayRange(DateTime(2026, 7, 1), DateTime(2026, 7, 3)),
         '01.07.2026 – 03.07.2026',
+      );
+    });
+  });
+
+  group('Zeitzonen-Helfer', () {
+    test('parseApiInstant liest Offset und Z als UTC-Instant', () {
+      expect(
+        parseApiInstant('2026-07-01T10:00:00+02:00'),
+        DateTime.utc(2026, 7, 1, 8),
+      );
+      expect(
+        parseApiInstant('2026-07-01T10:00:00Z'),
+        DateTime.utc(2026, 7, 1, 10),
+      );
+    });
+
+    test('toApiInstant formatiert mit Offset der Zielzeitzone', () {
+      expect(
+        toApiInstant(DateTime.utc(2026, 7, 1, 8), 'Europe/Berlin'),
+        '2026-07-01T10:00:00+02:00',
+      );
+      expect(
+        toApiInstant(DateTime.utc(2026, 1, 1, 8), 'Europe/Berlin'),
+        '2026-01-01T09:00:00+01:00',
+      );
+      expect(
+        toApiInstant(DateTime.utc(2026, 7, 1, 8), 'UTC'),
+        '2026-07-01T08:00:00Z',
+      );
+    });
+
+    test('wallTimeToInstant berücksichtigt Sommer-/Winterzeit', () {
+      expect(
+        wallTimeToInstant(DateTime(2026, 7, 1, 10), 'Europe/Berlin'),
+        DateTime.utc(2026, 7, 1, 8),
+      );
+      expect(
+        wallTimeToInstant(DateTime(2026, 1, 1, 10), 'Europe/Berlin'),
+        DateTime.utc(2026, 1, 1, 9),
+      );
+    });
+
+    test('instantToWallTime liefert die Wandzeit der Zone', () {
+      expect(
+        instantToWallTime(DateTime.utc(2026, 7, 1, 8), 'Europe/Berlin'),
+        DateTime(2026, 7, 1, 10),
+      );
+      expect(
+        instantToWallTime(DateTime.utc(2026, 7, 1, 8), 'America/New_York'),
+        DateTime(2026, 7, 1, 4),
+      );
+    });
+
+    test('formatTimeInZone und formatDateTimeInZone', () {
+      final instant = DateTime.utc(2026, 7, 1, 8);
+      expect(formatTimeInZone(instant, 'Europe/Berlin'), '10:00');
+      expect(formatDateTimeInZone(instant, 'Europe/Berlin'), '01.07.2026 10:00');
+    });
+
+    test('formatInstantRangeInZone eintägig und mehrtägig', () {
+      expect(
+        formatInstantRangeInZone(
+          DateTime.utc(2026, 7, 1, 8),
+          DateTime.utc(2026, 7, 1, 9, 30),
+          'Europe/Berlin',
+        ),
+        '01.07.2026 10:00 – 11:30',
+      );
+      expect(
+        formatInstantRangeInZone(
+          DateTime.utc(2026, 7, 1, 8),
+          DateTime.utc(2026, 7, 2, 9),
+          'Europe/Berlin',
+        ),
+        '01.07.2026 10:00 – 02.07.2026 11:00',
+      );
+    });
+
+    test('resolveTimeZone fällt bei unbekannter Zone auf UTC zurück', () {
+      expect(
+        wallTimeToInstant(DateTime(2026, 7, 1, 10), 'Nonsense/Zone'),
+        DateTime.utc(2026, 7, 1, 10),
+      );
+      expect(
+        wallTimeToInstant(DateTime(2026, 7, 1, 10), null),
+        DateTime.utc(2026, 7, 1, 10),
       );
     });
   });

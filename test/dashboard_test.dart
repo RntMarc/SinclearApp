@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sinclear_beyond/core/di/app_scope.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';
 import 'package:sinclear_beyond/core/services/android_update_service.dart';
+import 'package:sinclear_beyond/core/services/time_zone_service.dart';
 import 'package:sinclear_beyond/core/storage/token_storage.dart';
 import 'package:sinclear_beyond/design/design_variant.dart';
 import 'package:sinclear_beyond/design/theme/design_theme.dart';
@@ -689,7 +690,12 @@ AppScope _buildScope({
   final travel = TravelService(api: api, auth: auth);
   final publicTransport = PublicTransportService(api: api, auth: auth);
   final user = UserService(api: api, auth: auth);
-  final calendar = CalendarService(api: api, auth: auth);
+  final timeZones = TimeZoneService();
+  final calendar = CalendarService(
+    api: api,
+    auth: auth,
+    timeZones: timeZones,
+  );
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final chat = ChatService(api: api, auth: auth);
@@ -759,6 +765,7 @@ AppScope _buildScope({
     notification: notification,
     weather: weather,
     weatherLocations: weatherLocations,
+    timeZones: timeZones,
     notificationContent: notificationContent,
     unifiedPush: unifiedPush,
     webPush: WebPushService(api: api),

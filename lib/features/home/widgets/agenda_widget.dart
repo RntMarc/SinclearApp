@@ -17,6 +17,7 @@ class AgendaRow implements DashboardRow {
   final String title;
   final String? creator;
   final bool allDay;
+  final String timezone;
   final DateTime startTime;
   final DateTime endTime;
 
@@ -25,6 +26,7 @@ class AgendaRow implements DashboardRow {
     required this.title,
     this.creator,
     this.allDay = false,
+    this.timezone = 'UTC',
     required this.startTime,
     required this.endTime,
   });
@@ -35,6 +37,7 @@ class AgendaRow implements DashboardRow {
       title: event.title,
       creator: event.creatorDisplayName,
       allDay: event.allDay,
+      timezone: event.timezone,
       startTime: event.startInstant,
       endTime: event.endInstant,
     );
@@ -46,6 +49,7 @@ class AgendaRow implements DashboardRow {
       title: json['title'] as String,
       creator: json['creator'] as String?,
       allDay: json['allDay'] as bool? ?? false,
+      timezone: json['timezone'] as String? ?? 'UTC',
       startTime: DateTime.fromMillisecondsSinceEpoch(json['start'] as int),
       endTime: DateTime.fromMillisecondsSinceEpoch(json['end'] as int),
     );
@@ -57,6 +61,7 @@ class AgendaRow implements DashboardRow {
     'title': title,
     'creator': creator,
     'allDay': allDay,
+    'timezone': timezone,
     'start': startTime.millisecondsSinceEpoch,
     'end': endTime.millisecondsSinceEpoch,
   };
@@ -159,7 +164,8 @@ class AgendaWidgetSpec extends DashboardWidgetSpec {
                   [
                     event.allDay
                         ? 'Ganztägig'
-                        : '${formatTime(event.startTime)} – ${formatTime(event.endTime)}',
+                        : '${formatTimeInZone(event.startTime, event.timezone)} – '
+                              '${formatTimeInZone(event.endTime, event.timezone)}',
                     if (event.creator != null) event.creator!,
                   ].join(' · '),
                   style: DesignTextStyle.label,

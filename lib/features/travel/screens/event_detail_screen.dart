@@ -195,20 +195,22 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
               _infoRow(
                 tokens,
                 Icons.schedule_rounded,
-                formatDayRange(event.startDate, event.endDate),
+                formatDayRange(event.startDate!, event.endDate!),
               )
             else ...[
               _infoRow(
                 tokens,
                 Icons.schedule_rounded,
-                formatDateTime(event.startInstant),
+                formatDateTimeInZone(event.startAt!, event.timezone),
               ),
               SizedBox(height: tokens.spaceXs),
               _infoRow(
                 tokens,
                 Icons.schedule_rounded,
-                'bis ${formatDateTime(event.endInstant)}',
+                'bis ${formatDateTimeInZone(event.endAt!, event.timezone)}',
               ),
+              SizedBox(height: tokens.spaceXs),
+              _infoRow(tokens, Icons.public_rounded, event.timezone),
             ],
             if (event.organizer != null) ...[
               SizedBox(height: tokens.spaceXs),

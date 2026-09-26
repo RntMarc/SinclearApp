@@ -78,10 +78,11 @@ class _TravelScreenState extends State<TravelScreen> {
             name: t.name,
             description: t.description,
             allDay: t.allDay,
+            timezone: t.timezone,
+            startAt: t.startAt,
+            endAt: t.endAt,
             startDate: t.startDate,
             endDate: t.endDate,
-            startTime: t.startTime,
-            endTime: t.endTime,
             isTrip: true,
           ),
         for (final e in standalone.data)
@@ -90,10 +91,11 @@ class _TravelScreenState extends State<TravelScreen> {
             name: e.name,
             description: e.description,
             allDay: e.allDay,
+            timezone: e.timezone,
+            startAt: e.startAt,
+            endAt: e.endAt,
             startDate: e.startDate,
             endDate: e.endDate,
-            startTime: e.startTime,
-            endTime: e.endTime,
             isTrip: false,
           ),
       ];
@@ -325,10 +327,11 @@ class _TravelScreenState extends State<TravelScreen> {
                     SizedBox(height: tokens.spaceXs),
                     DesignText(
                       entry.allDay
-                          ? formatDayRange(entry.startDate, entry.endDate)
-                          : formatDateRange(
-                              entry.startInstant,
-                              entry.endInstant,
+                          ? formatDayRange(entry.startDate!, entry.endDate!)
+                          : formatInstantRangeInZone(
+                              entry.startAt!,
+                              entry.endAt!,
+                              entry.timezone,
                             ),
                       style: DesignTextStyle.label,
                       color: tokens.textLow,

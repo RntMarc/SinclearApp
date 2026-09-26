@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/android_update_service.dart';
 import '../services/web_update_service.dart';
+import '../services/time_zone_service.dart';
 import '../../features/auth/services/auth_service.dart';
 import '../../features/calendar/services/calendar_service.dart';
 import '../../features/explore/services/explore_service.dart';
@@ -61,6 +62,9 @@ class AppScope extends InheritedWidget {
   final WeatherService weather;
   final UserWeatherLocationService weatherLocations;
 
+  /// Effektive IANA-Zeitzone (Praeferenz vor Geraet) und tz-Datenbank.
+  final TimeZoneService timeZones;
+
   /// Erzeugt aus rohen Benachrichtigungen (`type` + Relation-IDs) Titel,
   /// Text und Deep-Link — einheitlich für Polling, Push und Inbox.
   final NotificationContentResolver notificationContent;
@@ -109,6 +113,7 @@ class AppScope extends InheritedWidget {
     required this.notification,
     required this.weather,
     required this.weatherLocations,
+    required this.timeZones,
     required this.notificationContent,
     required this.unifiedPush,
     required this.webPush,

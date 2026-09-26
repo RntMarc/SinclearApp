@@ -22,6 +22,7 @@ import 'core/url_strategy.dart';
 import 'core/network/api_client.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
+import 'core/services/time_zone_service.dart';
 import 'core/storage/token_storage.dart';
 import 'features/auth/services/auth_service.dart';
 import 'features/calendar/services/calendar_service.dart';
@@ -127,11 +128,29 @@ Future<void> _bootstrap() async {
   final storage = TokenStorage();
   final auth = AuthService(api: api, storage: storage);
   await auth.init();
+
+  // Nach auth.init(): Zeitzonen-Datenbank laden und Geraetezeitzone lesen.
+  final timeZones = TimeZoneService();
+  await timeZones.init();
+
   final explore = ExploreService(api: api, auth: auth);
   final travel = TravelService(api: api, auth: auth);
   final publicTransport = PublicTransportService(api: api, auth: auth);
   final user = UserService(api: api, auth: auth);
-  final calendar = CalendarService(api: api, auth: auth);
+  if (auth.isLoggedIn) {
+    try {
+      final userPrefs = await user.getPreferences();
+      timeZones.setPreference(userPrefs.timezone);
+    } catch (e, st) {
+      developer.log(
+        'Failed to load timezone preference',
+        error: e,
+        stackTrace: st,
+        name: 'bootstrap',
+      );
+    }
+  }
+  final calendar = CalendarService(api: api, auth: auth, timeZones: timeZones);
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final chat = ChatService(api: api, auth: auth);
@@ -291,6 +310,7 @@ Future<void> _bootstrap() async {
       subscription: subscription,
       weather: weather,
       weatherLocations: weatherLocations,
+      timeZones: timeZones,
       mcpKeys: mcpKeys,
       davTokens: davTokens,
       davSync: davSync,

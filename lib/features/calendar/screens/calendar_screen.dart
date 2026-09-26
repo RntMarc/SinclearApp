@@ -123,9 +123,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _addEntries(CalendarAllResponse response) {
     for (final entry in response.data) {
-      final date = entry.startDate;
-      if (date == null) continue;
-      final day = DateTime(date.year, date.month, date.day);
+      final day = entry.displayDay;
+      if (day == null) continue;
       _dayKeys.putIfAbsent(day, () => GlobalKey());
       final entries = _entriesByDay.putIfAbsent(day, () => []);
       if (!entries.any((e) => e.key == entry.key)) {
@@ -271,7 +270,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Future<void> _createEvent({DateTime? initialDate}) async {
     final result = await showDesignSheet<Map<String, dynamic>>(
       context: context,
-      child: EventFormSheet(initialDate: initialDate),
+      child: EventFormSheet(
+        initialDate: initialDate,
+        initialTimeZone: AppScope.of(context).timeZones.effective,
+      ),
     );
 
     if (result == null || !mounted) return;
@@ -281,19 +283,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
         title: result['title'] as String,
         description: result['description'] as String?,
         allDay: result['allDay'] as bool,
-        startDate: result['startDate'] as DateTime,
-        endDate: result['endDate'] as DateTime,
-        startTime: result['startTime'] as TimeOfDay?,
-        endTime: result['endTime'] as TimeOfDay?,
+        timezone: result['timezone'] as String,
+        startDate: result['startDate'] as DateTime?,
+        endDate: result['endDate'] as DateTime?,
+        startAt: result['startAt'] as DateTime?,
+        endAt: result['endAt'] as DateTime?,
         visibility: result['visibility'] as int,
         participantIds: result['participantIds'] as List<String>?,
       );
       final entry = CalendarEntry.fromCalendarEvent(event);
-      final day = DateTime(
-        event.startDate.year,
-        event.startDate.month,
-        event.startDate.day,
-      );
+      final day = event.displayDay;
       setState(() {
         _dayKeys.putIfAbsent(day, () => GlobalKey());
         _entriesByDay.putIfAbsent(day, () => []).add(entry);
@@ -344,11 +343,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final result = await context.push('/kalender/${entry.id}');
     if (result == true && mounted) {
       setState(() {
-        final date = entry.startDate!;
-        final day = DateTime(date.year, date.month, date.day);
-        _entriesByDay[day]?.removeWhere((e) => e.key == entry.key);
-        if (_entriesByDay[day]?.isEmpty == true) {
-          _entriesByDay.remove(day);
+        final date = entry.displayDay;
+        if (date == null) return;
+        _entriesByDay[date]?.removeWhere((e) => e.key == entry.key);
+        if (_entriesByDay[date]?.isEmpty == true) {
+          _entriesByDay.remove(date);
         }
       });
     }
