@@ -498,6 +498,19 @@ void main() {
     'createdAt': '2026-08-10 14:30:00',
   };
 
+  Map<String, dynamic> pollNotification(
+    String id,
+    String type,
+    String pollId,
+  ) => {
+    'id': id,
+    'type': type,
+    'data': [
+      {'relation': 'poll', 'object': 'Poll', 'identifier': pollId},
+    ],
+    'createdAt': '2026-08-10 14:30:00',
+  };
+
   group('trip unread registry', () {
     test('poll seeds registry and exposes trip ids', () async {
       mockApi.responses.add({
@@ -609,6 +622,54 @@ void main() {
       service.clear();
 
       expect(service.hasUnreadStandaloneEventContent, isFalse);
+    });
+  });
+
+  group('poll unread registry', () {
+    test('poll seeds registry and exposes poll ids', () async {
+      mockApi.responses.add({
+        'notifications': [
+          pollNotification('1', 'poll_invite', 'pollA'),
+          pollNotification('2', 'poll_deadline_reminder', 'pollB'),
+        ],
+      });
+
+      service.startPolling(getToken: () async => 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(service.hasUnreadPollContent, isTrue);
+      expect(service.unreadPollIds, {'pollA', 'pollB'});
+      expect(service.unreadIdsForPoll('pollA'), ['1']);
+      expect(service.unreadIdsForPoll('pollB'), ['2']);
+    });
+
+    test('markRead removes poll ids from the registry', () async {
+      mockApi.responses.add({
+        'notifications': [pollNotification('1', 'poll_invite', 'pollA')],
+      });
+
+      service.startPolling(getToken: () async => 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(service.hasUnreadPollContent, isTrue);
+
+      await service.markRead(['1'], token: 'test-token');
+
+      expect(service.hasUnreadPollContent, isFalse);
+      expect(service.unreadIdsForPoll('pollA'), isEmpty);
+    });
+
+    test('clear empties the poll registry', () async {
+      mockApi.responses.add({
+        'notifications': [pollNotification('1', 'poll_invite', 'pollA')],
+      });
+
+      service.startPolling(getToken: () async => 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(service.hasUnreadPollContent, isTrue);
+
+      service.clear();
+
+      expect(service.hasUnreadPollContent, isFalse);
     });
   });
 

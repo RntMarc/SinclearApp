@@ -246,3 +246,33 @@ Fehlercodes → deutsche Meldungen: `forbidden`, `not_found`, `poll_closed`,
   Zustand und sendet ihn einmalig.
 - `GET /polls/{id}/results` ist erst nach `closed` und nur für
   Ersteller/Admin sichtbar (`results_hidden` sonst) — im UI spiegeln.
+
+---
+
+## Umsetzungsnotizen (Abweichungen zur Planung)
+
+Alle Phasen sind umgesetzt. Abweichungen von den oben genannten Details:
+
+- **Filter statt `DesignSegmentedSwitch`:** Der vorhandene
+  `DesignSegmentedSwitch` ist fest auf die Design-Auswahl verdrahtet und
+  nicht generisch. Typ-/Status-/Modus-Filter nutzen daher
+  `DesignChip`-Zeilen (Katalog-Widget) — gleiches Muster wie bestehende
+  Screens.
+- **Datum/Uhrzeit-Eingabe:** Der Katalog hat kein eigenes Date-Picker-Widget.
+  `DesignQuestionField` enthält deshalb einen privaten Datum/Uhrzeit-Trigger
+  im `DesignTextField`-Look (erlaubte Ausnahme laut DESIGN.md, bis ein
+  Katalog-Widget existiert).
+- **Antwortformular:** `PollResponseScreen` ist nicht deep-linkbar und wird
+  per `Navigator.push` geöffnet (`/umfragen/:id/bearbeiten` bleibt der
+  Meta-Edit). Die im Plan gelisteten Subrouten `/ergebnisse` und
+  `/einladungen` sind vorhanden.
+- **Gegenvorschlag:** Der Sheet-Wizard nutzt den wiederverwendbaren
+  `AppointmentOptionEditor` (identisch zum Erstell-Wizard) statt einer
+  eigenen Datumslogik.
+- **Antwortwert-Semantik:** UI-Werte werden im Client zwischen Feature- und
+  Design-Layer konvertiert (`PollAnswerInput.value`); `boolean` → `"1"/"0"`,
+  `datetime` via `wallTimeToInstant`/`toApiInstant` in der effektiven Zone.
+- **Antwort-Ergebnisse:** Formular-Rohantworten werden auf Label-Ebene
+  gerendert (Auswahloptionen zu Labels aufgelöst); `vote`-Ergebnisse über
+  `DesignPollResultBar`.
+

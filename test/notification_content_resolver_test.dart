@@ -6,6 +6,8 @@ import 'package:sinclear_beyond/features/forum/models/forum_models.dart';
 import 'package:sinclear_beyond/features/forum/services/forum_service.dart';
 import 'package:sinclear_beyond/features/notifications/models/notification_item.dart';
 import 'package:sinclear_beyond/features/notifications/services/notification_content_resolver.dart';
+import 'package:sinclear_beyond/features/polls/models/poll_models.dart';
+import 'package:sinclear_beyond/features/polls/services/polls_service.dart';
 import 'package:sinclear_beyond/features/user/models/user_models.dart';
 import 'package:sinclear_beyond/features/user/services/user_service.dart';
 
@@ -57,6 +59,55 @@ class _FakeForumService extends ForumService {
       hasVoted: false,
       createdAt: '2026-01-01 00:00:00',
       updatedAt: '2026-01-01 00:00:00',
+    );
+  }
+}
+
+/// Liefert ein Umfrage-Detail mit [pollTitle] und einer Option mit
+/// [optionLabel]; wirft, wenn [pollTitle] `null` ist.
+class _FakePollsService extends PollsService {
+  _FakePollsService() : super(api: _dummyApi(), auth: _dummyAuth());
+
+  String? pollTitle;
+  String? optionLabel;
+
+  @override
+  Future<PollDetail> get(String id) async {
+    final title = pollTitle;
+    if (title == null) throw Exception('Nachladen fehlgeschlagen');
+    return PollDetail(
+      poll: Poll(
+        id: id,
+        type: PollType.form,
+        creatorId: 'creator',
+        title: title,
+        status: PollStatus.open,
+        accessMode: PollAccessMode.invited,
+        submissionMode: PollSubmissionMode.single,
+        resultsVisibility: PollResultsVisibility.creator,
+        allowCounterProposals: false,
+        isCreator: false,
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+      isInvited: true,
+      questions: const [],
+      options: optionLabel == null
+          ? const []
+          : [
+              PollOption(
+                id: 'opt-1',
+                pollId: id,
+                label: optionLabel,
+                allDay: true,
+                timezone: 'UTC',
+                startDate: DateTime(2026, 8, 20),
+                endDate: DateTime(2026, 8, 20),
+                isCounterProposal: false,
+                position: 0,
+              ),
+            ],
+      participantStatus: const PollParticipantStatus(),
     );
   }
 }
@@ -213,12 +264,18 @@ NotificationItem _directMessageItem() => NotificationItem(
 void main() {
   late _FakeUserService user;
   late _FakeForumService forum;
+  late _FakePollsService polls;
   late NotificationContentResolver resolver;
 
   setUp(() {
     user = _FakeUserService();
     forum = _FakeForumService();
-    resolver = NotificationContentResolver(user: user, forum: forum);
+    polls = _FakePollsService();
+    resolver = NotificationContentResolver(
+      user: user,
+      forum: forum,
+      polls: polls,
+    );
   });
 
   group('forum_reply', () {
@@ -402,10 +459,7 @@ void main() {
         final content = await resolver.resolve(_forumUpvoteItem());
 
         expect(content.title, 'Neue Bewertung');
-        expect(
-          content.body,
-          'Jemand hat deinen Beitrag positiv bewertet.',
-        );
+        expect(content.body, 'Jemand hat deinen Beitrag positiv bewertet.');
         expect(content.route, '/forum/f1/beitrag/p1');
       },
     );
@@ -606,6 +660,126 @@ void main() {
       expect(content.title, 'Neue Mitteilung');
       expect(content.body, 'Du hast eine neue Benachrichtigung.');
       expect(content.route, isNull);
+    });
+  });
+
+  group('poll_*', () {
+    NotificationItem pollItem(String type, List<NotificationRelation> data) =>
+        NotificationItem(
+          id: 'poll-$type',
+          type: type,
+          createdAt: DateTime.utc(2026, 8, 10, 14, 30),
+          data: data,
+        );
+
+    test('poll_invite lädt Titel und Einladenden', () async {
+      polls.pollTitle = 'Radtour';
+      user.displayName = 'Tom';
+      final content = await resolver.resolve(
+        pollItem('poll_invite', const [
+          NotificationRelation(
+            relation: 'poll',
+            object: 'Poll',
+            identifier: 'p1',
+          ),
+          NotificationRelation(
+            relation: 'inviter',
+            object: 'User',
+            identifier: 'u1',
+          ),
+        ]),
+      );
+      expect(content.title, 'Neue Umfrage-Einladung');
+      expect(content.body, 'Tom hat dich zur Umfrage „Radtour“ eingeladen.');
+      expect(content.route, '/umfragen/p1');
+    });
+
+    test('poll_counter_proposal lädt Titel und Vorschlagenden', () async {
+      polls.pollTitle = 'Radtour';
+      user.displayName = 'Tom';
+      final content = await resolver.resolve(
+        pollItem('poll_counter_proposal', const [
+          NotificationRelation(
+            relation: 'poll',
+            object: 'Poll',
+            identifier: 'p1',
+          ),
+          NotificationRelation(
+            relation: 'proposer',
+            object: 'User',
+            identifier: 'u1',
+          ),
+        ]),
+      );
+      expect(content.title, 'Neuer Gegenvorschlag');
+      expect(
+        content.body,
+        'Tom hat einen Gegenvorschlag zur Umfrage „Radtour“ gemacht.',
+      );
+    });
+
+    test('poll_finalized nennt die festgelegte Option', () async {
+      polls.pollTitle = 'Radtour';
+      polls.optionLabel = '20.08.2026';
+      final content = await resolver.resolve(
+        pollItem('poll_finalized', const [
+          NotificationRelation(
+            relation: 'poll',
+            object: 'Poll',
+            identifier: 'p1',
+          ),
+          NotificationRelation(
+            relation: 'finalized_option',
+            object: 'PollOption',
+            identifier: 'opt-1',
+          ),
+        ]),
+      );
+      expect(content.title, 'Umfrage aktualisiert');
+      expect(content.body, 'Der Termin für „Radtour“ steht fest: 20.08.2026');
+    });
+
+    test('poll_finalized ohne Option meldet Abschluss', () async {
+      polls.pollTitle = 'Radtour';
+      final content = await resolver.resolve(
+        pollItem('poll_finalized', const [
+          NotificationRelation(
+            relation: 'poll',
+            object: 'Poll',
+            identifier: 'p1',
+          ),
+        ]),
+      );
+      expect(content.body, 'Die Umfrage „Radtour“ wurde abgeschlossen.');
+    });
+
+    test('poll_deadline_reminder nennt den Titel', () async {
+      polls.pollTitle = 'Radtour';
+      final content = await resolver.resolve(
+        pollItem('poll_deadline_reminder', const [
+          NotificationRelation(
+            relation: 'poll',
+            object: 'Poll',
+            identifier: 'p1',
+          ),
+        ]),
+      );
+      expect(content.title, 'Erinnerung: Umfrage endet bald');
+      expect(content.body, 'Die Umfrage „Radtour“ endet bald.');
+    });
+
+    test('Fallback, wenn der Titel nicht geladen werden kann', () async {
+      final content = await resolver.resolve(
+        pollItem('poll_invite', const [
+          NotificationRelation(
+            relation: 'poll',
+            object: 'Poll',
+            identifier: 'p1',
+          ),
+        ]),
+      );
+      expect(content.body, 'Du wurdest zu einer Umfrage eingeladen.');
+      expect(content.route, '/umfragen/p1');
     });
   });
 

@@ -6,6 +6,7 @@ import 'dart:developer' as developer;
 import '../../../core/config/notification_config.dart';
 import '../../../core/notifications/local_notification_helper.dart';
 import '../../forum/services/forum_service.dart';
+import '../../polls/services/polls_service.dart';
 import '../../user/services/user_service.dart';
 import '../models/notification_item.dart';
 
@@ -45,12 +46,15 @@ class ResolvedNotificationContent {
 class NotificationContentResolver {
   final UserService _user;
   final ForumService _forum;
+  final PollsService _polls;
 
   NotificationContentResolver({
     required UserService user,
     required ForumService forum,
+    required PollsService polls,
   }) : _user = user,
-       _forum = forum;
+       _forum = forum,
+       _polls = polls;
 
   /// Bereitet [item] vollständig auf. Wirft nie — bei Fehlern wird auf
   /// die generalisierten Fallback-Texte zurückgefallen.
@@ -70,6 +74,10 @@ class NotificationContentResolver {
       'forum_upvote' => _resolveForumUpvote(item, route),
       'story_post' => _resolveStoryPost(item, route),
       'direct_message' => _resolveDirectMessage(item, route),
+      'poll_invite' => _resolvePollInvite(item, route),
+      'poll_counter_proposal' => _resolvePollCounterProposal(item, route),
+      'poll_finalized' => _resolvePollFinalized(item, route),
+      'poll_deadline_reminder' => _resolvePollDeadlineReminder(item, route),
       _ => _fallback(item.type, route),
     };
   }
@@ -226,12 +234,8 @@ class NotificationContentResolver {
       return _fallback(item.type, route);
     }
 
-    final voter = voterName == null || voterName.isEmpty
-        ? 'Jemand'
-        : voterName;
-    final postPart = postSnippet == null
-        ? ''
-        : ' \u201e$postSnippet\u201c';
+    final voter = voterName == null || voterName.isEmpty ? 'Jemand' : voterName;
+    final postPart = postSnippet == null ? '' : ' \u201e$postSnippet\u201c';
 
     return ResolvedNotificationContent(
       title: NotificationTypeLabel.title(item.type),
@@ -285,6 +289,135 @@ class NotificationContentResolver {
       body: '$senderName hat dir geschrieben',
       route: route,
     );
+  }
+
+  /// `poll_invite`: „{Einladender} hat dich zur Umfrage „{Titel}“ eingeladen"
+  /// — Einladender und Titel werden nachgeladen.
+  Future<ResolvedNotificationContent> _resolvePollInvite(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final inviterId = item.identifierFor('inviter');
+    final results = await Future.wait([
+      _pollTitle(item.identifierFor('poll')),
+      _attempt('inviter', () async {
+        if (inviterId == null) return null;
+        return (await _user.get(inviterId)).base.displayName;
+      }),
+    ]);
+    final title = results[0];
+    final inviter = results[1];
+    if (title == null && inviter == null) {
+      return _fallback(item.type, route);
+    }
+    final body = title == null
+        ? 'Du wurdest zu einer Umfrage eingeladen.'
+        : inviter == null || inviter.isEmpty
+        ? 'Du wurdest zur Umfrage \u201e$title\u201c eingeladen.'
+        : '$inviter hat dich zur Umfrage \u201e$title\u201c eingeladen.';
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: body,
+      route: route,
+    );
+  }
+
+  /// `poll_counter_proposal`: „{Vorschlagender} hat einen Gegenvorschlag zur
+  /// Umfrage „{Titel}“ gemacht" — Vorschlagender und Titel werden nachgeladen.
+  Future<ResolvedNotificationContent> _resolvePollCounterProposal(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final proposerId = item.identifierFor('proposer');
+    final results = await Future.wait([
+      _pollTitle(item.identifierFor('poll')),
+      _attempt('proposer', () async {
+        if (proposerId == null) return null;
+        return (await _user.get(proposerId)).base.displayName;
+      }),
+    ]);
+    final title = results[0];
+    final proposer = results[1];
+    if (title == null && proposer == null) {
+      return _fallback(item.type, route);
+    }
+    final body = title == null
+        ? 'Zu einer Terminfindung wurde ein neuer Gegenvorschlag abgegeben.'
+        : proposer == null || proposer.isEmpty
+        ? 'Neuer Gegenvorschlag zur Umfrage \u201e$title\u201c.'
+        : '$proposer hat einen Gegenvorschlag zur Umfrage \u201e$title\u201c '
+              'gemacht.';
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: body,
+      route: route,
+    );
+  }
+
+  /// `poll_finalized`: „Der Termin für „{Titel}“ steht fest: {Option}" bzw.
+  /// „Die Umfrage „{Titel}“ wurde abgeschlossen" — Titel und finalisierte
+  /// Option werden nachgeladen.
+  Future<ResolvedNotificationContent> _resolvePollFinalized(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final pollId = item.identifierFor('poll');
+    final optionId = item.identifierFor('finalized_option');
+    final results = await Future.wait([
+      _pollTitle(pollId),
+      _pollOptionLabel(pollId, optionId),
+    ]);
+    final title = results[0];
+    final optionLabel = results[1];
+    if (title == null) {
+      return _fallback(item.type, route);
+    }
+    final body = optionLabel == null
+        ? 'Die Umfrage \u201e$title\u201c wurde abgeschlossen.'
+        : 'Der Termin für \u201e$title\u201c steht fest: $optionLabel';
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: body,
+      route: route,
+    );
+  }
+
+  /// `poll_deadline_reminder`: „Die Umfrage „{Titel}“ endet bald" — der Titel
+  /// wird nachgeladen.
+  Future<ResolvedNotificationContent> _resolvePollDeadlineReminder(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final title = await _pollTitle(item.identifierFor('poll'));
+    if (title == null) {
+      return _fallback(item.type, route);
+    }
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: 'Die Umfrage \u201e$title\u201c endet bald.',
+      route: route,
+    );
+  }
+
+  /// Lädt den Titel einer Umfrage; `null` bei fehlender ID oder Fehler.
+  Future<String?> _pollTitle(String? pollId) {
+    return _attempt('poll', () async {
+      if (pollId == null) return null;
+      final title = (await _polls.get(pollId)).poll.title;
+      return title.isEmpty ? null : title;
+    });
+  }
+
+  /// Lädt das Anzeigelabel einer finalisierten Option; `null` bei Fehler.
+  Future<String?> _pollOptionLabel(String? pollId, String? optionId) {
+    return _attempt('finalized_option', () async {
+      if (pollId == null || optionId == null) return null;
+      final detail = await _polls.get(pollId);
+      for (final option in detail.options) {
+        if (option.id == optionId) return option.displayLabel;
+      }
+      return null;
+    });
   }
 
   /// Generalisierter Fallback für unbekannte Typen.

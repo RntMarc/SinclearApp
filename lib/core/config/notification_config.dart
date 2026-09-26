@@ -20,7 +20,9 @@ import '../../features/notifications/models/notification_item.dart';
 /// `trip_ticket_added`, `trip_accommodation_added`,
 /// `trip_subscription_added`, `trip_info_changed`,
 /// `standalone_event_user_added`, `standalone_event_user_added_others`,
-/// `standalone_event_info_changed`, `standalone_event_ticket_added`
+/// `standalone_event_info_changed`, `standalone_event_ticket_added`,
+/// `poll_invite`, `poll_counter_proposal`, `poll_finalized`,
+/// `poll_deadline_reminder`
 /// (siehe API-Doku). Unbekannte Typen liefern generische Standardwerte,
 /// `route` gibt dann `null` zurück (Aufrufer öffnet die Inbox bzw. bis zu
 /// deren Umsetzung `/home`).
@@ -48,19 +50,29 @@ class NotificationTypeLabel {
     'standalone_event_ticket_added',
   };
 
+  static const _pollTypes = {
+    'poll_invite',
+    'poll_counter_proposal',
+    'poll_finalized',
+    'poll_deadline_reminder',
+  };
+
   /// Liefert die deutsche Route für eine Benachrichtigung, aufgebaut aus
   /// den Relation-IDs in [data]. `null`, wenn der Typ unbekannt ist oder
   /// Pflicht-Relationen fehlen.
   static String? route(String type, List<NotificationRelation> data) {
     return switch (type) {
-      'forum_reply' || 'forum_comment' || 'forum_post' || 'forum_upvote' =>
-        _forumRoute(data),
+      'forum_reply' ||
+      'forum_comment' ||
+      'forum_post' ||
+      'forum_upvote' => _forumRoute(data),
       'story_post' => _storyRoute(data),
       'direct_message' => _directMessageRoute(data),
       _ when _tripTypes.contains(type) => _tripRoute(data),
       _ when _standaloneEventTypes.contains(type) => _standaloneEventRoute(
         data,
       ),
+      _ when _pollTypes.contains(type) => _pollRoute(data),
       _ => null,
     };
   }
@@ -96,6 +108,10 @@ class NotificationTypeLabel {
       'event_user_added_others' => 'Neuer Teilnehmer beim Event',
       'event_info_changed' => 'Event-Informationen geändert',
       'event_ticket_added' => 'Neues Ticket für das Event',
+      'poll_invite' => 'Neue Umfrage-Einladung',
+      'poll_counter_proposal' => 'Neuer Gegenvorschlag',
+      'poll_finalized' => 'Umfrage aktualisiert',
+      'poll_deadline_reminder' => 'Erinnerung: Umfrage endet bald',
       _ => 'Neue Mitteilung',
     };
   }
@@ -132,6 +148,11 @@ class NotificationTypeLabel {
         'Die Event-Informationen wurden geändert.',
       'standalone_event_ticket_added' =>
         'Ein neues Ticket wurde zum Event hinzugefügt.',
+      'poll_invite' => 'Du wurdest zu einer Umfrage eingeladen.',
+      'poll_counter_proposal' =>
+        'Zu einer Terminfindung wurde ein neuer Gegenvorschlag abgegeben.',
+      'poll_finalized' => 'Eine Umfrage wurde aktualisiert.',
+      'poll_deadline_reminder' => 'Eine Umfrage endet bald.',
       _ => 'Du hast eine neue Benachrichtigung.',
     };
   }
@@ -139,8 +160,10 @@ class NotificationTypeLabel {
   /// Icon für die Benachrichtigung.
   static IconData icon(String type) {
     return switch (type) {
-      'forum_reply' || 'forum_comment' || 'forum_post' || 'forum_upvote' =>
-        Icons.forum_rounded,
+      'forum_reply' ||
+      'forum_comment' ||
+      'forum_post' ||
+      'forum_upvote' => Icons.forum_rounded,
       'story_post' => Icons.auto_stories_rounded,
       'direct_message' => Icons.chat_rounded,
       'trip_user_added' ||
@@ -161,6 +184,10 @@ class NotificationTypeLabel {
       'event_user_added' || 'event_user_added_others' => Icons.event,
       'event_info_changed' => Icons.info_outline,
       'event_ticket_added' => Icons.confirmation_num,
+      'poll_invite' ||
+      'poll_counter_proposal' ||
+      'poll_finalized' => Icons.poll_rounded,
+      'poll_deadline_reminder' => Icons.alarm_rounded,
       _ => Icons.notifications_rounded,
     };
   }
@@ -206,6 +233,13 @@ class NotificationTypeLabel {
     return '/reisen/einzelevent/$eventId';
   }
 
+  /// `/umfragen/{poll}` — die Poll-ID ist bei allen `poll_*`-Typen Pflicht.
+  static String? _pollRoute(List<NotificationRelation> data) {
+    final pollId = _identifierFor(data, 'poll');
+    if (pollId == null) return null;
+    return '/umfragen/$pollId';
+  }
+
   /// Kategorie für die Gruppierung im Einstellungen-Screen. `null` für
   /// unbekannte Typen — unbekannte Typen werden nicht angezeigt.
   ///
@@ -233,6 +267,10 @@ class NotificationTypeLabel {
       'trip_ticket_added' || 'event_ticket_added' => 'Tickets',
       'trip_accommodation_added' => 'Unterkunft',
       'trip_subscription_added' => 'Abos',
+      'poll_invite' ||
+      'poll_counter_proposal' ||
+      'poll_finalized' ||
+      'poll_deadline_reminder' => 'Umfragen',
       _ => null,
     };
   }
@@ -245,6 +283,10 @@ class NotificationTypeLabel {
       'forum_reply' || 'forum_comment' || 'forum_post' => 'forumIds',
       'story_post' => 'userIds',
       'direct_message' => 'userIds',
+      'poll_invite' ||
+      'poll_counter_proposal' ||
+      'poll_finalized' ||
+      'poll_deadline_reminder' => 'pollIds',
       _ => null,
     };
   }

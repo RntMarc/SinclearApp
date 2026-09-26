@@ -17,6 +17,7 @@ import 'features/chat/services/chat_service.dart';
 import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/photos/services/photos_service.dart';
+import 'features/polls/services/polls_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
 import 'features/settings/services/dav_sync_service.dart';
@@ -56,6 +57,7 @@ class SinclearApp extends StatelessWidget {
   final PhotosService photos;
   final ModerationService moderation;
   final SubscriptionService subscription;
+  final PollsService polls;
   final StoriesService stories;
   final McpKeyService mcpKeys;
   final DavTokenService davTokens;
@@ -136,6 +138,7 @@ class SinclearApp extends StatelessWidget {
     required this.photos,
     required this.moderation,
     required this.subscription,
+    required this.polls,
     required this.stories,
     required this.mcpKeys,
     required this.davTokens,
@@ -193,6 +196,7 @@ class SinclearApp extends StatelessWidget {
       photos: photos,
       moderation: moderation,
       subscription: subscription,
+      polls: polls,
       stories: stories,
       mcpKeys: mcpKeys,
       davTokens: davTokens,

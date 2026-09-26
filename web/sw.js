@@ -88,6 +88,22 @@ const CONTENT_BY_TYPE = {
     title: 'Neues Ticket für das Event',
     body: 'Ein neues Ticket wurde zum Event hinzugefügt.',
   },
+  poll_invite: {
+    title: 'Neue Umfrage-Einladung',
+    body: 'Du wurdest zu einer Umfrage eingeladen.',
+  },
+  poll_counter_proposal: {
+    title: 'Neuer Gegenvorschlag',
+    body: 'Zu einer Terminfindung wurde ein neuer Gegenvorschlag abgegeben.',
+  },
+  poll_finalized: {
+    title: 'Umfrage aktualisiert',
+    body: 'Eine Umfrage wurde aktualisiert.',
+  },
+  poll_deadline_reminder: {
+    title: 'Erinnerung: Umfrage endet bald',
+    body: 'Eine Umfrage endet bald.',
+  },
 };
 
 const FALLBACK_CONTENT = {
@@ -114,6 +130,13 @@ const STANDALONE_EVENT_TYPES = new Set([
   'standalone_event_user_added_others',
   'standalone_event_info_changed',
   'standalone_event_ticket_added',
+]);
+
+const POLL_TYPES = new Set([
+  'poll_invite',
+  'poll_counter_proposal',
+  'poll_finalized',
+  'poll_deadline_reminder',
 ]);
 
 function relationId(data, relation) {
@@ -150,6 +173,10 @@ function resolveRoute(type, data) {
   if (STANDALONE_EVENT_TYPES.has(type)) {
     const eventId = relationId(data, 'event');
     if (eventId) return `/reisen/einzelevent/${eventId}`;
+  }
+  if (POLL_TYPES.has(type)) {
+    const pollId = relationId(data, 'poll');
+    if (pollId) return `/umfragen/${pollId}`;
   }
   return '/home';
 }

@@ -386,6 +386,26 @@ Design-Tokens bekommt.
   Antwort-Modus. Im Antwort-Modus (`replySenderName`, `replySnippet`,
   `onCancelReply`) erscheint ein Banner über dem Feld (analog Edit-Banner,
   beide Modi sind exklusiv).
+- **`DesignPollCard`** (`composite`) – Modell-freier Listeneintrag einer
+  Umfrage aus `DesignCard` + `DesignText` + `DesignBadge`: Typ-Label/Icon,
+  Titel, Ersteller/Frist, Status; `pulseColor` für ungelesene Umfragen und
+  `onTap`. Feature-Adapter: `PollCard` (mappt `Poll`).
+- **`DesignQuestionField`** (`composite`) – rendert genau einen der 13
+  Fragetypen aus einer model-freien `DesignQuestionSpec` (Typ, Titel,
+  Pflicht, `config`, Optionen) mit `value`/`onChanged`. Baut auf
+  `DesignTextField`, `DesignChip`, `DesignSlider` sowie einem internen
+  Datum/Uhrzeit-Trigger im `DesignTextField`-Look auf. Feature-Adapter:
+  `QuestionField` (mappt `PollQuestion` + `PollOption`).
+- **`DesignQuestionEditor`** (`composite`) – Autoren-Pendant zum Feld:
+  bearbeitet `DesignQuestionDraft` (Typ, Titel, Pflicht, typspezifische
+  `config`, Optionsliste, `allowOther`) und meldet Änderungen über
+  `onChanged`.
+- **`DesignAvailabilityMatrix`** (`composite`) – Doodle-artige Matrix
+  (Optionen × Ja/Vielleicht/Nein) aus `DesignCard` + `DesignChip`; im
+  `readOnly`-Modus zeigt sie aggregierte Stimmen, sonst die eigene Auswahl
+  über `onChanged(optionId, value)`.
+- **`DesignPollResultBar`** (`composite`) – Ergebnisbalken aus `DesignCard` +
+  `DesignText` mit Füllbreite aus `percentage`.
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste

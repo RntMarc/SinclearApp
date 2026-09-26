@@ -17,6 +17,7 @@ import '../../features/notifications/services/foreground_polling_service.dart';
 import '../../features/notifications/services/unified_push_service.dart';
 import '../../features/notifications/services/web_push_service.dart';
 import '../../features/photos/services/photos_service.dart';
+import '../../features/polls/services/polls_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
 import '../../features/settings/models/notification_preference.dart';
 import '../../features/settings/models/map_app_preference.dart';
@@ -49,6 +50,7 @@ class AppScope extends InheritedWidget {
   final PhotosService photos;
   final ModerationService moderation;
   final SubscriptionService subscription;
+  final PollsService polls;
   final StoriesService stories;
   final McpKeyService mcpKeys;
   final DavTokenService davTokens;
@@ -102,6 +104,7 @@ class AppScope extends InheritedWidget {
     required this.photos,
     required this.moderation,
     required this.subscription,
+    required this.polls,
     required this.stories,
     required this.mcpKeys,
     required this.davTokens,
