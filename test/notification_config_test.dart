@@ -818,4 +818,81 @@ void main() {
       expect(NotificationTypeLabel.customDataKey('unbekannt'), isNull);
     });
   });
+
+  group('NotificationTypeLabel Umfragen', () {
+    const pollData = [
+      NotificationRelation(
+        relation: 'poll',
+        object: 'Poll',
+        identifier: 'poll1',
+      ),
+    ];
+
+    test('alle poll_*-Typen navigieren zur Umfrage (/umfragen/{poll})', () {
+      for (final type in [
+        'poll_invite',
+        'poll_counter_proposal',
+        'poll_finalized',
+        'poll_deadline_reminder',
+      ]) {
+        expect(NotificationTypeLabel.route(type, pollData), '/umfragen/poll1');
+      }
+    });
+
+    test('poll_* ohne poll Relation gibt null', () {
+      expect(NotificationTypeLabel.route('poll_invite', const []), isNull);
+    });
+
+    test('Titel und Icon je poll_*-Typ', () {
+      expect(
+        NotificationTypeLabel.title('poll_invite'),
+        'Neue Umfrage-Einladung',
+      );
+      expect(
+        NotificationTypeLabel.title('poll_counter_proposal'),
+        'Neuer Gegenvorschlag',
+      );
+      expect(
+        NotificationTypeLabel.title('poll_finalized'),
+        'Umfrage aktualisiert',
+      );
+      expect(
+        NotificationTypeLabel.title('poll_deadline_reminder'),
+        'Erinnerung: Umfrage endet bald',
+      );
+      expect(NotificationTypeLabel.icon('poll_invite'), Icons.poll_rounded);
+      expect(
+        NotificationTypeLabel.icon('poll_counter_proposal'),
+        Icons.poll_rounded,
+      );
+      expect(NotificationTypeLabel.icon('poll_finalized'), Icons.poll_rounded);
+      expect(
+        NotificationTypeLabel.icon('poll_deadline_reminder'),
+        Icons.alarm_rounded,
+      );
+    });
+
+    test('Fallback-Texte sind gesetzt', () {
+      for (final type in [
+        'poll_invite',
+        'poll_counter_proposal',
+        'poll_finalized',
+        'poll_deadline_reminder',
+      ]) {
+        expect(NotificationTypeLabel.fallbackBody(type), isNotEmpty);
+      }
+    });
+
+    test('Kategorie und customDataKey (pollIds)', () {
+      for (final type in [
+        'poll_invite',
+        'poll_counter_proposal',
+        'poll_finalized',
+        'poll_deadline_reminder',
+      ]) {
+        expect(NotificationTypeLabel.category(type), 'Umfragen');
+        expect(NotificationTypeLabel.customDataKey(type), 'pollIds');
+      }
+    });
+  });
 }

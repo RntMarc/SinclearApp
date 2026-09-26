@@ -46,6 +46,7 @@ import 'package:sinclear_beyond/features/settings/services/lametric_token_servic
 import 'package:sinclear_beyond/features/settings/services/mcp_key_service.dart';
 import 'package:sinclear_beyond/features/stories/services/stories_service.dart';
 import 'package:sinclear_beyond/features/subscription/services/subscription_service.dart';
+import 'package:sinclear_beyond/features/polls/services/polls_service.dart';
 import 'package:sinclear_beyond/features/travel/services/pt_service.dart';
 import 'package:sinclear_beyond/features/travel/services/travel_service.dart';
 import 'package:sinclear_beyond/features/user/services/user_service.dart';
@@ -691,11 +692,7 @@ AppScope _buildScope({
   final publicTransport = PublicTransportService(api: api, auth: auth);
   final user = UserService(api: api, auth: auth);
   final timeZones = TimeZoneService();
-  final calendar = CalendarService(
-    api: api,
-    auth: auth,
-    timeZones: timeZones,
-  );
+  final calendar = CalendarService(api: api, auth: auth, timeZones: timeZones);
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final chat = ChatService(api: api, auth: auth);
@@ -704,6 +701,7 @@ AppScope _buildScope({
   final photos = PhotosService(api: api, auth: auth);
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
+  final polls = PollsService(api: api, auth: auth);
   final stories = StoriesService(api: api, auth: auth);
   final weather = WeatherService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
@@ -717,6 +715,7 @@ AppScope _buildScope({
   final notificationContent = NotificationContentResolver(
     user: user,
     forum: forum,
+    polls: polls,
   );
   final notification = NotificationService(
     api: api,
@@ -746,6 +745,7 @@ AppScope _buildScope({
     photos: photos,
     moderation: moderation,
     subscription: subscription,
+    polls: polls,
     stories: stories,
     mcpKeys: mcpKeys,
     davTokens: davTokens,

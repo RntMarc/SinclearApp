@@ -306,6 +306,22 @@ class NotificationService extends ChangeNotifier {
     return ids;
   }
 
+  /// Gibt es ungelesene Umfrage-Aktivität (`poll_*`-Typen)?
+  bool get hasUnreadPollContent => _relationIds('poll').isNotEmpty;
+
+  /// IDs der Umfragen mit ungelesener Aktivität.
+  Set<String> get unreadPollIds => _relationIds('poll');
+
+  /// Notification-IDs, die eine bestimmte Umfrage betreffen (zum
+  /// Gelesen-Markieren beim Öffnen der Umfrage).
+  List<String> unreadIdsForPoll(String pollId) {
+    final ids = <String>[];
+    for (final item in _unreadById.values) {
+      if (item.identifierFor('poll') == pollId) ids.add(item.id);
+    }
+    return ids;
+  }
+
   @override
   void dispose() {
     stopPolling();

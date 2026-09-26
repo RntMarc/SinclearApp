@@ -39,6 +39,7 @@ import 'package:sinclear_beyond/features/settings/services/mcp_key_service.dart'
 import 'package:sinclear_beyond/features/shell/widgets/shell_widgets.dart';
 import 'package:sinclear_beyond/features/stories/services/stories_service.dart';
 import 'package:sinclear_beyond/features/subscription/services/subscription_service.dart';
+import 'package:sinclear_beyond/features/polls/services/polls_service.dart';
 import 'package:sinclear_beyond/features/travel/services/pt_service.dart';
 import 'package:sinclear_beyond/features/travel/services/travel_service.dart';
 import 'package:sinclear_beyond/features/user/services/user_service.dart';
@@ -48,29 +49,25 @@ import 'package:sinclear_beyond/features/weather/services/weather_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets(
-    'ShellDesktop rendert einen Scaffold und traegt SnackBars',
-    (tester) async {
-      await _pumpShell(
-        tester,
-        const ShellDesktop(child: Text('inhalt')),
-      );
+  testWidgets('ShellDesktop rendert einen Scaffold und traegt SnackBars', (
+    tester,
+  ) async {
+    await _pumpShell(tester, const ShellDesktop(child: Text('inhalt')));
 
-      expect(find.byType(Scaffold), findsOneWidget);
-      expect(find.text('inhalt'), findsOneWidget);
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.text('inhalt'), findsOneWidget);
 
-      // Ohne Scaffold unterhalb des Shell moechte ScaffoldMessenger
-      // warnen ("currently no descendant Scaffolds") und wirft in
-      // Debug-Bauten einen Assertion-Fehler.
-      final context = tester.element(find.text('inhalt'));
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('meldung')));
-      await tester.pumpAndSettle();
+    // Ohne Scaffold unterhalb des Shell moechte ScaffoldMessenger
+    // warnen ("currently no descendant Scaffolds") und wirft in
+    // Debug-Bauten einen Assertion-Fehler.
+    final context = tester.element(find.text('inhalt'));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('meldung')));
+    await tester.pumpAndSettle();
 
-      expect(find.text('meldung'), findsOneWidget);
-    },
-  );
+    expect(find.text('meldung'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpShell(WidgetTester tester, Widget shell) async {
@@ -105,13 +102,10 @@ AppScope _buildScope({
   final user = UserService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final timeZones = TimeZoneService();
-  final calendar = CalendarService(
-    api: api,
-    auth: auth,
-    timeZones: timeZones,
-  );
+  final calendar = CalendarService(api: api, auth: auth, timeZones: timeZones);
   final travel = TravelService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
+  final polls = PollsService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
   final weather = WeatherService(api: api, auth: auth);
   final weatherLocations = UserWeatherLocationService(api: api, auth: auth);
@@ -135,6 +129,7 @@ AppScope _buildScope({
     photos: PhotosService(api: api, auth: auth),
     moderation: ModerationService(api: api, auth: auth),
     subscription: subscription,
+    polls: polls,
     stories: StoriesService(api: api, auth: auth),
     mcpKeys: McpKeyService(api: api, auth: auth),
     davTokens: davTokens,
@@ -164,7 +159,11 @@ AppScope _buildScope({
     weather: weather,
     weatherLocations: weatherLocations,
     timeZones: timeZones,
-    notificationContent: NotificationContentResolver(user: user, forum: forum),
+    notificationContent: NotificationContentResolver(
+      user: user,
+      forum: forum,
+      polls: polls,
+    ),
     unifiedPush: unifiedPush,
     webPush: WebPushService(api: api),
     foregroundPolling: foregroundPolling,

@@ -56,6 +56,11 @@ import '../features/forum/screens/forum_list_screen.dart';
 import '../features/forum/screens/forum_detail_screen.dart';
 import '../features/forum/screens/post_detail_screen.dart';
 import '../features/forum/screens/create_post_screen.dart';
+import '../features/polls/screens/poll_create_screen.dart';
+import '../features/polls/screens/poll_detail_screen.dart';
+import '../features/polls/screens/poll_invites_screen.dart';
+import '../features/polls/screens/poll_list_screen.dart';
+import '../features/polls/screens/poll_results_screen.dart';
 import '../features/moderation/screens/moderation_requests_screen.dart';
 import '../features/showcase/screens/design_showcase_screen.dart';
 import '../features/stories/screens/story_deep_link_screen.dart';
@@ -88,6 +93,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
           location.startsWith('/feedback') ||
           location.startsWith('/mod-anfragen') ||
           location.startsWith('/forum') ||
+          location.startsWith('/umfragen') ||
           location.startsWith('/fotos') ||
           (location.startsWith('/rezepte') && !_isGuestRecipes(location)) ||
           location.startsWith('/abos') ||
@@ -230,6 +236,38 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                 path: ':id',
                 builder: (context, state) =>
                     DetailScreen(id: state.pathParameters['id']!),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/umfragen',
+            builder: (context, state) => const PollListScreen(),
+            routes: [
+              GoRoute(
+                path: 'neu',
+                builder: (context, state) => const PollCreateScreen(),
+              ),
+              GoRoute(
+                path: ':id',
+                builder: (context, state) =>
+                    PollDetailScreen(id: state.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'bearbeiten',
+                    builder: (context, state) =>
+                        PollCreateScreen(pollId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: 'ergebnisse',
+                    builder: (context, state) =>
+                        PollResultsScreen(pollId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: 'einladungen',
+                    builder: (context, state) =>
+                        PollInvitesScreen(pollId: state.pathParameters['id']!),
+                  ),
+                ],
               ),
             ],
           ),

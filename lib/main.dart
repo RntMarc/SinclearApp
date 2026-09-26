@@ -39,6 +39,7 @@ import 'features/notifications/services/polling_background_store.dart';
 import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
 import 'features/photos/services/photos_service.dart';
+import 'features/polls/services/polls_service.dart';
 import 'features/recipes/services/recipes_service.dart';
 import 'features/stories/services/stories_service.dart';
 import 'features/settings/models/api_environment.dart';
@@ -160,6 +161,7 @@ Future<void> _bootstrap() async {
   final stories = StoriesService(api: api, auth: auth);
   final moderation = ModerationService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
+  final polls = PollsService(api: api, auth: auth);
   final weather = WeatherService(api: api, auth: auth);
   final weatherLocations = UserWeatherLocationService(api: api, auth: auth);
   final mcpKeys = McpKeyService(api: api, auth: auth);
@@ -174,6 +176,7 @@ Future<void> _bootstrap() async {
   final notificationContent = NotificationContentResolver(
     user: user,
     forum: forum,
+    polls: polls,
   );
   final pollingStore = PollingBackgroundStore();
   final notification = NotificationService(
@@ -269,10 +272,7 @@ Future<void> _bootstrap() async {
     effectiveInitialLocation = '/benachrichtigungen/einrichten';
   }
 
-  final router = createRouter(
-    auth,
-    initialLocation: effectiveInitialLocation,
-  );
+  final router = createRouter(auth, initialLocation: effectiveInitialLocation);
   _router = router;
 
   if (!kIsWeb) {
@@ -308,6 +308,7 @@ Future<void> _bootstrap() async {
       photos: photos,
       moderation: moderation,
       subscription: subscription,
+      polls: polls,
       weather: weather,
       weatherLocations: weatherLocations,
       timeZones: timeZones,

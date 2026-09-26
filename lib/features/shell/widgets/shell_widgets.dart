@@ -26,6 +26,7 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/feedback')) return 'FEEDBACK';
   if (location.startsWith('/mod-anfragen')) return 'MOD-ANFRAGEN';
   if (location.startsWith('/forum')) return 'FORUM';
+  if (location.startsWith('/umfragen')) return 'UMFRAGEN';
   if (location.startsWith('/fotos')) return 'FOTOS';
   if (location.startsWith('/chat')) return 'CHAT';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
@@ -58,7 +59,9 @@ ShellNavCategory shellCategoryForLocation(String location) {
       location.startsWith('/standort')) {
     return ShellNavCategory.unterwegs;
   }
-  if (location.startsWith('/kalender') || location.startsWith('/abos')) {
+  if (location.startsWith('/kalender') ||
+      location.startsWith('/abos') ||
+      location.startsWith('/umfragen')) {
     return ShellNavCategory.organisation;
   }
   return ShellNavCategory.home;
@@ -140,6 +143,9 @@ class ShellCategorySheet extends StatelessWidget {
                       ? DesignBadge(label: 'Aktiv', color: tokens.primary)
                       : item.route == '/forum' &&
                             notification.hasUnreadForumContent
+                      ? const DesignPulseDot()
+                      : item.route == '/umfragen' &&
+                            notification.hasUnreadPollContent
                       ? const DesignPulseDot()
                       : null,
                   padding: EdgeInsets.symmetric(
@@ -316,6 +322,19 @@ class ShellNavContent extends StatelessWidget {
               label: 'Kalender',
               active: _isActive('/kalender'),
               onTap: () => onNavigate('/kalender'),
+            ),
+            _tile(
+              context,
+              icon: Icons.poll_rounded,
+              label: 'Umfragen',
+              active: _isActive('/umfragen'),
+              onTap: () => onNavigate('/umfragen'),
+              trailing: ListenableBuilder(
+                listenable: notification,
+                builder: (context, _) => notification.hasUnreadPollContent
+                    ? const DesignPulseDot()
+                    : const SizedBox.shrink(),
+              ),
             ),
             _tile(
               context,
@@ -547,13 +566,18 @@ class ShellMobileBottomNav extends StatelessWidget {
             listenable: notification,
             builder: (context, _) {
               final hasUnreadForum = notification.hasUnreadForumContent;
+              final hasUnreadPoll = notification.hasUnreadPollContent;
               return Row(
                 children: items.map((item) {
                   final isActive = item.category == active;
                   final fg = isActive ? tokens.primary : tokens.textLow;
                   Widget icon = Icon(item.icon, color: fg, size: 24);
-                  if (item.category == ShellNavCategory.gemeinschaft &&
-                      hasUnreadForum) {
+                  final showPulse =
+                      (item.category == ShellNavCategory.gemeinschaft &&
+                          hasUnreadForum) ||
+                      (item.category == ShellNavCategory.organisation &&
+                          hasUnreadPoll);
+                  if (showPulse) {
                     icon = Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -663,11 +687,7 @@ class ShellMobileBottomNav extends StatelessWidget {
               '/entdecken',
             ),
             const ShellSheetItem('Reisen', Icons.flight_rounded, '/reisen'),
-            const ShellSheetItem(
-              'Wetter',
-              Icons.wb_sunny_rounded,
-              '/wetter',
-            ),
+            const ShellSheetItem('Wetter', Icons.wb_sunny_rounded, '/wetter'),
             const ShellSheetItem(
               'Standort',
               Icons.location_on_rounded,
@@ -676,6 +696,7 @@ class ShellMobileBottomNav extends StatelessWidget {
           ],
         );
       case ShellNavCategory.organisation:
+        _refreshUnread(context);
         _showCategorySheet(
           context,
           category: 'Organisation',
@@ -685,7 +706,7 @@ class ShellMobileBottomNav extends StatelessWidget {
               Icons.calendar_month_rounded,
               '/kalender',
             ),
-            const ShellSheetItem('Umfrage', Icons.poll_rounded, null),
+            const ShellSheetItem('Umfragen', Icons.poll_rounded, '/umfragen'),
             const ShellSheetItem('Abos', Icons.subscriptions_rounded, '/abos'),
           ],
         );
