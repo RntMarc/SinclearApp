@@ -53,8 +53,8 @@ List<MapEntry<DateTime, List<CalendarEntry>>> groupByDay(
   // Starttag — wie bisher bei mehreren Tagen übergreifenden Events.
   final map = <DateTime, List<CalendarEntry>>{};
   for (final entry in sorted) {
-    final date = entry.startDate!;
-    final day = DateTime(date.year, date.month, date.day);
+    final day = entry.displayDay;
+    if (day == null) continue;
     map.putIfAbsent(day, () => []).add(entry);
   }
 
@@ -271,8 +271,8 @@ class _EntryTile extends StatelessWidget {
 
   String _timeLabel() {
     if (entry.allDay) return 'Ganztägig';
-    final start = entry.startTime;
-    return start == null ? '–' : formatTimeOfDay(start);
+    final start = entry.startAt;
+    return start == null ? '–' : formatTimeInZone(start, entry.timezone);
   }
 
   String _endLabel() {
@@ -287,8 +287,8 @@ class _EntryTile extends StatelessWidget {
               start.day == end.day);
       return multiDay ? 'bis ${DateFormat('dd.MM.').format(end)}' : '';
     }
-    final end = entry.endTime;
-    return end == null ? '' : formatTimeOfDay(end);
+    final end = entry.endAt;
+    return end == null ? '' : formatTimeInZone(end, entry.timezone);
   }
 
   /// Unterzeile: Typ-Label für alle Nicht-Kalender-Events; echte

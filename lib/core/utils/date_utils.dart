@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:intl/intl.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 /// API-Zeitformat: UTC, kein T, kein Z, keine Millisekunden.
 const _apiDateFormat = 'yyyy-MM-dd HH:mm:ss';
@@ -67,6 +68,111 @@ DateTime parseApiDateOnly(String value) {
   return DateTime.parse('${trimmed.substring(0, 10)}T00:00:00');
 }
 
+/// Liefert die IANA-Zeitzone; unbekannte oder leere Namen fallen auf UTC
+/// zurueck. Setzt die in `TimeZoneService.init()` geladene Zeitzonen-Datenbank
+/// voraus.
+tz.Location resolveTimeZone(String? name) {
+  if (name == null || name.trim().isEmpty) return tz.UTC;
+  try {
+    return tz.getLocation(name.trim());
+  } catch (_) {
+    return tz.UTC;
+  }
+}
+
+/// Parst einen RFC-3339-Zeitpunkt (mit Offset oder `Z`) als UTC-Instant.
+///
+/// Erkennt zur Uebergangszeit auch das alte API-Format `YYYY-MM-DD HH:MM:SS`
+/// (dann als UTC interpretiert).
+DateTime parseApiInstant(String value) {
+  final trimmed = value.trim();
+  try {
+    return DateTime.parse(trimmed).toUtc();
+  } on FormatException {
+    return DateTime.parse('${trimmed.replaceFirst(' ', 'T')}Z').toUtc();
+  }
+}
+
+/// Formatiert einen Instant als RFC 3339 mit Offset der Zielzeitzone.
+String toApiInstant(DateTime instant, String timezone) {
+  final zoned = tz.TZDateTime.from(instant, resolveTimeZone(timezone));
+  return _formatRfc3339(zoned);
+}
+
+/// Wandelt eine Wandzeit (Datum + Uhrzeit) in der Zielzeitzone in einen
+/// UTC-Instant um. Sommer-/Winterzeit wird korrekt beruecksichtigt.
+DateTime wallTimeToInstant(DateTime wallTime, String? timezone) {
+  final location = resolveTimeZone(timezone);
+  return tz.TZDateTime(
+    location,
+    wallTime.year,
+    wallTime.month,
+    wallTime.day,
+    wallTime.hour,
+    wallTime.minute,
+  ).toUtc();
+}
+
+/// Liefert die Wandzeit eines Instants in der Zielzeitzone (ohne weiteren
+/// Zeitzonenbezug, daher direkt formatierbar).
+DateTime instantToWallTime(DateTime instant, String timezone) {
+  final zoned = tz.TZDateTime.from(instant, resolveTimeZone(timezone));
+  return DateTime(
+    zoned.year,
+    zoned.month,
+    zoned.day,
+    zoned.hour,
+    zoned.minute,
+  );
+}
+
+/// Formatiert einen Instant als `HH:mm` in der Zielzeitzone.
+String formatTimeInZone(DateTime instant, String timezone) =>
+    DateFormat('HH:mm').format(instantToWallTime(instant, timezone));
+
+/// Formatiert einen Instant als `dd.MM.yyyy` in der Zielzeitzone.
+String formatDateInZone(DateTime instant, String timezone) =>
+    DateFormat('dd.MM.yyyy').format(instantToWallTime(instant, timezone));
+
+/// Formatiert einen Instant als `dd.MM.yyyy HH:mm` in der Zielzeitzone.
+String formatDateTimeInZone(DateTime instant, String timezone) =>
+    DateFormat('dd.MM.yyyy HH:mm').format(
+      instantToWallTime(instant, timezone),
+    );
+
+/// Formatiert einen Instant-Bereich in der Zielzeitzone:
+/// eintägig `dd.MM.yyyy HH:mm – HH:mm`, sonst mit beiden Daten.
+String formatInstantRangeInZone(
+  DateTime start,
+  DateTime end,
+  String timezone,
+) {
+  final s = instantToWallTime(start, timezone);
+  final e = instantToWallTime(end, timezone);
+  if (s.year == e.year && s.month == e.month && s.day == e.day) {
+    return '${DateFormat('dd.MM.yyyy HH:mm').format(s)} – '
+        '${DateFormat('HH:mm').format(e)}';
+  }
+  return '${DateFormat('dd.MM.yyyy HH:mm').format(s)} – '
+      '${DateFormat('dd.MM.yyyy HH:mm').format(e)}';
+}
+
+/// Formatiert einen Instant als ISO-artige Wandzeit fuer
+/// `showDatePicker`/`showTimePicker`.
+String formatRfc3339(tz.TZDateTime zoned) => _formatRfc3339(zoned);
+
+String _formatRfc3339(tz.TZDateTime zoned) {
+  final date = DateFormat('yyyy-MM-dd').format(zoned);
+  final time = DateFormat('HH:mm:ss').format(zoned);
+  final offset = zoned.timeZoneOffset;
+  if (offset == Duration.zero) return '${date}T${time}Z';
+  final sign = offset.isNegative ? '-' : '+';
+  final absolute = offset.abs();
+  final hours = absolute.inHours.toString().padLeft(2, '0');
+  final minutes = (absolute.inMinutes % 60).toString().padLeft(2, '0');
+  return '${date}T$time$sign$hours:$minutes';
+}
+
 /// Parst eine API-Uhrzeit `HH:MM:SS` (oder `HH:MM`) als [TimeOfDay].
 TimeOfDay? parseApiTime(String? value) {
   if (value == null || value.trim().isEmpty) return null;
@@ -113,15 +219,6 @@ String formatDateTime(DateTime date) {
 String formatTime(DateTime date) {
   final local = date.toLocal();
   return DateFormat('HH:mm').format(local);
-}
-
-String formatDateRange(DateTime start, DateTime end) {
-  final s = start.toLocal();
-  final e = end.toLocal();
-  if (s.year == e.year && s.month == e.month && s.day == e.day) {
-    return '${DateFormat('dd.MM.yyyy').format(s)} ${DateFormat('HH:mm').format(s)} – ${DateFormat('HH:mm').format(e)}';
-  }
-  return '${DateFormat('dd.MM.yyyy HH:mm').format(s)} – ${DateFormat('dd.MM.yyyy HH:mm').format(e)}';
 }
 
 /// Datumsbereich ohne Uhrzeit für ganztägige Einträge: `dd.MM.yyyy` bei

@@ -87,7 +87,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
 
     final result = await showDesignSheet<Map<String, dynamic>>(
       context: context,
-      child: EventFormSheet(event: _event),
+      child: EventFormSheet(
+        event: _event,
+        initialTimeZone: AppScope.of(context).timeZones.effective,
+      ),
     );
 
     if (result == null || !mounted) return;
@@ -98,10 +101,11 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         title: result['title'] as String,
         description: result['description'] as String?,
         allDay: result['allDay'] as bool,
-        startDate: result['startDate'] as DateTime,
-        endDate: result['endDate'] as DateTime,
-        startTime: result['startTime'] as TimeOfDay?,
-        endTime: result['endTime'] as TimeOfDay?,
+        timezone: result['timezone'] as String,
+        startDate: result['startDate'] as DateTime?,
+        endDate: result['endDate'] as DateTime?,
+        startAt: result['startAt'] as DateTime?,
+        endAt: result['endAt'] as DateTime?,
         visibility: result['visibility'] as int,
       );
       if (!mounted) return;
@@ -396,11 +400,19 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       icon: Icons.access_time_rounded,
                       label: 'Zeitraum',
                       value: event.allDay
-                          ? formatDayRange(event.startDate, event.endDate)
-                          : formatDateRange(
-                              event.startInstant,
-                              event.endInstant,
+                          ? formatDayRange(event.startDate!, event.endDate!)
+                          : formatInstantRangeInZone(
+                              event.startAt!,
+                              event.endAt!,
+                              event.timezone,
                             ),
+                    ),
+                    SizedBox(height: tokens.spaceSm),
+                    _infoRow(
+                      tokens: tokens,
+                      icon: Icons.public_rounded,
+                      label: 'Zeitzone',
+                      value: event.timezone,
                     ),
                     SizedBox(height: tokens.spaceSm),
                     _infoRow(

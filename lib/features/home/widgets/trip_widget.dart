@@ -16,6 +16,7 @@ class TripRow implements DashboardRow {
   final String id;
   final String name;
   final bool allDay;
+  final String timezone;
   final DateTime start;
   final DateTime end;
   final bool isTrip;
@@ -26,6 +27,7 @@ class TripRow implements DashboardRow {
     required this.id,
     required this.name,
     this.allDay = true,
+    this.timezone = 'UTC',
     required this.start,
     required this.end,
     required this.isTrip,
@@ -38,6 +40,7 @@ class TripRow implements DashboardRow {
       id: trip.id,
       name: trip.name,
       allDay: trip.allDay,
+      timezone: trip.timezone,
       start: trip.startInstant,
       end: trip.endInstant,
       isTrip: true,
@@ -49,6 +52,7 @@ class TripRow implements DashboardRow {
       id: event.id,
       name: event.name,
       allDay: event.allDay,
+      timezone: event.timezone,
       start: event.startInstant,
       end: event.endInstant,
       isTrip: false,
@@ -62,6 +66,7 @@ class TripRow implements DashboardRow {
       id: json['id'] as String,
       name: json['name'] as String,
       allDay: json['allDay'] as bool? ?? true,
+      timezone: json['timezone'] as String? ?? 'UTC',
       start: DateTime.fromMillisecondsSinceEpoch(json['start'] as int),
       end: DateTime.fromMillisecondsSinceEpoch(json['end'] as int),
       isTrip: json['isTrip'] as bool,
@@ -75,6 +80,7 @@ class TripRow implements DashboardRow {
     'id': id,
     'name': name,
     'allDay': allDay,
+    'timezone': timezone,
     'start': start.millisecondsSinceEpoch,
     'end': end.millisecondsSinceEpoch,
     'isTrip': isTrip,
@@ -138,7 +144,7 @@ class TripWidgetSpec extends DashboardWidgetSpec {
     final subtitle = [
       trip.allDay
           ? formatDayRange(trip.start, trip.end)
-          : formatDateRange(trip.start, trip.end),
+          : formatInstantRangeInZone(trip.start, trip.end, trip.timezone),
       if (!trip.isTrip && trip.organizer != null) trip.organizer!,
     ].join(' · ');
     return PressScale(

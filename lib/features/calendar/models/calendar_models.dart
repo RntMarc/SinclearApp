@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show TimeOfDay;
 import '../../../core/utils/date_utils.dart';
 
 class UserBrief {
@@ -17,8 +16,13 @@ class UserBrief {
   }
 }
 
-/// Ein Kalender-Event im neuen API-Format: `startDate`/`endDate` (Datum, immer)
-/// plus optionale `startTime`/`endTime` (nur bei getakteten Events) und `allDay`.
+/// Ein Kalender-Event im zeitzonen-bewussten API-Format.
+///
+/// Getaktet (`allDay == false`): `startAt`/`endAt` sind absolute
+/// UTC-Instants (RFC 3339 vom Server), `timezone` ist die gemeinte
+/// IANA-Zeitzone.
+/// Ganztägig (`allDay == true`): `startDate`/`endDate` sind zivile Tage
+/// (inklusives Ende), ebenfalls mit `timezone`.
 class CalendarEvent {
   final String id;
   final String creatorId;
@@ -27,10 +31,11 @@ class CalendarEvent {
   final String title;
   final String? description;
   final bool allDay;
-  final DateTime startDate;
-  final DateTime endDate;
-  final TimeOfDay? startTime;
-  final TimeOfDay? endTime;
+  final String timezone;
+  final DateTime? startAt;
+  final DateTime? endAt;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final int visibility;
   final List<UserBrief> participants;
   final DateTime createdAt;
@@ -44,25 +49,49 @@ class CalendarEvent {
     required this.title,
     this.description,
     this.allDay = false,
-    required this.startDate,
-    required this.endDate,
-    this.startTime,
-    this.endTime,
+    this.timezone = 'UTC',
+    this.startAt,
+    this.endAt,
+    this.startDate,
+    this.endDate,
     required this.visibility,
     this.participants = const [],
     required this.createdAt,
     required this.updatedAt,
   });
 
-  /// Sortierbarer Startzeitpunkt (Datum + Uhrzeit; ganztägig = Tagesbeginn).
-  DateTime get startInstant =>
-      combineDateAndTime(startDate, allDay ? null : startTime);
+  /// Sortierbarer Startzeitpunkt: getaktet der Instant, ganztägig der
+  /// Tagesbeginn des zivilen Starttags.
+  DateTime get startInstant {
+    if (allDay) {
+      final date = startDate ?? endDate;
+      if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime(date.year, date.month, date.day);
+    }
+    return startAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
 
-  /// Sortierbarer Endzeitpunkt (ganztägig = Tagesende 23:59).
-  DateTime get endInstant =>
-      combineDateAndTime(endDate, allDay ? null : endTime, endOfDay: true);
+  /// Sortierbarer Endzeitpunkt (ganztägig = Tagesende des zivilen Endtags).
+  DateTime get endInstant {
+    if (allDay) {
+      final date = endDate ?? startDate;
+      if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime(date.year, date.month, date.day, 23, 59);
+    }
+    return endAt ?? startInstant;
+  }
+
+  /// Tag, an dem das Event im Kalender erscheint (lokal beim Nutzer).
+  DateTime get displayDay {
+    final instant = startInstant.toLocal();
+    return DateTime(instant.year, instant.month, instant.day);
+  }
 
   factory CalendarEvent.fromJson(Map<String, dynamic> json) {
+    final rawStartAt = json['startAt'] as String?;
+    final rawEndAt = json['endAt'] as String?;
+    final rawStartDate = json['startDate'] as String?;
+    final rawEndDate = json['endDate'] as String?;
     return CalendarEvent(
       id: json['id'] as String,
       creatorId: json['creatorId'] as String,
@@ -71,18 +100,27 @@ class CalendarEvent {
       title: json['title'] as String,
       description: json['description'] as String?,
       allDay: json['allDay'] == true || json['allDay'] == 1,
-      startDate: parseApiDateOnly(json['startDate'] as String),
-      endDate: parseApiDateOnly(json['endDate'] as String),
-      startTime: parseApiTime(json['startTime'] as String?),
-      endTime: parseApiTime(json['endTime'] as String?),
+      timezone: json['timezone'] as String? ?? 'UTC',
+      startAt: (rawStartAt == null || rawStartAt.isEmpty)
+          ? null
+          : parseApiInstant(rawStartAt),
+      endAt: (rawEndAt == null || rawEndAt.isEmpty)
+          ? null
+          : parseApiInstant(rawEndAt),
+      startDate: (rawStartDate == null || rawStartDate.isEmpty)
+          ? null
+          : parseApiDateOnly(rawStartDate),
+      endDate: (rawEndDate == null || rawEndDate.isEmpty)
+          ? null
+          : parseApiDateOnly(rawEndDate),
       visibility: json['visibility'] as int,
       participants:
           (json['participants'] as List?)
               ?.map((e) => UserBrief.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      createdAt: parseApiDate(json['createdAt'] as String),
-      updatedAt: parseApiDate(json['updatedAt'] as String),
+      createdAt: parseApiInstant(json['createdAt'] as String),
+      updatedAt: parseApiInstant(json['updatedAt'] as String),
     );
   }
 }
@@ -149,8 +187,8 @@ class CalendarEventDetailResponse {
 /// Die Quelltypen des kombinierten Kalender-Feeds (`GET /calendar/all`).
 ///
 /// Der Feed aggregiert echte Kalender-Events, Reise-Events, Reisen,
-/// Geburtstage und ÖPNV-Fahrten zu einer flachen, nach `startTime`
-/// aufsteigend sortierten Liste.
+/// Geburtstage und ÖPNV-Fahrten zu einer flachen, chronologisch
+/// sortierten Liste.
 class CalendarEntryType {
   static const calendarEvent = 'calendar_event';
   static const travelEvent = 'travel_event';
@@ -163,6 +201,8 @@ class CalendarEntryType {
 
 /// Ein Eintrag des kombinierten Kalender-Feeds (`GET /calendar/all`).
 ///
+/// Getaktete Einträge tragen `startAt`/`endAt` (UTC-Instants) und `timezone`,
+/// ganztägige `startDate`/`endDate` (zivile Tage) und `timezone`.
 /// [detail] enthält das typspezifische Roh-Objekt; die Detail-Screens laden
 /// ihre Daten selbst per ID nach. Bei Geburtstagen ist [id] zusammengesetzt
 /// (`Vorkommensdatum + Nutzer-ID`) — die Nutzer-ID steckt in `detail.userId`.
@@ -171,10 +211,11 @@ class CalendarEntry {
   final String id;
   final String? title;
   final bool allDay;
+  final String timezone;
+  final DateTime? startAt;
+  final DateTime? endAt;
   final DateTime? startDate;
   final DateTime? endDate;
-  final TimeOfDay? startTime;
-  final TimeOfDay? endTime;
   final Map<String, dynamic> detail;
 
   const CalendarEntry({
@@ -182,10 +223,11 @@ class CalendarEntry {
     required this.id,
     this.title,
     this.allDay = false,
+    this.timezone = 'UTC',
+    this.startAt,
+    this.endAt,
     this.startDate,
     this.endDate,
-    this.startTime,
-    this.endTime,
     this.detail = const {},
   });
 
@@ -203,32 +245,50 @@ class CalendarEntry {
     return userId is String && userId.isNotEmpty ? userId : null;
   }
 
-  /// Sortier-/Gruppierschlüssel: Datum + Uhrzeit (ganztägig = Tagesbeginn).
-  /// `null`, wenn der Eintrag kein Startdatum trägt.
+  /// Sortier-/Gruppierschlüssel: getaktet der Instant, ganztägig der
+  /// Tagesbeginn des zivilen Starttags. `null`, wenn kein Start vorliegt.
   DateTime? get sortInstant {
-    final date = startDate;
-    if (date == null) return null;
-    return combineDateAndTime(date, allDay ? null : startTime);
+    if (allDay) {
+      final date = startDate;
+      return date == null ? null : DateTime(date.year, date.month, date.day);
+    }
+    return startAt;
+  }
+
+  /// Tag, an dem der Eintrag im Kalender erscheint (lokale Sicht des Nutzers).
+  DateTime? get displayDay {
+    if (allDay) {
+      final date = startDate;
+      return date == null ? null : DateTime(date.year, date.month, date.day);
+    }
+    final local = startAt?.toLocal();
+    return local == null ? null : DateTime(local.year, local.month, local.day);
   }
 
   factory CalendarEntry.fromJson(Map<String, dynamic> json) {
+    final rawStartAt = json['startAt'] as String?;
+    final rawEndAt = json['endAt'] as String?;
     final rawStart = json['startDate'] as String?;
     final rawEnd = json['endDate'] as String?;
-    final rawDetail = json['detail'];
     return CalendarEntry(
       type: json['type'] as String,
       id: json['id'] as String,
       title: json['title'] as String?,
       allDay: json['allDay'] == true || json['allDay'] == 1,
+      timezone: json['timezone'] as String? ?? 'UTC',
+      startAt: (rawStartAt == null || rawStartAt.isEmpty)
+          ? null
+          : parseApiInstant(rawStartAt),
+      endAt: (rawEndAt == null || rawEndAt.isEmpty)
+          ? null
+          : parseApiInstant(rawEndAt),
       startDate: (rawStart == null || rawStart.isEmpty)
           ? null
           : parseApiDateOnly(rawStart),
       endDate: (rawEnd == null || rawEnd.isEmpty)
           ? null
           : parseApiDateOnly(rawEnd),
-      startTime: parseApiTime(json['startTime'] as String?),
-      endTime: parseApiTime(json['endTime'] as String?),
-      detail: rawDetail is Map<String, dynamic> ? rawDetail : const {},
+      detail: rawDetail(json['detail']),
     );
   }
 
@@ -240,13 +300,17 @@ class CalendarEntry {
       id: event.id,
       title: event.title,
       allDay: event.allDay,
+      timezone: event.timezone,
+      startAt: event.startAt,
+      endAt: event.endAt,
       startDate: event.startDate,
       endDate: event.endDate,
-      startTime: event.startTime,
-      endTime: event.endTime,
     );
   }
 }
+
+Map<String, dynamic> rawDetail(Object? value) =>
+    value is Map<String, dynamic> ? value : const {};
 
 /// Antwort von `GET /calendar/all`: flache, sortierte Eintragsliste.
 ///

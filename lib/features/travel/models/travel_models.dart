@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show TimeOfDay;
 import '../../../core/utils/date_utils.dart';
 
 class ForumBrief {
@@ -24,15 +23,17 @@ class ForumBrief {
   }
 }
 
+/// Eine Reise im zeitzonen-bewussten API-Format (siehe `CalendarEvent`).
 class TravelTrip {
   final String id;
   final String name;
   final String? description;
   final bool allDay;
-  final DateTime startDate;
-  final DateTime endDate;
-  final TimeOfDay? startTime;
-  final TimeOfDay? endTime;
+  final String timezone;
+  final DateTime? startAt;
+  final DateTime? endAt;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final String hastickets;
   final String? ticket;
   final String? ticketUrl;
@@ -46,10 +47,11 @@ class TravelTrip {
     required this.name,
     this.description,
     this.allDay = true,
-    required this.startDate,
-    required this.endDate,
-    this.startTime,
-    this.endTime,
+    this.timezone = 'UTC',
+    this.startAt,
+    this.endAt,
+    this.startDate,
+    this.endDate,
     required this.hastickets,
     this.ticket,
     this.ticketUrl,
@@ -59,22 +61,47 @@ class TravelTrip {
     this.subscriptionCount = 0,
   });
 
-  DateTime get startInstant =>
-      combineDateAndTime(startDate, allDay ? null : startTime);
+  DateTime get startInstant {
+    if (allDay) {
+      final date = startDate ?? endDate;
+      if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime(date.year, date.month, date.day);
+    }
+    return startAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
 
-  DateTime get endInstant =>
-      combineDateAndTime(endDate, allDay ? null : endTime, endOfDay: true);
+  DateTime get endInstant {
+    if (allDay) {
+      final date = endDate ?? startDate;
+      if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime(date.year, date.month, date.day, 23, 59);
+    }
+    return endAt ?? startInstant;
+  }
 
   factory TravelTrip.fromJson(Map<String, dynamic> json) {
+    final rawStartAt = json['startAt'] as String?;
+    final rawEndAt = json['endAt'] as String?;
+    final rawStartDate = json['startDate'] as String?;
+    final rawEndDate = json['endDate'] as String?;
     return TravelTrip(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
       allDay: json['allDay'] == true || json['allDay'] == 1,
-      startDate: parseApiDateOnly(json['startDate'] as String),
-      endDate: parseApiDateOnly(json['endDate'] as String),
-      startTime: parseApiTime(json['startTime'] as String?),
-      endTime: parseApiTime(json['endTime'] as String?),
+      timezone: json['timezone'] as String? ?? 'UTC',
+      startAt: (rawStartAt == null || rawStartAt.isEmpty)
+          ? null
+          : parseApiInstant(rawStartAt),
+      endAt: (rawEndAt == null || rawEndAt.isEmpty)
+          ? null
+          : parseApiInstant(rawEndAt),
+      startDate: (rawStartDate == null || rawStartDate.isEmpty)
+          ? null
+          : parseApiDateOnly(rawStartDate),
+      endDate: (rawEndDate == null || rawEndDate.isEmpty)
+          ? null
+          : parseApiDateOnly(rawEndDate),
       hastickets: json['hastickets'] as String,
       ticket: json['ticket'] as String?,
       ticketUrl: json['ticketUrl'] as String?,
@@ -88,16 +115,18 @@ class TravelTrip {
   }
 }
 
+/// Ein Reise-Event im zeitzonen-bewussten API-Format.
 class TravelEvent {
   final String id;
   final String? trip;
   final String name;
   final String? description;
   final bool allDay;
-  final DateTime startDate;
-  final DateTime endDate;
-  final TimeOfDay? startTime;
-  final TimeOfDay? endTime;
+  final String timezone;
+  final DateTime? startAt;
+  final DateTime? endAt;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final String hastickets;
   final String? ticket;
   final String? ticketUrl;
@@ -118,10 +147,11 @@ class TravelEvent {
     required this.name,
     this.description,
     this.allDay = false,
-    required this.startDate,
-    required this.endDate,
-    this.startTime,
-    this.endTime,
+    this.timezone = 'UTC',
+    this.startAt,
+    this.endAt,
+    this.startDate,
+    this.endDate,
     required this.hastickets,
     this.ticket,
     this.ticketUrl,
@@ -137,23 +167,48 @@ class TravelEvent {
     this.participants = const [],
   });
 
-  DateTime get startInstant =>
-      combineDateAndTime(startDate, allDay ? null : startTime);
+  DateTime get startInstant {
+    if (allDay) {
+      final date = startDate ?? endDate;
+      if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime(date.year, date.month, date.day);
+    }
+    return startAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
 
-  DateTime get endInstant =>
-      combineDateAndTime(endDate, allDay ? null : endTime, endOfDay: true);
+  DateTime get endInstant {
+    if (allDay) {
+      final date = endDate ?? startDate;
+      if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime(date.year, date.month, date.day, 23, 59);
+    }
+    return endAt ?? startInstant;
+  }
 
   factory TravelEvent.fromJson(Map<String, dynamic> json) {
+    final rawStartAt = json['startAt'] as String?;
+    final rawEndAt = json['endAt'] as String?;
+    final rawStartDate = json['startDate'] as String?;
+    final rawEndDate = json['endDate'] as String?;
     return TravelEvent(
       id: json['ID'] as String,
       trip: json['trip'] as String?,
       name: json['name'] as String,
       description: json['description'] as String?,
       allDay: json['allDay'] == true || json['allDay'] == 1,
-      startDate: parseApiDateOnly(json['startDate'] as String),
-      endDate: parseApiDateOnly(json['endDate'] as String),
-      startTime: parseApiTime(json['startTime'] as String?),
-      endTime: parseApiTime(json['endTime'] as String?),
+      timezone: json['timezone'] as String? ?? 'UTC',
+      startAt: (rawStartAt == null || rawStartAt.isEmpty)
+          ? null
+          : parseApiInstant(rawStartAt),
+      endAt: (rawEndAt == null || rawEndAt.isEmpty)
+          ? null
+          : parseApiInstant(rawEndAt),
+      startDate: (rawStartDate == null || rawStartDate.isEmpty)
+          ? null
+          : parseApiDateOnly(rawStartDate),
+      endDate: (rawEndDate == null || rawEndDate.isEmpty)
+          ? null
+          : parseApiDateOnly(rawEndDate),
       hastickets: json['hastickets'] as String,
       ticket: json['ticket'] as String?,
       ticketUrl: json['ticketUrl'] as String?,
@@ -310,15 +365,17 @@ class TravelParticipant {
   }
 }
 
+/// Eintrag der Reise-Zeitleiste (Reise oder Reise-Event), zeitzonen-bewusst.
 class TimelineEntry {
   final String id;
   final String name;
   final String? description;
   final bool allDay;
-  final DateTime startDate;
-  final DateTime endDate;
-  final TimeOfDay? startTime;
-  final TimeOfDay? endTime;
+  final String timezone;
+  final DateTime? startAt;
+  final DateTime? endAt;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final bool isTrip;
 
   const TimelineEntry({
@@ -326,18 +383,31 @@ class TimelineEntry {
     required this.name,
     this.description,
     this.allDay = false,
-    required this.startDate,
-    required this.endDate,
-    this.startTime,
-    this.endTime,
+    this.timezone = 'UTC',
+    this.startAt,
+    this.endAt,
+    this.startDate,
+    this.endDate,
     required this.isTrip,
   });
 
-  DateTime get startInstant =>
-      combineDateAndTime(startDate, allDay ? null : startTime);
+  DateTime get startInstant {
+    if (allDay) {
+      final date = startDate ?? endDate;
+      if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime(date.year, date.month, date.day);
+    }
+    return startAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
 
-  DateTime get endInstant =>
-      combineDateAndTime(endDate, allDay ? null : endTime, endOfDay: true);
+  DateTime get endInstant {
+    if (allDay) {
+      final date = endDate ?? startDate;
+      if (date == null) return DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime(date.year, date.month, date.day, 23, 59);
+    }
+    return endAt ?? startInstant;
+  }
 }
 
 class PaginationMeta {

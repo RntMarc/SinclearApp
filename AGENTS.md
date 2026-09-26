@@ -56,6 +56,30 @@ requirements, and any type/enum values. This applies project-wide, not just
 to notifications — see the notification-specific checklist below for that
 feature's additional steps.
 
+## Date/Time & Timezones
+
+The API is timezone-aware. Timed entries (`CalendarEvent`, `TravelEvent`,
+`TravelTrip`) carry `startAt`/`endAt` as RFC 3339 with offset plus a
+`timezone` (IANA, e.g. `Europe/Berlin`); all-day entries carry
+`startDate`/`endDate` as civil days plus `timezone`. `allDay` is the single
+source of truth for which field group applies.
+
+**Requirement:** Never convert timestamps to UTC by hand for transport.
+* Parse/serialise via `parseApiInstant` / `toApiInstant` and convert wall
+  times via `wallTimeToInstant` / `instantToWallTime`
+  (`lib/core/utils/date_utils.dart`, backed by the `timezone` package).
+* The effective zone comes from `TimeZoneService`
+  (`AppScope.of(context).timeZones`): `UserPreferences.timezone` wins, the
+  device zone (`flutter_timezone`) is the fallback, then UTC.
+* Display timed entries in the entry's own timezone
+  (`formatDateTimeInZone`, `formatInstantRangeInZone`) and show the IANA zone
+  in detail views. All-day entries are civil dates and are never shifted.
+* New/edit forms send the chosen `timezone` and wall times; the service layer
+  converts them. Calendar/travel widgets group entries by `displayDay` (the
+  local day of the instant).
+* `TimeZoneService.init()` must run during bootstrap before any timezone
+  helper is used.
+
 ## Moderation & Reporting
 
 * **Report buttons for all users:** The report flag button (`Icons.flag_rounded`)

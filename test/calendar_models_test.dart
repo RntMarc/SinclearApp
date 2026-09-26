@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/features/calendar/models/calendar_models.dart';
 
@@ -6,10 +5,11 @@ Map<String, dynamic> _entry({
   required String type,
   required String id,
   String? title,
+  String? timezone,
+  String? startAt,
+  String? endAt,
   String? startDate,
   String? endDate,
-  String? startTime,
-  String? endTime,
   bool allDay = false,
   Map<String, dynamic> detail = const {},
 }) {
@@ -17,10 +17,11 @@ Map<String, dynamic> _entry({
     'type': type,
     'id': id,
     'title': title,
+    'timezone': timezone,
+    'startAt': startAt,
+    'endAt': endAt,
     'startDate': startDate,
     'endDate': endDate,
-    'startTime': startTime,
-    'endTime': endTime,
     'allDay': allDay,
     'detail': detail,
   };
@@ -35,25 +36,24 @@ void main() {
             type: 'calendar_event',
             id: 'event-1',
             title: 'Team Meeting',
-            startDate: '2026-07-01',
-            endDate: '2026-07-01',
-            startTime: '10:00:00',
-            endTime: '11:00:00',
+            timezone: 'Europe/Berlin',
+            startAt: '2026-07-01T10:00:00+02:00',
+            endAt: '2026-07-01T11:00:00+02:00',
             detail: {'description': 'Weekly'},
           ),
           _entry(
             type: 'travel_event',
             id: 'travel-event-1',
             title: 'Konzert',
-            startDate: '2026-07-02',
-            endDate: '2026-07-02',
-            startTime: '20:00:00',
-            endTime: '23:00:00',
+            timezone: 'Europe/Berlin',
+            startAt: '2026-07-02T20:00:00+02:00',
+            endAt: '2026-07-02T23:00:00+02:00',
           ),
           _entry(
             type: 'trip',
             id: 'trip-1',
             title: 'Berlin',
+            timezone: 'Europe/Berlin',
             startDate: '2026-07-03',
             endDate: '2026-07-06',
             allDay: true,
@@ -71,10 +71,9 @@ void main() {
             type: 'pt_journey',
             id: 'journey-1',
             title: 'Hamburg → Berlin',
-            startDate: '2026-07-05',
-            endDate: '2026-07-05',
-            startTime: '08:00:00',
-            endTime: '10:30:00',
+            timezone: 'UTC',
+            startAt: '2026-07-05T08:00:00Z',
+            endAt: '2026-07-05T10:30:00Z',
             detail: {'legs': <Map<String, dynamic>>[]},
           ),
         ],
@@ -91,14 +90,15 @@ void main() {
       expect(event.id, 'event-1');
       expect(event.title, 'Team Meeting');
       expect(event.allDay, isFalse);
-      expect(event.startDate, DateTime(2026, 7, 1));
-      expect(event.endDate, DateTime(2026, 7, 1));
-      expect(event.startTime, const TimeOfDay(hour: 10, minute: 0));
-      expect(event.endTime, const TimeOfDay(hour: 11, minute: 0));
+      expect(event.timezone, 'Europe/Berlin');
+      expect(event.startAt, DateTime.utc(2026, 7, 1, 8));
+      expect(event.endAt, DateTime.utc(2026, 7, 1, 9));
+      expect(event.startDate, isNull);
       expect(event.detail['description'], 'Weekly');
 
       expect(response.data[2].allDay, isTrue);
-      expect(response.data[2].startTime, isNull);
+      expect(response.data[2].startAt, isNull);
+      expect(response.data[2].startDate, DateTime(2026, 7, 3));
       expect(response.data[4].detail['legs'], isEmpty);
     });
 
@@ -106,25 +106,24 @@ void main() {
       final entry = CalendarEntry.fromJson(_entry(type: 'trip', id: 'trip-1'));
 
       expect(entry.title, isNull);
+      expect(entry.startAt, isNull);
+      expect(entry.endAt, isNull);
       expect(entry.startDate, isNull);
-      expect(entry.endDate, isNull);
-      expect(entry.startTime, isNull);
+      expect(entry.timezone, 'UTC');
       expect(entry.allDay, isFalse);
       expect(entry.detail, isEmpty);
     });
 
-    test('sortInstant kombiniert Datum und Uhrzeit, ganztägig = Tagesbeginn', () {
+    test('sortInstant nutzt den Instant bzw. den zivilen Tagesbeginn', () {
       final timed = CalendarEntry.fromJson(
         _entry(
           type: 'calendar_event',
           id: 'e',
-          startDate: '2026-07-01',
-          endDate: '2026-07-01',
-          startTime: '10:30:00',
-          endTime: '11:00:00',
+          startAt: '2026-07-01T10:30:00Z',
+          endAt: '2026-07-01T11:00:00Z',
         ),
       );
-      expect(timed.sortInstant, DateTime(2026, 7, 1, 10, 30));
+      expect(timed.sortInstant, DateTime.utc(2026, 7, 1, 10, 30));
 
       final allDay = CalendarEntry.fromJson(
         _entry(
@@ -136,6 +135,19 @@ void main() {
         ),
       );
       expect(allDay.sortInstant, DateTime(2026, 7, 1));
+    });
+
+    test('displayDay ist ganztägig der zivile Tag', () {
+      final allDay = CalendarEntry.fromJson(
+        _entry(
+          type: 'trip',
+          id: 't',
+          startDate: '2026-07-01',
+          endDate: '2026-07-03',
+          allDay: true,
+        ),
+      );
+      expect(allDay.displayDay, DateTime(2026, 7, 1));
     });
 
     test('fehlende meta ergibt truncated == false', () {
@@ -188,42 +200,42 @@ void main() {
   });
 
   group('CalendarEvent.fromJson', () {
-    test('parst Datum, Uhrzeit und allDay', () {
+    test('parst getaktete Events mit Zeitzone und UTC-Instants', () {
       final event = CalendarEvent.fromJson({
         'id': 'event-1',
         'creatorId': 'user-1',
         'title': 'Meeting',
         'allDay': false,
-        'startDate': '2026-07-01',
-        'endDate': '2026-07-01',
-        'startTime': '10:00:00',
-        'endTime': '11:00:00',
+        'timezone': 'Europe/Berlin',
+        'startAt': '2026-07-01T10:00:00+02:00',
+        'endAt': '2026-07-01T11:00:00+02:00',
         'visibility': 0,
-        'createdAt': '2026-06-26 10:00:00',
-        'updatedAt': '2026-06-26 10:00:00',
+        'createdAt': '2026-06-26T10:00:00Z',
+        'updatedAt': '2026-06-26T10:00:00Z',
       });
 
-      expect(event.startDate, DateTime(2026, 7, 1));
-      expect(event.startTime, const TimeOfDay(hour: 10, minute: 0));
-      expect(event.startInstant, DateTime(2026, 7, 1, 10, 0));
-      expect(event.endInstant, DateTime(2026, 7, 1, 11, 0));
+      expect(event.timezone, 'Europe/Berlin');
+      expect(event.startAt, DateTime.utc(2026, 7, 1, 8));
+      expect(event.startInstant, DateTime.utc(2026, 7, 1, 8));
+      expect(event.endInstant, DateTime.utc(2026, 7, 1, 9));
     });
 
-    test('ganztägig: keine Uhrzeit, endInstant = Tagesende', () {
+    test('ganztägig: ziviler Bereich, endInstant = Tagesende', () {
       final event = CalendarEvent.fromJson({
         'id': 'event-2',
         'creatorId': 'user-1',
         'title': 'Feiertag',
         'allDay': true,
+        'timezone': 'Europe/Berlin',
         'startDate': '2026-07-01',
         'endDate': '2026-07-02',
         'visibility': 0,
-        'createdAt': '2026-06-26 10:00:00',
-        'updatedAt': '2026-06-26 10:00:00',
+        'createdAt': '2026-06-26T10:00:00Z',
+        'updatedAt': '2026-06-26T10:00:00Z',
       });
 
       expect(event.allDay, isTrue);
-      expect(event.startTime, isNull);
+      expect(event.startAt, isNull);
       expect(event.startInstant, DateTime(2026, 7, 1));
       expect(event.endInstant, DateTime(2026, 7, 2, 23, 59));
     });
@@ -237,8 +249,8 @@ void main() {
         'startDate': '2026-07-01',
         'endDate': '2026-07-01',
         'visibility': 0,
-        'createdAt': '2026-06-26 10:00:00',
-        'updatedAt': '2026-06-26 10:00:00',
+        'createdAt': '2026-06-26T10:00:00Z',
+        'updatedAt': '2026-06-26T10:00:00Z',
       });
 
       expect(event.allDay, isTrue);
@@ -252,10 +264,9 @@ void main() {
         creatorId: 'user-1',
         title: 'Meeting',
         allDay: false,
-        startDate: DateTime(2026, 7, 1),
-        endDate: DateTime(2026, 7, 1),
-        startTime: const TimeOfDay(hour: 10, minute: 0),
-        endTime: const TimeOfDay(hour: 11, minute: 0),
+        timezone: 'Europe/Berlin',
+        startAt: DateTime.utc(2026, 7, 1, 8),
+        endAt: DateTime.utc(2026, 7, 1, 9),
         visibility: 0,
         createdAt: DateTime.utc(2026, 6, 26),
         updatedAt: DateTime.utc(2026, 6, 26),
@@ -267,8 +278,8 @@ void main() {
       expect(entry.id, 'event-1');
       expect(entry.title, 'Meeting');
       expect(entry.allDay, isFalse);
-      expect(entry.startDate, DateTime(2026, 7, 1));
-      expect(entry.startTime, const TimeOfDay(hour: 10, minute: 0));
+      expect(entry.timezone, 'Europe/Berlin');
+      expect(entry.startAt, DateTime.utc(2026, 7, 1, 8));
       expect(entry.targetId, 'event-1');
     });
   });
