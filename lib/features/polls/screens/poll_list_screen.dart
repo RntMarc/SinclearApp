@@ -246,10 +246,7 @@ class _PollListScreenState extends State<PollListScreen> {
               : ListView.builder(
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.only(
-                    top: tokens.spaceXs,
-                    bottom: tokens.spaceXxl * 2,
-                  ),
+                  padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
                   itemCount: _polls.length + (_loadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index >= _polls.length) {
@@ -263,10 +260,13 @@ class _PollListScreenState extends State<PollListScreen> {
                       );
                     }
                     final poll = _polls[index];
-                    return PollCard(
-                      poll: poll,
-                      hasUnread: unread.contains(poll.id),
-                      onTap: () => context.go('/umfragen/${poll.id}'),
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
+                      child: PollCard(
+                        poll: poll,
+                        hasUnread: unread.contains(poll.id),
+                        onTap: () => context.go('/umfragen/${poll.id}'),
+                      ),
                     );
                   },
                 ),

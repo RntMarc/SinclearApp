@@ -191,6 +191,7 @@ class Poll {
   final PollSubmissionMode submissionMode;
   final PollResultsVisibility resultsVisibility;
   final bool allowCounterProposals;
+  final bool allowMultiple;
   final String? finalizedOptionId;
   final bool isCreator;
   final DateTime createdAt;
@@ -210,6 +211,7 @@ class Poll {
     required this.submissionMode,
     required this.resultsVisibility,
     required this.allowCounterProposals,
+    this.allowMultiple = false,
     this.finalizedOptionId,
     required this.isCreator,
     required this.createdAt,
@@ -244,6 +246,7 @@ class Poll {
         json['resultsVisibility'] as String?,
       ),
       allowCounterProposals: json['allowCounterProposals'] == true,
+      allowMultiple: json['allowMultiple'] == true,
       finalizedOptionId: json['finalizedOptionId'] as String?,
       isCreator: json['isCreator'] == true,
       createdAt: parseApiInstant(json['createdAt'] as String),
@@ -387,23 +390,24 @@ class PollOption {
     required this.position,
   });
 
-  /// Anzeigelabel: bevorzugt der gespeicherte [label], sonst der formatierte
-  /// Zeitraum in der Option-Zeitzone (Terminvorschläge).
+  /// Anzeigelabel: für Terminvorschläge immer der formatierte Zeitraum in der
+  /// Option-Zeitzone (eine freie Bezeichnung wird bewusst nicht angezeigt),
+  /// sonst der gespeicherte [label] (Auswahl-/Abstimmungsoptionen).
   String get displayLabel {
-    final own = label;
-    if (own != null && own.isNotEmpty) return own;
     if (allDay) {
       final start = startDate;
       final end = endDate;
       if (start != null && end != null) return formatDayRange(start, end);
-      return 'Ganztägig';
+    } else {
+      final start = startAt;
+      final end = endAt;
+      if (start != null && end != null) {
+        return formatInstantRangeInZone(start, end, timezone);
+      }
     }
-    final start = startAt;
-    final end = endAt;
-    if (start != null && end != null) {
-      return formatInstantRangeInZone(start, end, timezone);
-    }
-    return 'Termin';
+    final own = label;
+    if (own != null && own.isNotEmpty) return own;
+    return allDay ? 'Ganztägig' : 'Termin';
   }
 
   factory PollOption.fromJson(Map<String, dynamic> json) {
@@ -785,6 +789,7 @@ class PollCreateRequest {
   final PollSubmissionMode submissionMode;
   final PollResultsVisibility resultsVisibility;
   final bool allowCounterProposals;
+  final bool allowMultiple;
   final List<String> inviteUserIds;
   final List<PollQuestionInput> questions;
   final List<PollOptionInput> options;
@@ -799,6 +804,7 @@ class PollCreateRequest {
     this.submissionMode = PollSubmissionMode.single,
     this.resultsVisibility = PollResultsVisibility.creator,
     this.allowCounterProposals = false,
+    this.allowMultiple = false,
     this.inviteUserIds = const [],
     this.questions = const [],
     this.options = const [],
@@ -815,6 +821,7 @@ class PollCreateRequest {
     if (type == PollType.form) 'resultsVisibility': resultsVisibility.apiValue,
     if (type == PollType.appointment)
       'allowCounterProposals': allowCounterProposals,
+    if (type == PollType.vote) 'allowMultiple': allowMultiple,
     if (inviteUserIds.isNotEmpty) 'inviteUserIds': inviteUserIds,
     if (questions.isNotEmpty)
       'questions': questions.map((q) => q.toJson()).toList(),
@@ -832,6 +839,7 @@ class PollUpdateRequest {
   final PollSubmissionMode? submissionMode;
   final PollResultsVisibility? resultsVisibility;
   final bool? allowCounterProposals;
+  final bool? allowMultiple;
 
   const PollUpdateRequest({
     this.title,
@@ -843,6 +851,7 @@ class PollUpdateRequest {
     this.submissionMode,
     this.resultsVisibility,
     this.allowCounterProposals,
+    this.allowMultiple,
   });
 
   Map<String, dynamic> toJson() => {
@@ -856,6 +865,7 @@ class PollUpdateRequest {
       'resultsVisibility': resultsVisibility!.apiValue,
     if (allowCounterProposals != null)
       'allowCounterProposals': allowCounterProposals,
+    if (allowMultiple != null) 'allowMultiple': allowMultiple,
   };
 }
 

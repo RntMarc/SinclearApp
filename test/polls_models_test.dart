@@ -96,6 +96,27 @@ void main() {
       expect(poll.isCreator, isTrue);
       expect(poll.closesAt, toApiInstantDateTime('2026-08-20T16:00:00Z'));
       expect(poll.isClosed, isFalse);
+      expect(poll.allowMultiple, isFalse);
+    });
+
+    test('allowMultiple wird aus der API gelesen', () {
+      final poll = Poll.fromJson({
+        'id': 'p2',
+        'type': 'vote',
+        'creatorId': 'u1',
+        'title': 'Abstimmung',
+        'status': 'open',
+        'accessMode': 'all_users',
+        'submissionMode': 'single',
+        'resultsVisibility': 'creator',
+        'allowCounterProposals': false,
+        'allowMultiple': true,
+        'isCreator': false,
+        'createdAt': '2026-08-01T08:00:00Z',
+        'updatedAt': '2026-08-01T08:00:00Z',
+      });
+
+      expect(poll.allowMultiple, isTrue);
     });
   });
 
@@ -182,6 +203,22 @@ void main() {
       expect(option.startAt, DateTime.utc(2026, 8, 20, 16));
       expect(option.displayLabel, '20.08.2026 18:00 – 20:00');
     });
+
+    test('gespeicherte Bezeichnung wird bei Terminvorschlägen ignoriert', () {
+      final option = PollOption.fromJson({
+        'id': 'o3',
+        'pollId': 'p1',
+        'label': 'Nachmittag',
+        'allDay': false,
+        'timezone': 'Europe/Berlin',
+        'startAt': '2026-08-20T18:00:00+02:00',
+        'endAt': '2026-08-20T20:00:00+02:00',
+        'isCounterProposal': false,
+        'position': 0,
+      });
+
+      expect(option.displayLabel, '20.08.2026 18:00 – 20:00');
+    });
   });
 
   group('PollOptionInput.toJson', () {
@@ -244,6 +281,28 @@ void main() {
       ).toJson();
       expect(appointment['allowCounterProposals'], isTrue);
       expect(appointment.containsKey('submissionMode'), isFalse);
+    });
+
+    test('vote sendet allowMultiple, andere Typen nicht', () {
+      final vote = const PollCreateRequest(
+        type: PollType.vote,
+        title: 'Abstimmung',
+        allowMultiple: true,
+      ).toJson();
+      expect(vote['allowMultiple'], isTrue);
+      expect(vote.containsKey('allowCounterProposals'), isFalse);
+
+      final single = const PollCreateRequest(
+        type: PollType.vote,
+        title: 'Abstimmung',
+      ).toJson();
+      expect(single['allowMultiple'], isFalse);
+
+      final appointment = const PollCreateRequest(
+        type: PollType.appointment,
+        title: 'Termin',
+      ).toJson();
+      expect(appointment.containsKey('allowMultiple'), isFalse);
     });
   });
 }

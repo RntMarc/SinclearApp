@@ -17,6 +17,7 @@ import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/poll_models.dart';
 import '../poll_error_messages.dart';
@@ -43,7 +44,17 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
 
   final Map<String, DesignAvailability> _availability = {};
   final Map<String, Map<DesignAvailability, int>> _availabilityCounts = {};
+  final Map<String, DesignAvailability> _savedAvailability = {};
   final Set<String> _voteSelection = {};
+
+  /// Ob die eigene Verfügbarkeit von der zuletzt gespeicherten abweicht.
+  bool get _availabilityChanged {
+    if (_availability.length != _savedAvailability.length) return true;
+    for (final entry in _availability.entries) {
+      if (_savedAvailability[entry.key] != entry.value) return true;
+    }
+    return false;
+  }
 
   Poll? get _poll => _detail?.poll;
 
@@ -120,6 +131,9 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
         _availability[vote.optionId] = availability;
       }
     }
+    _savedAvailability
+      ..clear()
+      ..addAll(_availability);
   }
 
   DesignAvailability _designAvailability(PollAvailability value) =>
@@ -154,25 +168,47 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final poll = _poll;
+    final showSaveFab =
+        poll != null &&
+        poll.type == PollType.appointment &&
+        !poll.isClosed &&
+        _availabilityChanged;
     return DesignSurface(
-      child: Column(
+      child: Stack(
         children: <Widget>[
-          DesignSubpageHeader(
-            leading: DesignIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => context.go('/umfragen'),
-            ),
-            title: 'Umfrage',
-            actions: <Widget>[
-              if (_poll?.isCreator == true)
-                DesignIconButton(
-                  icon: Icons.edit_rounded,
-                  onPressed: () =>
-                      context.go('/umfragen/${widget.id}/bearbeiten'),
+          Column(
+            children: <Widget>[
+              DesignSubpageHeader(
+                leading: DesignIconButton(
+                  icon: Icons.arrow_back_rounded,
+                  onPressed: () => context.go('/umfragen'),
                 ),
+                title: 'Umfrage',
+                actions: <Widget>[
+                  if (poll?.isCreator == true ||
+                      AppScope.of(context).auth.isAdmin)
+                    DesignIconButton(
+                      icon: Icons.edit_rounded,
+                      onPressed: () =>
+                          context.go('/umfragen/${widget.id}/bearbeiten'),
+                    ),
+                ],
+              ),
+              Expanded(child: _buildBody(tokens)),
             ],
           ),
-          Expanded(child: _buildBody(tokens)),
+          if (showSaveFab)
+            Positioned(
+              bottom: tokens.spaceLg,
+              right: tokens.spaceLg,
+              child: DesignFab(
+                icon: Icons.check_rounded,
+                tooltip: 'Verfügbarkeit speichern',
+                loading: _busy,
+                onPressed: _saveAvailability,
+              ),
+            ),
         ],
       ),
     );
@@ -203,11 +239,14 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
     final detail = _detail!;
     final poll = detail.poll;
     return ListView(
-      padding: EdgeInsets.only(bottom: tokens.spaceXxl),
+      padding: EdgeInsets.only(
+        top: tokens.spaceXs,
+        bottom: tokens.spaceXxl * 2,
+      ),
       children: <Widget>[
         _buildHeader(tokens, poll),
+        SizedBox(height: tokens.spaceSm),
         _switchSection(tokens, detail),
-        _buildActions(tokens, poll),
       ],
     );
   }
@@ -234,7 +273,7 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
               ),
             ],
           ),
-          SizedBox(height: tokens.spaceSm),
+          SizedBox(height: tokens.spaceMd),
           DesignText(
             poll.title,
             style: DesignTextStyle.subtitle,
@@ -248,7 +287,7 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
               color: tokens.textHigh,
             ),
           ],
-          SizedBox(height: tokens.spaceMd),
+          SizedBox(height: tokens.spaceLg),
           _metaRow(
             tokens,
             Icons.person_rounded,
@@ -274,7 +313,7 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
 
   Widget _metaRow(DesignTokens tokens, IconData icon, String text) {
     return Padding(
-      padding: EdgeInsets.only(top: tokens.spaceXs),
+      padding: EdgeInsets.only(top: tokens.spaceSm),
       child: Row(
         children: <Widget>[
           Icon(icon, size: 16, color: tokens.textLow),
@@ -358,7 +397,11 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
         ),
         if (canSubmit || canEdit)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+            padding: EdgeInsets.only(
+              top: tokens.spaceLg,
+              left: tokens.spaceLg,
+              right: tokens.spaceLg,
+            ),
             child: DesignButton(
               label: status.hasResponded ? 'Antwort bearbeiten' : 'Antworten',
               icon: Icons.edit_note_rounded,
@@ -388,7 +431,7 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
             child: DesignButton(
               label: 'Ergebnisse',
               icon: Icons.bar_chart_rounded,
-              variant: DesignButtonVariant.ghost,
+              variant: DesignButtonVariant.text,
               fullWidth: true,
               onPressed: () => context.go('/umfragen/${widget.id}/ergebnisse'),
             ),
@@ -426,7 +469,7 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (poll.finalizedOptionId != null)
+        if (poll.finalizedOptionId != null) ...<Widget>[
           DesignCard(
             child: Row(
               children: <Widget>[
@@ -443,6 +486,8 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
               ],
             ),
           ),
+          SizedBox(height: tokens.spaceSm),
+        ],
         if (options.isEmpty)
           DesignCard(
             child: DesignText(
@@ -467,23 +512,10 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
                   }
                 : null,
           ),
-        if (open)
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-            child: DesignButton(
-              label: 'Verfügbarkeit speichern',
-              icon: Icons.check_rounded,
-              fullWidth: true,
-              loading: _busy,
-              onPressed: _busy || _availability.isEmpty
-                  ? null
-                  : _saveAvailability,
-            ),
-          ),
         if (open && poll.allowCounterProposals)
           Padding(
             padding: EdgeInsets.only(
-              top: tokens.spaceSm,
+              top: tokens.spaceLg,
               left: tokens.spaceLg,
               right: tokens.spaceLg,
             ),
@@ -493,21 +525,6 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
               variant: DesignButtonVariant.ghost,
               fullWidth: true,
               onPressed: _busy ? null : _addCounterProposal,
-            ),
-          ),
-        if (open && poll.isCreator && options.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.only(
-              top: tokens.spaceSm,
-              left: tokens.spaceLg,
-              right: tokens.spaceLg,
-            ),
-            child: DesignButton(
-              label: 'Termin festlegen',
-              icon: Icons.event_available_rounded,
-              variant: DesignButtonVariant.outlined,
-              fullWidth: true,
-              onPressed: _busy ? null : _finalize,
             ),
           ),
       ],
@@ -555,18 +572,6 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
     });
   }
 
-  Future<void> _finalize() async {
-    final options = _detail?.appointmentOptions ?? const <PollOption>[];
-    final optionId = await showDesignSheet<String>(
-      context: context,
-      child: _OptionPickerSheet(options: options),
-    );
-    if (optionId == null) return;
-    await _run(() async {
-      await AppScope.of(context).polls.finalize(widget.id, optionId);
-    });
-  }
-
   // --- Abstimmung ---
 
   Widget _buildVoteSection(DesignTokens tokens, PollDetail detail) {
@@ -585,11 +590,15 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               DesignText(
-                canVote ? 'Wähle eine oder mehrere Optionen' : 'Optionen',
+                canVote
+                    ? (poll.allowMultiple
+                          ? 'Wähle eine oder mehrere Optionen'
+                          : 'Wähle eine Option')
+                    : 'Optionen',
                 style: DesignTextStyle.subtitle,
                 color: tokens.textHigh,
               ),
-              SizedBox(height: tokens.spaceSm),
+              SizedBox(height: tokens.spaceMd),
               if (options.isEmpty)
                 DesignText(
                   'Keine Optionen.',
@@ -611,8 +620,17 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
                                       false),
                         onTap: canVote
                             ? () => setState(() {
-                                if (!_voteSelection.add(option.id)) {
-                                  _voteSelection.remove(option.id);
+                                if (poll.allowMultiple) {
+                                  if (!_voteSelection.add(option.id)) {
+                                    _voteSelection.remove(option.id);
+                                  }
+                                } else if (_voteSelection.length == 1 &&
+                                    _voteSelection.contains(option.id)) {
+                                  _voteSelection.clear();
+                                } else {
+                                  _voteSelection
+                                    ..clear()
+                                    ..add(option.id);
                                 }
                               })
                             : null,
@@ -620,14 +638,14 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
                   ],
                 ),
               if (hasVoted) ...[
-                SizedBox(height: tokens.spaceSm),
+                SizedBox(height: tokens.spaceMd),
                 DesignText(
                   'Du hast bereits abgestimmt.',
                   style: DesignTextStyle.label,
                   color: tokens.success,
                 ),
               ] else if (!open) ...[
-                SizedBox(height: tokens.spaceSm),
+                SizedBox(height: tokens.spaceMd),
                 DesignText(
                   'Die Abstimmung ist geschlossen.',
                   style: DesignTextStyle.label,
@@ -639,7 +657,11 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
         ),
         if (canVote)
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+            padding: EdgeInsets.only(
+              top: tokens.spaceLg,
+              left: tokens.spaceLg,
+              right: tokens.spaceLg,
+            ),
             child: DesignButton(
               label: 'Abstimmen',
               icon: Icons.how_to_vote_rounded,
@@ -658,7 +680,7 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
             child: DesignButton(
               label: 'Ergebnisse',
               icon: Icons.bar_chart_rounded,
-              variant: DesignButtonVariant.ghost,
+              variant: DesignButtonVariant.text,
               fullWidth: true,
               onPressed: () => context.go('/umfragen/${widget.id}/ergebnisse'),
             ),
@@ -672,148 +694,6 @@ class _PollDetailScreenState extends State<PollDetailScreen> {
       await AppScope.of(context).polls.vote(widget.id, _voteSelection.toList());
       _voteSelection.clear();
     });
-  }
-
-  // --- Aktionen ---
-
-  Widget _buildActions(DesignTokens tokens, Poll poll) {
-    if (!poll.isCreator && !AppScope.of(context).auth.isAdmin) {
-      return const SizedBox.shrink();
-    }
-    return Padding(
-      padding: EdgeInsets.only(top: tokens.spaceMd),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-            child: DesignButton(
-              label: 'Einladungen',
-              icon: Icons.person_add_rounded,
-              variant: DesignButtonVariant.ghost,
-              fullWidth: true,
-              onPressed: () => context.go('/umfragen/${widget.id}/einladungen'),
-            ),
-          ),
-          if (!poll.isClosed)
-            Padding(
-              padding: EdgeInsets.only(
-                top: tokens.spaceSm,
-                left: tokens.spaceLg,
-                right: tokens.spaceLg,
-              ),
-              child: DesignButton(
-                label: 'Umfrage schließen',
-                icon: Icons.lock_rounded,
-                variant: DesignButtonVariant.ghost,
-                fullWidth: true,
-                onPressed: _busy
-                    ? null
-                    : () => _run(
-                        () => AppScope.of(context).polls.close(widget.id),
-                      ),
-              ),
-            ),
-          Padding(
-            padding: EdgeInsets.only(
-              top: tokens.spaceSm,
-              left: tokens.spaceLg,
-              right: tokens.spaceLg,
-            ),
-            child: DesignButton(
-              label: poll.isCreator ? 'Löschen' : '👑 Löschen',
-              icon: Icons.delete_outline_rounded,
-              variant: DesignButtonVariant.outlined,
-              fullWidth: true,
-              onPressed: _busy ? null : () => _confirmDelete(poll),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _confirmDelete(Poll poll) async {
-    final confirmed = await showDesignSheet<bool>(
-      context: context,
-      child: const _ConfirmSheet(title: 'Umfrage löschen?'),
-    );
-    if (confirmed != true) return;
-    await _run(() async {
-      await AppScope.of(context).polls.delete(widget.id);
-    });
-    if (mounted) context.go('/umfragen');
-  }
-}
-
-/// Sheet zur Auswahl einer Option (Finalisieren).
-class _OptionPickerSheet extends StatelessWidget {
-  const _OptionPickerSheet({required this.options});
-
-  final List<PollOption> options;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        DesignText(
-          'Termin festlegen',
-          style: DesignTextStyle.subtitle,
-          color: tokens.textHigh,
-        ),
-        SizedBox(height: tokens.spaceSm),
-        for (final option in options)
-          DesignListTile(
-            title: option.displayLabel,
-            onTap: () => Navigator.pop(context, option.id),
-          ),
-      ],
-    );
-  }
-}
-
-/// Bestätigungs-Sheet mit Ja/Nein.
-class _ConfirmSheet extends StatelessWidget {
-  const _ConfirmSheet({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        DesignText(
-          title,
-          style: DesignTextStyle.subtitle,
-          color: tokens.textHigh,
-        ),
-        SizedBox(height: tokens.spaceLg),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: DesignButton(
-                label: 'Abbrechen',
-                variant: DesignButtonVariant.ghost,
-                onPressed: () => Navigator.pop(context, false),
-              ),
-            ),
-            SizedBox(width: tokens.spaceSm),
-            Expanded(
-              child: DesignButton(
-                label: 'Löschen',
-                onPressed: () => Navigator.pop(context, true),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
   }
 }
 

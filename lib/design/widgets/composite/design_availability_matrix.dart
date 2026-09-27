@@ -57,7 +57,8 @@ class DesignAvailabilityMatrix extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        for (final option in options)
+        for (var i = 0; i < options.length; i++) ...<Widget>[
+          if (i > 0) SizedBox(height: tokens.spaceSm),
           DesignCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,23 +67,24 @@ class DesignAvailabilityMatrix extends StatelessWidget {
                   children: <Widget>[
                     Expanded(
                       child: DesignText(
-                        option.label,
+                        options[i].label,
                         style: DesignTextStyle.body,
                         color: tokens.textHigh,
                       ),
                     ),
-                    if (option.isCounterProposal)
+                    if (options[i].isCounterProposal)
                       const DesignChip(label: 'Gegenvorschlag'),
                   ],
                 ),
                 SizedBox(height: tokens.spaceSm),
                 if (readOnly)
-                  _counts(context, option)
+                  _counts(context, options[i])
                 else
-                  _chips(context, option),
+                  _chips(context, options[i]),
               ],
             ),
           ),
+        ],
       ],
     );
   }
