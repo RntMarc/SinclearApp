@@ -8,6 +8,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/composite/design_question_editor.dart';
 import '../../../design/widgets/composite/design_question_field.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
@@ -58,7 +59,11 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
   PollSubmissionMode _submissionMode = PollSubmissionMode.single;
   PollResultsVisibility _resultsVisibility = PollResultsVisibility.creator;
   bool _allowCounterProposals = false;
+  bool _allowMultiple = false;
   DateTime? _closesAt;
+
+  PollDetail? _detail;
+  final List<PollOption> _existingOptions = [];
 
   final List<_QuestionSlot> _questions = [];
   final List<_OptionSlot> _appointmentOptions = [];
@@ -68,6 +73,7 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
   int _step = 0;
   bool _loading = false;
   bool _saving = false;
+  bool _busy = false;
   String? _error;
 
   @override
@@ -95,6 +101,10 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
       final poll = detail.poll;
       if (!mounted) return;
       setState(() {
+        _detail = detail;
+        _existingOptions
+          ..clear()
+          ..addAll(detail.appointmentOptions);
         _type = poll.type;
         _title.text = poll.title;
         _description.text = poll.description ?? '';
@@ -102,6 +112,7 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
         _submissionMode = poll.submissionMode;
         _resultsVisibility = poll.resultsVisibility;
         _allowCounterProposals = poll.allowCounterProposals;
+        _allowMultiple = poll.allowMultiple;
         _closesAt = poll.closesAt == null
             ? null
             : instantToWallTime(
@@ -164,6 +175,7 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
             allowCounterProposals: _type == PollType.appointment
                 ? _allowCounterProposals
                 : null,
+            allowMultiple: _type == PollType.vote ? _allowMultiple : null,
           ),
         );
         if (!mounted) return;
@@ -183,6 +195,7 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
         submissionMode: _submissionMode,
         resultsVisibility: _resultsVisibility,
         allowCounterProposals: _allowCounterProposals,
+        allowMultiple: _allowMultiple,
         inviteUserIds: _inviteUserIds.toList(),
         questions: _type == PollType.form
             ? _questions
@@ -315,7 +328,7 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
         ),
       );
     }
-    if (widget.isEditing) return _buildBasics(tokens);
+    if (widget.isEditing) return _buildEditBody(tokens);
     return switch (_step) {
       0 => _buildTypeStep(tokens),
       1 => _buildBasics(tokens),
@@ -362,81 +375,289 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
         horizontal: tokens.spaceLg,
         vertical: tokens.spaceSm,
       ),
-      children: <Widget>[
-        DesignTextField(
-          hint: 'Titel',
-          controller: _title,
-          onChanged: (_) => setState(() {}),
+      children: _basicsChildren(tokens),
+    );
+  }
+
+  List<Widget> _basicsChildren(DesignTokens tokens) {
+    return <Widget>[
+      DesignTextField(
+        hint: 'Titel',
+        controller: _title,
+        onChanged: (_) => setState(() {}),
+      ),
+      SizedBox(height: tokens.spaceSm),
+      DesignTextField(
+        hint: 'Beschreibung (optional)',
+        controller: _description,
+        maxLines: 4,
+      ),
+      SizedBox(height: tokens.spaceMd),
+      DesignQuestionField(
+        spec: const DesignQuestionSpec(
+          kind: DesignQuestionKind.datetime,
+          title: 'Frist (optional)',
         ),
-        SizedBox(height: tokens.spaceSm),
-        DesignTextField(
-          hint: 'Beschreibung (optional)',
-          controller: _description,
-          maxLines: 4,
-        ),
+        value: _closesAt,
+        onChanged: (value) =>
+            setState(() => _closesAt = value is DateTime ? value : null),
+      ),
+      SizedBox(height: tokens.spaceMd),
+      _label(tokens, 'Zugriff'),
+      Wrap(
+        spacing: tokens.spaceSm,
+        children: <Widget>[
+          for (final mode in PollAccessMode.values)
+            DesignChip(
+              label: mode.label,
+              selected: _accessMode == mode,
+              onTap: () => setState(() => _accessMode = mode),
+            ),
+        ],
+      ),
+      if (_type == PollType.form) ...<Widget>[
         SizedBox(height: tokens.spaceMd),
-        DesignQuestionField(
-          spec: const DesignQuestionSpec(
-            kind: DesignQuestionKind.datetime,
-            title: 'Frist (optional)',
-          ),
-          value: _closesAt,
-          onChanged: (value) =>
-              setState(() => _closesAt = value is DateTime ? value : null),
-        ),
-        SizedBox(height: tokens.spaceMd),
-        _label(tokens, 'Zugriff'),
+        _label(tokens, 'Einreichung'),
         Wrap(
           spacing: tokens.spaceSm,
           children: <Widget>[
-            for (final mode in PollAccessMode.values)
+            for (final mode in PollSubmissionMode.values)
               DesignChip(
                 label: mode.label,
-                selected: _accessMode == mode,
-                onTap: () => setState(() => _accessMode = mode),
+                selected: _submissionMode == mode,
+                onTap: () => setState(() => _submissionMode = mode),
               ),
           ],
         ),
-        if (_type == PollType.form) ...<Widget>[
-          SizedBox(height: tokens.spaceMd),
-          _label(tokens, 'Einreichung'),
-          Wrap(
-            spacing: tokens.spaceSm,
-            children: <Widget>[
-              for (final mode in PollSubmissionMode.values)
-                DesignChip(
-                  label: mode.label,
-                  selected: _submissionMode == mode,
-                  onTap: () => setState(() => _submissionMode = mode),
-                ),
-            ],
-          ),
-          SizedBox(height: tokens.spaceMd),
-          _label(tokens, 'Ergebnissichtbarkeit'),
-          Wrap(
-            spacing: tokens.spaceSm,
-            children: <Widget>[
-              for (final visibility in PollResultsVisibility.values)
-                DesignChip(
-                  label: visibility.label,
-                  selected: _resultsVisibility == visibility,
-                  onTap: () => setState(() => _resultsVisibility = visibility),
-                ),
-            ],
-          ),
-        ],
-        if (_type == PollType.appointment) ...<Widget>[
-          SizedBox(height: tokens.spaceMd),
-          DesignChip(
-            label: 'Gegenvorschläge erlauben',
-            selected: _allowCounterProposals,
-            onTap: () => setState(
-              () => _allowCounterProposals = !_allowCounterProposals,
-            ),
-          ),
-        ],
+        SizedBox(height: tokens.spaceMd),
+        _label(tokens, 'Ergebnissichtbarkeit'),
+        Wrap(
+          spacing: tokens.spaceSm,
+          children: <Widget>[
+            for (final visibility in PollResultsVisibility.values)
+              DesignChip(
+                label: visibility.label,
+                selected: _resultsVisibility == visibility,
+                onTap: () => setState(() => _resultsVisibility = visibility),
+              ),
+          ],
+        ),
+      ],
+      if (_type == PollType.appointment) ...<Widget>[
+        SizedBox(height: tokens.spaceMd),
+        DesignChip(
+          label: 'Gegenvorschläge erlauben',
+          selected: _allowCounterProposals,
+          onTap: () =>
+              setState(() => _allowCounterProposals = !_allowCounterProposals),
+        ),
+      ],
+      if (_type == PollType.vote) ...<Widget>[
+        SizedBox(height: tokens.spaceMd),
+        _label(tokens, 'Abstimmung'),
+        DesignChip(
+          label: 'Mehrfachauswahl erlauben',
+          selected: _allowMultiple,
+          onTap: () => setState(() => _allowMultiple = !_allowMultiple),
+        ),
+      ],
+    ];
+  }
+
+  Poll? get _poll => _detail?.poll;
+
+  Widget _buildEditBody(DesignTokens tokens) {
+    final canManage =
+        (_poll?.isCreator ?? false) || AppScope.of(context).auth.isAdmin;
+    return ListView(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.spaceLg,
+        vertical: tokens.spaceSm,
+      ),
+      children: <Widget>[
+        ..._basicsChildren(tokens),
+        if (_type == PollType.appointment)
+          ..._existingOptionsSection(tokens, canManage),
+        if (canManage) ..._managementActions(tokens),
       ],
     );
+  }
+
+  List<Widget> _existingOptionsSection(DesignTokens tokens, bool canManage) {
+    final open = _poll?.isClosed != true;
+    return <Widget>[
+      Padding(
+        padding: EdgeInsets.only(top: tokens.spaceXl),
+        child: DesignText(
+          'Terminvorschläge',
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
+        ),
+      ),
+      SizedBox(height: tokens.spaceSm),
+      if (_existingOptions.isEmpty)
+        DesignText(
+          'Noch keine Terminvorschläge.',
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
+        )
+      else
+        for (final option in _existingOptions)
+          Padding(
+            padding: EdgeInsets.only(bottom: tokens.spaceXs),
+            child: DesignListTile(
+              leading: Icon(Icons.event_rounded, color: tokens.textLow),
+              title: option.displayLabel,
+              subtitle: option.isCounterProposal ? 'Gegenvorschlag' : null,
+              trailing: open && canManage
+                  ? DesignIconButton(
+                      icon: Icons.delete_outline_rounded,
+                      onPressed: _busy ? null : () => _deleteOption(option),
+                    )
+                  : null,
+            ),
+          ),
+    ];
+  }
+
+  List<Widget> _managementActions(DesignTokens tokens) {
+    final poll = _poll;
+    final open = poll?.isClosed != true;
+    final buttons = <Widget>[
+      if (_type == PollType.appointment && open && _existingOptions.isNotEmpty)
+        _actionButton(
+          label: 'Termin festlegen',
+          icon: Icons.event_available_rounded,
+          onPressed: _busy ? null : _finalize,
+        ),
+      _actionButton(
+        label: 'Einladungen',
+        icon: Icons.person_add_rounded,
+        onPressed: () => context.go('/umfragen/${widget.pollId}/einladungen'),
+      ),
+      if (open)
+        _actionButton(
+          label: 'Umfrage schließen',
+          icon: Icons.lock_rounded,
+          onPressed: _busy ? null : _close,
+        ),
+      _actionButton(
+        label: 'Löschen',
+        icon: Icons.delete_outline_rounded,
+        variant: DesignButtonVariant.outlined,
+        onPressed: _busy ? null : _delete,
+      ),
+    ];
+    return <Widget>[
+      Padding(
+        padding: EdgeInsets.only(top: tokens.spaceXl),
+        child: DesignText(
+          'Verwaltung',
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
+        ),
+      ),
+      SizedBox(height: tokens.spaceSm),
+      for (var i = 0; i < buttons.length; i++) ...<Widget>[
+        if (i > 0) SizedBox(height: tokens.spaceSm),
+        buttons[i],
+      ],
+    ];
+  }
+
+  Widget _actionButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    DesignButtonVariant variant = DesignButtonVariant.ghost,
+  }) {
+    return DesignButton(
+      label: label,
+      icon: icon,
+      variant: variant,
+      fullWidth: true,
+      onPressed: onPressed,
+    );
+  }
+
+  Future<void> _deleteOption(PollOption option) async {
+    final confirmed = await showDesignSheet<bool>(
+      context: context,
+      child: const _ConfirmSheet(title: 'Terminvorschlag löschen?'),
+    );
+    if (confirmed != true) return;
+    await _runAction(
+      () => AppScope.of(context).polls.deleteOption(widget.pollId!, option.id),
+      'Der Terminvorschlag konnte nicht gelöscht werden.',
+    );
+  }
+
+  Future<void> _finalize() async {
+    final optionId = await showDesignSheet<String>(
+      context: context,
+      child: _OptionPickerSheet(options: _existingOptions),
+    );
+    if (optionId == null) return;
+    await _runAction(
+      () => AppScope.of(context).polls.finalize(widget.pollId!, optionId),
+      'Der Termin konnte nicht festgelegt werden.',
+    );
+  }
+
+  Future<void> _close() => _runAction(
+    () => AppScope.of(context).polls.close(widget.pollId!),
+    'Die Umfrage konnte nicht geschlossen werden.',
+  );
+
+  Future<void> _delete() async {
+    final confirmed = await showDesignSheet<bool>(
+      context: context,
+      child: const _ConfirmSheet(title: 'Umfrage löschen?'),
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+    final scope = AppScope.of(context);
+    setState(() => _busy = true);
+    try {
+      await scope.polls.delete(widget.pollId!);
+      if (mounted) context.go('/umfragen');
+    } on ApiException catch (e) {
+      _showMessage(pollErrorMessage(e));
+    } catch (e, st) {
+      developer.log('Failed to delete poll', error: e, stackTrace: st);
+      _showMessage('Die Umfrage konnte nicht gelöscht werden.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _runAction(
+    Future<void> Function() action,
+    String errorMessage,
+  ) async {
+    setState(() => _busy = true);
+    try {
+      await action();
+      await _reloadOptions();
+    } on ApiException catch (e) {
+      _showMessage(pollErrorMessage(e));
+    } catch (e, st) {
+      developer.log('Poll edit action failed', error: e, stackTrace: st);
+      _showMessage(errorMessage);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _reloadOptions() async {
+    final detail = await AppScope.of(context).polls.get(widget.pollId!);
+    if (!mounted) return;
+    setState(() {
+      _detail = detail;
+      _existingOptions
+        ..clear()
+        ..addAll(detail.appointmentOptions);
+    });
   }
 
   Widget _label(DesignTokens tokens, String text) {
@@ -622,5 +843,76 @@ class _PollCreateScreenState extends State<PollCreateScreen> {
       );
     }
     setState(() => _step++);
+  }
+}
+
+/// Sheet zur Auswahl einer Option (Termin festlegen).
+class _OptionPickerSheet extends StatelessWidget {
+  const _OptionPickerSheet({required this.options});
+
+  final List<PollOption> options;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        DesignText(
+          'Termin festlegen',
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
+        ),
+        SizedBox(height: tokens.spaceSm),
+        for (final option in options)
+          DesignListTile(
+            title: option.displayLabel,
+            onTap: () => Navigator.pop(context, option.id),
+          ),
+      ],
+    );
+  }
+}
+
+/// Bestätigungs-Sheet mit Ja/Nein.
+class _ConfirmSheet extends StatelessWidget {
+  const _ConfirmSheet({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        DesignText(
+          title,
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
+        ),
+        SizedBox(height: tokens.spaceLg),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: DesignButton(
+                label: 'Abbrechen',
+                variant: DesignButtonVariant.ghost,
+                onPressed: () => Navigator.pop(context, false),
+              ),
+            ),
+            SizedBox(width: tokens.spaceSm),
+            Expanded(
+              child: DesignButton(
+                label: 'Löschen',
+                onPressed: () => Navigator.pop(context, true),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

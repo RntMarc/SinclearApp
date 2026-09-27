@@ -5,14 +5,14 @@ import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_question_field.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
-import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/poll_models.dart';
 
 /// Editor für einen Terminvorschlag (ganztägig oder getaktet).
 ///
 /// Meldet über [onChanged] den fertigen [PollOptionInput] — `null`, solange
 /// kein Beginn gewählt ist. Wird im Erstell-Wizard und beim Gegenvorschlag
-/// wiederverwendet.
+/// wiederverwendet. Eine freie Bezeichnung gibt es bewusst nicht mehr; die
+/// Option wird über ihren Beginn-/Endzeitpunkt identifiziert.
 class AppointmentOptionEditor extends StatefulWidget {
   const AppointmentOptionEditor({
     required this.timezone,
@@ -31,16 +31,9 @@ class AppointmentOptionEditor extends StatefulWidget {
 }
 
 class _AppointmentOptionEditorState extends State<AppointmentOptionEditor> {
-  final TextEditingController _label = TextEditingController();
   bool _allDay = true;
   DateTime? _start;
   DateTime? _end;
-
-  @override
-  void dispose() {
-    _label.dispose();
-    super.dispose();
-  }
 
   void _emit() {
     final start = _start;
@@ -51,7 +44,6 @@ class _AppointmentOptionEditorState extends State<AppointmentOptionEditor> {
     final end = _end ?? start;
     widget.onChanged(
       PollOptionInput(
-        label: _label.text.trim(),
         allDay: _allDay,
         timezone: widget.timezone,
         startAt: _allDay ? null : wallTimeToInstant(start, widget.timezone),
@@ -68,25 +60,6 @@ class _AppointmentOptionEditorState extends State<AppointmentOptionEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: DesignTextField(
-                hint: 'Bezeichnung (optional)',
-                controller: _label,
-                onChanged: (_) => _emit(),
-              ),
-            ),
-            if (widget.onRemove != null) ...<Widget>[
-              SizedBox(width: tokens.spaceSm),
-              DesignIconButton(
-                icon: Icons.remove_circle_outline_rounded,
-                onPressed: widget.onRemove,
-              ),
-            ],
-          ],
-        ),
-        SizedBox(height: tokens.spaceSm),
         Row(
           children: <Widget>[
             DesignChip(
@@ -106,6 +79,12 @@ class _AppointmentOptionEditorState extends State<AppointmentOptionEditor> {
                 _emit();
               },
             ),
+            const Spacer(),
+            if (widget.onRemove != null)
+              DesignIconButton(
+                icon: Icons.remove_circle_outline_rounded,
+                onPressed: widget.onRemove,
+              ),
           ],
         ),
         SizedBox(height: tokens.spaceSm),
