@@ -119,6 +119,8 @@ class TripOverviewSection extends StatelessWidget {
                           currentUserId != null &&
                           a.users.any((u) => u.id == currentUserId),
                       tripId: trip.id,
+                      canEdit: trip.canEdit,
+                      onChanged: controller.refresh,
                     ),
                   ),
                 ],
@@ -214,12 +216,16 @@ class TripAccommodationCard extends StatelessWidget {
   final TravelAccommodation accommodation;
   final bool isMine;
   final String? tripId;
+  final bool canEdit;
+  final VoidCallback? onChanged;
 
   const TripAccommodationCard({
     super.key,
     required this.accommodation,
     required this.isMine,
     this.tripId,
+    this.canEdit = false,
+    this.onChanged,
   });
 
   @override
@@ -227,15 +233,19 @@ class TripAccommodationCard extends StatelessWidget {
     final tokens = DesignTheme.of(context);
     return DesignCard(
       onTap: tripId != null
-          ? () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AccommodationDetailScreen(
-                  tripId: tripId!,
-                  accommodationId: accommodation.id,
+          ? () async {
+              final changed = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AccommodationDetailScreen(
+                    tripId: tripId!,
+                    accommodationId: accommodation.id,
+                    canEdit: canEdit,
+                  ),
                 ),
-              ),
-            )
+              );
+              if (changed == true) onChanged?.call();
+            }
           : null,
       margin: EdgeInsets.only(bottom: tokens.spaceSm),
       padding: EdgeInsets.all(tokens.spaceMd),
@@ -292,8 +302,14 @@ class TripAccommodationCard extends StatelessWidget {
 class TripEventsTab extends StatelessWidget {
   final List<TravelEvent> events;
   final String? currentUserId;
+  final VoidCallback? onChanged;
 
-  const TripEventsTab({super.key, required this.events, this.currentUserId});
+  const TripEventsTab({
+    super.key,
+    required this.events,
+    this.currentUserId,
+    this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -345,7 +361,11 @@ class TripEventsTab extends StatelessWidget {
             ),
           ),
           ...items.map(
-            (e) => TripEventCard(event: e, currentUserId: currentUserId),
+            (e) => TripEventCard(
+              event: e,
+              currentUserId: currentUserId,
+              onChanged: onChanged,
+            ),
           ),
         ],
       );
@@ -367,8 +387,14 @@ class TripEventsTab extends StatelessWidget {
 class TripEventCard extends StatelessWidget {
   final TravelEvent event;
   final String? currentUserId;
+  final VoidCallback? onChanged;
 
-  const TripEventCard({super.key, required this.event, this.currentUserId});
+  const TripEventCard({
+    super.key,
+    required this.event,
+    this.currentUserId,
+    this.onChanged,
+  });
 
   bool get _isParticipating =>
       currentUserId != null &&
@@ -382,12 +408,15 @@ class TripEventCard extends StatelessWidget {
     return Opacity(
       opacity: participating ? 1.0 : 0.5,
       child: DesignCard(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TravelEventDetailScreen(id: event.id),
-          ),
-        ),
+        onTap: () async {
+          final changed = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TravelEventDetailScreen(id: event.id),
+            ),
+          );
+          if (changed == true) onChanged?.call();
+        },
         margin: EdgeInsets.fromLTRB(
           tokens.spaceLg,
           0,
@@ -812,11 +841,13 @@ class TripMapTab extends StatelessWidget {
 class TripEventsSection extends StatelessWidget {
   final TripDataController controller;
   final String? currentUserId;
+  final VoidCallback? onChanged;
 
   const TripEventsSection({
     super.key,
     required this.controller,
     this.currentUserId,
+    this.onChanged,
   });
 
   @override
@@ -825,8 +856,11 @@ class TripEventsSection extends StatelessWidget {
       future: controller.events,
       keepAlive: true,
       skeleton: const _EventsSkeleton(),
-      builder: (context, events) =>
-          TripEventsTab(events: events, currentUserId: currentUserId),
+      builder: (context, events) => TripEventsTab(
+        events: events,
+        currentUserId: currentUserId,
+        onChanged: onChanged,
+      ),
     );
   }
 }

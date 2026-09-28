@@ -88,6 +88,46 @@ const CONTENT_BY_TYPE = {
     title: 'Neues Ticket für das Event',
     body: 'Ein neues Ticket wurde zum Event hinzugefügt.',
   },
+  trip_leader_appointed: {
+    title: 'Du bist jetzt Reiseleiter',
+    body: 'Du bist jetzt Reiseleiter der Reise.',
+  },
+  trip_leader_appointed_others: {
+    title: 'Neuer Reiseleiter auf der Reise',
+    body: 'Ein Teilnehmer wurde zum Reiseleiter ernannt.',
+  },
+  trip_leader_removed: {
+    title: 'Du bist nicht mehr Reiseleiter',
+    body: 'Du bist nicht mehr Reiseleiter der Reise.',
+  },
+  trip_leader_removed_others: {
+    title: 'Reiseleiter geändert',
+    body: 'Ein Reiseleiter wurde geändert.',
+  },
+  standalone_event_leader_appointed: {
+    title: 'Du bist jetzt Veranstalter',
+    body: 'Du bist jetzt Veranstalter des Events.',
+  },
+  standalone_event_leader_appointed_others: {
+    title: 'Neuer Veranstalter beim Event',
+    body: 'Ein Teilnehmer wurde zum Veranstalter ernannt.',
+  },
+  standalone_event_leader_removed: {
+    title: 'Du bist nicht mehr Veranstalter',
+    body: 'Du bist nicht mehr Veranstalter des Events.',
+  },
+  standalone_event_leader_removed_others: {
+    title: 'Veranstalter geändert',
+    body: 'Ein Veranstalter wurde geändert.',
+  },
+  standalone_event_converted_to_trip: {
+    title: 'Event wurde zu einer Reise hinzugefügt',
+    body: 'Ein Event wurde zu einer Reise hinzugefügt.',
+  },
+  trip_event_converted_to_standalone: {
+    title: 'Event wurde von der Reise gelöst',
+    body: 'Ein Event wurde von der Reise gelöst.',
+  },
   poll_invite: {
     title: 'Neue Umfrage-Einladung',
     body: 'Du wurdest zu einer Umfrage eingeladen.',
@@ -123,6 +163,11 @@ const TRIP_TYPES = new Set([
   'trip_accommodation_added',
   'trip_subscription_added',
   'trip_info_changed',
+  'trip_leader_appointed',
+  'trip_leader_appointed_others',
+  'trip_leader_removed',
+  'trip_leader_removed_others',
+  'standalone_event_converted_to_trip',
 ]);
 
 const STANDALONE_EVENT_TYPES = new Set([
@@ -130,6 +175,11 @@ const STANDALONE_EVENT_TYPES = new Set([
   'standalone_event_user_added_others',
   'standalone_event_info_changed',
   'standalone_event_ticket_added',
+  'standalone_event_leader_appointed',
+  'standalone_event_leader_appointed_others',
+  'standalone_event_leader_removed',
+  'standalone_event_leader_removed_others',
+  'trip_event_converted_to_standalone',
 ]);
 
 const POLL_TYPES = new Set([

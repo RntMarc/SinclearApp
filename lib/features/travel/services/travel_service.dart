@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../auth/services/auth_service.dart';
 import '../../subscription/models/subscription_models.dart';
 import '../models/travel_models.dart';
@@ -181,5 +182,588 @@ class TravelService {
     return items
         .map((item) => Subscription.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  // ──────────────────────────── Reise schreiben ────────────────────────────
+
+  Future<TravelTrip> createTrip({
+    required String name,
+    String? description,
+    required bool allDay,
+    required String timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+    bool hastickets = false,
+    String? ticket,
+    String? ticketUrl,
+  }) async {
+    final data = await _api.post(
+      '/trips',
+      body: _tripWriteBody(
+        name: name,
+        description: description,
+        allDay: allDay,
+        timezone: timezone,
+        startDate: startDate,
+        endDate: endDate,
+        startAt: startAt,
+        endAt: endAt,
+        hastickets: hastickets,
+        ticket: ticket,
+        ticketUrl: ticketUrl,
+      ),
+      token: await _token(),
+    );
+    return TravelTrip.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<TravelTrip> updateTrip(
+    String id, {
+    String? name,
+    String? description,
+    bool? allDay,
+    String? timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+    bool? hastickets,
+    String? ticket,
+    String? ticketUrl,
+  }) async {
+    final data = await _api.patch(
+      '/trips/$id',
+      body: _tripWriteBody(
+        name: name,
+        description: description,
+        allDay: allDay,
+        timezone: timezone,
+        startDate: startDate,
+        endDate: endDate,
+        startAt: startAt,
+        endAt: endAt,
+        hastickets: hastickets,
+        ticket: ticket,
+        ticketUrl: ticketUrl,
+      ),
+      token: await _token(),
+    );
+    return TravelTrip.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteTrip(String id) async {
+    await _api.delete('/trips/$id', token: await _token());
+  }
+
+  // ──────────────────────────── Events schreiben ────────────────────────────
+
+  Future<TravelEvent> createTripEvent(
+    String tripId, {
+    required String name,
+    String? description,
+    required bool allDay,
+    required String timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+    bool hastickets = false,
+    String? ticket,
+    String? ticketUrl,
+    String? url,
+    String? image,
+    String? organizer,
+    String? address,
+    double? latitude,
+    double? longitude,
+    int? osmId,
+    String? citySlug,
+  }) async {
+    final data = await _api.post(
+      '/trips/$tripId/events',
+      body: _eventWriteBody(
+        name: name,
+        description: description,
+        allDay: allDay,
+        timezone: timezone,
+        startDate: startDate,
+        endDate: endDate,
+        startAt: startAt,
+        endAt: endAt,
+        hastickets: hastickets,
+        ticket: ticket,
+        ticketUrl: ticketUrl,
+        url: url,
+        image: image,
+        organizer: organizer,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+        osmId: osmId,
+        citySlug: citySlug,
+      ),
+      token: await _token(),
+    );
+    return TravelEvent.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<TravelEvent> updateTripEvent(
+    String tripId,
+    String eventId, {
+    String? name,
+    String? description,
+    bool? allDay,
+    String? timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+    bool? hastickets,
+    String? ticket,
+    String? ticketUrl,
+    String? url,
+    String? image,
+    String? organizer,
+    String? address,
+    double? latitude,
+    double? longitude,
+    int? osmId,
+    String? citySlug,
+  }) async {
+    final data = await _api.patch(
+      '/trips/$tripId/events/$eventId',
+      body: _eventWriteBody(
+        name: name,
+        description: description,
+        allDay: allDay,
+        timezone: timezone,
+        startDate: startDate,
+        endDate: endDate,
+        startAt: startAt,
+        endAt: endAt,
+        hastickets: hastickets,
+        ticket: ticket,
+        ticketUrl: ticketUrl,
+        url: url,
+        image: image,
+        organizer: organizer,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+        osmId: osmId,
+        citySlug: citySlug,
+      ),
+      token: await _token(),
+    );
+    return TravelEvent.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteTripEvent(String tripId, String eventId) async {
+    await _api.delete('/trips/$tripId/events/$eventId', token: await _token());
+  }
+
+  /// Löst ein Reise-Event zu einem Standalone-Event (`trip: null`).
+  Future<TravelEvent> detachTripEvent(String tripId, String eventId) async {
+    final data = await _api.patch(
+      '/trips/$tripId/events/$eventId',
+      body: const {'trip': null},
+      token: await _token(),
+    );
+    return TravelEvent.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<TravelEvent> createStandaloneEvent({
+    required String name,
+    String? description,
+    required bool allDay,
+    required String timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+    bool hastickets = false,
+    String? ticket,
+    String? ticketUrl,
+    String? url,
+    String? image,
+    String? organizer,
+    String? address,
+    double? latitude,
+    double? longitude,
+    int? osmId,
+    String? citySlug,
+  }) async {
+    final data = await _api.post(
+      '/trips/standaloneevents',
+      body: _eventWriteBody(
+        name: name,
+        description: description,
+        allDay: allDay,
+        timezone: timezone,
+        startDate: startDate,
+        endDate: endDate,
+        startAt: startAt,
+        endAt: endAt,
+        hastickets: hastickets,
+        ticket: ticket,
+        ticketUrl: ticketUrl,
+        url: url,
+        image: image,
+        organizer: organizer,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+        osmId: osmId,
+        citySlug: citySlug,
+      ),
+      token: await _token(),
+    );
+    return TravelEvent.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<TravelEvent> updateStandaloneEvent(
+    String eventId, {
+    String? name,
+    String? description,
+    bool? allDay,
+    String? timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+    bool? hastickets,
+    String? ticket,
+    String? ticketUrl,
+    String? url,
+    String? image,
+    String? organizer,
+    String? address,
+    double? latitude,
+    double? longitude,
+    int? osmId,
+    String? citySlug,
+  }) async {
+    final data = await _api.patch(
+      '/trips/standaloneevents/$eventId',
+      body: _eventWriteBody(
+        name: name,
+        description: description,
+        allDay: allDay,
+        timezone: timezone,
+        startDate: startDate,
+        endDate: endDate,
+        startAt: startAt,
+        endAt: endAt,
+        hastickets: hastickets,
+        ticket: ticket,
+        ticketUrl: ticketUrl,
+        url: url,
+        image: image,
+        organizer: organizer,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
+        osmId: osmId,
+        citySlug: citySlug,
+      ),
+      token: await _token(),
+    );
+    return TravelEvent.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  /// Hängt ein Standalone-Event an eine Reise an (`trip` gesetzt).
+  Future<TravelEvent> attachStandaloneEvent(
+    String eventId,
+    String tripId,
+  ) async {
+    final data = await _api.patch(
+      '/trips/standaloneevents/$eventId',
+      body: {'trip': tripId},
+      token: await _token(),
+    );
+    return TravelEvent.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteStandaloneEvent(String eventId) async {
+    await _api.delete(
+      '/trips/standaloneevents/$eventId',
+      token: await _token(),
+    );
+  }
+
+  // ──────────────────────────── Unterkünfte schreiben ────────────────────────────
+
+  Future<TravelAccommodation> createAccommodation(
+    String tripId, {
+    required String name,
+    String? description,
+    String? address,
+    String? phone,
+    String? mail,
+    bool isHotel = false,
+    double? latitude,
+    double? longitude,
+    int? osmId,
+    String? citySlug,
+  }) async {
+    final data = await _api.post(
+      '/trips/$tripId/accommodations',
+      body: _accommodationWriteBody(
+        name: name,
+        description: description,
+        address: address,
+        phone: phone,
+        mail: mail,
+        isHotel: isHotel,
+        latitude: latitude,
+        longitude: longitude,
+        osmId: osmId,
+        citySlug: citySlug,
+      ),
+      token: await _token(),
+    );
+    return TravelAccommodation.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<TravelAccommodation> updateAccommodation(
+    String tripId,
+    String accommodationId, {
+    String? name,
+    String? description,
+    String? address,
+    String? phone,
+    String? mail,
+    bool? isHotel,
+    double? latitude,
+    double? longitude,
+    int? osmId,
+    String? citySlug,
+  }) async {
+    final data = await _api.patch(
+      '/trips/$tripId/accommodations/$accommodationId',
+      body: _accommodationWriteBody(
+        name: name,
+        description: description,
+        address: address,
+        phone: phone,
+        mail: mail,
+        isHotel: isHotel,
+        latitude: latitude,
+        longitude: longitude,
+        osmId: osmId,
+        citySlug: citySlug,
+      ),
+      token: await _token(),
+    );
+    return TravelAccommodation.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> deleteAccommodation(
+    String tripId,
+    String accommodationId,
+  ) async {
+    await _api.delete(
+      '/trips/$tripId/accommodations/$accommodationId',
+      token: await _token(),
+    );
+  }
+
+  // ──────────────────────────── Teilnehmer & Rollen ────────────────────────────
+
+  Future<void> addTripParticipant(
+    String tripId,
+    String userId, {
+    String? accommodation,
+  }) async {
+    await _api.post(
+      '/trips/$tripId/participants',
+      body: {'userId': userId, 'accommodation': ?accommodation},
+      token: await _token(),
+    );
+  }
+
+  Future<void> removeTripParticipant(String tripId, String userId) async {
+    await _api.delete(
+      '/trips/$tripId/participants/$userId',
+      token: await _token(),
+    );
+  }
+
+  Future<void> setTripParticipantRole(
+    String tripId,
+    String userId,
+    String role,
+  ) async {
+    await _api.put(
+      '/trips/$tripId/participants/$userId/role',
+      body: {'role': role},
+      token: await _token(),
+    );
+  }
+
+  Future<void> addStandaloneEventParticipant(
+    String eventId,
+    String userId,
+  ) async {
+    await _api.post(
+      '/trips/standaloneevents/$eventId/participants',
+      body: {'userId': userId},
+      token: await _token(),
+    );
+  }
+
+  Future<void> removeStandaloneEventParticipant(
+    String eventId,
+    String userId,
+  ) async {
+    await _api.delete(
+      '/trips/standaloneevents/$eventId/participants/$userId',
+      token: await _token(),
+    );
+  }
+
+  Future<void> setStandaloneEventParticipantRole(
+    String eventId,
+    String userId,
+    String role,
+  ) async {
+    await _api.put(
+      '/trips/standaloneevents/$eventId/participants/$userId/role',
+      body: {'role': role},
+      token: await _token(),
+    );
+  }
+
+  // ──────────────────────────── Request-Builder ────────────────────────────
+
+  Map<String, dynamic> _tripWriteBody({
+    String? name,
+    String? description,
+    bool? allDay,
+    String? timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+    bool? hastickets,
+    String? ticket,
+    String? ticketUrl,
+  }) {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (description != null) body['description'] = description;
+    body.addAll(
+      _timingBody(
+        allDay: allDay,
+        timezone: timezone,
+        startDate: startDate,
+        endDate: endDate,
+        startAt: startAt,
+        endAt: endAt,
+      ),
+    );
+    if (hastickets != null) body['hastickets'] = hastickets ? '1' : '0';
+    if (ticket != null) body['ticket'] = ticket;
+    if (ticketUrl != null) body['ticketUrl'] = ticketUrl;
+    return body;
+  }
+
+  Map<String, dynamic> _eventWriteBody({
+    String? name,
+    String? description,
+    bool? allDay,
+    String? timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+    bool? hastickets,
+    String? ticket,
+    String? ticketUrl,
+    String? url,
+    String? image,
+    String? organizer,
+    String? address,
+    double? latitude,
+    double? longitude,
+    int? osmId,
+    String? citySlug,
+  }) {
+    final body = _tripWriteBody(
+      name: name,
+      description: description,
+      allDay: allDay,
+      timezone: timezone,
+      startDate: startDate,
+      endDate: endDate,
+      startAt: startAt,
+      endAt: endAt,
+      hastickets: hastickets,
+      ticket: ticket,
+      ticketUrl: ticketUrl,
+    );
+    if (url != null) body['url'] = url;
+    if (image != null) body['image'] = image;
+    if (organizer != null) body['organizer'] = organizer;
+    if (address != null) body['address'] = address;
+    if (latitude != null) body['latitude'] = latitude;
+    if (longitude != null) body['longitude'] = longitude;
+    if (osmId != null) body['OSMID'] = osmId;
+    if (citySlug != null) body['citySlug'] = citySlug;
+    return body;
+  }
+
+  Map<String, dynamic> _accommodationWriteBody({
+    String? name,
+    String? description,
+    String? address,
+    String? phone,
+    String? mail,
+    bool? isHotel,
+    double? latitude,
+    double? longitude,
+    int? osmId,
+    String? citySlug,
+  }) {
+    final body = <String, dynamic>{};
+    if (name != null) body['name'] = name;
+    if (description != null) body['description'] = description;
+    if (address != null) body['address'] = address;
+    if (phone != null) body['phone'] = phone;
+    if (mail != null) body['mail'] = mail;
+    if (isHotel != null) body['ishotel'] = isHotel ? 1 : 0;
+    if (latitude != null) body['latitude'] = latitude;
+    if (longitude != null) body['longitude'] = longitude;
+    if (osmId != null) body['OSMID'] = osmId;
+    if (citySlug != null) body['citySlug'] = citySlug;
+    return body;
+  }
+
+  Map<String, dynamic> _timingBody({
+    bool? allDay,
+    String? timezone,
+    DateTime? startDate,
+    DateTime? endDate,
+    DateTime? startAt,
+    DateTime? endAt,
+  }) {
+    final body = <String, dynamic>{};
+    if (allDay != null) body['allDay'] = allDay;
+    if (timezone != null) body['timezone'] = timezone;
+    if (allDay == true) {
+      if (startDate != null) body['startDate'] = toApiDateOnly(startDate);
+      if (endDate != null) body['endDate'] = toApiDateOnly(endDate);
+    } else if (allDay == false) {
+      final zone = timezone ?? 'UTC';
+      if (startAt != null) {
+        body['startAt'] = toApiInstant(wallTimeToInstant(startAt, zone), zone);
+      }
+      if (endAt != null) {
+        body['endAt'] = toApiInstant(wallTimeToInstant(endAt, zone), zone);
+      }
+    }
+    return body;
   }
 }

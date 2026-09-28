@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +46,18 @@ class _TravelScreenState extends State<TravelScreen> {
     if (!_hasLoaded) {
       _hasLoaded = true;
       _load();
+      unawaited(_refreshUnread());
+    }
+  }
+
+  Future<void> _refreshUnread() async {
+    try {
+      final scope = AppScope.of(context);
+      await scope.notification.refreshUnread(
+        token: await scope.auth.getAccessToken(),
+      );
+    } catch (e) {
+      developer.log('refreshUnread failed', error: e);
     }
   }
 
@@ -106,8 +119,7 @@ class _TravelScreenState extends State<TravelScreen> {
       final past = <TimelineEntry>[];
 
       for (final entry in entries) {
-        if (entry.startInstant.isBefore(now) &&
-            entry.endInstant.isAfter(now)) {
+        if (entry.startInstant.isBefore(now) && entry.endInstant.isAfter(now)) {
           current.add(entry);
         } else if (entry.startInstant.isAfter(now)) {
           future.add(entry);
@@ -145,18 +157,44 @@ class _TravelScreenState extends State<TravelScreen> {
     if (result == true && mounted) _load();
   }
 
+  Future<void> _navigateToCreate(String route) async {
+    final changed = await context.push<bool>(route);
+    if (changed == true && mounted) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
     return Stack(
       children: [
         DesignSurface(child: _buildBody()),
         Positioned(
-          right: DesignTheme.of(context).spaceLg,
-          bottom: DesignTheme.of(context).spaceLg,
-          child: DesignFab(
-            icon: Icons.directions_bus_rounded,
-            onPressed: _navigateToSearch,
-            tooltip: 'ÖPNV-Suche',
+          right: tokens.spaceLg,
+          bottom: tokens.spaceLg,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              DesignFab(
+                icon: Icons.flight_takeoff_rounded,
+                size: DesignFabSize.small,
+                onPressed: () => _navigateToCreate('/reisen/neu'),
+                tooltip: 'Neue Reise',
+              ),
+              SizedBox(height: tokens.spaceSm),
+              DesignFab(
+                icon: Icons.event_rounded,
+                size: DesignFabSize.small,
+                onPressed: () => _navigateToCreate('/reisen/einzelevent/neu'),
+                tooltip: 'Neues Event',
+              ),
+              SizedBox(height: tokens.spaceSm),
+              DesignFab(
+                icon: Icons.directions_bus_rounded,
+                onPressed: _navigateToSearch,
+                tooltip: 'ÖPNV-Suche',
+              ),
+            ],
           ),
         ),
       ],

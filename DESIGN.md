@@ -349,6 +349,11 @@ Design-Tokens bekommt.
   Akzentfarbe nie fast weiß oder fast schwarz und damit unlesbar wird.
   Farbton und Sättigung sind frei wählbar; gemeldet wird die Farbe live über
   `onChanged`.
+- **`DesignDateTimeField`** (`composite`) – Read-only Datum- bzw.
+  Datum+Uhrzeit-Trigger im `DesignTextField`-Look (Border, Radius, Fokus-Glow
+  folgen den aktiven Tokens). Öffnet `showDatePicker` und bei `showTime` auch
+  `showTimePicker`; meldet die Wandzeit über `onChanged`. Einsatz in
+  Formularen (z. B. Reise-/Event-Formulare).
 - **`DesignAppBar`** (`composite`) – Globale, nicht-Material AppBar aus
   `DesignText`. Ist eine `PreferredSizeWidget`, status-bar-sicher und rendert
   einen transparenten Strip mit `kToolbarHeight` + Status-bar-Inset als Höhe;

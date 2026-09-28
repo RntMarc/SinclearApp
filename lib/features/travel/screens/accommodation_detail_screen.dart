@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/network/api_client.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
@@ -18,15 +20,18 @@ import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
+import '../travel_error_messages.dart';
 
 class AccommodationDetailScreen extends StatefulWidget {
   final String tripId;
   final String accommodationId;
+  final bool canEdit;
 
   const AccommodationDetailScreen({
     super.key,
     required this.tripId,
     required this.accommodationId,
+    this.canEdit = false,
   });
 
   @override
@@ -84,6 +89,11 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
             ),
             title: _accommodation?.name ?? 'Unterkunft',
             actions: [
+              if (widget.canEdit)
+                DesignIconButton(
+                  icon: Icons.more_vert_rounded,
+                  onPressed: _openMenu,
+                ),
               if (_accommodation != null)
                 DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
             ],
@@ -94,6 +104,107 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
     );
   }
 
+  void _openMenu() {
+    final acc = _accommodation;
+    if (acc == null) return;
+    final tokens = DesignTheme.of(context);
+    showDesignSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            acc.name,
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
+            child: DesignButton(
+              label: 'Bearbeiten',
+              variant: DesignButtonVariant.text,
+              icon: Icons.edit_rounded,
+              fullWidth: true,
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final changed = await context.push<bool>(
+                  '/reisen/${widget.tripId}/unterkunft/${widget.accommodationId}/bearbeiten',
+                );
+                if (changed == true && mounted) _load();
+              },
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
+            child: DesignButton(
+              label: 'Löschen',
+              variant: DesignButtonVariant.ghost,
+              icon: Icons.delete_outline_rounded,
+              fullWidth: true,
+              onPressed: () {
+                Navigator.of(context).pop();
+                _confirmDelete();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete() async {
+    final tokens = DesignTheme.of(context);
+    final confirmed = await showDesignSheet<bool>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Unterkunft löschen?',
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  label: 'Abbrechen',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              SizedBox(width: tokens.spaceMd),
+              Expanded(
+                child: DesignButton(
+                  label: 'Löschen',
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await _service.deleteAccommodation(widget.tripId, widget.accommodationId);
+      if (mounted) context.pop(true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+    } catch (e, st) {
+      developer.log('Failed to delete accommodation', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Löschen.')));
+    }
+  }
+
   Future<void> _report() async {
     final acc = _accommodation;
     if (acc == null) return;
@@ -102,7 +213,7 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
       objectType: ModerationObjectType.travelAccommodation,
       objectId: acc.id,
       objectName: acc.name,
-      isOwn: false,
+      isOwn: widget.canEdit,
     );
   }
 

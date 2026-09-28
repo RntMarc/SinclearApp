@@ -1,19 +1,24 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/network/api_client.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
-import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../services/trip_data_controller.dart';
+import '../travel_error_messages.dart';
+import '../widgets/manage_participants_sheet.dart';
 import '../widgets/ticket_form_sheet.dart';
 import '../widgets/trip_detail_widgets.dart';
 import '../widgets/embedded_forum_view.dart';
@@ -68,6 +73,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
         _controller = _createController();
         _loading = false;
       });
+      unawaited(_markRead(trip));
     } catch (e, st) {
       _log.severe('Failed to load trip detail', e, st);
       if (!mounted) return;
@@ -98,6 +104,21 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       tripId: widget.id,
       currentUserId: AppScope.of(context).auth.userId,
     );
+  }
+
+  /// Markiert ungelesene Reise-Benachrichtigungen beim Öffnen als gelesen.
+  Future<void> _markRead(TravelTrip trip) async {
+    try {
+      final scope = AppScope.of(context);
+      final ids = scope.notification.unreadIdsForTrip(trip.id);
+      if (ids.isEmpty) return;
+      await scope.notification.markRead(
+        ids,
+        token: await scope.auth.getAccessToken(),
+      );
+    } catch (e, st) {
+      _log.warning('markRead failed', e, st);
+    }
   }
 
   @override
@@ -134,8 +155,188 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       objectType: ModerationObjectType.travelTrip,
       objectId: trip.id,
       objectName: trip.name,
-      isOwn: false,
+      isOwn: trip.canEdit,
     );
+  }
+
+  void _openMenu() {
+    final trip = _trip;
+    if (trip == null) return;
+    final tokens = DesignTheme.of(context);
+    showDesignSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            trip.name,
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          _menuTile(
+            context,
+            icon: Icons.edit_rounded,
+            label: 'Bearbeiten',
+            onTap: () async {
+              Navigator.of(context).pop();
+              final changed = await context.push<bool>(
+                '/reisen/${trip.id}/bearbeiten',
+              );
+              if (changed == true && mounted) _refresh();
+            },
+          ),
+          _menuTile(
+            context,
+            icon: Icons.group_rounded,
+            label: 'Teilnehmer verwalten',
+            onTap: () {
+              Navigator.of(context).pop();
+              _manageParticipants();
+            },
+          ),
+          _menuTile(
+            context,
+            icon: Icons.event_rounded,
+            label: 'Event hinzufügen',
+            onTap: () async {
+              Navigator.of(context).pop();
+              final changed = await context.push<bool>(
+                '/reisen/${trip.id}/events/neu',
+              );
+              if (changed == true && mounted) _refresh();
+            },
+          ),
+          _menuTile(
+            context,
+            icon: Icons.hotel_rounded,
+            label: 'Unterkunft hinzufügen',
+            onTap: () async {
+              Navigator.of(context).pop();
+              final changed = await context.push<bool>(
+                '/reisen/${trip.id}/unterkunft/neu',
+              );
+              if (changed == true && mounted) _refresh();
+            },
+          ),
+          _menuTile(
+            context,
+            icon: Icons.delete_outline_rounded,
+            label: 'Löschen',
+            danger: true,
+            onTap: () {
+              Navigator.of(context).pop();
+              _confirmDelete();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _menuTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool danger = false,
+  }) {
+    final tokens = DesignTheme.of(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
+      child: DesignButton(
+        label: label,
+        variant: danger ? DesignButtonVariant.ghost : DesignButtonVariant.text,
+        icon: icon,
+        fullWidth: true,
+        onPressed: onTap,
+      ),
+    );
+  }
+
+  Future<void> _manageParticipants() async {
+    final tripId = widget.id;
+    await showManageParticipantsSheet(
+      context: context,
+      title: 'Teilnehmer',
+      roleLabel: 'Reiseleiter',
+      load: () async {
+        final participants = await _service.getParticipants(tripId);
+        return participants.data
+            .map(
+              (p) => TravelParticipantEntry(
+                id: p.id,
+                displayName: p.displayName,
+                image: p.image,
+                role: p.role,
+              ),
+            )
+            .toList();
+      },
+      add: (userId) => _service.addTripParticipant(tripId, userId),
+      remove: (userId) => _service.removeTripParticipant(tripId, userId),
+      setRole: (userId, role) =>
+          _service.setTripParticipantRole(tripId, userId, role),
+    );
+    if (mounted) _refresh();
+  }
+
+  Future<void> _confirmDelete() async {
+    final tokens = DesignTheme.of(context);
+    final confirmed = await showDesignSheet<bool>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Reise löschen?',
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
+            'Die Reise und alle zugehörigen Daten werden dauerhaft gelöscht.',
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  label: 'Abbrechen',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              SizedBox(width: tokens.spaceMd),
+              Expanded(
+                child: DesignButton(
+                  label: 'Löschen',
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await _service.deleteTrip(widget.id);
+      if (mounted) context.go('/reisen');
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+    } catch (e, st) {
+      _log.warning('Failed to delete trip', e, st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Löschen.')));
+    }
   }
 
   @override
@@ -150,6 +351,11 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             ),
             title: _trip?.name ?? 'Reise',
             actions: [
+              if (_trip != null && _trip!.canEdit)
+                DesignIconButton(
+                  icon: Icons.more_vert_rounded,
+                  onPressed: _openMenu,
+                ),
               if (_trip != null)
                 DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
             ],
@@ -239,6 +445,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
             TripEventsSection(
               controller: controller,
               currentUserId: currentUserId,
+              onChanged: controller.refresh,
             ),
           );
           break;

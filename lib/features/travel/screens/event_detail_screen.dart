@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
@@ -24,6 +28,8 @@ import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/travel_models.dart';
 import '../services/travel_service.dart';
+import '../travel_error_messages.dart';
+import '../widgets/manage_participants_sheet.dart';
 import '../widgets/ticket_delete_flow.dart';
 import '../widgets/ticket_form_sheet.dart';
 import '../widgets/ticket_preview_page.dart';
@@ -74,6 +80,24 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
     });
   }
 
+  /// Markiert ungelesene Event-Benachrichtigungen als gelesen: bei einem
+  /// Reise-Event über die Trip-Relation, sonst über die Event-Relation.
+  Future<void> _markRead(TravelEvent event) async {
+    try {
+      final scope = AppScope.of(context);
+      final ids = event.trip != null
+          ? scope.notification.unreadIdsForTrip(event.trip!)
+          : scope.notification.unreadIdsForStandaloneEvent(event.id);
+      if (ids.isEmpty) return;
+      await scope.notification.markRead(
+        ids,
+        token: await scope.auth.getAccessToken(),
+      );
+    } catch (e, st) {
+      developer.log('markRead failed', error: e, stackTrace: st);
+    }
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -90,6 +114,7 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
         _tickets = results[1] as List<TravelEventTicket>;
         _loading = false;
       });
+      unawaited(_markRead(results[0] as TravelEvent));
     } catch (e, st) {
       developer.log('Failed to load event', error: e, stackTrace: st);
       if (!mounted) return;
@@ -112,6 +137,11 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
             ),
             title: _event?.name ?? 'Event',
             actions: [
+              if (_event != null && _event!.canEdit)
+                DesignIconButton(
+                  icon: Icons.more_vert_rounded,
+                  onPressed: _openMenu,
+                ),
               if (_event != null)
                 DesignIconButton(icon: Icons.flag_rounded, onPressed: _report),
             ],
@@ -392,8 +422,265 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
       objectType: ModerationObjectType.travelEvent,
       objectId: event.id,
       objectName: event.name,
-      isOwn: false,
+      isOwn: event.canEdit,
     );
+  }
+
+  bool get _isStandalone => _event?.trip == null;
+
+  void _openMenu() {
+    final event = _event;
+    if (event == null) return;
+    final tokens = DesignTheme.of(context);
+    showDesignSheet(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            event.name,
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          _menuTile(
+            context,
+            icon: Icons.edit_rounded,
+            label: 'Bearbeiten',
+            onTap: () async {
+              Navigator.of(context).pop();
+              final route = _isStandalone
+                  ? '/reisen/einzelevent/${event.id}/bearbeiten'
+                  : '/reisen/${event.trip}/events/${event.id}/bearbeiten';
+              final changed = await context.push<bool>(route);
+              if (changed == true && mounted) _load();
+            },
+          ),
+          if (_isStandalone)
+            _menuTile(
+              context,
+              icon: Icons.group_rounded,
+              label: 'Teilnehmer verwalten',
+              onTap: () {
+                Navigator.of(context).pop();
+                _manageParticipants();
+              },
+            ),
+          _menuTile(
+            context,
+            icon: Icons.swap_horiz_rounded,
+            label: _isStandalone ? 'An Reise anhängen' : 'Von Reise lösen',
+            onTap: () {
+              Navigator.of(context).pop();
+              _convert();
+            },
+          ),
+          _menuTile(
+            context,
+            icon: Icons.delete_outline_rounded,
+            label: 'Löschen',
+            danger: true,
+            onTap: () {
+              Navigator.of(context).pop();
+              _confirmDelete();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _menuTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool danger = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: DesignTheme.of(context).spaceXs),
+      child: DesignButton(
+        label: label,
+        variant: danger ? DesignButtonVariant.ghost : DesignButtonVariant.text,
+        icon: icon,
+        fullWidth: true,
+        onPressed: onTap,
+      ),
+    );
+  }
+
+  Future<void> _manageParticipants() async {
+    final eventId = widget.id;
+    await showManageParticipantsSheet(
+      context: context,
+      title: 'Teilnehmer',
+      roleLabel: 'Veranstalter',
+      load: () async {
+        final event = await _service.getEventUnified(eventId);
+        return event.participants
+            .map(
+              (p) => TravelParticipantEntry(
+                id: p.id,
+                displayName: p.displayName,
+                image: p.image,
+                role: p.role,
+              ),
+            )
+            .toList();
+      },
+      add: (userId) => _service.addStandaloneEventParticipant(eventId, userId),
+      remove: (userId) =>
+          _service.removeStandaloneEventParticipant(eventId, userId),
+      setRole: (userId, role) =>
+          _service.setStandaloneEventParticipantRole(eventId, userId, role),
+    );
+    if (mounted) _load();
+  }
+
+  Future<void> _convert() async {
+    final event = _event;
+    if (event == null) return;
+
+    if (_isStandalone) {
+      final trips = await _service.list(limit: 100);
+      if (!mounted) return;
+      final tripId = await _pickTrip(trips.data);
+      if (tripId == null || !mounted) return;
+      await _runConversion(
+        () => _service.attachStandaloneEvent(event.id, tripId),
+      );
+    } else {
+      await _runConversion(
+        () => _service.detachTripEvent(event.trip!, event.id),
+      );
+    }
+  }
+
+  Future<void> _runConversion(Future<TravelEvent> Function() action) async {
+    try {
+      await action();
+      if (mounted) await _load();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+    } catch (e, st) {
+      developer.log('Conversion failed', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Aktion fehlgeschlagen.')));
+    }
+  }
+
+  Future<String?> _pickTrip(List<TravelTrip> trips) async {
+    final tokens = DesignTheme.of(context);
+    final selected = await showDesignSheet<String>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesignText(
+            'Reise auswählen',
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          if (trips.isEmpty)
+            DesignText(
+              'Du bist noch keiner Reise zugeordnet.',
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
+            )
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: trips.length,
+                itemBuilder: (context, index) {
+                  final trip = trips[index];
+                  return DesignListTile(
+                    leading: Icon(
+                      Icons.flight_rounded,
+                      color: tokens.textHigh,
+                      size: 20,
+                    ),
+                    title: trip.name,
+                    onTap: () => Navigator.pop(context, trip.id),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+    return selected;
+  }
+
+  Future<void> _confirmDelete() async {
+    final tokens = DesignTheme.of(context);
+    final confirmed = await showDesignSheet<bool>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Event löschen?',
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  label: 'Abbrechen',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              SizedBox(width: tokens.spaceMd),
+              Expanded(
+                child: DesignButton(
+                  label: 'Löschen',
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final event = _event;
+    if (event == null) return;
+    try {
+      if (_isStandalone) {
+        await _service.deleteStandaloneEvent(event.id);
+      } else {
+        await _service.deleteTripEvent(event.trip!, event.id);
+      }
+      if (!mounted) return;
+      if (_isStandalone) {
+        context.go('/reisen');
+      } else {
+        context.pop(true);
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+    } catch (e, st) {
+      developer.log('Failed to delete event', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Löschen.')));
+    }
   }
 
   Widget _buildBodyWithFab() {
