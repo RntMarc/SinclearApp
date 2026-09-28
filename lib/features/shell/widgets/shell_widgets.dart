@@ -147,6 +147,10 @@ class ShellCategorySheet extends StatelessWidget {
                       : item.route == '/umfragen' &&
                             notification.hasUnreadPollContent
                       ? const DesignPulseDot()
+                      : item.route == '/reisen' &&
+                            (notification.hasUnreadTripContent ||
+                                notification.hasUnreadStandaloneEventContent)
+                      ? const DesignPulseDot()
                       : null,
                   padding: EdgeInsets.symmetric(
                     horizontal: tokens.spaceMd,
@@ -300,6 +304,14 @@ class ShellNavContent extends StatelessWidget {
               label: 'Reisen & Events',
               active: _isActive('/reisen'),
               onTap: () => onNavigate('/reisen'),
+              trailing: ListenableBuilder(
+                listenable: notification,
+                builder: (context, _) =>
+                    notification.hasUnreadTripContent ||
+                        notification.hasUnreadStandaloneEventContent
+                    ? const DesignPulseDot()
+                    : const SizedBox.shrink(),
+              ),
             ),
             _tile(
               context,
@@ -567,6 +579,9 @@ class ShellMobileBottomNav extends StatelessWidget {
             builder: (context, _) {
               final hasUnreadForum = notification.hasUnreadForumContent;
               final hasUnreadPoll = notification.hasUnreadPollContent;
+              final hasUnreadTravel =
+                  notification.hasUnreadTripContent ||
+                  notification.hasUnreadStandaloneEventContent;
               return Row(
                 children: items.map((item) {
                   final isActive = item.category == active;
@@ -576,7 +591,9 @@ class ShellMobileBottomNav extends StatelessWidget {
                       (item.category == ShellNavCategory.gemeinschaft &&
                           hasUnreadForum) ||
                       (item.category == ShellNavCategory.organisation &&
-                          hasUnreadPoll);
+                          hasUnreadPoll) ||
+                      (item.category == ShellNavCategory.unterwegs &&
+                          hasUnreadTravel);
                   if (showPulse) {
                     icon = Stack(
                       clipBehavior: Clip.none,
@@ -677,6 +694,7 @@ class ShellMobileBottomNav extends StatelessWidget {
           ],
         );
       case ShellNavCategory.unterwegs:
+        _refreshUnread(context);
         _showCategorySheet(
           context,
           category: 'Unterwegs',

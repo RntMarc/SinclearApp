@@ -25,6 +25,9 @@ import '../features/shell/main_shell.dart';
 import '../features/travel/screens/travel_screen.dart';
 import '../features/travel/screens/event_detail_screen.dart';
 import '../features/travel/screens/trip_detail_screen.dart';
+import '../features/travel/screens/trip_form_screen.dart';
+import '../features/travel/screens/event_form_screen.dart';
+import '../features/travel/screens/accommodation_form_screen.dart';
 import '../features/travel/screens/pt_journey_detail_screen.dart';
 import '../features/weather/screens/weather_screen.dart';
 import '../features/user/screens/contacts_screen.dart';
@@ -165,9 +168,24 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
             builder: (context, state) => const TravelScreen(),
             routes: [
               GoRoute(
-                path: ':id',
+                path: 'neu',
+                builder: (context, state) => const TripFormScreen(),
+              ),
+              GoRoute(
+                path: 'einzelevent/neu',
+                builder: (context, state) => const EventFormScreen(),
+              ),
+              GoRoute(
+                path: 'einzelevent/:id',
                 builder: (context, state) =>
-                    TripDetailScreen(id: state.pathParameters['id']!),
+                    TravelEventDetailScreen(id: state.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'bearbeiten',
+                    builder: (context, state) =>
+                        EventFormScreen(eventId: state.pathParameters['id']!),
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'pt/:id',
@@ -176,9 +194,41 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                 ),
               ),
               GoRoute(
-                path: 'einzelevent/:id',
+                path: ':id',
                 builder: (context, state) =>
-                    TravelEventDetailScreen(id: state.pathParameters['id']!),
+                    TripDetailScreen(id: state.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'bearbeiten',
+                    builder: (context, state) =>
+                        TripFormScreen(tripId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: 'events/neu',
+                    builder: (context, state) =>
+                        EventFormScreen(tripId: state.pathParameters['id']!),
+                  ),
+                  GoRoute(
+                    path: 'events/:eventId/bearbeiten',
+                    builder: (context, state) => EventFormScreen(
+                      tripId: state.pathParameters['id']!,
+                      eventId: state.pathParameters['eventId']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'unterkunft/neu',
+                    builder: (context, state) => AccommodationFormScreen(
+                      tripId: state.pathParameters['id']!,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'unterkunft/:accommodationId/bearbeiten',
+                    builder: (context, state) => AccommodationFormScreen(
+                      tripId: state.pathParameters['id']!,
+                      accommodationId: state.pathParameters['accommodationId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

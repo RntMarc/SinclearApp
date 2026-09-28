@@ -21,6 +21,9 @@ import '../../features/notifications/models/notification_item.dart';
 /// `trip_subscription_added`, `trip_info_changed`,
 /// `standalone_event_user_added`, `standalone_event_user_added_others`,
 /// `standalone_event_info_changed`, `standalone_event_ticket_added`,
+/// die Rollen-Typen (`trip_leader_*`, `standalone_event_leader_*`) und
+/// Konversions-Typen (`standalone_event_converted_to_trip`,
+/// `trip_event_converted_to_standalone`) sowie die Umfrage-Typen
 /// `poll_invite`, `poll_counter_proposal`, `poll_finalized`,
 /// `poll_deadline_reminder`
 /// (siehe API-Doku). Unbekannte Typen liefern generische Standardwerte,
@@ -41,6 +44,12 @@ class NotificationTypeLabel {
     'trip_accommodation_added',
     'trip_subscription_added',
     'trip_info_changed',
+    'trip_leader_appointed',
+    'trip_leader_appointed_others',
+    'trip_leader_removed',
+    'trip_leader_removed_others',
+    // Konversion trägt die Ziel-Reise als `trip`-Relation.
+    'standalone_event_converted_to_trip',
   };
 
   static const _standaloneEventTypes = {
@@ -48,6 +57,12 @@ class NotificationTypeLabel {
     'standalone_event_user_added_others',
     'standalone_event_info_changed',
     'standalone_event_ticket_added',
+    'standalone_event_leader_appointed',
+    'standalone_event_leader_appointed_others',
+    'standalone_event_leader_removed',
+    'standalone_event_leader_removed_others',
+    // Konversion trägt das gelöste Event als `event`-Relation.
+    'trip_event_converted_to_standalone',
   };
 
   static const _pollTypes = {
@@ -102,12 +117,30 @@ class NotificationTypeLabel {
       'standalone_event_user_added_others' => 'Neuer Teilnehmer beim Event',
       'standalone_event_info_changed' => 'Event-Informationen geändert',
       'standalone_event_ticket_added' => 'Neues Ticket für das Event',
+      'trip_leader_appointed' => 'Du bist jetzt Reiseleiter',
+      'trip_leader_appointed_others' => 'Neuer Reiseleiter auf der Reise',
+      'trip_leader_removed' => 'Du bist nicht mehr Reiseleiter',
+      'trip_leader_removed_others' => 'Reiseleiter geändert',
+      'standalone_event_leader_appointed' => 'Du bist jetzt Veranstalter',
+      'standalone_event_leader_appointed_others' =>
+        'Neuer Veranstalter beim Event',
+      'standalone_event_leader_removed' => 'Du bist nicht mehr Veranstalter',
+      'standalone_event_leader_removed_others' => 'Veranstalter geändert',
+      'standalone_event_converted_to_trip' =>
+        'Event wurde zu einer Reise hinzugefügt',
+      'trip_event_converted_to_standalone' =>
+        'Event wurde von der Reise gelöst',
       // Vereinheitlichte Preference-Schlüssel (nur Einstellungen): gelten
       // für Reise-Events und eigenständige Events gleichermaßen.
       'event_user_added' => 'Du wurdest zu einem Event hinzugefügt',
       'event_user_added_others' => 'Neuer Teilnehmer beim Event',
       'event_info_changed' => 'Event-Informationen geändert',
       'event_ticket_added' => 'Neues Ticket für das Event',
+      'trip_leader_changed' => 'Reiseleiter-Rolle geändert',
+      'trip_leader_changed_others' => 'Rollen anderer Reise-Teilnehmer',
+      'event_leader_changed' => 'Veranstalter-Rolle geändert',
+      'event_leader_changed_others' => 'Rollen anderer Event-Teilnehmer',
+      'event_converted' => 'Event-Konvertierung',
       'poll_invite' => 'Neue Umfrage-Einladung',
       'poll_counter_proposal' => 'Neuer Gegenvorschlag',
       'poll_finalized' => 'Umfrage aktualisiert',
@@ -148,6 +181,23 @@ class NotificationTypeLabel {
         'Die Event-Informationen wurden geändert.',
       'standalone_event_ticket_added' =>
         'Ein neues Ticket wurde zum Event hinzugefügt.',
+      'trip_leader_appointed' => 'Du bist jetzt Reiseleiter der Reise.',
+      'trip_leader_appointed_others' =>
+        'Ein Teilnehmer wurde zum Reiseleiter ernannt.',
+      'trip_leader_removed' => 'Du bist nicht mehr Reiseleiter der Reise.',
+      'trip_leader_removed_others' => 'Ein Reiseleiter wurde geändert.',
+      'standalone_event_leader_appointed' =>
+        'Du bist jetzt Veranstalter des Events.',
+      'standalone_event_leader_appointed_others' =>
+        'Ein Teilnehmer wurde zum Veranstalter ernannt.',
+      'standalone_event_leader_removed' =>
+        'Du bist nicht mehr Veranstalter des Events.',
+      'standalone_event_leader_removed_others' =>
+        'Ein Veranstalter wurde geändert.',
+      'standalone_event_converted_to_trip' =>
+        'Ein Event wurde zu einer Reise hinzugefügt.',
+      'trip_event_converted_to_standalone' =>
+        'Ein Event wurde von der Reise gelöst.',
       'poll_invite' => 'Du wurdest zu einer Umfrage eingeladen.',
       'poll_counter_proposal' =>
         'Zu einer Terminfindung wurde ein neuer Gegenvorschlag abgegeben.',
@@ -181,9 +231,23 @@ class NotificationTypeLabel {
       'trip_subscription_added' => Icons.receipt_long,
       'standalone_event_user_added' ||
       'standalone_event_user_added_others' => Icons.event,
+      'standalone_event_leader_appointed' ||
+      'standalone_event_leader_appointed_others' ||
+      'standalone_event_leader_removed' ||
+      'standalone_event_leader_removed_others' => Icons.event,
+      'trip_leader_appointed' ||
+      'trip_leader_appointed_others' ||
+      'trip_leader_removed' ||
+      'trip_leader_removed_others' => Icons.card_travel,
+      'standalone_event_converted_to_trip' ||
+      'trip_event_converted_to_standalone' => Icons.swap_horiz_rounded,
       'event_user_added' || 'event_user_added_others' => Icons.event,
       'event_info_changed' => Icons.info_outline,
       'event_ticket_added' => Icons.confirmation_num,
+      'trip_leader_changed' ||
+      'trip_leader_changed_others' => Icons.card_travel,
+      'event_leader_changed' || 'event_leader_changed_others' => Icons.event,
+      'event_converted' => Icons.swap_horiz_rounded,
       'poll_invite' ||
       'poll_counter_proposal' ||
       'poll_finalized' => Icons.poll_rounded,
@@ -260,10 +324,15 @@ class NotificationTypeLabel {
       'trip_user_added' ||
       'trip_user_added_others' ||
       'trip_info_changed' ||
-      'trip_event_added' => 'Reisen',
+      'trip_event_added' ||
+      'trip_leader_changed' ||
+      'trip_leader_changed_others' => 'Reisen',
       'event_user_added' ||
       'event_user_added_others' ||
-      'event_info_changed' => 'Events',
+      'event_info_changed' ||
+      'event_leader_changed' ||
+      'event_leader_changed_others' ||
+      'event_converted' => 'Events',
       'trip_ticket_added' || 'event_ticket_added' => 'Tickets',
       'trip_accommodation_added' => 'Unterkunft',
       'trip_subscription_added' => 'Abos',

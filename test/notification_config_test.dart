@@ -895,4 +895,209 @@ void main() {
       }
     });
   });
+
+  group('NotificationTypeLabel Rollen & Konversion', () {
+    const tripLeaderData = [
+      NotificationRelation(relation: 'trip', object: 'Trip', identifier: 't1'),
+      NotificationRelation(
+        relation: 'changed_user',
+        object: 'User',
+        identifier: 'u1',
+      ),
+      NotificationRelation(
+        relation: 'changed_by',
+        object: 'User',
+        identifier: 'u2',
+      ),
+    ];
+
+    const eventLeaderData = [
+      NotificationRelation(
+        relation: 'event',
+        object: 'Event',
+        identifier: 'e1',
+      ),
+      NotificationRelation(
+        relation: 'changed_user',
+        object: 'User',
+        identifier: 'u1',
+      ),
+      NotificationRelation(
+        relation: 'changed_by',
+        object: 'User',
+        identifier: 'u2',
+      ),
+    ];
+
+    test('Reiseleiter-Typen navigieren zur Reise (/reisen/{t})', () {
+      for (final type in [
+        'trip_leader_appointed',
+        'trip_leader_appointed_others',
+        'trip_leader_removed',
+        'trip_leader_removed_others',
+      ]) {
+        expect(NotificationTypeLabel.route(type, tripLeaderData), '/reisen/t1');
+      }
+    });
+
+    test('Veranstalter-Typen navigieren zum Einzelevent', () {
+      for (final type in [
+        'standalone_event_leader_appointed',
+        'standalone_event_leader_appointed_others',
+        'standalone_event_leader_removed',
+        'standalone_event_leader_removed_others',
+      ]) {
+        expect(
+          NotificationTypeLabel.route(type, eventLeaderData),
+          '/reisen/einzelevent/e1',
+        );
+      }
+    });
+
+    test('Konversion an Reise navigiert zur Reise (/reisen/{t})', () {
+      expect(
+        NotificationTypeLabel.route('standalone_event_converted_to_trip', [
+          const NotificationRelation(
+            relation: 'event',
+            object: 'Event',
+            identifier: 'e1',
+          ),
+          const NotificationRelation(
+            relation: 'trip',
+            object: 'Trip',
+            identifier: 't1',
+          ),
+        ]),
+        '/reisen/t1',
+      );
+    });
+
+    test('Konversion zu Standalone navigiert zum Einzelevent', () {
+      expect(
+        NotificationTypeLabel.route(
+          'trip_event_converted_to_standalone',
+          eventLeaderData,
+        ),
+        '/reisen/einzelevent/e1',
+      );
+    });
+
+    test('Rollen-/Konversions-Typen ohne Pflicht-Relation geben null', () {
+      expect(
+        NotificationTypeLabel.route('trip_leader_appointed', const []),
+        isNull,
+      );
+      expect(
+        NotificationTypeLabel.route(
+          'standalone_event_leader_appointed',
+          const [],
+        ),
+        isNull,
+      );
+      expect(
+        NotificationTypeLabel.route(
+          'trip_event_converted_to_standalone',
+          const [],
+        ),
+        isNull,
+      );
+    });
+
+    test('Titel und Icon für Rollen-/Konversions-Typen', () {
+      expect(
+        NotificationTypeLabel.title('trip_leader_appointed'),
+        'Du bist jetzt Reiseleiter',
+      );
+      expect(
+        NotificationTypeLabel.title('trip_leader_removed_others'),
+        'Reiseleiter geändert',
+      );
+      expect(
+        NotificationTypeLabel.title('standalone_event_leader_appointed'),
+        'Du bist jetzt Veranstalter',
+      );
+      expect(
+        NotificationTypeLabel.title('standalone_event_converted_to_trip'),
+        'Event wurde zu einer Reise hinzugefügt',
+      );
+      expect(
+        NotificationTypeLabel.title('trip_event_converted_to_standalone'),
+        'Event wurde von der Reise gelöst',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_leader_appointed'),
+        Icons.card_travel,
+      );
+      expect(
+        NotificationTypeLabel.icon('standalone_event_leader_removed'),
+        Icons.event,
+      );
+      expect(
+        NotificationTypeLabel.icon('standalone_event_converted_to_trip'),
+        Icons.swap_horiz_rounded,
+      );
+    });
+
+    test('Fallback-Texte sind gesetzt', () {
+      for (final type in [
+        'trip_leader_appointed',
+        'trip_leader_appointed_others',
+        'trip_leader_removed',
+        'trip_leader_removed_others',
+        'standalone_event_leader_appointed',
+        'standalone_event_leader_appointed_others',
+        'standalone_event_leader_removed',
+        'standalone_event_leader_removed_others',
+        'standalone_event_converted_to_trip',
+        'trip_event_converted_to_standalone',
+      ]) {
+        expect(NotificationTypeLabel.fallbackBody(type), isNotEmpty);
+      }
+    });
+
+    test('interne Rollen-/Konversions-Typen haben keine Kategorie', () {
+      for (final type in [
+        'trip_leader_appointed',
+        'trip_leader_appointed_others',
+        'trip_leader_removed',
+        'trip_leader_removed_others',
+        'standalone_event_leader_appointed',
+        'standalone_event_leader_removed',
+        'standalone_event_converted_to_trip',
+        'trip_event_converted_to_standalone',
+      ]) {
+        expect(NotificationTypeLabel.category(type), isNull);
+      }
+    });
+
+    test('vereinheitlichte Preference-Keys rendern Titel/Icon/Kategorie', () {
+      expect(
+        NotificationTypeLabel.title('trip_leader_changed'),
+        'Reiseleiter-Rolle geändert',
+      );
+      expect(NotificationTypeLabel.category('trip_leader_changed'), 'Reisen');
+      expect(
+        NotificationTypeLabel.category('trip_leader_changed_others'),
+        'Reisen',
+      );
+      expect(
+        NotificationTypeLabel.icon('trip_leader_changed'),
+        Icons.card_travel,
+      );
+      expect(NotificationTypeLabel.category('event_leader_changed'), 'Events');
+      expect(
+        NotificationTypeLabel.category('event_leader_changed_others'),
+        'Events',
+      );
+      expect(NotificationTypeLabel.category('event_converted'), 'Events');
+      expect(
+        NotificationTypeLabel.icon('event_converted'),
+        Icons.swap_horiz_rounded,
+      );
+      expect(
+        NotificationTypeLabel.customDataKey('trip_leader_changed'),
+        isNull,
+      );
+    });
+  });
 }

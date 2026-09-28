@@ -78,6 +78,22 @@ class NotificationContentResolver {
       'poll_counter_proposal' => _resolvePollCounterProposal(item, route),
       'poll_finalized' => _resolvePollFinalized(item, route),
       'poll_deadline_reminder' => _resolvePollDeadlineReminder(item, route),
+      'trip_leader_appointed' ||
+      'trip_leader_appointed_others' ||
+      'trip_leader_removed' ||
+      'trip_leader_removed_others' ||
+      'standalone_event_leader_appointed' ||
+      'standalone_event_leader_appointed_others' ||
+      'standalone_event_leader_removed' ||
+      'standalone_event_leader_removed_others' => _resolveLeaderChange(
+        item,
+        route,
+      ),
+      'standalone_event_converted_to_trip' ||
+      'trip_event_converted_to_standalone' => _resolveEventConversion(
+        item,
+        route,
+      ),
       _ => _fallback(item.type, route),
     };
   }
@@ -418,6 +434,63 @@ class NotificationContentResolver {
       }
       return null;
     });
+  }
+
+  /// Rollenwechsel-Benachrichtigungen: für „others"-Varianten wird der Name
+  /// des betroffenen Nutzers nachgeladen; für self-Varianten reicht der
+  /// Fallback-Titel/-Text der API.
+  Future<ResolvedNotificationContent> _resolveLeaderChange(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final type = item.type;
+    final isSelf = !type.endsWith('_others');
+    final role = type.startsWith('trip_') ? 'Reiseleiter' : 'Veranstalter';
+    final appointed = type.contains('_appointed');
+    final changedUserId = item.identifierFor('changed_user');
+
+    if (isSelf) return _fallback(type, route);
+
+    final name = await _attempt('changed_user', () async {
+      if (changedUserId == null) return null;
+      return (await _user.get(changedUserId)).base.displayName;
+    });
+
+    if (name == null || name.isEmpty) return _fallback(type, route);
+
+    final body = appointed
+        ? '$name wurde zum $role ernannt.'
+        : '$name ist nicht mehr $role.';
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(type),
+      body: body,
+      route: route,
+    );
+  }
+
+  /// Event-Konversions-Benachrichtigungen: lädt den Namen des Auslösers
+  /// nach; schlägt das fehl, greift der generalisierte Fallback.
+  Future<ResolvedNotificationContent> _resolveEventConversion(
+    NotificationItem item,
+    String? route,
+  ) async {
+    final toTrip = item.type == 'standalone_event_converted_to_trip';
+    final converterId = item.identifierFor('converted_by');
+    final name = await _attempt('converted_by', () async {
+      if (converterId == null) return null;
+      return (await _user.get(converterId)).base.displayName;
+    });
+
+    if (name == null || name.isEmpty) return _fallback(item.type, route);
+
+    final body = toTrip
+        ? '$name hat ein Event zu einer Reise hinzugefügt.'
+        : '$name hat ein Event von der Reise gelöst.';
+    return ResolvedNotificationContent(
+      title: NotificationTypeLabel.title(item.type),
+      body: body,
+      route: route,
+    );
   }
 
   /// Generalisierter Fallback für unbekannte Typen.

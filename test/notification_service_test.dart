@@ -625,6 +625,42 @@ void main() {
     });
   });
 
+  group('travel role/conversion unread registry', () {
+    test(
+      'leader and conversion types count toward trip/event unread',
+      () async {
+        mockApi.responses.add({
+          'notifications': [
+            tripNotification('1', 'trip_leader_appointed', 'tripA'),
+            tripNotification(
+              '2',
+              'standalone_event_converted_to_trip',
+              'tripB',
+            ),
+            standaloneEventNotification(
+              '3',
+              'standalone_event_leader_appointed',
+              'eventA',
+            ),
+            standaloneEventNotification(
+              '4',
+              'trip_event_converted_to_standalone',
+              'eventB',
+            ),
+          ],
+        });
+
+        service.startPolling(getToken: () async => 'test-token');
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        expect(service.unreadTripIds, {'tripA', 'tripB'});
+        expect(service.unreadIdsForTrip('tripA'), ['1']);
+        expect(service.unreadStandaloneEventIds, {'eventA', 'eventB'});
+        expect(service.unreadIdsForStandaloneEvent('eventB'), ['4']);
+      },
+    );
+  });
+
   group('poll unread registry', () {
     test('poll seeds registry and exposes poll ids', () async {
       mockApi.responses.add({

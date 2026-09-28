@@ -42,6 +42,12 @@ class TravelTrip {
   final String? conversationId;
   final int subscriptionCount;
 
+  /// Rolle des aktuellen Nutzers (`leader`/`participant`), sonst `null`.
+  final String? role;
+
+  /// Ob der aktuelle Nutzer die Reise bearbeiten/verwalten darf.
+  final bool canEdit;
+
   const TravelTrip({
     required this.id,
     required this.name,
@@ -59,6 +65,8 @@ class TravelTrip {
     this.forum,
     this.conversationId,
     this.subscriptionCount = 0,
+    this.role,
+    this.canEdit = false,
   });
 
   DateTime get startInstant {
@@ -111,6 +119,8 @@ class TravelTrip {
           : null,
       conversationId: json['conversationId'] as String?,
       subscriptionCount: (json['subscriptionCount'] as num?)?.toInt() ?? 0,
+      role: json['role'] as String?,
+      canEdit: json['canEdit'] == true || json['canEdit'] == 1,
     );
   }
 }
@@ -141,6 +151,12 @@ class TravelEvent {
   final String? citySlug;
   final List<TravelParticipantBrief> participants;
 
+  /// Rolle des aktuellen Nutzers (`leader`/`participant`), sonst `null`.
+  final String? role;
+
+  /// Ob der aktuelle Nutzer das Event bearbeiten/verwalten darf.
+  final bool canEdit;
+
   const TravelEvent({
     required this.id,
     this.trip,
@@ -165,6 +181,8 @@ class TravelEvent {
     this.conversationId,
     this.citySlug,
     this.participants = const [],
+    this.role,
+    this.canEdit = false,
   });
 
   DateTime get startInstant {
@@ -229,6 +247,8 @@ class TravelEvent {
               )
               .toList() ??
           [],
+      role: json['role'] as String?,
+      canEdit: json['canEdit'] == true || json['canEdit'] == 1,
     );
   }
 }
@@ -327,10 +347,14 @@ class TravelParticipantBrief {
   final String displayName;
   final String? image;
 
+  /// Rolle des Teilnehmers (`leader`/`participant`), sofern mitgeliefert.
+  final String? role;
+
   const TravelParticipantBrief({
     required this.id,
     required this.displayName,
     this.image,
+    this.role,
   });
 
   factory TravelParticipantBrief.fromJson(Map<String, dynamic> json) {
@@ -338,6 +362,7 @@ class TravelParticipantBrief {
       id: json['id'] as String,
       displayName: json['displayName'] as String,
       image: json['image'] as String?,
+      role: json['role'] as String?,
     );
   }
 }
@@ -348,11 +373,15 @@ class TravelParticipant {
   final String displayName;
   final String? image;
 
+  /// Rolle des Teilnehmers (`leader`/`participant`), sofern mitgeliefert.
+  final String? role;
+
   const TravelParticipant({
     required this.id,
     required this.email,
     required this.displayName,
     this.image,
+    this.role,
   });
 
   factory TravelParticipant.fromJson(Map<String, dynamic> json) {
@@ -361,6 +390,7 @@ class TravelParticipant {
       email: json['email'] as String,
       displayName: json['displayName'] as String,
       image: json['image'] as String?,
+      role: json['role'] as String?,
     );
   }
 }
