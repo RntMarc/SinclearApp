@@ -26,6 +26,7 @@ import 'features/settings/services/lametric_token_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
+import 'features/travel/services/travel_planning_service.dart';
 import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
 import 'features/weather/services/weather_service.dart';
@@ -46,6 +47,7 @@ class SinclearApp extends StatelessWidget {
   final AuthService auth;
   final ExploreService explore;
   final TravelService travel;
+  final TravelPlanningService planning;
   final PublicTransportService publicTransport;
   final UserService user;
   final CalendarService calendar;
@@ -127,6 +129,7 @@ class SinclearApp extends StatelessWidget {
     required this.auth,
     required this.explore,
     required this.travel,
+    required this.planning,
     required this.publicTransport,
     required this.user,
     required this.calendar,
@@ -185,6 +188,7 @@ class SinclearApp extends StatelessWidget {
       auth: auth,
       explore: explore,
       travel: travel,
+      planning: planning,
       publicTransport: publicTransport,
       user: user,
       calendar: calendar,

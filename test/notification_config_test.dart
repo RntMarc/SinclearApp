@@ -1100,4 +1100,66 @@ void main() {
       );
     });
   });
+
+  group('NotificationTypeLabel Reiseplanung', () {
+    const planningTypes = [
+      'trip_planning_invite',
+      'trip_planning_response',
+      'trip_planning_finalized',
+      'trip_planning_activated',
+    ];
+
+    const tripData = [
+      NotificationRelation(
+        relation: 'trip',
+        object: 'TravelTrip',
+        identifier: 'trip-1',
+      ),
+    ];
+
+    test('alle Planungs-Typen navigieren auf die Planung '
+        '(/reisen/planung/{trip})', () {
+      for (final type in planningTypes) {
+        expect(
+          NotificationTypeLabel.route(type, tripData),
+          '/reisen/planung/trip-1',
+        );
+      }
+    });
+
+    test('Planungs-Typen ohne trip Relation geben null', () {
+      for (final type in planningTypes) {
+        expect(NotificationTypeLabel.route(type, const []), isNull);
+      }
+    });
+
+    test('zusätzliche Relationen ändern die Route nicht', () {
+      const withOption = [
+        NotificationRelation(
+          relation: 'trip',
+          object: 'TravelTrip',
+          identifier: 'trip-2',
+        ),
+        NotificationRelation(
+          relation: 'date_option',
+          object: 'TravelPlanDateOption',
+          identifier: 'option-1',
+        ),
+      ];
+      expect(
+        NotificationTypeLabel.route('trip_planning_finalized', withOption),
+        '/reisen/planung/trip-2',
+      );
+    });
+
+    test('Titel, Text, Icon und Kategorie sind gesetzt', () {
+      for (final type in planningTypes) {
+        expect(NotificationTypeLabel.title(type), isNotEmpty);
+        expect(NotificationTypeLabel.fallbackBody(type), isNotEmpty);
+        expect(NotificationTypeLabel.icon(type), Icons.groups_rounded);
+        expect(NotificationTypeLabel.category(type), 'Reisen');
+        expect(NotificationTypeLabel.customDataKey(type), isNull);
+      }
+    });
+  });
 }

@@ -72,6 +72,16 @@ class NotificationTypeLabel {
     'poll_deadline_reminder',
   };
 
+  /// Planungs-Typen (`trip_planning_*`). Sie tragen die `trip`-Relation, liegen
+  /// aber nicht unter `/reisen/{id}` (operativ, 403), sondern unter
+  /// `/reisen/planung/{id}`.
+  static const _planningTypes = {
+    'trip_planning_invite',
+    'trip_planning_response',
+    'trip_planning_finalized',
+    'trip_planning_activated',
+  };
+
   /// Liefert die deutsche Route für eine Benachrichtigung, aufgebaut aus
   /// den Relation-IDs in [data]. `null`, wenn der Typ unbekannt ist oder
   /// Pflicht-Relationen fehlen.
@@ -88,6 +98,7 @@ class NotificationTypeLabel {
         data,
       ),
       _ when _pollTypes.contains(type) => _pollRoute(data),
+      _ when _planningTypes.contains(type) => _planningRoute(data),
       _ => null,
     };
   }
@@ -145,6 +156,10 @@ class NotificationTypeLabel {
       'poll_counter_proposal' => 'Neuer Gegenvorschlag',
       'poll_finalized' => 'Umfrage aktualisiert',
       'poll_deadline_reminder' => 'Erinnerung: Umfrage endet bald',
+      'trip_planning_invite' => 'Einladung zur Reiseplanung',
+      'trip_planning_response' => 'Rückmeldung zur Reiseplanung',
+      'trip_planning_finalized' => 'Festlegung in der Reiseplanung',
+      'trip_planning_activated' => 'Reiseplanung abgeschlossen',
       _ => 'Neue Mitteilung',
     };
   }
@@ -203,6 +218,12 @@ class NotificationTypeLabel {
         'Zu einer Terminfindung wurde ein neuer Gegenvorschlag abgegeben.',
       'poll_finalized' => 'Eine Umfrage wurde aktualisiert.',
       'poll_deadline_reminder' => 'Eine Umfrage endet bald.',
+      'trip_planning_invite' => 'Du wurdest zu einer Reiseplanung eingeladen.',
+      'trip_planning_response' =>
+        'Ein Planungsmitglied hat sich zurückgemeldet.',
+      'trip_planning_finalized' =>
+        'In der Reiseplanung wurde etwas festgelegt.',
+      'trip_planning_activated' => 'Die Reiseplanung wurde abgeschlossen.',
       _ => 'Du hast eine neue Benachrichtigung.',
     };
   }
@@ -252,6 +273,10 @@ class NotificationTypeLabel {
       'poll_counter_proposal' ||
       'poll_finalized' => Icons.poll_rounded,
       'poll_deadline_reminder' => Icons.alarm_rounded,
+      'trip_planning_invite' ||
+      'trip_planning_response' ||
+      'trip_planning_finalized' ||
+      'trip_planning_activated' => Icons.groups_rounded,
       _ => Icons.notifications_rounded,
     };
   }
@@ -304,6 +329,15 @@ class NotificationTypeLabel {
     return '/umfragen/$pollId';
   }
 
+  /// `/reisen/planung/{trip}` — die Trip-ID ist bei allen Planungs-Typen
+  /// Pflicht. Bewusst nicht `/reisen/{trip}`: Operative Reise-Endpunkte sind
+  /// für reine Planungsmitglieder gesperrt.
+  static String? _planningRoute(List<NotificationRelation> data) {
+    final tripId = _identifierFor(data, 'trip');
+    if (tripId == null) return null;
+    return '/reisen/planung/$tripId';
+  }
+
   /// Kategorie für die Gruppierung im Einstellungen-Screen. `null` für
   /// unbekannte Typen — unbekannte Typen werden nicht angezeigt.
   ///
@@ -326,7 +360,11 @@ class NotificationTypeLabel {
       'trip_info_changed' ||
       'trip_event_added' ||
       'trip_leader_changed' ||
-      'trip_leader_changed_others' => 'Reisen',
+      'trip_leader_changed_others' ||
+      'trip_planning_invite' ||
+      'trip_planning_response' ||
+      'trip_planning_finalized' ||
+      'trip_planning_activated' => 'Reisen',
       'event_user_added' ||
       'event_user_added_others' ||
       'event_info_changed' ||
