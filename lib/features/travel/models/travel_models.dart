@@ -265,6 +265,9 @@ class TravelAccommodation {
   final String? mail;
   final int ishotel;
   final String? citySlug;
+
+  /// ID des Erstellers der Katalog-Unterkunft (oder `null` bei Bestand).
+  final String? createdBy;
   final List<TravelParticipantBrief> users;
 
   const TravelAccommodation({
@@ -279,6 +282,7 @@ class TravelAccommodation {
     this.mail,
     required this.ishotel,
     this.citySlug,
+    this.createdBy,
     this.users = const [],
   });
 
@@ -295,6 +299,7 @@ class TravelAccommodation {
       mail: json['mail'] as String?,
       ishotel: json['ishotel'] as int,
       citySlug: json['citySlug'] as String?,
+      createdBy: json['createdBy'] as String?,
       users:
           (json['users'] as List?)
               ?.map(

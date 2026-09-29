@@ -456,16 +456,15 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
               if (changed == true && mounted) _load();
             },
           ),
-          if (_isStandalone)
-            _menuTile(
-              context,
-              icon: Icons.group_rounded,
-              label: 'Teilnehmer verwalten',
-              onTap: () {
-                Navigator.of(context).pop();
-                _manageParticipants();
-              },
-            ),
+          _menuTile(
+            context,
+            icon: Icons.group_rounded,
+            label: 'Teilnehmer verwalten',
+            onTap: () {
+              Navigator.of(context).pop();
+              _manageParticipants();
+            },
+          ),
           _menuTile(
             context,
             icon: Icons.swap_horiz_rounded,
@@ -511,13 +510,18 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
 
   Future<void> _manageParticipants() async {
     final eventId = widget.id;
+    final event = _event;
+    if (event == null) return;
+    final standalone = event.trip == null;
+    final tripId = event.trip;
+
     await showManageParticipantsSheet(
       context: context,
       title: 'Teilnehmer',
-      roleLabel: 'Veranstalter',
+      roleLabel: standalone ? 'Veranstalter' : 'Reiseleiter',
       load: () async {
-        final event = await _service.getEventUnified(eventId);
-        return event.participants
+        final loaded = await _service.getEventUnified(eventId);
+        return loaded.participants
             .map(
               (p) => TravelParticipantEntry(
                 id: p.id,
@@ -528,11 +532,31 @@ class _TravelEventDetailScreenState extends State<TravelEventDetailScreen>
             )
             .toList();
       },
-      add: (userId) => _service.addStandaloneEventParticipant(eventId, userId),
-      remove: (userId) =>
-          _service.removeStandaloneEventParticipant(eventId, userId),
-      setRole: (userId, role) =>
-          _service.setStandaloneEventParticipantRole(eventId, userId, role),
+      add: (userId) => standalone || tripId == null
+          ? _service.addStandaloneEventParticipant(eventId, userId)
+          : _service.addTripEventParticipant(tripId, eventId, userId),
+      remove: (userId) => standalone || tripId == null
+          ? _service.removeStandaloneEventParticipant(eventId, userId)
+          : _service.removeTripEventParticipant(tripId, eventId, userId),
+      setRole: standalone
+          ? (userId, role) =>
+                _service.setStandaloneEventParticipantRole(eventId, userId, role)
+          : null,
+      loadCandidates: standalone || tripId == null
+          ? null
+          : () async {
+              final participants = await _service.getParticipants(tripId);
+              return participants.data
+                  .map(
+                    (p) => TravelParticipantEntry(
+                      id: p.id,
+                      displayName: p.displayName,
+                      image: p.image,
+                      role: p.role,
+                    ),
+                  )
+                  .toList();
+            },
     );
     if (mounted) _load();
   }

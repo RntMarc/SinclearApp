@@ -1,9 +1,12 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../core/widgets/async_section.dart';
@@ -21,8 +24,11 @@ import '../../subscription/widgets/subscription_card.dart';
 import '../../weather/widgets/weather_card.dart';
 import '../models/travel_models.dart';
 import '../screens/accommodation_detail_screen.dart';
+import '../screens/accommodation_form_screen.dart';
 import '../screens/event_detail_screen.dart';
 import '../services/trip_data_controller.dart';
+import '../travel_error_messages.dart';
+import '../widgets/accommodation_picker_sheet.dart';
 import '../widgets/ticket_delete_flow.dart';
 import '../widgets/ticket_preview_page.dart';
 import '../widgets/user_tile.dart';
@@ -106,11 +112,33 @@ class TripOverviewSection extends StatelessWidget {
                     ),
                   ],
                   SizedBox(height: tokens.spaceLg),
-                  DesignText(
-                    'Unterkünfte',
-                    style: DesignTextStyle.subtitle,
-                    color: tokens.textHigh,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DesignText(
+                          'Unterkünfte',
+                          style: DesignTextStyle.subtitle,
+                          color: tokens.textHigh,
+                        ),
+                      ),
+                      Tooltip(
+                        message: 'Unterkunft hinzufügen',
+                        child: DesignIconButton(
+                          icon: Icons.add_rounded,
+                          onPressed: () => _addAccommodation(context),
+                        ),
+                      ),
+                    ],
                   ),
+                  if (currentUserId != null) ...[
+                    SizedBox(height: tokens.spaceSm),
+                    _MyAccommodationTile(
+                      accommodations: accommodations,
+                      currentUserId: currentUserId!,
+                      tripId: trip.id,
+                      onChanged: controller.refresh,
+                    ),
+                  ],
                   SizedBox(height: tokens.spaceSm),
                   ...accommodations.map(
                     (a) => TripAccommodationCard(
@@ -156,6 +184,101 @@ class TripOverviewSection extends StatelessWidget {
               );
             },
           ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addAccommodation(BuildContext context) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AccommodationFormScreen(tripId: trip.id),
+      ),
+    );
+    if (changed == true) controller.refresh();
+  }
+}
+
+/// Zeigt die eigene Unterkunft und erlaubt jedem Teilnehmer, sich selbst
+/// eine Unterkunft der Reise zuzuweisen (oder die Zuordnung aufzuheben).
+class _MyAccommodationTile extends StatelessWidget {
+  final List<TravelAccommodation> accommodations;
+  final String currentUserId;
+  final String tripId;
+  final VoidCallback? onChanged;
+
+  const _MyAccommodationTile({
+    required this.accommodations,
+    required this.currentUserId,
+    required this.tripId,
+    this.onChanged,
+  });
+
+  TravelAccommodation? get _mine {
+    for (final a in accommodations) {
+      if (a.users.any((u) => u.id == currentUserId)) return a;
+    }
+    return null;
+  }
+
+  Future<void> _pick(BuildContext context) async {
+    final mine = _mine;
+    final chosen = await showAccommodationPicker(
+      context,
+      options: accommodations,
+      selectedId: mine?.id,
+      allowNone: true,
+      title: 'Meine Unterkunft',
+    );
+    if (chosen == null || !context.mounted) return;
+    try {
+      await AppScope.of(context).travel.assignParticipantAccommodation(
+        tripId,
+        currentUserId,
+        accommodationId: chosen.isEmpty ? null : chosen,
+      );
+      onChanged?.call();
+    } on ApiException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+    } catch (e, st) {
+      developer.log('Failed to assign accommodation', error: e, stackTrace: st);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Aktion fehlgeschlagen.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final mine = _mine;
+    return DesignCard(
+      useGlass: false,
+      onTap: () => _pick(context),
+      padding: EdgeInsets.all(tokens.spaceMd),
+      child: Row(
+        children: [
+          Icon(
+            Icons.hotel_rounded,
+            color: mine != null ? tokens.primary : tokens.textLow,
+            size: 20,
+          ),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: DesignText(
+              mine != null
+                  ? 'Meine Unterkunft: ${mine.name}'
+                  : 'Mir eine Unterkunft zuweisen',
+              style: DesignTextStyle.body,
+              color: mine != null ? tokens.textHigh : tokens.textLow,
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: tokens.textLow, size: 20),
         ],
       ),
     );
