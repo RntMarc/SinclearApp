@@ -28,6 +28,7 @@ import '../../features/settings/services/mcp_key_service.dart';
 import '../../features/stories/services/stories_service.dart';
 import '../../features/subscription/services/subscription_service.dart';
 import '../../features/travel/services/travel_service.dart';
+import '../../features/travel/services/travel_planning_service.dart';
 import '../../features/travel/services/pt_service.dart';
 import '../../features/user/services/user_service.dart';
 import '../../features/weather/services/weather_service.dart';
@@ -39,6 +40,7 @@ class AppScope extends InheritedWidget {
   final AuthService auth;
   final ExploreService explore;
   final TravelService travel;
+  final TravelPlanningService planning;
   final PublicTransportService publicTransport;
   final UserService user;
   final CalendarService calendar;
@@ -93,6 +95,7 @@ class AppScope extends InheritedWidget {
     required this.auth,
     required this.explore,
     required this.travel,
+    required this.planning,
     required this.publicTransport,
     required this.user,
     required this.calendar,

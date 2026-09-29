@@ -26,6 +26,8 @@ import '../features/travel/screens/travel_screen.dart';
 import '../features/travel/screens/event_detail_screen.dart';
 import '../features/travel/screens/trip_detail_screen.dart';
 import '../features/travel/screens/trip_form_screen.dart';
+import '../features/travel/screens/planning_create_screen.dart';
+import '../features/travel/screens/planning_detail_screen.dart';
 import '../features/travel/screens/event_form_screen.dart';
 import '../features/travel/screens/accommodation_form_screen.dart';
 import '../features/travel/screens/pt_journey_detail_screen.dart';
@@ -186,6 +188,15 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                         EventFormScreen(eventId: state.pathParameters['id']!),
                   ),
                 ],
+              ),
+              GoRoute(
+                path: 'planung/neu',
+                builder: (context, state) => const PlanningCreateScreen(),
+              ),
+              GoRoute(
+                path: 'planung/:id',
+                builder: (context, state) =>
+                    PlanningDetailScreen(id: state.pathParameters['id']!),
               ),
               GoRoute(
                 path: 'pt/:id',
