@@ -12,8 +12,9 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
-import '../../user/models/user_public_models.dart';
+import '../models/travel_models.dart';
 import '../travel_error_messages.dart';
+import 'accommodation_picker_sheet.dart';
 
 /// Modell-unabhängige Zeile eines Reise-/Event-Teilnehmers.
 class TravelParticipantEntry {
@@ -37,6 +38,12 @@ class TravelParticipantEntry {
 /// Das Sheet lädt die Teilnehmer selbst über [load] und ruft nach jeder
 /// Aktion [load] erneut auf. [roleLabel] benennt die Führungsrolle
 /// (z. B. „Reiseleiter“ oder „Veranstalter“).
+///
+/// [setRole] ist optional; ohne Callback werden die Rollen-Aktionen
+/// ausgeblendet. [loadCandidates] schränkt die Kandidatenliste ein (z. B. auf
+/// die Reiseteilnehmer bei Reise-Events), sonst werden alle Nutzer angeboten.
+/// [loadAccommodations] + [assignAccommodation] aktivieren die
+/// Unterkunftszuweisung pro Teilnehmer.
 Future<void> showManageParticipantsSheet({
   required BuildContext context,
   required String title,
@@ -44,7 +51,11 @@ Future<void> showManageParticipantsSheet({
   required Future<List<TravelParticipantEntry>> Function() load,
   required Future<void> Function(String userId) add,
   required Future<void> Function(String userId) remove,
-  required Future<void> Function(String userId, String role) setRole,
+  Future<void> Function(String userId, String role)? setRole,
+  Future<List<TravelParticipantEntry>> Function()? loadCandidates,
+  Future<List<TravelAccommodation>> Function()? loadAccommodations,
+  Future<void> Function(String userId, String? accommodationId)?
+  assignAccommodation,
 }) {
   return showDesignSheet<void>(
     context: context,
@@ -55,6 +66,9 @@ Future<void> showManageParticipantsSheet({
       add: add,
       remove: remove,
       setRole: setRole,
+      loadCandidates: loadCandidates,
+      loadAccommodations: loadAccommodations,
+      assignAccommodation: assignAccommodation,
     ),
   );
 }
@@ -65,7 +79,11 @@ class _ManageParticipantsSheet extends StatefulWidget {
   final Future<List<TravelParticipantEntry>> Function() load;
   final Future<void> Function(String userId) add;
   final Future<void> Function(String userId) remove;
-  final Future<void> Function(String userId, String role) setRole;
+  final Future<void> Function(String userId, String role)? setRole;
+  final Future<List<TravelParticipantEntry>> Function()? loadCandidates;
+  final Future<List<TravelAccommodation>> Function()? loadAccommodations;
+  final Future<void> Function(String userId, String? accommodationId)?
+  assignAccommodation;
 
   const _ManageParticipantsSheet({
     required this.title,
@@ -73,7 +91,10 @@ class _ManageParticipantsSheet extends StatefulWidget {
     required this.load,
     required this.add,
     required this.remove,
-    required this.setRole,
+    this.setRole,
+    this.loadCandidates,
+    this.loadAccommodations,
+    this.assignAccommodation,
   });
 
   @override
@@ -131,24 +152,75 @@ class _ManageParticipantsSheetState extends State<_ManageParticipantsSheet> {
   }
 
   Future<void> _add() async {
-    final scope = AppScope.of(context);
-    final users = await scope.user.listAll();
+    List<TravelParticipantEntry> candidates;
+    if (widget.loadCandidates != null) {
+      candidates = await widget.loadCandidates!();
+    } else {
+      final users = await AppScope.of(context).user.listAll();
+      candidates = users
+          .map(
+            (u) => TravelParticipantEntry(
+              id: u.id,
+              displayName: u.displayName,
+              image: u.image,
+            ),
+          )
+          .toList();
+    }
     if (!mounted) return;
 
     final existing = _entries.map((e) => e.id).toSet();
-    final available = users.where((u) => !existing.contains(u.id)).toList();
+    final available = candidates.where((c) => !existing.contains(c.id)).toList();
 
     final picked = await showDesignSheet<String>(
       context: context,
-      child: _UserPicker(users: available),
+      child: _CandidatePicker(candidates: available),
     );
     if (picked == null || !mounted) return;
     await _run(() => widget.add(picked));
   }
 
+  Future<void> _assignAccommodation(TravelParticipantEntry entry) async {
+    final loadAccommodations = widget.loadAccommodations;
+    final assign = widget.assignAccommodation;
+    if (loadAccommodations == null || assign == null) return;
+
+    try {
+      final options = await loadAccommodations();
+      if (!mounted) return;
+      String? current;
+      for (final a in options) {
+        if (a.users.any((u) => u.id == entry.id)) current = a.id;
+      }
+      final chosen = await showAccommodationPicker(
+        context,
+        options: options,
+        selectedId: current,
+        allowNone: true,
+        title: 'Unterkunft für ${entry.displayName}',
+      );
+      if (chosen == null || !mounted) return;
+      final accommodationId = chosen.isEmpty ? null : chosen;
+      await _run(() => assign(entry.id, accommodationId));
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+    } catch (e, st) {
+      developer.log('Accommodation assignment failed', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Aktion fehlgeschlagen.')));
+    }
+  }
+
   void _openActions(TravelParticipantEntry entry) {
     final tokens = DesignTheme.of(context);
     final self = entry.id == AppScope.of(context).auth.userId;
+    final canAssignAccommodation = widget.assignAccommodation != null;
+    final canSetRole = widget.setRole != null;
     showDesignSheet(
       context: context,
       child: Column(
@@ -160,7 +232,20 @@ class _ManageParticipantsSheetState extends State<_ManageParticipantsSheet> {
             color: tokens.textHigh,
           ),
           SizedBox(height: tokens.spaceMd),
-          if (!self && !entry.isLeader)
+          if (canAssignAccommodation)
+            DesignListTile(
+              leading: Icon(
+                Icons.hotel_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
+              title: 'Unterkunft zuweisen',
+              onTap: () {
+                Navigator.of(context).pop();
+                _assignAccommodation(entry);
+              },
+            ),
+          if (!self && !entry.isLeader && canSetRole)
             DesignListTile(
               leading: Icon(
                 Icons.workspace_premium_rounded,
@@ -170,10 +255,10 @@ class _ManageParticipantsSheetState extends State<_ManageParticipantsSheet> {
               title: 'Zum ${widget.roleLabel} ernennen',
               onTap: () {
                 Navigator.of(context).pop();
-                _run(() => widget.setRole(entry.id, 'leader'));
+                _run(() => widget.setRole!(entry.id, 'leader'));
               },
             ),
-          if (!self && entry.isLeader)
+          if (!self && entry.isLeader && canSetRole)
             DesignListTile(
               leading: Icon(
                 Icons.workspace_premium_outlined,
@@ -183,7 +268,7 @@ class _ManageParticipantsSheetState extends State<_ManageParticipantsSheet> {
               title: '${widget.roleLabel} entziehen',
               onTap: () {
                 Navigator.of(context).pop();
-                _run(() => widget.setRole(entry.id, 'participant'));
+                _run(() => widget.setRole!(entry.id, 'participant'));
               },
             ),
           if (!self)
@@ -319,10 +404,10 @@ class _ManageParticipantsSheetState extends State<_ManageParticipantsSheet> {
 }
 
 /// Einfache Einzelauswahl-Liste zum Hinzufügen eines Nutzers.
-class _UserPicker extends StatelessWidget {
-  final List<UserBasePublic> users;
+class _CandidatePicker extends StatelessWidget {
+  final List<TravelParticipantEntry> candidates;
 
-  const _UserPicker({required this.users});
+  const _CandidatePicker({required this.candidates});
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +422,7 @@ class _UserPicker extends StatelessWidget {
           color: tokens.textHigh,
         ),
         SizedBox(height: tokens.spaceMd),
-        if (users.isEmpty)
+        if (candidates.isEmpty)
           DesignText(
             'Keine Nutzer verfügbar.',
             style: DesignTextStyle.body,
@@ -348,21 +433,21 @@ class _UserPicker extends StatelessWidget {
             constraints: const BoxConstraints(maxHeight: 320),
             child: ListView.builder(
               shrinkWrap: true,
-              itemCount: users.length,
+              itemCount: candidates.length,
               itemBuilder: (context, index) {
-                final user = users[index];
+                final candidate = candidates[index];
                 return DesignListTile(
                   leading: DesignAvatar(
-                    imageUrl: user.image,
-                    name: user.displayName,
+                    imageUrl: candidate.image,
+                    name: candidate.displayName,
                     size: 32,
                   ),
-                  title: user.displayName,
+                  title: candidate.displayName,
                   trailing: DesignBadge(
                     label: 'Hinzufügen',
                     color: tokens.primary,
                   ),
-                  onTap: () => Navigator.pop(context, user.id),
+                  onTap: () => Navigator.pop(context, candidate.id),
                 );
               },
             ),

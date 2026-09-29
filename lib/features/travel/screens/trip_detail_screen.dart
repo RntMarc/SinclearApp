@@ -277,6 +277,16 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       remove: (userId) => _service.removeTripParticipant(tripId, userId),
       setRole: (userId, role) =>
           _service.setTripParticipantRole(tripId, userId, role),
+      loadAccommodations: () async {
+        final response = await _service.getAccommodations(tripId);
+        return response.data;
+      },
+      assignAccommodation: (userId, accommodationId) =>
+          _service.assignParticipantAccommodation(
+            tripId,
+            userId,
+            accommodationId: accommodationId,
+          ),
     );
     if (mounted) _refresh();
   }

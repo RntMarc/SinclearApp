@@ -570,6 +570,79 @@ class TravelService {
     );
   }
 
+  /// Globaler Katalog wiederverwendbarer Unterkünfte, optional nach Name
+  /// gefiltert.
+  Future<List<TravelAccommodation>> listAccommodationCatalog({
+    String? query,
+  }) async {
+    final trimmed = query?.trim() ?? '';
+    final data = await _api.get(
+      '/trips/accommodations',
+      queryParams: trimmed.isEmpty ? null : {'q': trimmed},
+      token: await _token(),
+    );
+    return (data['data'] as List)
+        .map((e) => TravelAccommodation.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Verknüpft eine bereits vorhandene Katalog-Unterkunft mit der Reise.
+  Future<TravelAccommodation> linkAccommodation(
+    String tripId,
+    String accommodationId,
+  ) async {
+    final data = await _api.post(
+      '/trips/$tripId/accommodations',
+      body: {'accommodationId': accommodationId},
+      token: await _token(),
+    );
+    return TravelAccommodation.fromJson(data['data'] as Map<String, dynamic>);
+  }
+
+  /// Weist einem Teilnehmer eine Unterkunft zu (oder hebt sie mit `null` auf).
+  Future<void> assignParticipantAccommodation(
+    String tripId,
+    String userId, {
+    String? accommodationId,
+  }) async {
+    await _api.put(
+      '/trips/$tripId/participants/$userId/accommodation',
+      body: {'accommodation': accommodationId},
+      token: await _token(),
+    );
+  }
+
+  /// Entfernt eine Unterkunft endgültig aus dem globalen Katalog.
+  Future<void> deleteAccommodationGlobal(String accommodationId) async {
+    await _api.delete(
+      '/trips/accommodations/$accommodationId',
+      token: await _token(),
+    );
+  }
+
+  Future<void> addTripEventParticipant(
+    String tripId,
+    String eventId,
+    String userId,
+  ) async {
+    await _api.post(
+      '/trips/$tripId/events/$eventId/participants',
+      body: {'userId': userId},
+      token: await _token(),
+    );
+  }
+
+  Future<void> removeTripEventParticipant(
+    String tripId,
+    String eventId,
+    String userId,
+  ) async {
+    await _api.delete(
+      '/trips/$tripId/events/$eventId/participants/$userId',
+      token: await _token(),
+    );
+  }
+
   // ──────────────────────────── Teilnehmer & Rollen ────────────────────────────
 
   Future<void> addTripParticipant(

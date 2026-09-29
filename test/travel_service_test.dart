@@ -18,6 +18,11 @@ class _CaptureApi extends ApiClient {
   }) async {
     paths.add(path);
     bodies.add(body);
+    if (path.contains('/accommodations')) {
+      return {
+        'data': {'ID': body?['accommodationId'] ?? 'a1', 'name': 'Hotel', 'ishotel': 1},
+      };
+    }
     return {
       'data': {
         'id': 't1',
@@ -25,6 +30,31 @@ class _CaptureApi extends ApiClient {
         'hastickets': '0',
       },
     };
+  }
+
+  @override
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, String>? queryParams,
+    String? token,
+  }) async {
+    paths.add(path);
+    return {
+      'data': [
+        {'ID': 'a1', 'name': 'Hotel', 'ishotel': 1},
+      ],
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> put(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    paths.add(path);
+    bodies.add(body);
+    return {'message': 'ok'};
   }
 
   @override
@@ -134,6 +164,54 @@ void main() {
       await service.addTripParticipant('t1', 'u1');
       expect(api.paths.single, '/trips/t1/participants');
       expect(api.bodies.single!['userId'], 'u1');
+    });
+  });
+
+  group('wiederverwendbare Unterkünfte', () {
+    test('listAccommodationCatalog ruft GET /trips/accommodations auf', () async {
+      final catalog = await service.listAccommodationCatalog();
+      expect(api.paths.single, '/trips/accommodations');
+      expect(catalog.single.name, 'Hotel');
+    });
+
+    test('linkAccommodation sendet accommodationId', () async {
+      final acc = await service.linkAccommodation('t1', 'a1');
+      expect(api.paths.single, '/trips/t1/accommodations');
+      expect(api.bodies.single!['accommodationId'], 'a1');
+      expect(acc.id, 'a1');
+    });
+
+    test('assignParticipantAccommodation sendet accommodation', () async {
+      await service.assignParticipantAccommodation(
+        't1',
+        'u1',
+        accommodationId: 'a1',
+      );
+      expect(api.paths.single, '/trips/t1/participants/u1/accommodation');
+      expect(api.bodies.single!['accommodation'], 'a1');
+    });
+
+    test('assignParticipantAccommodation hebt Zuordnung auf', () async {
+      await service.assignParticipantAccommodation('t1', 'u1');
+      expect(api.bodies.single!['accommodation'], isNull);
+    });
+
+    test('deleteAccommodationGlobal ruft DELETE auf', () async {
+      await service.deleteAccommodationGlobal('a1');
+      expect(api.paths.single, '/trips/accommodations/a1');
+    });
+  });
+
+  group('Reise-Event-Teilnehmer', () {
+    test('addTripEventParticipant sendet userId', () async {
+      await service.addTripEventParticipant('t1', 'e1', 'u1');
+      expect(api.paths.single, '/trips/t1/events/e1/participants');
+      expect(api.bodies.single!['userId'], 'u1');
+    });
+
+    test('removeTripEventParticipant ruft DELETE auf', () async {
+      await service.removeTripEventParticipant('t1', 'e1', 'u1');
+      expect(api.paths.single, '/trips/t1/events/e1/participants/u1');
     });
   });
 }

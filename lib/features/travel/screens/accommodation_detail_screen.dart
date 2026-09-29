@@ -52,6 +52,13 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
     if (_loading) _load();
   }
 
+  /// Ob der aktuelle Nutzer die Katalog-Unterkunft angelegt hat.
+  bool get _isCreator {
+    final acc = _accommodation;
+    final userId = AppScope.of(context).auth.userId;
+    return acc?.createdBy != null && acc!.createdBy == userId;
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -89,7 +96,7 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
             ),
             title: _accommodation?.name ?? 'Unterkunft',
             actions: [
-              if (widget.canEdit)
+              if (widget.canEdit || _isCreator)
                 DesignIconButton(
                   icon: Icons.more_vert_rounded,
                   onPressed: _openMenu,
@@ -107,6 +114,8 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
   void _openMenu() {
     final acc = _accommodation;
     if (acc == null) return;
+    final currentUserId = AppScope.of(context).auth.userId;
+    final isCreator = acc.createdBy != null && acc.createdBy == currentUserId;
     final tokens = DesignTheme.of(context);
     showDesignSheet(
       context: context,
@@ -135,25 +144,40 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
               },
             ),
           ),
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
-            child: DesignButton(
-              label: 'Löschen',
-              variant: DesignButtonVariant.ghost,
-              icon: Icons.delete_outline_rounded,
-              fullWidth: true,
-              onPressed: () {
-                Navigator.of(context).pop();
-                _confirmDelete();
-              },
+          if (widget.canEdit)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
+              child: DesignButton(
+                label: 'Von Reise entfernen',
+                variant: DesignButtonVariant.text,
+                icon: Icons.link_off_rounded,
+                fullWidth: true,
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _confirmDelete();
+                },
+              ),
             ),
-          ),
+          if (isCreator)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: tokens.spaceXs),
+              child: DesignButton(
+                label: 'Aus Katalog löschen',
+                variant: DesignButtonVariant.ghost,
+                icon: Icons.delete_outline_rounded,
+                fullWidth: true,
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _confirmDeleteGlobal();
+                },
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> _confirmDeleteGlobal() async {
     final tokens = DesignTheme.of(context);
     final confirmed = await showDesignSheet<bool>(
       context: context,
@@ -161,9 +185,16 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           DesignText(
-            'Unterkunft löschen?',
+            'Unterkunft endgültig löschen?',
             style: DesignTextStyle.subtitle,
             color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
+            'Die Unterkunft wird aus dem Katalog entfernt und ist für alle '
+            'Reisen nicht mehr verfügbar.',
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
           ),
           SizedBox(height: tokens.spaceMd),
           Row(
@@ -179,6 +210,69 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
               Expanded(
                 child: DesignButton(
                   label: 'Löschen',
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await _service.deleteAccommodationGlobal(widget.accommodationId);
+      if (mounted) context.pop(true);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+    } catch (e, st) {
+      developer.log(
+        'Failed to delete accommodation globally',
+        error: e,
+        stackTrace: st,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Fehler beim Löschen.')));
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final tokens = DesignTheme.of(context);
+    final confirmed = await showDesignSheet<bool>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DesignText(
+            'Unterkunft von der Reise entfernen?',
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
+            'Der Eintrag bleibt im Katalog und kann in anderen Reisen '
+            'weiterverwendet werden.',
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          Row(
+            children: [
+              Expanded(
+                child: DesignButton(
+                  label: 'Abbrechen',
+                  variant: DesignButtonVariant.outlined,
+                  onPressed: () => Navigator.pop(context, false),
+                ),
+              ),
+              SizedBox(width: tokens.spaceMd),
+              Expanded(
+                child: DesignButton(
+                  label: 'Entfernen',
                   onPressed: () => Navigator.pop(context, true),
                 ),
               ),
@@ -213,7 +307,7 @@ class _AccommodationDetailScreenState extends State<AccommodationDetailScreen> {
       objectType: ModerationObjectType.travelAccommodation,
       objectId: acc.id,
       objectName: acc.name,
-      isOwn: widget.canEdit,
+      isOwn: widget.canEdit || _isCreator,
     );
   }
 

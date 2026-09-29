@@ -12,8 +12,10 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
+import '../models/travel_models.dart';
 import '../services/travel_service.dart';
 import '../travel_error_messages.dart';
+import '../widgets/accommodation_picker_sheet.dart';
 
 /// Formular zum Erstellen/Bearbeiten einer Unterkunft innerhalb einer Reise.
 class AccommodationFormScreen extends StatefulWidget {
@@ -44,6 +46,9 @@ class _AccommodationFormScreenState extends State<AccommodationFormScreen> {
   bool _loading = true;
   bool _saving = false;
   String? _error;
+
+  /// Beim Anlegen gewählte vorhandene Unterkunft (Wiederverwendung).
+  TravelAccommodation? _reuse;
 
   bool get _isEdit => widget.accommodationId != null;
 
@@ -77,7 +82,64 @@ class _AccommodationFormScreenState extends State<AccommodationFormScreen> {
     }
   }
 
+  Future<void> _pickExisting() async {
+    setState(() => _saving = true);
+    try {
+      final catalog = await _service.listAccommodationCatalog();
+      if (!mounted) return;
+      final chosen = await showAccommodationPicker(
+        context,
+        options: catalog,
+        selectedId: _reuse?.id,
+        title: 'Vorhandene Unterkunft wählen',
+      );
+      if (!mounted || chosen == null) return;
+      for (final a in catalog) {
+        if (a.id == chosen) {
+          setState(() => _reuse = a);
+          break;
+        }
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+    } catch (e, st) {
+      developer.log('Failed to load catalog', error: e, stackTrace: st);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Laden fehlgeschlagen.')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _save() async {
+    if (!_isEdit && _reuse != null) {
+      setState(() => _saving = true);
+      try {
+        await _service.linkAccommodation(widget.tripId, _reuse!.id);
+        if (!mounted) return;
+        context.pop(true);
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(travelErrorMessage(e))));
+      } catch (e, st) {
+        developer.log('Failed to link accommodation', error: e, stackTrace: st);
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Fehler beim Speichern.')));
+      } finally {
+        if (mounted) setState(() => _saving = false);
+      }
+      return;
+    }
+
     final name = _name.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,61 +225,78 @@ class _AccommodationFormScreenState extends State<AccommodationFormScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _label(tokens, 'Name'),
-                        SizedBox(height: tokens.spaceSm),
-                        DesignTextField(
-                          hint: 'Name der Unterkunft',
-                          controller: _name,
-                        ),
-                        SizedBox(height: tokens.spaceMd),
-                        _label(tokens, 'Beschreibung'),
-                        SizedBox(height: tokens.spaceSm),
-                        DesignTextField(
-                          hint: 'Beschreibung (optional)',
-                          controller: _description,
-                          maxLines: 3,
-                        ),
-                        SizedBox(height: tokens.spaceMd),
-                        _label(tokens, 'Adresse'),
-                        SizedBox(height: tokens.spaceSm),
-                        DesignTextField(hint: 'Adresse', controller: _address),
-                        SizedBox(height: tokens.spaceMd),
-                        _label(tokens, 'Kontakt'),
-                        SizedBox(height: tokens.spaceSm),
-                        DesignTextField(
-                          hint: 'Telefon (optional)',
-                          controller: _phone,
-                          keyboardType: TextInputType.phone,
-                        ),
-                        SizedBox(height: tokens.spaceMd),
-                        DesignTextField(
-                          hint: 'E-Mail (optional)',
-                          controller: _mail,
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        SizedBox(height: tokens.spaceLg),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: DesignText(
-                                'Hotel',
-                                style: DesignTextStyle.body,
-                                color: tokens.textHigh,
-                              ),
+                        if (!_isEdit) ...[
+                          _reuseSection(tokens),
+                          if (_reuse == null) ...[
+                            SizedBox(height: tokens.spaceXl),
+                            DesignText(
+                              'Oder neue Unterkunft anlegen',
+                              style: DesignTextStyle.subtitle,
+                              color: tokens.textHigh,
                             ),
-                            Material(
-                              type: MaterialType.transparency,
-                              child: Switch(
-                                value: _isHotel,
-                                activeThumbColor: tokens.primary,
-                                onChanged: (v) => setState(() => _isHotel = v),
-                              ),
-                            ),
+                            SizedBox(height: tokens.spaceLg),
                           ],
-                        ),
+                        ],
+                        if (_isEdit || _reuse == null) ...[
+                          _label(tokens, 'Name'),
+                          SizedBox(height: tokens.spaceSm),
+                          DesignTextField(
+                            hint: 'Name der Unterkunft',
+                            controller: _name,
+                          ),
+                          SizedBox(height: tokens.spaceMd),
+                          _label(tokens, 'Beschreibung'),
+                          SizedBox(height: tokens.spaceSm),
+                          DesignTextField(
+                            hint: 'Beschreibung (optional)',
+                            controller: _description,
+                            maxLines: 3,
+                          ),
+                          SizedBox(height: tokens.spaceMd),
+                          _label(tokens, 'Adresse'),
+                          SizedBox(height: tokens.spaceSm),
+                          DesignTextField(hint: 'Adresse', controller: _address),
+                          SizedBox(height: tokens.spaceMd),
+                          _label(tokens, 'Kontakt'),
+                          SizedBox(height: tokens.spaceSm),
+                          DesignTextField(
+                            hint: 'Telefon (optional)',
+                            controller: _phone,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          SizedBox(height: tokens.spaceMd),
+                          DesignTextField(
+                            hint: 'E-Mail (optional)',
+                            controller: _mail,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          SizedBox(height: tokens.spaceLg),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DesignText(
+                                  'Hotel',
+                                  style: DesignTextStyle.body,
+                                  color: tokens.textHigh,
+                                ),
+                              ),
+                              Material(
+                                type: MaterialType.transparency,
+                                child: Switch(
+                                  value: _isHotel,
+                                  activeThumbColor: tokens.primary,
+                                  onChanged: (v) =>
+                                      setState(() => _isHotel = v),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         SizedBox(height: tokens.spaceXxl),
                         DesignButton(
-                          label: _isEdit ? 'Speichern' : 'Erstellen',
+                          label: _isEdit
+                              ? 'Speichern'
+                              : (_reuse != null ? 'Übernehmen' : 'Erstellen'),
                           fullWidth: true,
                           loading: _saving,
                           onPressed: _save,
@@ -229,6 +308,57 @@ class _AccommodationFormScreenState extends State<AccommodationFormScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _reuseSection(DesignTokens tokens) {
+    final reuse = _reuse;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label(tokens, 'Vorhandene Unterkunft'),
+        SizedBox(height: tokens.spaceSm),
+        if (reuse != null) ...[
+          Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: tokens.primary, size: 20),
+              SizedBox(width: tokens.spaceSm),
+              Expanded(
+                child: DesignText(
+                  reuse.name,
+                  style: DesignTextStyle.body,
+                  color: tokens.textHigh,
+                ),
+              ),
+            ],
+          ),
+          if (reuse.address != null) ...[
+            SizedBox(height: tokens.spaceXs),
+            DesignText(
+              reuse.address!,
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ],
+          SizedBox(height: tokens.spaceSm),
+        ],
+        DesignButton(
+          label: reuse == null
+              ? 'Vorhandene Unterkunft wählen'
+              : 'Andere Unterkunft wählen',
+          variant: DesignButtonVariant.outlined,
+          icon: Icons.search_rounded,
+          onPressed: _pickExisting,
+        ),
+        if (reuse != null) ...[
+          SizedBox(height: tokens.spaceSm),
+          DesignButton(
+            label: 'Stattdessen neue Unterkunft anlegen',
+            variant: DesignButtonVariant.text,
+            onPressed: () => setState(() => _reuse = null),
+          ),
+        ],
+      ],
     );
   }
 
