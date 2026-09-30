@@ -411,6 +411,13 @@ Design-Tokens bekommt.
   über `onChanged(optionId, value)`.
 - **`DesignPollResultBar`** (`composite`) – Ergebnisbalken aus `DesignCard` +
   `DesignText` mit Füllbreite aus `percentage`.
+- **`DesignPlanPhaseProgress`** (`composite`) – modellfreie Fortschrittsanzeige
+  der Planungsphasen aus `DesignCard` + `DesignText` + `DesignBadge`. Parameter:
+  `phases` (Liste aus `DesignPlanPhase {label, status}` mit
+  `DesignPlanPhaseStatus` = `pending`/`inProgress`/`completed`/`skipped`).
+  Jede Phase zeigt Icon **und** Status-Text (Status nie allein über Farbe).
+  Feature-Adapter: `PlanTopic`/`topicStatus` → `DesignPlanPhase` in
+  `lib/features/travel/widgets/planning_widgets.dart`.
 
 Der fortschreitende Umstieg Screen für Screen ist in
 [`doc/migration_plan.md`](doc/migration_plan.md) als abhakbare Liste

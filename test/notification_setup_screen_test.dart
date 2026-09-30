@@ -41,6 +41,7 @@ import 'package:sinclear_beyond/features/subscription/services/subscription_serv
 import 'package:sinclear_beyond/features/polls/services/polls_service.dart';
 import 'package:sinclear_beyond/features/travel/services/pt_service.dart';
 import 'package:sinclear_beyond/features/travel/services/travel_service.dart';
+import 'package:sinclear_beyond/features/travel/services/travel_planning_service.dart';
 import 'package:sinclear_beyond/features/user/services/user_service.dart';
 import 'package:sinclear_beyond/features/weather/services/user_weather_location_service.dart';
 import 'package:sinclear_beyond/features/weather/services/weather_service.dart';
@@ -157,6 +158,7 @@ AppScope _buildScope({
   final timeZones = TimeZoneService();
   final calendar = CalendarService(api: api, auth: auth, timeZones: timeZones);
   final travel = TravelService(api: api, auth: auth);
+  final planning = TravelPlanningService(api: api, auth: auth);
   final subscription = SubscriptionService(api: api, auth: auth);
   final polls = PollsService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
@@ -167,6 +169,7 @@ AppScope _buildScope({
     auth: auth,
     explore: ExploreService(api: api, auth: auth),
     travel: travel,
+    planning: planning,
     publicTransport: PublicTransportService(api: api, auth: auth),
     user: user,
     calendar: calendar,
