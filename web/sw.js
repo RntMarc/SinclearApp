@@ -144,6 +144,22 @@ const CONTENT_BY_TYPE = {
     title: 'Erinnerung: Umfrage endet bald',
     body: 'Eine Umfrage endet bald.',
   },
+  trip_planning_invite: {
+    title: 'Einladung zur Reiseplanung',
+    body: 'Du wurdest zu einer Reiseplanung eingeladen.',
+  },
+  trip_planning_response: {
+    title: 'Rückmeldung zur Reiseplanung',
+    body: 'Ein Planungsmitglied hat sich zurückgemeldet.',
+  },
+  trip_planning_finalized: {
+    title: 'Festlegung in der Reiseplanung',
+    body: 'In der Reiseplanung wurde etwas festgelegt.',
+  },
+  trip_planning_activated: {
+    title: 'Reiseplanung abgeschlossen',
+    body: 'Die Reiseplanung wurde abgeschlossen.',
+  },
 };
 
 const FALLBACK_CONTENT = {
@@ -189,6 +205,15 @@ const POLL_TYPES = new Set([
   'poll_deadline_reminder',
 ]);
 
+// Planungs-Typen tragen die `trip`-Relation, liegen aber unter
+// `/reisen/planung/{trip}` statt `/reisen/{trip}`. Daher VOR TRIP_TYPES prüfen.
+const PLANNING_TYPES = new Set([
+  'trip_planning_invite',
+  'trip_planning_response',
+  'trip_planning_finalized',
+  'trip_planning_activated',
+]);
+
 function relationId(data, relation) {
   if (!Array.isArray(data)) return null;
   const entry = data.find((e) => e && e.relation === relation && e.identifier);
@@ -215,6 +240,10 @@ function resolveRoute(type, data) {
   if (type === 'direct_message') {
     const conversationId = relationId(data, 'conversation');
     if (conversationId) return `/chat/${conversationId}`;
+  }
+  if (PLANNING_TYPES.has(type)) {
+    const tripId = relationId(data, 'trip');
+    if (tripId) return `/reisen/planung/${tripId}`;
   }
   if (TRIP_TYPES.has(type)) {
     const tripId = relationId(data, 'trip');

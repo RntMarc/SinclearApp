@@ -51,6 +51,7 @@ import 'features/settings/services/lametric_token_service.dart';
 import 'features/settings/services/mcp_key_service.dart';
 import 'features/subscription/services/subscription_service.dart';
 import 'features/travel/services/travel_service.dart';
+import 'features/travel/services/travel_planning_service.dart';
 import 'features/travel/services/pt_service.dart';
 import 'features/user/services/user_service.dart';
 import 'features/weather/services/weather_service.dart';
@@ -136,6 +137,7 @@ Future<void> _bootstrap() async {
 
   final explore = ExploreService(api: api, auth: auth);
   final travel = TravelService(api: api, auth: auth);
+  final planning = TravelPlanningService(api: api, auth: auth);
   final publicTransport = PublicTransportService(api: api, auth: auth);
   final user = UserService(api: api, auth: auth);
   if (auth.isLoggedIn) {
@@ -296,6 +298,7 @@ Future<void> _bootstrap() async {
       auth: auth,
       explore: explore,
       travel: travel,
+      planning: planning,
       publicTransport: publicTransport,
       user: user,
       calendar: calendar,

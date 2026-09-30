@@ -7,11 +7,13 @@ import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_fab.dart';
 import '../models/pt_models.dart';
 import '../models/travel_models.dart';
+import '../models/travel_planning_models.dart';
 import '../screens/event_detail_screen.dart';
 import '../screens/pt_search_screen.dart';
 import '../services/travel_service.dart';
@@ -33,6 +35,7 @@ class _TravelScreenState extends State<TravelScreen> {
   List<TimelineEntry> _future = [];
   List<TimelineEntry> _past = [];
   List<PtSavedJourney> _ptJourneys = [];
+  List<PlanningTrip> _planning = [];
   bool _hasLoaded = false;
 
   @override
@@ -70,19 +73,22 @@ class _TravelScreenState extends State<TravelScreen> {
     try {
       final tripsFuture = _service.list(limit: 100);
       final standaloneFuture = _service.getStandaloneEvents(limit: 100);
+      final planningFuture = AppScope.of(context).planning.list(limit: 100);
       final ptFuture = AppScope.of(
         context,
       ).publicTransport.listJourneys(limit: 100);
       final results = await Future.wait([
         tripsFuture,
         standaloneFuture,
+        planningFuture,
         ptFuture,
       ]);
       if (!mounted) return;
 
       final trips = results[0] as TravelTripListResponse;
       final standalone = results[1] as TravelStandaloneEventListResponse;
-      final ptResponse = results[2] as PtSavedJourneyListResponse;
+      final planning = results[2] as PlanningTripListResponse;
+      final ptResponse = results[3] as PtSavedJourneyListResponse;
 
       final entries = <TimelineEntry>[
         for (final t in trips.data)
@@ -137,6 +143,7 @@ class _TravelScreenState extends State<TravelScreen> {
         _future = future;
         _past = past;
         _ptJourneys = ptResponse.data;
+        _planning = planning.data;
         _loading = false;
       });
     } catch (e, st) {
@@ -175,6 +182,13 @@ class _TravelScreenState extends State<TravelScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              DesignFab(
+                icon: Icons.groups_rounded,
+                size: DesignFabSize.small,
+                onPressed: () => _navigateToCreate('/reisen/planung/neu'),
+                tooltip: 'Reise gemeinsam planen',
+              ),
+              SizedBox(height: tokens.spaceSm),
               DesignFab(
                 icon: Icons.flight_takeoff_rounded,
                 size: DesignFabSize.small,
@@ -252,6 +266,7 @@ class _TravelScreenState extends State<TravelScreen> {
     }
 
     final hasEntries =
+        _planning.isNotEmpty ||
         _current.isNotEmpty ||
         _future.isNotEmpty ||
         _past.isNotEmpty ||
@@ -271,7 +286,8 @@ class _TravelScreenState extends State<TravelScreen> {
                     Icon(Icons.event_rounded, size: 64, color: tokens.textLow),
                     SizedBox(height: tokens.spaceLg),
                     DesignText(
-                      'Keine Reisen, Events oder ÖPNV-Fahrten gefunden',
+                      'Keine Planungen, Reisen, Events oder ÖPNV-Fahrten '
+                      'gefunden',
                       style: DesignTextStyle.body,
                       color: tokens.textLow,
                     ),
@@ -291,6 +307,7 @@ class _TravelScreenState extends State<TravelScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_planning.isNotEmpty) ..._buildPlanningSection(),
             if (_current.isNotEmpty)
               ..._buildSection('Aktuelle Reisen', _current),
             if (_future.isNotEmpty)
@@ -390,6 +407,111 @@ class _TravelScreenState extends State<TravelScreen> {
         );
       }),
     ];
+  }
+
+  List<Widget> _buildPlanningSection() {
+    final tokens = DesignTheme.of(context);
+    final unread = AppScope.of(context).notification.unreadTripIds;
+    return [
+      Padding(
+        padding: EdgeInsets.fromLTRB(
+          tokens.spaceLg,
+          tokens.spaceXl,
+          tokens.spaceLg,
+          tokens.spaceXs,
+        ),
+        child: DesignText(
+          'Planungen',
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
+        ),
+      ),
+      ..._planning.map((trip) {
+        final done = PlanningPhase.order
+            .where((topic) => trip.topicStatusFor(topic) == 'completed')
+            .length;
+        final dateLabel = trip.hasDate
+            ? _planningDateText(trip)
+            : 'Kein Termin festgelegt';
+        return DesignCard(
+          margin: EdgeInsets.fromLTRB(
+            tokens.spaceLg,
+            0,
+            tokens.spaceLg,
+            tokens.spaceXs,
+          ),
+          padding: EdgeInsets.all(tokens.spaceMd),
+          pulseColor: unread.contains(trip.id) ? tokens.accentA : null,
+          onTap: () => context.go('/reisen/planung/${trip.id}'),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: tokens.surfaceVariant,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Icon(
+                  Icons.groups_rounded,
+                  color: tokens.primary,
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: tokens.spaceMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DesignText(
+                      trip.name,
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    SizedBox(height: tokens.spaceXs),
+                    Row(
+                      children: [
+                        DesignBadge(label: 'Planung', color: tokens.accentA),
+                        SizedBox(width: tokens.spaceSm),
+                        DesignText(
+                          '$done von 3 Phasen abgeschlossen',
+                          style: DesignTextStyle.label,
+                          color: tokens.textLow,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: tokens.spaceXs),
+                    DesignText(
+                      dateLabel,
+                      style: DesignTextStyle.label,
+                      color: tokens.textLow,
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(left: tokens.spaceMd),
+                child: Icon(Icons.chevron_right_rounded, color: tokens.textLow),
+              ),
+            ],
+          ),
+        );
+      }),
+    ];
+  }
+
+  String _planningDateText(PlanningTrip trip) {
+    if (trip.allDay && trip.startDate != null) {
+      return formatDayRange(trip.startDate!, trip.endDate ?? trip.startDate!);
+    }
+    if (!trip.allDay && trip.startAt != null) {
+      return formatInstantRangeInZone(
+        trip.startAt!,
+        trip.endAt ?? trip.startAt!,
+        trip.timezone,
+      );
+    }
+    return 'Kein Termin festgelegt';
   }
 
   List<Widget> _buildPtSection() {
