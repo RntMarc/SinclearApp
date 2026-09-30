@@ -9,6 +9,9 @@ String planningErrorMessage(ApiException error) {
   return switch (error.errorCode) {
     'forbidden' => 'Dafür fehlt dir die Berechtigung.',
     'invalid_planning_trip' => 'Diese Reise ist keine Planungsreise (mehr).',
+    'inconsistent_planning_data' =>
+      'Die Planung ist noch unvollständig oder widersprüchlich. Bitte prüfe '
+          'Termin, Unterkunft und Programm.',
     'planning_trip_not_found' => 'Die Planung wurde nicht gefunden.',
     'member_not_found' => 'Das Mitglied wurde nicht gefunden.',
     'date_option_not_found' => 'Der Terminvorschlag wurde nicht gefunden.',
