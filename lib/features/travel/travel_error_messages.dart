@@ -15,6 +15,9 @@ String travelErrorMessage(ApiException error) {
     'ticket_not_found' => 'Das Ticket wurde nicht gefunden.',
     'already_participant' => 'Der Nutzer ist bereits Teilnehmer.',
     'last_leader' => 'Der letzte Reiseleiter kann nicht entfernt werden.',
+    'trip_not_active' =>
+      'Die Reise ist noch in Planung und kann erst nach der Aktivierung '
+          'bearbeitet werden.',
     'name_required' => 'Bitte gib einen Namen an.',
     'trip_required' => 'Bitte wähle eine Reise aus.',
     'invalid_role' => 'Die Rolle ist ungültig.',
