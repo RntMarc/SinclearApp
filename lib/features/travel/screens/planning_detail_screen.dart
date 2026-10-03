@@ -14,8 +14,8 @@ import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
-import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
+import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/travel_planning_models.dart';
@@ -319,6 +319,7 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
     await _run(
       () => _service.createAccommodationOption(
         widget.id,
+        accommodationId: draft.accommodationId,
         name: draft.name,
         description: draft.description,
         address: draft.address,
@@ -371,7 +372,6 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
         widget.id,
         name: draft.name,
         description: draft.description,
-        dayIndex: draft.dayIndex,
         allDay: draft.allDay,
         timezone: draft.timezone,
         startDate: draft.startDate,
@@ -379,6 +379,8 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
         startAt: draft.startAt,
         endAt: draft.endAt,
         address: draft.address,
+        latitude: draft.latitude,
+        longitude: draft.longitude,
       ),
     );
   }
@@ -395,7 +397,6 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
         suggestion.id,
         name: draft.name,
         description: draft.description,
-        dayIndex: draft.dayIndex,
         allDay: draft.allDay,
         timezone: draft.timezone,
         startDate: draft.startDate,
@@ -403,6 +404,8 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
         startAt: draft.startAt,
         endAt: draft.endAt,
         address: draft.address,
+        latitude: draft.latitude,
+        longitude: draft.longitude,
       ),
     );
   }
@@ -533,6 +536,19 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
                 _editTrip();
               },
             ),
+          if (detail.canManage && detail.state == 'planning')
+            DesignListTile(
+              leading: Icon(
+                Icons.tune_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
+              title: 'Leitung steuern',
+              onTap: () {
+                Navigator.pop(context);
+                _openLeadControls();
+              },
+            ),
           if (!detail.canManage)
             DesignListTile(
               leading: Icon(
@@ -551,28 +567,57 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
     );
   }
 
+  Future<void> _openLeadControls() async {
+    final detail = _detail;
+    if (detail == null) return;
+    await showDesignSheet<void>(
+      context: context,
+      child: _LeadControlsSheet(
+        detail: detail,
+        onSetTopicStatus: _setTopicStatus,
+        onActivate: _activate,
+      ),
+    );
+  }
+
   // ──────────────────────────── Aufbau ────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final conversationId = _detail?.conversationId;
     return DesignSurface(
-      child: Column(
+      child: Stack(
         children: [
-          DesignSubpageHeader(
-            leading: DesignIconButton(
-              icon: Icons.arrow_back_rounded,
-              onPressed: () => context.pop(),
-            ),
-            title: _detail?.name ?? 'Planung',
-            actions: [
-              if (_detail != null)
-                DesignIconButton(
-                  icon: Icons.more_vert_rounded,
-                  onPressed: _openMenu,
+          Column(
+            children: [
+              DesignSubpageHeader(
+                leading: DesignIconButton(
+                  icon: Icons.arrow_back_rounded,
+                  onPressed: () => context.pop(),
                 ),
+                title: _detail?.name ?? 'Planung',
+                actions: [
+                  if (_detail != null)
+                    DesignIconButton(
+                      icon: Icons.more_vert_rounded,
+                      onPressed: _openMenu,
+                    ),
+                ],
+              ),
+              Expanded(child: _buildBody()),
             ],
           ),
-          Expanded(child: _buildBody()),
+          if (conversationId != null)
+            Positioned(
+              right: tokens.spaceLg,
+              bottom: tokens.spaceLg,
+              child: DesignFab(
+                icon: Icons.forum_rounded,
+                tooltip: 'Reisechat öffnen',
+                onPressed: () => context.push('/chat/$conversationId'),
+              ),
+            ),
         ],
       ),
     );
@@ -620,169 +665,188 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           if (detail.memberStatus == 'invited')
-            PlanningInviteBanner(
-              busy: _busy,
-              onAccept: () => _respond('accepted'),
-              onDecline: () => _respond('declined'),
-            ),
-          DesignCard(
-            child: DesignPlanPhaseProgress(phases: planningPhases(detail)),
-          ),
-          if (detail.conversationId != null)
-            DesignCard(
-              child: DesignButton(
-                label: 'Reisechat öffnen',
-                icon: Icons.forum_rounded,
-                variant: DesignButtonVariant.outlined,
-                fullWidth: true,
-                onPressed: () => context.push('/chat/${detail.conversationId}'),
+            Padding(
+              padding: EdgeInsets.only(bottom: tokens.spaceMd),
+              child: PlanningInviteBanner(
+                busy: _busy,
+                onAccept: () => _respond('accepted'),
+                onDecline: () => _respond('declined'),
               ),
             ),
-          PlanningMembersSection(
-            members: detail.members,
-            canManage: detail.canManage,
-            onInvite: _invite,
-            onManageMember: _manageMember,
+          Padding(
+            padding: EdgeInsets.only(bottom: tokens.spaceMd),
+            child: DesignPlanPhaseProgress(phases: planningPhases(detail)),
           ),
-          PlanningDateOptionsSection(
-            options: detail.dateOptions,
-            canManage: detail.canManage,
-            currentUserId: _currentUserId,
-            onRespond: _respondDate,
-            onCreate: _createDate,
-            onEdit: _editDate,
-            onDelete: _deleteDate,
-            onFinalize: _finalizeDate,
-          ),
-          PlanningTransportSection(
-            transports: detail.transport,
-            onEdit: _editTransport,
-          ),
-          PlanningAccommodationSection(
-            options: detail.accommodationOptions,
-            canManage: detail.canManage,
-            currentUserId: _currentUserId,
-            onCreate: _createAccommodation,
-            onEdit: _editAccommodation,
-            onDelete: _deleteAccommodation,
-            onSelect: _selectAccommodation,
-          ),
-          PlanningEventsSection(
-            suggestions: detail.eventSuggestions,
-            canManage: detail.canManage,
-            currentUserId: _currentUserId,
-            onCreate: _createEvent,
-            onEdit: _editEvent,
-            onDelete: _deleteEvent,
-            onConfirm: _confirmEvent,
-            onInterest: _setEventInterest,
-          ),
-          if (detail.canManage)
-            _LeadActionsCard(
-              detail: detail,
-              busy: _busy,
-              onSetTopicStatus: _setTopicStatus,
-              onActivate: _activate,
+          PlanningPhaseSection(
+            label: PlanningPhase.label(PlanningPhase.participants),
+            status: detail.topicStatusFor(PlanningPhase.participants),
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                  child: PlanningMembersSection(
+                    members: detail.members,
+                    canManage: detail.canManage,
+                    onInvite: _invite,
+                    onManageMember: _manageMember,
+                  ),
+                ),
+                PlanningDateOptionsSection(
+                  options: detail.dateOptions,
+                  canManage: detail.canManage,
+                  currentUserId: _currentUserId,
+                  onRespond: _respondDate,
+                  onCreate: _createDate,
+                  onEdit: _editDate,
+                  onDelete: _deleteDate,
+                  onFinalize: _finalizeDate,
+                ),
+              ],
             ),
-          SizedBox(height: tokens.spaceXxl),
+          ),
+          PlanningPhaseSection(
+            label: PlanningPhase.label(PlanningPhase.travel),
+            status: detail.topicStatusFor(PlanningPhase.travel),
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(bottom: tokens.spaceMd),
+                  child: PlanningTransportSection(
+                    transports: detail.transport,
+                    onEdit: _editTransport,
+                  ),
+                ),
+                PlanningAccommodationSection(
+                  options: detail.accommodationOptions,
+                  canManage: detail.canManage,
+                  currentUserId: _currentUserId,
+                  onCreate: _createAccommodation,
+                  onEdit: _editAccommodation,
+                  onDelete: _deleteAccommodation,
+                  onSelect: _selectAccommodation,
+                ),
+              ],
+            ),
+          ),
+          PlanningPhaseSection(
+            label: PlanningPhase.label(PlanningPhase.program),
+            status: detail.topicStatusFor(PlanningPhase.program),
+            child: PlanningEventsSection(
+              suggestions: detail.eventSuggestions,
+              canManage: detail.canManage,
+              currentUserId: _currentUserId,
+              onCreate: _createEvent,
+              onEdit: _editEvent,
+              onDelete: _deleteEvent,
+              onConfirm: _confirmEvent,
+              onInterest: _setEventInterest,
+            ),
+          ),
+          SizedBox(height: tokens.spaceXxl + 80),
         ],
       ),
     );
   }
 }
 
-/// Leitungsaktionen: Phasen abschließen/überspringen und Reise aktivieren.
-class _LeadActionsCard extends StatelessWidget {
-  const _LeadActionsCard({
+/// Die vier einstellbaren Phasen-Zustände der Planung.
+const _phaseStatusOptions = [
+  (value: 'pending', label: 'Ausstehend'),
+  (value: 'in_progress', label: 'Begonnen'),
+  (value: 'completed', label: 'Abgeschlossen'),
+  (value: 'skipped', label: 'Übersprungen'),
+];
+
+/// Leitungs-Sheet: Phasenstatus setzen und Reise aktivieren.
+///
+/// Wird nur der Leitung angezeigt, solange sich die Reise in der
+/// Planungsphase befindet. Die Statusänderungen werden nach Erfolg lokal
+/// nachgeführt, damit das Sheet offen bleiben kann.
+class _LeadControlsSheet extends StatefulWidget {
+  const _LeadControlsSheet({
     required this.detail,
-    required this.busy,
     required this.onSetTopicStatus,
     required this.onActivate,
   });
 
   final PlanningTripDetail detail;
-  final bool busy;
-  final void Function(String topic, String status) onSetTopicStatus;
-  final VoidCallback onActivate;
+  final Future<void> Function(String topic, String status) onSetTopicStatus;
+  final Future<void> Function() onActivate;
 
   @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-    return DesignCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DesignText(
-            'Leitung',
-            style: DesignTextStyle.subtitle,
-            color: tokens.textHigh,
-          ),
-          SizedBox(height: tokens.spaceSm),
-          DesignText(
-            'Phasen steuern',
-            style: DesignTextStyle.label,
-            color: tokens.textLow,
-          ),
-          SizedBox(height: tokens.spaceSm),
-          for (final topic in PlanningPhase.order) ...[
-            _PhaseControls(
-              label: PlanningPhase.label(topic),
-              status: detail.topicStatusFor(topic),
-              onSet: (status) => onSetTopicStatus(topic, status),
-            ),
-            SizedBox(height: tokens.spaceSm),
-          ],
-          SizedBox(height: tokens.spaceSm),
-          DesignButton(
-            label: 'Reise aktivieren',
-            fullWidth: true,
-            loading: busy,
-            onPressed: onActivate,
-          ),
-        ],
-      ),
-    );
-  }
+  State<_LeadControlsSheet> createState() => _LeadControlsSheetState();
 }
 
-class _PhaseControls extends StatelessWidget {
-  const _PhaseControls({
-    required this.label,
-    required this.status,
-    required this.onSet,
-  });
+class _LeadControlsSheetState extends State<_LeadControlsSheet> {
+  late final Map<String, String> _statuses = {
+    for (final topic in PlanningPhase.order)
+      topic: widget.detail.topicStatusFor(topic),
+  };
 
-  final String label;
-  final String status;
-  final void Function(String status) onSet;
+  bool _working = false;
+
+  Future<void> _set(String topic, String status) async {
+    if (_working || _statuses[topic] == status) return;
+    setState(() => _working = true);
+    await widget.onSetTopicStatus(topic, status);
+    if (!mounted) return;
+    setState(() {
+      _statuses[topic] = status;
+      _working = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DesignText(label, style: DesignTextStyle.body, color: tokens.textHigh),
-        SizedBox(height: tokens.spaceXs),
-        Wrap(
-          spacing: tokens.spaceSm,
-          children: [
-            DesignChip(
-              label: 'Beginnen',
-              selected: status == 'in_progress',
-              onTap: () => onSet('in_progress'),
-            ),
-            DesignChip(
-              label: 'Abschließen',
-              selected: status == 'completed',
-              onTap: () => onSet('completed'),
-            ),
-            DesignChip(
-              label: 'Überspringen',
-              selected: status == 'skipped',
-              onTap: () => onSet('skipped'),
-            ),
-          ],
+        DesignText(
+          'Leitung',
+          style: DesignTextStyle.subtitle,
+          color: tokens.textHigh,
+        ),
+        SizedBox(height: tokens.spaceSm),
+        DesignText(
+          'Phasen steuern',
+          style: DesignTextStyle.label,
+          color: tokens.textLow,
+        ),
+        SizedBox(height: tokens.spaceMd),
+        for (final topic in PlanningPhase.order) ...[
+          DesignText(
+            PlanningPhase.label(topic),
+            style: DesignTextStyle.body,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceXs),
+          Wrap(
+            spacing: tokens.spaceSm,
+            runSpacing: tokens.spaceSm,
+            children: [
+              for (final option in _phaseStatusOptions)
+                DesignChip(
+                  label: option.label,
+                  selected: _statuses[topic] == option.value,
+                  onTap: () => _set(topic, option.value),
+                ),
+            ],
+          ),
+          SizedBox(height: tokens.spaceMd),
+        ],
+        SizedBox(height: tokens.spaceSm),
+        DesignButton(
+          label: 'Reise aktivieren',
+          fullWidth: true,
+          loading: _working,
+          onPressed: _working
+              ? null
+              : () {
+                  Navigator.pop(context);
+                  widget.onActivate();
+                },
         ),
       ],
     );
