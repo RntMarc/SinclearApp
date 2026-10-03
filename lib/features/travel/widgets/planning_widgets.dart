@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_availability_matrix.dart';
+import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/composite/design_plan_phase_progress.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
@@ -10,6 +12,8 @@ import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/press_scale.dart';
 import '../models/travel_planning_models.dart';
 
 // ──────────────────────────── Adapter / Formatierung ────────────────────────────
@@ -32,11 +36,8 @@ DesignPlanPhaseStatus _phaseStatus(String status) => switch (status) {
   _ => DesignPlanPhaseStatus.pending,
 };
 
-/// Anzeigelabel einer Terminoption: bevorzugt die Bezeichnung, sonst der
-/// formatierte Zeitraum.
-String planningDateLabel(PlanDateOption option) {
-  final label = option.label;
-  if (label != null && label.trim().isNotEmpty) return label.trim();
+/// Formatierter Zeitraum einer Terminoption (ohne Bezeichnung).
+String planningDateRange(PlanDateOption option) {
   if (option.allDay && option.startDate != null) {
     return formatDayRange(
       option.startDate!,
@@ -51,6 +52,14 @@ String planningDateLabel(PlanDateOption option) {
     );
   }
   return 'Ohne Datum';
+}
+
+/// Anzeigelabel einer Terminoption: bevorzugt die Bezeichnung, sonst der
+/// formatierte Zeitraum.
+String planningDateLabel(PlanDateOption option) {
+  final label = option.label;
+  if (label != null && label.trim().isNotEmpty) return label.trim();
+  return planningDateRange(option);
 }
 
 /// Zeit-/Ortszeile eines Eventvorschlags.
@@ -130,6 +139,118 @@ class _SectionCard extends StatelessWidget {
     );
   }
 }
+
+// ──────────────────────────── Phasen-Abschnitt ────────────────────────────
+
+/// Ausklappbarer Abschnitt einer Planungsphase.
+///
+/// Zeigt Phasenbezeichnung und Status als Kopfzeile. Nur die begonnenen und
+/// abgeschlossenen Phasen lassen sich ausklappen; ausstehende und
+/// übersprungene bleiben als inaktive Kopfzeile sichtbar (ausgeblendet, aber
+/// nicht versteckt).
+class PlanningPhaseSection extends StatefulWidget {
+  const PlanningPhaseSection({
+    required this.label,
+    required this.status,
+    required this.child,
+    super.key,
+  });
+
+  /// Deutsche Phasenbezeichnung, z. B. „Wann und wer?".
+  final String label;
+
+  /// API-Status der Phase (`pending`/`in_progress`/`completed`/`skipped`).
+  final String status;
+
+  /// Inhalt des Abschnitts (die zur Phase gehörenden Karten).
+  final Widget child;
+
+  @override
+  State<PlanningPhaseSection> createState() => _PlanningPhaseSectionState();
+}
+
+class _PlanningPhaseSectionState extends State<PlanningPhaseSection> {
+  late bool _expanded;
+
+  bool get _expandable =>
+      widget.status == 'in_progress' || widget.status == 'completed';
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.status == 'in_progress';
+  }
+
+  @override
+  void didUpdateWidget(PlanningPhaseSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status != widget.status) {
+      _expanded = widget.status == 'in_progress';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final status = _phaseStatus(widget.status);
+    final color = _statusColor(tokens, status);
+    final header = Row(
+      children: [
+        Icon(status.icon, color: color, size: 20),
+        SizedBox(width: tokens.spaceSm),
+        Expanded(
+          child: DesignText(
+            widget.label,
+            style: DesignTextStyle.subtitle,
+            color: _expandable ? tokens.textHigh : tokens.textLow,
+          ),
+        ),
+        SizedBox(width: tokens.spaceSm),
+        DesignBadge(label: status.label, color: color),
+        if (_expandable)
+          Padding(
+            padding: EdgeInsets.only(left: tokens.spaceSm),
+            child: Icon(
+              _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+              color: tokens.textLow,
+            ),
+          ),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            tokens.spaceLg,
+            tokens.spaceXl,
+            tokens.spaceLg,
+            0,
+          ),
+          child: _expandable
+              ? PressScale(
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  child: header,
+                )
+              : header,
+        ),
+        if (_expandable && _expanded)
+          Padding(
+            padding: EdgeInsets.only(top: tokens.spaceMd),
+            child: widget.child,
+          ),
+      ],
+    );
+  }
+}
+
+Color _statusColor(DesignTokens tokens, DesignPlanPhaseStatus status) =>
+    switch (status) {
+      DesignPlanPhaseStatus.pending => tokens.textLow,
+      DesignPlanPhaseStatus.inProgress => tokens.warning,
+      DesignPlanPhaseStatus.completed => tokens.success,
+      DesignPlanPhaseStatus.skipped => tokens.danger,
+    };
 
 // ──────────────────────────── Einladungs-Banner ────────────────────────────
 
@@ -320,13 +441,6 @@ class PlanningDateOptionsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    PlanDateOption? finalOption;
-    for (final option in options) {
-      if (option.isFinal) {
-        finalOption = option;
-        break;
-      }
-    }
     return _SectionCard(
       title: 'Termine',
       action: DesignButton(
@@ -335,69 +449,31 @@ class PlanningDateOptionsSection extends StatelessWidget {
         icon: Icons.add_rounded,
         onPressed: onCreate,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (finalOption != null) ...[
-            DesignBadge(
-              label: 'Festgelegt: ${planningDateLabel(finalOption)}',
-              color: tokens.success,
-            ),
-            SizedBox(height: tokens.spaceMd),
-          ],
-          if (options.isEmpty)
-            DesignText(
+      child: options.isEmpty
+          ? DesignText(
               'Noch keine Terminvorschläge.',
               style: DesignTextStyle.body,
               color: tokens.textLow,
             )
-          else
-            DesignAvailabilityMatrix(
-              options: [
-                for (final option in options)
-                  DesignAvailabilityOption(
-                    id: option.id,
-                    label: planningDateLabel(option),
-                    selected: _ownAvailability(option),
-                    counts: _counts(option),
+          : Column(
+              children: [
+                for (var i = 0; i < options.length; i++) ...[
+                  if (i > 0) SizedBox(height: tokens.spaceMd),
+                  _DateOptionCard(
+                    option: options[i],
+                    canEdit: _canManageOption(options[i]),
+                    canFinalize: canManage && !options[i].isFinal,
+                    ownAvailability: _ownAvailability(options[i]),
+                    counts: _counts(options[i]),
+                    onRespond: (availability) =>
+                        onRespond(options[i].id, availability),
+                    onEdit: () => onEdit(options[i]),
+                    onDelete: () => onDelete(options[i]),
+                    onFinalize: () => onFinalize(options[i]),
                   ),
-              ],
-              onChanged: (optionId, value) {
-                if (value == null) return;
-                onRespond(optionId, planningAvailabilityValue(value));
-              },
-            ),
-          if (options.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceMd),
-            for (final option in options) ...[
-              Wrap(
-                spacing: tokens.spaceSm,
-                runSpacing: tokens.spaceXs,
-                children: [
-                  if (_canManageOption(option))
-                    DesignButton(
-                      label: 'Bearbeiten',
-                      variant: DesignButtonVariant.text,
-                      onPressed: () => onEdit(option),
-                    ),
-                  if (_canManageOption(option))
-                    DesignButton(
-                      label: 'Löschen',
-                      variant: DesignButtonVariant.text,
-                      onPressed: () => onDelete(option),
-                    ),
-                  if (canManage && !option.isFinal)
-                    DesignButton(
-                      label: 'Festlegen',
-                      variant: DesignButtonVariant.text,
-                      onPressed: () => onFinalize(option),
-                    ),
                 ],
-              ),
-            ],
-          ],
-        ],
-      ),
+              ],
+            ),
     );
   }
 
@@ -422,6 +498,170 @@ class PlanningDateOptionsSection extends StatelessWidget {
       counts[availability] = (counts[availability] ?? 0) + 1;
     }
     return counts;
+  }
+}
+
+/// Vorschlagskarte einer Terminoption.
+///
+/// Der Zeitraum ist der Titel; die (weniger wichtige) Bezeichnung steht klein
+/// darunter. Der festgelegte Termin ist direkt in der Karte markiert, die
+/// Leitungsaktionen liegen in einem Drei-Punkte-Menü.
+class _DateOptionCard extends StatelessWidget {
+  const _DateOptionCard({
+    required this.option,
+    required this.canEdit,
+    required this.canFinalize,
+    required this.ownAvailability,
+    required this.counts,
+    required this.onRespond,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onFinalize,
+  });
+
+  final PlanDateOption option;
+  final bool canEdit;
+  final bool canFinalize;
+  final DesignAvailability? ownAvailability;
+  final Map<DesignAvailability, int> counts;
+  final void Function(String availability) onRespond;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onFinalize;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final label = option.label?.trim();
+    return Container(
+      padding: EdgeInsets.all(tokens.spaceMd),
+      decoration: BoxDecoration(
+        color: tokens.surfaceVariant,
+        borderRadius: BorderRadius.circular(tokens.radiusMd),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DesignText(
+                      planningDateRange(option),
+                      style: DesignTextStyle.body,
+                      color: tokens.textHigh,
+                    ),
+                    if (label != null && label.isNotEmpty) ...[
+                      SizedBox(height: tokens.spaceXs),
+                      DesignText(
+                        label,
+                        style: DesignTextStyle.label,
+                        color: tokens.textLow,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (option.isFinal)
+                DesignBadge(label: 'Festgelegt', color: tokens.success),
+              if (canEdit || canFinalize)
+                Padding(
+                  padding: EdgeInsets.only(left: tokens.spaceSm),
+                  child: DesignIconButton(
+                    icon: Icons.more_vert_rounded,
+                    onPressed: () => _openMenu(context),
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: tokens.spaceSm),
+          Wrap(
+            spacing: tokens.spaceSm,
+            runSpacing: tokens.spaceSm,
+            children: [
+              for (final availability in DesignAvailability.values)
+                DesignChip(
+                  label: availability.label,
+                  selected: ownAvailability == availability,
+                  onTap: () =>
+                      onRespond(planningAvailabilityValue(availability)),
+                ),
+            ],
+          ),
+          if (counts.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceXs),
+            DesignText(
+              _countsText(),
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _countsText() {
+    final parts = <String>[
+      for (final availability in DesignAvailability.values)
+        if ((counts[availability] ?? 0) > 0)
+          '${counts[availability]} ${availability.label}',
+    ];
+    return parts.join(' · ');
+  }
+
+  void _openMenu(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    showDesignSheet<void>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (canEdit)
+            DesignListTile(
+              leading: Icon(
+                Icons.edit_rounded,
+                color: tokens.primary,
+                size: 20,
+              ),
+              title: 'Bearbeiten',
+              onTap: () {
+                Navigator.pop(context);
+                onEdit();
+              },
+            ),
+          if (canFinalize)
+            DesignListTile(
+              leading: Icon(
+                Icons.check_circle_rounded,
+                color: tokens.success,
+                size: 20,
+              ),
+              title: 'Festlegen',
+              onTap: () {
+                Navigator.pop(context);
+                onFinalize();
+              },
+            ),
+          if (canEdit)
+            DesignListTile(
+              leading: Icon(
+                Icons.delete_rounded,
+                color: tokens.danger,
+                size: 20,
+              ),
+              title: 'Löschen',
+              onTap: () {
+                Navigator.pop(context);
+                onDelete();
+              },
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -819,7 +1059,7 @@ class _EventRow extends StatelessWidget {
         ),
         SizedBox(height: tokens.spaceXs),
         DesignText(
-          'Tag ${suggestion.dayIndex + 1} · ${planningEventWhen(suggestion)}',
+          planningEventWhen(suggestion),
           style: DesignTextStyle.label,
           color: tokens.textLow,
         ),

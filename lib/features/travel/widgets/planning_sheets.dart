@@ -1,16 +1,23 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+
+import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
+import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
+import '../models/travel_models.dart';
 import '../models/travel_planning_models.dart';
 import 'travel_timing_fields.dart';
 
@@ -53,13 +60,17 @@ class PlanningTransportDraft {
 }
 
 class PlanningAccommodationDraft {
-  final String name;
+  /// ID einer vorhandenen Katalog-Unterkunft (Wiederverwendung); `null`, wenn
+  /// eine neue Unterkunft angelegt wird.
+  final String? accommodationId;
+  final String? name;
   final String? description;
   final String? address;
   final double? pricePerPersonPerNight;
   final String? currency;
 
   const PlanningAccommodationDraft({
+    this.accommodationId,
     required this.name,
     required this.description,
     required this.address,
@@ -71,7 +82,6 @@ class PlanningAccommodationDraft {
 class PlanningEventDraft {
   final String name;
   final String? description;
-  final int dayIndex;
   final bool allDay;
   final String timezone;
   final DateTime? startDate;
@@ -79,11 +89,12 @@ class PlanningEventDraft {
   final DateTime? startAt;
   final DateTime? endAt;
   final String? address;
+  final double? latitude;
+  final double? longitude;
 
   const PlanningEventDraft({
     required this.name,
     required this.description,
-    required this.dayIndex,
     required this.allDay,
     required this.timezone,
     required this.startDate,
@@ -91,6 +102,8 @@ class PlanningEventDraft {
     required this.startAt,
     required this.endAt,
     required this.address,
+    required this.latitude,
+    required this.longitude,
   });
 }
 
@@ -353,25 +366,39 @@ class _AccommodationSheet extends StatefulWidget {
 }
 
 class _AccommodationSheetState extends State<_AccommodationSheet> {
-  late final TextEditingController _name;
-  late final TextEditingController _description;
-  late final TextEditingController _address;
-  late final TextEditingController _price;
-  late final TextEditingController _currency;
+  final _search = TextEditingController();
+  final _name = TextEditingController();
+  final _description = TextEditingController();
+  final _address = TextEditingController();
+  final _price = TextEditingController();
+  final _currency = TextEditingController(text: 'EUR');
+
+  Timer? _debounce;
+  List<TravelAccommodation> _results = const [];
+  bool _searching = false;
+  TravelAccommodation? _selected;
+
+  bool get _isEdit => widget.initial != null;
 
   @override
   void initState() {
     super.initState();
     final initial = widget.initial;
-    _name = TextEditingController(text: initial?.name ?? '');
-    _description = TextEditingController(text: initial?.description ?? '');
-    _address = TextEditingController(text: initial?.address ?? '');
-    _price = TextEditingController(text: initial?.pricePerPersonPerNight ?? '');
-    _currency = TextEditingController(text: initial?.currency ?? 'EUR');
+    if (initial != null) {
+      _name.text = initial.name ?? '';
+      _description.text = initial.description ?? '';
+      _address.text = initial.address ?? '';
+      _price.text = initial.pricePerPersonPerNight ?? '';
+      _currency.text = (initial.currency == null || initial.currency!.isEmpty)
+          ? 'EUR'
+          : initial.currency!;
+    }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _search.dispose();
     _name.dispose();
     _description.dispose();
     _address.dispose();
@@ -380,10 +407,89 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
     super.dispose();
   }
 
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    final trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setState(() => _results = const []);
+      return;
+    }
+    _debounce = Timer(
+      const Duration(milliseconds: 350),
+      () => _searchCatalog(trimmed),
+    );
+  }
+
+  Future<void> _searchCatalog(String query) async {
+    setState(() => _searching = true);
+    try {
+      final results = await AppScope.of(
+        context,
+      ).travel.listAccommodationCatalog(query: query);
+      if (!mounted) return;
+      setState(() {
+        _results = results;
+        _searching = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _results = const [];
+        _searching = false;
+      });
+    }
+  }
+
+  void _select(TravelAccommodation accommodation) {
+    setState(() {
+      _selected = accommodation;
+      _results = const [];
+      _search.clear();
+    });
+  }
+
   double? _parsePrice() {
     final text = _price.text.trim().replaceAll(',', '.');
     if (text.isEmpty) return null;
     return double.tryParse(text);
+  }
+
+  bool get _canSave {
+    if (_selected != null) return true;
+    return _name.text.trim().isNotEmpty;
+  }
+
+  void _save() {
+    final currency = _currency.text.trim().isEmpty
+        ? null
+        : _currency.text.trim();
+    if (_selected != null) {
+      Navigator.pop(
+        context,
+        PlanningAccommodationDraft(
+          accommodationId: _selected!.id,
+          name: null,
+          description: null,
+          address: null,
+          pricePerPersonPerNight: _parsePrice(),
+          currency: currency,
+        ),
+      );
+      return;
+    }
+    Navigator.pop(
+      context,
+      PlanningAccommodationDraft(
+        accommodationId: widget.initial?.accommodationId,
+        name: _name.text.trim(),
+        description: _description.text.trim().isEmpty
+            ? null
+            : _description.text.trim(),
+        address: _address.text.trim().isEmpty ? null : _address.text.trim(),
+        pricePerPersonPerNight: _parsePrice(),
+        currency: currency,
+      ),
+    );
   }
 
   @override
@@ -394,22 +500,124 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DesignText(
-          widget.initial == null
-              ? 'Unterkunft vorschlagen'
-              : 'Unterkunft bearbeiten',
+          _isEdit ? 'Unterkunft bearbeiten' : 'Unterkunft vorschlagen',
           style: DesignTextStyle.subtitle,
           color: tokens.textHigh,
         ),
         SizedBox(height: tokens.spaceMd),
-        DesignTextField(hint: 'Name', controller: _name),
-        SizedBox(height: tokens.spaceMd),
-        DesignTextField(hint: 'Adresse (optional)', controller: _address),
-        SizedBox(height: tokens.spaceMd),
-        DesignTextField(
-          hint: 'Beschreibung (optional)',
-          controller: _description,
-          maxLines: 2,
-        ),
+        if (!_isEdit) ...[
+          DesignText(
+            'Vorhandene Unterkunft suchen',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          DesignTextField(
+            hint: 'Name der Unterkunft',
+            controller: _search,
+            prefixIcon: Icons.search_rounded,
+            onChanged: _onSearchChanged,
+          ),
+          if (_searching) ...[
+            SizedBox(height: tokens.spaceSm),
+            Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: tokens.primary,
+                ),
+              ),
+            ),
+          ],
+          if (_results.isNotEmpty) ...[
+            SizedBox(height: tokens.spaceSm),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 220),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _results.length,
+                itemBuilder: (context, index) {
+                  final item = _results[index];
+                  return DesignListTile(
+                    leading: Icon(
+                      item.ishotel == 1
+                          ? Icons.hotel_rounded
+                          : Icons.home_rounded,
+                      color: tokens.textHigh,
+                      size: 20,
+                    ),
+                    title: item.name,
+                    subtitle: item.address,
+                    onTap: () => _select(item),
+                  );
+                },
+              ),
+            ),
+          ],
+          if (_selected != null) ...[
+            SizedBox(height: tokens.spaceSm),
+            Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: tokens.primary,
+                  size: 20,
+                ),
+                SizedBox(width: tokens.spaceSm),
+                Expanded(
+                  child: DesignText(
+                    _selected!.name,
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                  ),
+                ),
+                DesignButton(
+                  label: 'Ändern',
+                  variant: DesignButtonVariant.text,
+                  onPressed: () => setState(() => _selected = null),
+                ),
+              ],
+            ),
+          ],
+          if (_selected == null) ...[
+            SizedBox(height: tokens.spaceMd),
+            DesignText(
+              'Oder neue Unterkunft anlegen',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+            SizedBox(height: tokens.spaceSm),
+            DesignTextField(
+              hint: 'Name',
+              controller: _name,
+              onChanged: (_) => setState(() {}),
+            ),
+            SizedBox(height: tokens.spaceMd),
+            DesignTextField(hint: 'Adresse (optional)', controller: _address),
+            SizedBox(height: tokens.spaceMd),
+            DesignTextField(
+              hint: 'Beschreibung (optional)',
+              controller: _description,
+              maxLines: 2,
+            ),
+          ],
+        ] else ...[
+          DesignTextField(
+            hint: 'Name',
+            controller: _name,
+            onChanged: (_) => setState(() {}),
+          ),
+          SizedBox(height: tokens.spaceMd),
+          DesignTextField(hint: 'Adresse (optional)', controller: _address),
+          SizedBox(height: tokens.spaceMd),
+          DesignTextField(
+            hint: 'Beschreibung (optional)',
+            controller: _description,
+            maxLines: 2,
+          ),
+        ],
         SizedBox(height: tokens.spaceMd),
         Row(
           children: [
@@ -433,24 +641,7 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
         DesignButton(
           label: 'Speichern',
           fullWidth: true,
-          onPressed: _name.text.trim().isEmpty
-              ? null
-              : () => Navigator.pop(
-                  context,
-                  PlanningAccommodationDraft(
-                    name: _name.text.trim(),
-                    description: _description.text.trim().isEmpty
-                        ? null
-                        : _description.text.trim(),
-                    address: _address.text.trim().isEmpty
-                        ? null
-                        : _address.text.trim(),
-                    pricePerPersonPerNight: _parsePrice(),
-                    currency: _currency.text.trim().isEmpty
-                        ? null
-                        : _currency.text.trim(),
-                  ),
-                ),
+          onPressed: _canSave ? _save : null,
         ),
       ],
     );
@@ -481,22 +672,23 @@ class _EventSheet extends StatefulWidget {
 }
 
 class _EventSheetState extends State<_EventSheet> {
-  late final TextEditingController _name;
-  late final TextEditingController _description;
-  late final TextEditingController _address;
-  late final TextEditingController _day;
+  final _name = TextEditingController();
+  final _description = TextEditingController();
+  final _address = TextEditingController();
+  final _mapController = MapController();
   late TravelTimingInput _timing;
+  LatLng? _location;
 
   @override
   void initState() {
     super.initState();
     final initial = widget.initial;
-    _name = TextEditingController(text: initial?.name ?? '');
-    _description = TextEditingController(text: initial?.description ?? '');
-    _address = TextEditingController(text: initial?.address ?? '');
-    _day = TextEditingController(
-      text: (((initial?.dayIndex ?? 0)) + 1).toString(),
-    );
+    _name.text = initial?.name ?? '';
+    _description.text = initial?.description ?? '';
+    _address.text = initial?.address ?? '';
+    if (initial?.latitude != null && initial?.longitude != null) {
+      _location = LatLng(initial!.latitude!, initial.longitude!);
+    }
     _timing = TravelTimingInput(
       allDay: initial?.allDay ?? false,
       timezone: initial?.timezone ?? widget.initialTimezone ?? 'UTC',
@@ -516,8 +708,29 @@ class _EventSheetState extends State<_EventSheet> {
     _name.dispose();
     _description.dispose();
     _address.dispose();
-    _day.dispose();
+    _mapController.dispose();
     super.dispose();
+  }
+
+  void _save() {
+    Navigator.pop(
+      context,
+      PlanningEventDraft(
+        name: _name.text.trim(),
+        description: _description.text.trim().isEmpty
+            ? null
+            : _description.text.trim(),
+        allDay: _timing.allDay,
+        timezone: _timing.timezone,
+        startDate: _timing.startDate,
+        endDate: _timing.endDate,
+        startAt: _timing.startAt,
+        endAt: _timing.endAt,
+        address: _address.text.trim().isEmpty ? null : _address.text.trim(),
+        latitude: _location?.latitude,
+        longitude: _location?.longitude,
+      ),
+    );
   }
 
   @override
@@ -533,7 +746,11 @@ class _EventSheetState extends State<_EventSheet> {
           color: tokens.textHigh,
         ),
         SizedBox(height: tokens.spaceMd),
-        DesignTextField(hint: 'Name', controller: _name),
+        DesignTextField(
+          hint: 'Name',
+          controller: _name,
+          onChanged: (_) => setState(() {}),
+        ),
         SizedBox(height: tokens.spaceMd),
         DesignTextField(
           hint: 'Beschreibung (optional)',
@@ -541,11 +758,7 @@ class _EventSheetState extends State<_EventSheet> {
           maxLines: 2,
         ),
         SizedBox(height: tokens.spaceMd),
-        DesignTextField(
-          hint: 'Tag',
-          controller: _day,
-          keyboardType: TextInputType.number,
-        ),
+        _buildMap(tokens),
         SizedBox(height: tokens.spaceMd),
         DesignTextField(hint: 'Ort (optional)', controller: _address),
         SizedBox(height: tokens.spaceLg),
@@ -557,31 +770,68 @@ class _EventSheetState extends State<_EventSheet> {
         DesignButton(
           label: 'Speichern',
           fullWidth: true,
-          onPressed: _name.text.trim().isEmpty
-              ? null
-              : () {
-                  final day = (int.tryParse(_day.text.trim()) ?? 1) - 1;
-                  Navigator.pop(
-                    context,
-                    PlanningEventDraft(
-                      name: _name.text.trim(),
-                      description: _description.text.trim().isEmpty
-                          ? null
-                          : _description.text.trim(),
-                      dayIndex: day < 0 ? 0 : day,
-                      allDay: _timing.allDay,
-                      timezone: _timing.timezone,
-                      startDate: _timing.startDate,
-                      endDate: _timing.endDate,
-                      startAt: _timing.startAt,
-                      endAt: _timing.endAt,
-                      address: _address.text.trim().isEmpty
-                          ? null
-                          : _address.text.trim(),
-                    ),
-                  );
-                },
+          onPressed: _name.text.trim().isEmpty ? null : _save,
         ),
+      ],
+    );
+  }
+
+  Widget _buildMap(DesignTokens tokens) {
+    final location = _location;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DesignText(
+          'Ort auf der Karte',
+          style: DesignTextStyle.label,
+          color: tokens.textLow,
+        ),
+        SizedBox(height: tokens.spaceSm),
+        SizedBox(
+          height: 220,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(tokens.radiusMd),
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: location ?? const LatLng(51.1657, 10.4515),
+                initialZoom: location != null ? 15 : 6,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                ),
+                onTap: (tapPosition, latLng) {
+                  setState(() => _location = latLng);
+                },
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: OsmConfig.tileUrlTemplate,
+                  userAgentPackageName: OsmConfig.tileUserAgent,
+                  tileProvider: osmTileProvider(),
+                ),
+                if (location != null)
+                  MarkerLayer(
+                    markers: [
+                      designMapMarker(
+                        point: location,
+                        icon: Icons.location_on_rounded,
+                        color: tokens.danger,
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (location != null) ...[
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
+            '${location.latitude.toStringAsFixed(5)}, '
+            '${location.longitude.toStringAsFixed(5)}',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+        ],
       ],
     );
   }

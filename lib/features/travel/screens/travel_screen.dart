@@ -18,6 +18,7 @@ import '../screens/event_detail_screen.dart';
 import '../screens/pt_search_screen.dart';
 import '../services/travel_service.dart';
 import '../widgets/pt_journey_card.dart';
+import '../widgets/travel_create_sheet.dart';
 
 class TravelScreen extends StatefulWidget {
   const TravelScreen({super.key});
@@ -169,6 +170,21 @@ class _TravelScreenState extends State<TravelScreen> {
     if (changed == true && mounted) _load();
   }
 
+  Future<void> _openCreateMenu() async {
+    final action = await showTravelCreateSheet(context: context);
+    if (action == null || !mounted) return;
+    switch (action) {
+      case TravelCreateAction.tripWithPlanning:
+        await _navigateToCreate('/reisen/planung/neu');
+      case TravelCreateAction.tripWithoutPlanning:
+        await _navigateToCreate('/reisen/neu');
+      case TravelCreateAction.standaloneEvent:
+        await _navigateToCreate('/reisen/einzelevent/neu');
+      case TravelCreateAction.ptSearch:
+        await _navigateToSearch();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
@@ -178,37 +194,10 @@ class _TravelScreenState extends State<TravelScreen> {
         Positioned(
           right: tokens.spaceLg,
           bottom: tokens.spaceLg,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              DesignFab(
-                icon: Icons.groups_rounded,
-                size: DesignFabSize.small,
-                onPressed: () => _navigateToCreate('/reisen/planung/neu'),
-                tooltip: 'Reise gemeinsam planen',
-              ),
-              SizedBox(height: tokens.spaceSm),
-              DesignFab(
-                icon: Icons.flight_takeoff_rounded,
-                size: DesignFabSize.small,
-                onPressed: () => _navigateToCreate('/reisen/neu'),
-                tooltip: 'Neue Reise',
-              ),
-              SizedBox(height: tokens.spaceSm),
-              DesignFab(
-                icon: Icons.event_rounded,
-                size: DesignFabSize.small,
-                onPressed: () => _navigateToCreate('/reisen/einzelevent/neu'),
-                tooltip: 'Neues Event',
-              ),
-              SizedBox(height: tokens.spaceSm),
-              DesignFab(
-                icon: Icons.directions_bus_rounded,
-                onPressed: _navigateToSearch,
-                tooltip: 'ÖPNV-Suche',
-              ),
-            ],
+          child: DesignFab(
+            icon: Icons.add_rounded,
+            onPressed: _openCreateMenu,
+            tooltip: 'Neu erstellen',
           ),
         ),
       ],

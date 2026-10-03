@@ -203,6 +203,55 @@ void main() {
     });
   });
 
+  group('PlanningPhaseSection', () {
+    testWidgets('Begonnene Phase ist offen, Inhalt sichtbar', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          const PlanningPhaseSection(
+            label: 'Wann und wer?',
+            status: 'in_progress',
+            child: Text('Inhalt'),
+          ),
+        ),
+      );
+
+      expect(find.text('Inhalt'), findsOneWidget);
+      expect(find.text('Begonnen'), findsOneWidget);
+    });
+
+    testWidgets('Ausstehende Phase bleibt zu und ohne Inhalt', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          const PlanningPhaseSection(
+            label: 'Wo und wie?',
+            status: 'pending',
+            child: Text('Inhalt'),
+          ),
+        ),
+      );
+
+      expect(find.text('Inhalt'), findsNothing);
+      expect(find.text('Ausstehend'), findsOneWidget);
+    });
+
+    testWidgets('Abgeschlossene Phase lässt sich ausklappen', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          const PlanningPhaseSection(
+            label: 'Was machen wir?',
+            status: 'completed',
+            child: Text('Inhalt'),
+          ),
+        ),
+      );
+
+      expect(find.text('Inhalt'), findsNothing);
+      await tester.tap(find.text('Was machen wir?'));
+      await tester.pumpAndSettle();
+      expect(find.text('Inhalt'), findsOneWidget);
+    });
+  });
+
   group('PlanningDateOptionsSection', () {
     testWidgets('markiert festgelegten Termin und erlaubt Festlegen', (
       tester,
@@ -226,15 +275,20 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('Festgelegt: Woche 1'), findsOneWidget);
+      // Der Zeitraum ist der Titel, die Bezeichnung steht kleiner darunter.
+      expect(find.text('Festgelegt'), findsOneWidget);
+      expect(find.text('Woche 1'), findsOneWidget);
+      expect(find.text('Woche 2'), findsOneWidget);
 
-      final festlegen = find.widgetWithText(DesignButton, 'Festlegen');
-      expect(festlegen, findsOneWidget);
-      await tester.tap(festlegen);
+      // Die Leitungsaktion liegt im Drei-Punkte-Menü der zweiten Karte.
+      await tester.tap(find.byIcon(Icons.more_vert_rounded).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Festlegen'));
+      await tester.pumpAndSettle();
       expect(finalized, 'd2');
     });
 
-    testWidgets('zeigt Festlegen nicht für einfache Mitglieder', (
+    testWidgets('zeigt Leitungsaktionen nicht für einfache Mitglieder', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -252,7 +306,7 @@ void main() {
         ),
       );
 
-      expect(find.widgetWithText(DesignButton, 'Festlegen'), findsNothing);
+      expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
       expect(find.text('Noch keine Terminvorschläge.'), findsNothing);
     });
   });
