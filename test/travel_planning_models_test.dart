@@ -139,6 +139,16 @@ void main() {
       expect(PlanningPhase.label('program'), 'Was machen wir?');
     });
 
+    test(
+      'jede Phase hat eine Erklärung, unbekannte Topics fallen leer aus',
+      () {
+        expect(PlanningPhase.explanation('participants'), isNotEmpty);
+        expect(PlanningPhase.explanation('travel'), isNotEmpty);
+        expect(PlanningPhase.explanation('program'), isNotEmpty);
+        expect(PlanningPhase.explanation('unbekannt'), isEmpty);
+      },
+    );
+
     test('allResolved: abgeschlossen oder übersprungen zählt', () {
       expect(
         PlanningPhase.allResolved({

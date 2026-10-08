@@ -450,16 +450,13 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
     await _saveDraft(draft);
   }
 
-  /// Persistiert Name/Beschreibung und alle geänderten Phasen.
+  /// Persistiert Name und Beschreibung.
   Future<void> _persist(_PlanningEditDraft draft) async {
     await _service.update(
       widget.id,
       name: draft.name,
       description: draft.description,
     );
-    for (final entry in draft.changedStatuses.entries) {
-      await _service.setTopicStatus(widget.id, entry.key, entry.value);
-    }
   }
 
   /// Speichert die Änderungen aus dem Sheet und bestätigt mit Feedback.
@@ -487,6 +484,79 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
       await _service.activate(widget.id);
       if (mounted) context.go('/reisen/${widget.id}');
     });
+  }
+
+  /// Öffnet das Status-Sheet einer Phase und speichert die gewählte Änderung.
+  Future<void> _editPhase(String topic) async {
+    final detail = _detail;
+    if (detail == null) return;
+    final current = detail.topicStatusFor(topic);
+    final status = await _showPhaseStatusSheet(topic, current);
+    if (status == null || status == current || !mounted) return;
+    await _run(() => _service.setTopicStatus(widget.id, topic, status));
+  }
+
+  /// Bottom-Sheet zur Auswahl eines Phasenstatus; liefert den Wert oder `null`.
+  Future<String?> _showPhaseStatusSheet(String topic, String current) {
+    final tokens = DesignTheme.of(context);
+    return showDesignSheet<String>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesignText(
+            PlanningPhase.label(topic),
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceXs),
+          DesignText(
+            'Status dieser Phase festlegen.',
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceLg),
+          Wrap(
+            spacing: tokens.spaceSm,
+            runSpacing: tokens.spaceSm,
+            children: [
+              for (final option in _phaseStatusOptions)
+                DesignChip(
+                  label: option.label,
+                  selected: current == option.value,
+                  onTap: () => Navigator.pop(context, option.value),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Zeigt die Erklärung einer Phase in einem Info-Sheet.
+  void _showPhaseHelp(String topic) {
+    final tokens = DesignTheme.of(context);
+    showDesignSheet<void>(
+      context: context,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DesignText(
+            PlanningPhase.label(topic),
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          DesignText(
+            PlanningPhase.explanation(topic),
+            style: DesignTextStyle.body,
+            color: tokens.textLow,
+          ),
+        ],
+      ),
+    );
   }
 
   Future<bool?> _confirm(String title, String body, String action) {
@@ -542,32 +612,14 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
             color: tokens.textHigh,
           ),
           SizedBox(height: tokens.spaceMd),
-          if (detail.canManage)
-            DesignListTile(
-              leading: Icon(
-                Icons.edit_rounded,
-                color: tokens.primary,
-                size: 20,
-              ),
-              title: 'Planung bearbeiten',
-              onTap: () {
-                Navigator.pop(context);
-                _editTrip();
-              },
-            ),
-          if (!detail.canManage)
-            DesignListTile(
-              leading: Icon(
-                Icons.logout_rounded,
-                color: tokens.danger,
-                size: 20,
-              ),
-              title: 'Teilnahme zurückziehen',
-              onTap: () {
-                Navigator.pop(context);
-                _withdraw();
-              },
-            ),
+          DesignListTile(
+            leading: Icon(Icons.logout_rounded, color: tokens.danger, size: 20),
+            title: 'Teilnahme zurückziehen',
+            onTap: () {
+              Navigator.pop(context);
+              _withdraw();
+            },
+          ),
         ],
       ),
     );
@@ -591,7 +643,12 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
                 ),
                 title: _detail?.name ?? 'Planung',
                 actions: [
-                  if (_detail != null)
+                  if (_detail != null && _detail!.canManage)
+                    DesignIconButton(
+                      icon: Icons.edit_rounded,
+                      onPressed: _editTrip,
+                    )
+                  else if (_detail != null)
                     DesignIconButton(
                       icon: Icons.more_vert_rounded,
                       onPressed: _openMenu,
@@ -666,13 +723,20 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
                 onDecline: () => _respond('declined'),
               ),
             ),
-          Padding(
-            padding: EdgeInsets.only(bottom: tokens.spaceMd),
-            child: DesignPlanPhaseProgress(phases: planningPhases(detail)),
-          ),
+          if (detail.canManage)
+            Padding(
+              padding: EdgeInsets.only(bottom: tokens.spaceMd),
+              child: DesignPlanPhaseProgress(
+                phases: planningPhases(
+                  detail,
+                  onPhaseTap: detail.state == 'planning' ? _editPhase : null,
+                ),
+              ),
+            ),
           PlanningPhaseSection(
             label: PlanningPhase.label(PlanningPhase.participants),
             status: detail.topicStatusFor(PlanningPhase.participants),
+            onHelp: () => _showPhaseHelp(PlanningPhase.participants),
             child: Column(
               children: [
                 Padding(
@@ -700,6 +764,7 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
           PlanningPhaseSection(
             label: PlanningPhase.label(PlanningPhase.travel),
             status: detail.topicStatusFor(PlanningPhase.travel),
+            onHelp: () => _showPhaseHelp(PlanningPhase.travel),
             child: Column(
               children: [
                 Padding(
@@ -724,6 +789,7 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
           PlanningPhaseSection(
             label: PlanningPhase.label(PlanningPhase.program),
             status: detail.topicStatusFor(PlanningPhase.program),
+            onHelp: () => _showPhaseHelp(PlanningPhase.program),
             child: PlanningEventsSection(
               suggestions: detail.eventSuggestions,
               canManage: detail.canManage,
@@ -752,23 +818,16 @@ const _phaseStatusOptions = [
 
 /// Gesammelte Änderungen aus dem „Planung bearbeiten"-Sheet.
 class _PlanningEditDraft {
-  const _PlanningEditDraft({
-    required this.name,
-    required this.description,
-    required this.changedStatuses,
-  });
+  const _PlanningEditDraft({required this.name, required this.description});
 
   final String name;
   final String? description;
-
-  /// Nur die Phasen, deren Status vom geladenen Serverstand abweicht.
-  final Map<String, String> changedStatuses;
 }
 
-/// Gemeinsames Bearbeiten-Sheet: Details, Phasenstatus und Aktivierung.
+/// Bearbeiten-Sheet für Titel und Beschreibung sowie die Aktivierung.
 ///
-/// Ersetzt das frühere getrennte „Planung bearbeiten"/„Leitung steuern".
-/// Änderungen werden gesammelt und erst mit „Speichern" persistiert; „Reise
+/// Der Phasenstatus wird nicht mehr hier, sondern direkt über die
+/// antippbaren Phasen in der Fortschrittsanzeige geändert. „Reise
 /// aktivieren" ist erst freigeschaltet, wenn alle Phasen abgeschlossen oder
 /// übersprungen sind.
 class _PlanningEditSheet extends StatefulWidget {
@@ -786,15 +845,9 @@ class _PlanningEditSheet extends StatefulWidget {
 class _PlanningEditSheetState extends State<_PlanningEditSheet> {
   late final TextEditingController _name;
   late final TextEditingController _description;
-  late final Map<String, String> _statuses = {
-    for (final topic in PlanningPhase.order)
-      topic: widget.detail.topicStatusFor(topic),
-  };
 
-  /// Phasen und Aktivierung sind nur in der Planungsphase verfügbar.
+  /// Aktivierung ist nur in der Planungsphase verfügbar.
   bool get _showPlanning => widget.detail.state == 'planning';
-
-  bool get _canActivate => PlanningPhase.allResolved(_statuses);
 
   @override
   void initState() {
@@ -811,24 +864,18 @@ class _PlanningEditSheetState extends State<_PlanningEditSheet> {
   }
 
   _PlanningEditDraft _draft() {
-    final changed = <String, String>{};
-    for (final topic in PlanningPhase.order) {
-      if (_statuses[topic] != widget.detail.topicStatusFor(topic)) {
-        changed[topic] = _statuses[topic]!;
-      }
-    }
     return _PlanningEditDraft(
       name: _name.text.trim(),
       description: _description.text.trim().isEmpty
           ? null
           : _description.text.trim(),
-      changedStatuses: changed,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final canActivate = widget.detail.allPhasesResolved;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -840,7 +887,7 @@ class _PlanningEditSheetState extends State<_PlanningEditSheet> {
         ),
         SizedBox(height: tokens.spaceXs),
         DesignText(
-          'Details und Phasen der Reise',
+          'Details der Reise',
           style: DesignTextStyle.body,
           color: tokens.textLow,
         ),
@@ -856,44 +903,6 @@ class _PlanningEditSheetState extends State<_PlanningEditSheet> {
           controller: _description,
           maxLines: 3,
         ),
-        if (_showPlanning) ...[
-          SizedBox(height: tokens.spaceXl),
-          DesignText(
-            'Phasen',
-            style: DesignTextStyle.subtitle,
-            color: tokens.textHigh,
-          ),
-          SizedBox(height: tokens.spaceXs),
-          DesignText(
-            'Abgeschlossene oder übersprungene Phasen geben die Reise zur '
-            'Aktivierung frei.',
-            style: DesignTextStyle.label,
-            color: tokens.textLow,
-          ),
-          SizedBox(height: tokens.spaceMd),
-          for (final topic in PlanningPhase.order) ...[
-            DesignText(
-              PlanningPhase.label(topic),
-              style: DesignTextStyle.body,
-              color: tokens.textHigh,
-            ),
-            SizedBox(height: tokens.spaceSm),
-            Wrap(
-              spacing: tokens.spaceSm,
-              runSpacing: tokens.spaceSm,
-              children: [
-                for (final option in _phaseStatusOptions)
-                  DesignChip(
-                    label: option.label,
-                    selected: _statuses[topic] == option.value,
-                    onTap: () =>
-                        setState(() => _statuses[topic] = option.value),
-                  ),
-              ],
-            ),
-            SizedBox(height: tokens.spaceMd),
-          ],
-        ],
         SizedBox(height: tokens.spaceXl),
         DesignButton(
           label: 'Speichern',
@@ -909,7 +918,7 @@ class _PlanningEditSheetState extends State<_PlanningEditSheet> {
           DesignButton(
             label: 'Reise aktivieren',
             fullWidth: true,
-            onPressed: _canActivate
+            onPressed: canActivate
                 ? () {
                     final draft = _draft();
                     Navigator.pop(context);
@@ -917,7 +926,7 @@ class _PlanningEditSheetState extends State<_PlanningEditSheet> {
                   }
                 : null,
           ),
-          if (!_canActivate) ...[
+          if (!canActivate) ...[
             SizedBox(height: tokens.spaceSm),
             DesignText(
               'Erst alle Phasen abschließen oder überspringen.',

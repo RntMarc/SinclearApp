@@ -51,7 +51,7 @@ class _PlanningCreateScreenState extends State<PlanningCreateScreen> {
 
     setState(() => _saving = true);
     try {
-      await AppScope.of(context).planning.create(
+      final detail = await AppScope.of(context).planning.create(
         name: name,
         description: _description.text.trim().isEmpty
             ? null
@@ -59,7 +59,7 @@ class _PlanningCreateScreenState extends State<PlanningCreateScreen> {
         skippedTopics: _skipped.toList(),
       );
       if (!mounted) return;
-      context.pop(true);
+      context.go('/reisen/planung/${detail.id}');
     } on ApiException catch (e) {
       developer.log('Failed to create planning trip', error: e);
       if (!mounted) return;
