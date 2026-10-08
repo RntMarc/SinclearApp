@@ -32,6 +32,28 @@ class PlanningPhase {
     _ => topic,
   };
 
+  /// Kurze Erklärung einer Phase (was geplant wird und wie es abläuft).
+  ///
+  /// Dient als einzige Textquelle für die Info-Sheets der Phasen-Abschnitte,
+  /// damit künftige Änderungen an Ablauf oder UI an einer Stelle nachgezogen
+  /// werden.
+  static String explanation(String topic) => switch (topic) {
+    participants =>
+      'Hier klärst du, wer mitfährt und wann ihr reist. Jedes Mitglied '
+          'lädt andere ein und stimmt über Terminvorschläge mit '
+          'Ja/Vielleicht/Nein ab. Die Leitung legt am Ende einen Termin '
+          'verbindlich fest.',
+    travel =>
+      'Hier plant ihr An- und Abreise sowie die Unterkunft. Alle tragen '
+          'ihr Verkehrsmittel ein (auch Mitfahrgelegenheiten) und schlagen '
+          'Unterkünfte vor. Die Leitung wählt die Unterkunft verbindlich aus.',
+    program =>
+      'Hier sammelt ihr Ideen für das Tagesprogramm. Jeder kann Events '
+          'vorschlagen und mit Ja/Vielleicht/Nein Interesse zeigen. Die '
+          'Leitung bestätigt die Events, die in die Reise übernommen werden.',
+    _ => '',
+  };
+
   /// Ob alle Phasen abgeschlossen oder übersprungen sind.
   ///
   /// Fehlt ein Topic im [statuses]-Eintrag, gilt es als `pending` und damit

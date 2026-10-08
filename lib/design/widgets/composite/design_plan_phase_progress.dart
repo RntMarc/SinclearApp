@@ -4,6 +4,7 @@ import '../../theme/design_theme.dart';
 import '../foundation/design_text.dart';
 import '../primitives/design_badge.dart';
 import '../primitives/design_card.dart';
+import '../primitives/press_scale.dart';
 
 /// Status einer Planungsphase im Fortschritt.
 ///
@@ -24,10 +25,17 @@ enum DesignPlanPhaseStatus {
 
 /// Eine Phase des Fortschritts (modellfrei).
 class DesignPlanPhase {
-  const DesignPlanPhase({required this.label, required this.status});
+  const DesignPlanPhase({
+    required this.label,
+    required this.status,
+    this.onTap,
+  });
 
   final String label;
   final DesignPlanPhaseStatus status;
+
+  /// Optionale Tap-Aktion; macht die Zeile antippbar (z. B. Statuswechsel).
+  final VoidCallback? onTap;
 }
 
 /// Fortschrittsanzeige der Planungsphasen.
@@ -57,7 +65,7 @@ class _PhaseRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    return Row(
+    final row = Row(
       children: <Widget>[
         Icon(phase.status.icon, color: _color(tokens), size: 20),
         SizedBox(width: tokens.spaceSm),
@@ -70,8 +78,15 @@ class _PhaseRow extends StatelessWidget {
         ),
         SizedBox(width: tokens.spaceSm),
         DesignBadge(label: phase.status.label, color: _color(tokens)),
+        if (phase.onTap != null)
+          Padding(
+            padding: EdgeInsets.only(left: tokens.spaceSm),
+            child: Icon(Icons.chevron_right_rounded, color: tokens.textLow),
+          ),
       ],
     );
+    if (phase.onTap == null) return row;
+    return PressScale(onTap: phase.onTap, child: row);
   }
 
   Color _color(DesignTokens tokens) => switch (phase.status) {

@@ -19,12 +19,19 @@ import '../models/travel_planning_models.dart';
 // ──────────────────────────── Adapter / Formatierung ────────────────────────────
 
 /// Fortschrittsphasen für den Katalog-Widget.
-List<DesignPlanPhase> planningPhases(PlanningTrip trip) {
+///
+/// Ist [onPhaseTap] gesetzt, wird jede Phase antippbar (z. B. für den
+/// Statuswechsel durch die Leitung).
+List<DesignPlanPhase> planningPhases(
+  PlanningTrip trip, {
+  void Function(String topic)? onPhaseTap,
+}) {
   return [
     for (final topic in PlanningPhase.order)
       DesignPlanPhase(
         label: PlanningPhase.label(topic),
         status: _phaseStatus(trip.topicStatusFor(topic)),
+        onTap: onPhaseTap == null ? null : () => onPhaseTap(topic),
       ),
   ];
 }
@@ -153,6 +160,7 @@ class PlanningPhaseSection extends StatefulWidget {
     required this.label,
     required this.status,
     required this.child,
+    this.onHelp,
     super.key,
   });
 
@@ -164,6 +172,9 @@ class PlanningPhaseSection extends StatefulWidget {
 
   /// Inhalt des Abschnitts (die zur Phase gehörenden Karten).
   final Widget child;
+
+  /// Öffnet bei gesetzt die Info/Hilfe-Erklärung der Phase.
+  final VoidCallback? onHelp;
 
   @override
   State<PlanningPhaseSection> createState() => _PlanningPhaseSectionState();
@@ -207,6 +218,18 @@ class _PlanningPhaseSectionState extends State<PlanningPhaseSection> {
         ),
         SizedBox(width: tokens.spaceSm),
         DesignBadge(label: status.label, color: color),
+        if (widget.onHelp != null)
+          PressScale(
+            onTap: widget.onHelp,
+            child: Padding(
+              padding: EdgeInsets.all(tokens.spaceXs),
+              child: Icon(
+                Icons.info_outline_rounded,
+                size: 20,
+                color: tokens.textLow,
+              ),
+            ),
+          ),
         if (_expandable)
           Padding(
             padding: EdgeInsets.only(left: tokens.spaceSm),
