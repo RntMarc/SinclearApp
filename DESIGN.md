@@ -129,6 +129,31 @@ Es gibt **zwei getrennte** Komponenten. Sie dürfen nie verwechselt werden.
   `DesignAppBar` als einzige Top-Level-AppBar in einem eigenen `Scaffold`
   nutzen.
 
+## Bottom Sheets
+
+Modale Bottom Sheets laufen ausnahmslos über `showDesignSheet`
+(`lib/design/widgets/composite/design_bottom_sheet.dart`). Es liefert den
+Drag-Handle, das einheitliche Außen-Padding (`spaceLg`/`spaceMd`/`spaceXl`)
+und die Glas- bzw. Solid-Oberfläche. Sheets bauen diesen Rahmen nie selbst
+nach.
+
+### Aufbau
+- **Titel** im `subtitle`-Style (normal case), z. B. „Planung bearbeiten".
+- Optional eine Zeile Objektbezug/Erklärung im `body`-Style mit `textLow`.
+- Nach dem Titel folgt `spaceLg` vor dem Inhalt; Formularfelder untereinander
+  mit `spaceMd`, Inhaltsgruppen mit `spaceLg`/`spaceXl`.
+- Bei Texteingaben `Padding(bottom: MediaQuery.viewInsets.bottom)`, damit die
+  Tastatur den Inhalt nicht verdeckt.
+
+### Aktionen
+- Unten eine `Row` aus `Expanded(DesignButton(...))`: `outlined`
+  „Abbrechen" links, `filled` Primäraktion rechts, Abstand `spaceSm`.
+  Ein einzelner Primär-Button nutzt `fullWidth`.
+- **Terminierende oder gefährliche Aktionen** (z. B. „Reise aktivieren")
+  stehen in einer eigenen, durch `DesignDivider` abgesetzten Sektion mit
+  Hinweistext und sind bis zur Erfüllung ihrer Vorbedingung deaktiviert
+  (`onPressed: null`, gefüllte Variante → sichtbarer grauer Zustand).
+
 ## Layout
 
 ### Breakpoint
