@@ -15,6 +15,7 @@ import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
+import '../../../design/widgets/primitives/design_divider.dart';
 import '../../../design/widgets/primitives/design_fab.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
@@ -107,23 +108,26 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
     }
   }
 
-  Future<void> _run(Future<void> Function() action) async {
-    if (_busy) return;
+  Future<bool> _run(Future<void> Function() action) async {
+    if (_busy) return false;
     setState(() => _busy = true);
     try {
       await action();
       await _reload();
+      return true;
     } on ApiException catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(planningErrorMessage(e))));
+      return false;
     } catch (e, st) {
       _log.warning('Planning action failed', e, st);
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Aktion fehlgeschlagen.')));
+      return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -435,10 +439,41 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
   ) =>
       _run(() => _service.setEventInterest(widget.id, suggestion.id, interest));
 
-  Future<void> _setTopicStatus(String topic, String status) =>
-      _run(() => _service.setTopicStatus(widget.id, topic, status));
+  Future<void> _editTrip() async {
+    final detail = _detail;
+    if (detail == null) return;
+    final draft = await showDesignSheet<_PlanningEditDraft>(
+      context: context,
+      child: _PlanningEditSheet(detail: detail, onActivate: _activateWithDraft),
+    );
+    if (draft == null || !mounted) return;
+    await _saveDraft(draft);
+  }
 
-  Future<void> _activate() async {
+  /// Persistiert Name/Beschreibung und alle geänderten Phasen.
+  Future<void> _persist(_PlanningEditDraft draft) async {
+    await _service.update(
+      widget.id,
+      name: draft.name,
+      description: draft.description,
+    );
+    for (final entry in draft.changedStatuses.entries) {
+      await _service.setTopicStatus(widget.id, entry.key, entry.value);
+    }
+  }
+
+  /// Speichert die Änderungen aus dem Sheet und bestätigt mit Feedback.
+  Future<void> _saveDraft(_PlanningEditDraft draft) async {
+    final saved = await _run(() => _persist(draft));
+    if (saved && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Planung gespeichert')));
+    }
+  }
+
+  /// Speichert die Änderungen aus dem Sheet und aktiviert die Reise.
+  Future<void> _activateWithDraft(_PlanningEditDraft draft) async {
     final confirmed = await _confirm(
       'Reise aktivieren?',
       'Die Planung wird abgeschlossen und die Reise wird für alle '
@@ -448,26 +483,10 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
     );
     if (confirmed != true || !mounted) return;
     await _run(() async {
+      await _persist(draft);
       await _service.activate(widget.id);
       if (mounted) context.go('/reisen/${widget.id}');
     });
-  }
-
-  Future<void> _editTrip() async {
-    final detail = _detail;
-    if (detail == null) return;
-    final result = await showDesignSheet<({String name, String? description})>(
-      context: context,
-      child: _EditTripSheet(detail: detail),
-    );
-    if (result == null || !mounted) return;
-    await _run(
-      () => _service.update(
-        widget.id,
-        name: result.name,
-        description: result.description,
-      ),
-    );
   }
 
   Future<bool?> _confirm(String title, String body, String action) {
@@ -536,19 +555,6 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
                 _editTrip();
               },
             ),
-          if (detail.canManage && detail.state == 'planning')
-            DesignListTile(
-              leading: Icon(
-                Icons.tune_rounded,
-                color: tokens.primary,
-                size: 20,
-              ),
-              title: 'Leitung steuern',
-              onTap: () {
-                Navigator.pop(context);
-                _openLeadControls();
-              },
-            ),
           if (!detail.canManage)
             DesignListTile(
               leading: Icon(
@@ -563,19 +569,6 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
               },
             ),
         ],
-      ),
-    );
-  }
-
-  Future<void> _openLeadControls() async {
-    final detail = _detail;
-    if (detail == null) return;
-    await showDesignSheet<void>(
-      context: context,
-      child: _LeadControlsSheet(
-        detail: detail,
-        onSetTopicStatus: _setTopicStatus,
-        onActivate: _activate,
       ),
     );
   }
@@ -757,115 +750,51 @@ const _phaseStatusOptions = [
   (value: 'skipped', label: 'Übersprungen'),
 ];
 
-/// Leitungs-Sheet: Phasenstatus setzen und Reise aktivieren.
-///
-/// Wird nur der Leitung angezeigt, solange sich die Reise in der
-/// Planungsphase befindet. Die Statusänderungen werden nach Erfolg lokal
-/// nachgeführt, damit das Sheet offen bleiben kann.
-class _LeadControlsSheet extends StatefulWidget {
-  const _LeadControlsSheet({
-    required this.detail,
-    required this.onSetTopicStatus,
-    required this.onActivate,
+/// Gesammelte Änderungen aus dem „Planung bearbeiten"-Sheet.
+class _PlanningEditDraft {
+  const _PlanningEditDraft({
+    required this.name,
+    required this.description,
+    required this.changedStatuses,
   });
 
-  final PlanningTripDetail detail;
-  final Future<void> Function(String topic, String status) onSetTopicStatus;
-  final Future<void> Function() onActivate;
+  final String name;
+  final String? description;
 
-  @override
-  State<_LeadControlsSheet> createState() => _LeadControlsSheetState();
+  /// Nur die Phasen, deren Status vom geladenen Serverstand abweicht.
+  final Map<String, String> changedStatuses;
 }
 
-class _LeadControlsSheetState extends State<_LeadControlsSheet> {
+/// Gemeinsames Bearbeiten-Sheet: Details, Phasenstatus und Aktivierung.
+///
+/// Ersetzt das frühere getrennte „Planung bearbeiten"/„Leitung steuern".
+/// Änderungen werden gesammelt und erst mit „Speichern" persistiert; „Reise
+/// aktivieren" ist erst freigeschaltet, wenn alle Phasen abgeschlossen oder
+/// übersprungen sind.
+class _PlanningEditSheet extends StatefulWidget {
+  const _PlanningEditSheet({required this.detail, required this.onActivate});
+
+  final PlanningTripDetail detail;
+
+  /// Wird nach dem Schließen aufgerufen, um die Reise zu aktivieren.
+  final Future<void> Function(_PlanningEditDraft draft) onActivate;
+
+  @override
+  State<_PlanningEditSheet> createState() => _PlanningEditSheetState();
+}
+
+class _PlanningEditSheetState extends State<_PlanningEditSheet> {
+  late final TextEditingController _name;
+  late final TextEditingController _description;
   late final Map<String, String> _statuses = {
     for (final topic in PlanningPhase.order)
       topic: widget.detail.topicStatusFor(topic),
   };
 
-  bool _working = false;
+  /// Phasen und Aktivierung sind nur in der Planungsphase verfügbar.
+  bool get _showPlanning => widget.detail.state == 'planning';
 
-  Future<void> _set(String topic, String status) async {
-    if (_working || _statuses[topic] == status) return;
-    setState(() => _working = true);
-    await widget.onSetTopicStatus(topic, status);
-    if (!mounted) return;
-    setState(() {
-      _statuses[topic] = status;
-      _working = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        DesignText(
-          'Leitung',
-          style: DesignTextStyle.subtitle,
-          color: tokens.textHigh,
-        ),
-        SizedBox(height: tokens.spaceSm),
-        DesignText(
-          'Phasen steuern',
-          style: DesignTextStyle.label,
-          color: tokens.textLow,
-        ),
-        SizedBox(height: tokens.spaceMd),
-        for (final topic in PlanningPhase.order) ...[
-          DesignText(
-            PlanningPhase.label(topic),
-            style: DesignTextStyle.body,
-            color: tokens.textHigh,
-          ),
-          SizedBox(height: tokens.spaceXs),
-          Wrap(
-            spacing: tokens.spaceSm,
-            runSpacing: tokens.spaceSm,
-            children: [
-              for (final option in _phaseStatusOptions)
-                DesignChip(
-                  label: option.label,
-                  selected: _statuses[topic] == option.value,
-                  onTap: () => _set(topic, option.value),
-                ),
-            ],
-          ),
-          SizedBox(height: tokens.spaceMd),
-        ],
-        SizedBox(height: tokens.spaceSm),
-        DesignButton(
-          label: 'Reise aktivieren',
-          fullWidth: true,
-          loading: _working,
-          onPressed: _working
-              ? null
-              : () {
-                  Navigator.pop(context);
-                  widget.onActivate();
-                },
-        ),
-      ],
-    );
-  }
-}
-
-/// Sheet zum Bearbeiten von Name und Beschreibung der Planung.
-class _EditTripSheet extends StatefulWidget {
-  const _EditTripSheet({required this.detail});
-
-  final PlanningTripDetail detail;
-
-  @override
-  State<_EditTripSheet> createState() => _EditTripSheetState();
-}
-
-class _EditTripSheetState extends State<_EditTripSheet> {
-  late final TextEditingController _name;
-  late final TextEditingController _description;
+  bool get _canActivate => PlanningPhase.allResolved(_statuses);
 
   @override
   void initState() {
@@ -881,6 +810,22 @@ class _EditTripSheetState extends State<_EditTripSheet> {
     super.dispose();
   }
 
+  _PlanningEditDraft _draft() {
+    final changed = <String, String>{};
+    for (final topic in PlanningPhase.order) {
+      if (_statuses[topic] != widget.detail.topicStatusFor(topic)) {
+        changed[topic] = _statuses[topic]!;
+      }
+    }
+    return _PlanningEditDraft(
+      name: _name.text.trim(),
+      description: _description.text.trim().isEmpty
+          ? null
+          : _description.text.trim(),
+      changedStatuses: changed,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
@@ -893,27 +838,94 @@ class _EditTripSheetState extends State<_EditTripSheet> {
           style: DesignTextStyle.subtitle,
           color: tokens.textHigh,
         ),
-        SizedBox(height: tokens.spaceMd),
-        DesignTextField(hint: 'Name', controller: _name),
+        SizedBox(height: tokens.spaceXs),
+        DesignText(
+          'Details und Phasen der Reise',
+          style: DesignTextStyle.body,
+          color: tokens.textLow,
+        ),
+        SizedBox(height: tokens.spaceLg),
+        DesignTextField(
+          hint: 'Name',
+          controller: _name,
+          onChanged: (_) => setState(() {}),
+        ),
         SizedBox(height: tokens.spaceMd),
         DesignTextField(
           hint: 'Beschreibung (optional)',
           controller: _description,
           maxLines: 3,
         ),
+        if (_showPlanning) ...[
+          SizedBox(height: tokens.spaceXl),
+          DesignText(
+            'Phasen',
+            style: DesignTextStyle.subtitle,
+            color: tokens.textHigh,
+          ),
+          SizedBox(height: tokens.spaceXs),
+          DesignText(
+            'Abgeschlossene oder übersprungene Phasen geben die Reise zur '
+            'Aktivierung frei.',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+          SizedBox(height: tokens.spaceMd),
+          for (final topic in PlanningPhase.order) ...[
+            DesignText(
+              PlanningPhase.label(topic),
+              style: DesignTextStyle.body,
+              color: tokens.textHigh,
+            ),
+            SizedBox(height: tokens.spaceSm),
+            Wrap(
+              spacing: tokens.spaceSm,
+              runSpacing: tokens.spaceSm,
+              children: [
+                for (final option in _phaseStatusOptions)
+                  DesignChip(
+                    label: option.label,
+                    selected: _statuses[topic] == option.value,
+                    onTap: () =>
+                        setState(() => _statuses[topic] = option.value),
+                  ),
+              ],
+            ),
+            SizedBox(height: tokens.spaceMd),
+          ],
+        ],
         SizedBox(height: tokens.spaceXl),
         DesignButton(
           label: 'Speichern',
           fullWidth: true,
           onPressed: _name.text.trim().isEmpty
               ? null
-              : () => Navigator.pop(context, (
-                  name: _name.text.trim(),
-                  description: _description.text.trim().isEmpty
-                      ? null
-                      : _description.text.trim(),
-                )),
+              : () => Navigator.pop(context, _draft()),
         ),
+        if (_showPlanning) ...[
+          SizedBox(height: tokens.spaceXl),
+          const DesignDivider(),
+          SizedBox(height: tokens.spaceLg),
+          DesignButton(
+            label: 'Reise aktivieren',
+            fullWidth: true,
+            onPressed: _canActivate
+                ? () {
+                    final draft = _draft();
+                    Navigator.pop(context);
+                    widget.onActivate(draft);
+                  }
+                : null,
+          ),
+          if (!_canActivate) ...[
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              'Erst alle Phasen abschließen oder überspringen.',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ],
+        ],
       ],
     );
   }

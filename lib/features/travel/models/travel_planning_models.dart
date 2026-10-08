@@ -31,6 +31,15 @@ class PlanningPhase {
     program => 'Was machen wir?',
     _ => topic,
   };
+
+  /// Ob alle Phasen abgeschlossen oder übersprungen sind.
+  ///
+  /// Fehlt ein Topic im [statuses]-Eintrag, gilt es als `pending` und damit
+  /// als nicht aufgelöst.
+  static bool allResolved(Map<String, String> statuses) => order.every((topic) {
+    final status = statuses[topic] ?? 'pending';
+    return status == 'completed' || status == 'skipped';
+  });
 }
 
 /// Übersetzt Integer-Flags der API (`1`) und echte Bools in `bool`.
@@ -88,6 +97,9 @@ class PlanningTrip {
 
   /// Status der Phase [topic]; `pending`, wenn unbekannt.
   String topicStatusFor(String topic) => topicStatus[topic] ?? 'pending';
+
+  /// Ob alle Phasen abgeschlossen oder übersprungen sind (Aktivierung möglich).
+  bool get allPhasesResolved => PlanningPhase.allResolved(topicStatus);
 
   bool get isLeader => role == 'leader';
 

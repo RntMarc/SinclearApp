@@ -138,6 +138,58 @@ void main() {
       expect(PlanningPhase.label('travel'), 'Wo und wie?');
       expect(PlanningPhase.label('program'), 'Was machen wir?');
     });
+
+    test('allResolved: abgeschlossen oder übersprungen zählt', () {
+      expect(
+        PlanningPhase.allResolved({
+          'participants': 'completed',
+          'travel': 'skipped',
+          'program': 'completed',
+        }),
+        isTrue,
+      );
+    });
+
+    test('allResolved: offene oder begonnene Phase blockiert', () {
+      expect(
+        PlanningPhase.allResolved({
+          'participants': 'completed',
+          'travel': 'in_progress',
+          'program': 'skipped',
+        }),
+        isFalse,
+      );
+      expect(
+        PlanningPhase.allResolved({
+          'participants': 'completed',
+          'travel': 'skipped',
+        }),
+        isFalse,
+      );
+      expect(PlanningPhase.allResolved(const {}), isFalse);
+    });
+  });
+
+  group('PlanningTrip.allPhasesResolved', () {
+    test('leitet sich aus topicStatus ab', () {
+      final resolved = PlanningTrip.fromJson({
+        'id': 'p1',
+        'name': 'X',
+        'topicStatus': {
+          'participants': 'completed',
+          'travel': 'skipped',
+          'program': 'completed',
+        },
+      });
+      final open = PlanningTrip.fromJson({
+        'id': 'p2',
+        'name': 'Y',
+        'topicStatus': {'participants': 'completed'},
+      });
+
+      expect(resolved.allPhasesResolved, isTrue);
+      expect(open.allPhasesResolved, isFalse);
+    });
   });
 
   group('PlanEventSuggestion.fromJson', () {
