@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -13,12 +11,12 @@ import '../../../design/widgets/composite/design_list_tile.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
-import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_chip.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/travel_models.dart';
 import '../models/travel_planning_models.dart';
+import 'accommodation_picker_sheet.dart';
 import 'travel_timing_fields.dart';
 
 /// Entwürfe der Planungs-Formulare (Rückgabewerte der Sheets).
@@ -380,16 +378,12 @@ class _AccommodationSheet extends StatefulWidget {
 }
 
 class _AccommodationSheetState extends State<_AccommodationSheet> {
-  final _search = TextEditingController();
   final _name = TextEditingController();
   final _description = TextEditingController();
   final _address = TextEditingController();
   final _price = TextEditingController();
   final _currency = TextEditingController(text: 'EUR');
 
-  Timer? _debounce;
-  List<TravelAccommodation> _results = const [];
-  bool _searching = false;
   TravelAccommodation? _selected;
 
   bool get _isEdit => widget.initial != null;
@@ -411,8 +405,6 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
-    _search.dispose();
     _name.dispose();
     _description.dispose();
     _address.dispose();
@@ -421,43 +413,26 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
     super.dispose();
   }
 
-  void _onSearchChanged(String query) {
-    _debounce?.cancel();
-    final trimmed = query.trim();
-    if (trimmed.length < 2) {
-      setState(() => _results = const []);
-      return;
-    }
-    _debounce = Timer(const Duration(milliseconds: 350), () => _load(trimmed));
-  }
-
-  /// Lädt Katalog-Unterkünfte; ein leerer [query] liefert den gesamten Katalog.
-  Future<void> _load(String query) async {
-    setState(() => _searching = true);
-    try {
-      final results = await AppScope.of(
-        context,
-      ).travel.listAccommodationCatalog(query: query);
-      if (!mounted) return;
-      setState(() {
-        _results = results;
-        _searching = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _results = const [];
-        _searching = false;
-      });
-    }
-  }
-
-  void _select(TravelAccommodation accommodation) {
-    setState(() {
-      _selected = accommodation;
-      _results = const [];
-      _search.clear();
-    });
+  /// Öffnet ein eigenes Auswahl-Sheet mit den bereits gespeicherten
+  /// Katalog-Unterkünften (aus früheren Reisen).
+  Future<void> _pickExisting() async {
+    final catalog = await AppScope.of(
+      context,
+    ).travel.listAccommodationCatalog();
+    if (!mounted) return;
+    final chosenId = await showAccommodationPicker(
+      context,
+      options: catalog,
+      selectedId: _selected?.id,
+      title: 'Gespeicherte Unterkünfte',
+      description:
+          'Unterkünfte, die bereits in früheren Reisen gespeichert wurden.',
+      searchable: true,
+    );
+    if (chosenId == null || !mounted) return;
+    final matches = catalog.where((a) => a.id == chosenId);
+    if (matches.isEmpty) return;
+    setState(() => _selected = matches.first);
   }
 
   double? _parsePrice() {
@@ -519,63 +494,17 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
         SizedBox(height: tokens.spaceMd),
         if (!_isEdit) ...[
           DesignText(
-            'Vorhandene Unterkunft suchen',
+            'Vorhandene Unterkunft',
             style: DesignTextStyle.label,
             color: tokens.textLow,
           ),
           SizedBox(height: tokens.spaceSm),
-          DesignTextField(
-            hint: 'Name der Unterkunft',
-            controller: _search,
-            prefixIcon: Icons.search_rounded,
-            onChanged: _onSearchChanged,
-          ),
-          SizedBox(height: tokens.spaceSm),
           DesignButton(
-            label: 'Alle anzeigen',
-            variant: DesignButtonVariant.text,
+            label: 'Gespeicherte Unterkünfte wählen',
+            variant: DesignButtonVariant.outlined,
             icon: Icons.list_rounded,
-            onPressed: _searching ? null : () => _load(''),
+            onPressed: _pickExisting,
           ),
-          if (_searching) ...[
-            SizedBox(height: tokens.spaceSm),
-            Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: tokens.primary,
-                ),
-              ),
-            ),
-          ],
-          if (_results.isNotEmpty) ...[
-            SizedBox(height: tokens.spaceSm),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 320),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: _results.length,
-                itemBuilder: (context, index) {
-                  final item = _results[index];
-                  return DesignListTile(
-                    leading: Icon(
-                      item.ishotel == 1
-                          ? Icons.hotel_rounded
-                          : Icons.home_rounded,
-                      color: tokens.textHigh,
-                      size: 20,
-                    ),
-                    title: item.name,
-                    subtitle: item.address,
-                    padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
-                    onTap: () => _select(item),
-                  );
-                },
-              ),
-            ),
-          ],
           if (_selected != null) ...[
             SizedBox(height: tokens.spaceSm),
             Row(
@@ -873,14 +802,28 @@ Future<String?> showPlanningInviteSheet({
       .toList();
   return showDesignSheet<String>(
     context: context,
-    child: _InvitePicker(candidates: candidates),
+    child: Builder(
+      builder: (sheetContext) => PlanningInvitePicker(
+        candidates: candidates,
+        onPick: (id) => Navigator.pop(sheetContext, id),
+      ),
+    ),
   );
 }
 
-class _InvitePicker extends StatelessWidget {
-  const _InvitePicker({required this.candidates});
+/// Auswahlliste zum Einladen von Nutzern in eine Planung.
+///
+/// Modell-frei über die Anzeigedaten (`id`, `displayName`, `image`); der
+/// Aufrufer entscheidet über [onPick], was mit der gewählten `userId` passiert.
+class PlanningInvitePicker extends StatelessWidget {
+  const PlanningInvitePicker({
+    required this.candidates,
+    required this.onPick,
+    super.key,
+  });
 
   final List<({String id, String displayName, String? image})> candidates;
+  final ValueChanged<String> onPick;
 
   @override
   Widget build(BuildContext context) {
@@ -902,29 +845,28 @@ class _InvitePicker extends StatelessWidget {
             color: tokens.textLow,
           )
         else
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: candidates.length,
-              itemBuilder: (context, index) {
-                final user = candidates[index];
-                return DesignListTile(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final user in candidates)
+                DesignListTile(
                   leading: DesignAvatar(
                     imageUrl: user.image,
                     name: user.displayName,
                     size: 32,
                   ),
                   title: user.displayName,
-                  trailing: DesignBadge(
-                    label: 'Einladen',
-                    color: tokens.primary,
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: tokens.textLow,
                   ),
-                  padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
-                  onTap: () => Navigator.pop(context, user.id),
-                );
-              },
-            ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: tokens.spaceSm,
+                    vertical: tokens.spaceSm,
+                  ),
+                  onTap: () => onPick(user.id),
+                ),
+            ],
           ),
       ],
     );
