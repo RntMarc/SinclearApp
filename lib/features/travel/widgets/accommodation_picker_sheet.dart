@@ -63,6 +63,7 @@ class _AccommodationPicker extends StatelessWidget {
             trailing: selectedId == null
                 ? Icon(Icons.check_rounded, color: tokens.primary, size: 18)
                 : null,
+            padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
             onTap: () => Navigator.pop(context, ''),
           ),
         if (options.isEmpty)
@@ -99,6 +100,7 @@ class _AccommodationPicker extends StatelessWidget {
                           size: 18,
                         )
                       : null,
+                  padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
                   onTap: () => Navigator.pop(context, accommodation.id),
                 );
               },

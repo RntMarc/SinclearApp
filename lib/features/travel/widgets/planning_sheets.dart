@@ -271,21 +271,35 @@ class _TransportSheetState extends State<_TransportSheet> {
         SizedBox(height: tokens.spaceMd),
         _label(tokens, 'Richtung'),
         SizedBox(height: tokens.spaceSm),
-        Row(
+        Wrap(
+          spacing: tokens.spaceSm,
+          runSpacing: tokens.spaceSm,
           children: [
             DesignChip(
               label: 'Hinfahrt',
               selected: _direction == 'outbound',
               onTap: () => setState(() => _direction = 'outbound'),
             ),
-            SizedBox(width: tokens.spaceSm),
             DesignChip(
               label: 'Rückfahrt',
               selected: _direction == 'return',
               onTap: () => setState(() => _direction = 'return'),
             ),
+            DesignChip(
+              label: 'Beide Richtungen',
+              selected: _direction == 'both',
+              onTap: () => setState(() => _direction = 'both'),
+            ),
           ],
         ),
+        if (_direction == 'both') ...[
+          SizedBox(height: tokens.spaceSm),
+          DesignText(
+            'Gilt für Hin- und Rückfahrt.',
+            style: DesignTextStyle.label,
+            color: tokens.textLow,
+          ),
+        ],
         SizedBox(height: tokens.spaceMd),
         DesignTextField(hint: 'Verkehrsmittel', controller: _mode),
         SizedBox(height: tokens.spaceMd),
@@ -414,13 +428,11 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
       setState(() => _results = const []);
       return;
     }
-    _debounce = Timer(
-      const Duration(milliseconds: 350),
-      () => _searchCatalog(trimmed),
-    );
+    _debounce = Timer(const Duration(milliseconds: 350), () => _load(trimmed));
   }
 
-  Future<void> _searchCatalog(String query) async {
+  /// Lädt Katalog-Unterkünfte; ein leerer [query] liefert den gesamten Katalog.
+  Future<void> _load(String query) async {
     setState(() => _searching = true);
     try {
       final results = await AppScope.of(
@@ -518,6 +530,13 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
             prefixIcon: Icons.search_rounded,
             onChanged: _onSearchChanged,
           ),
+          SizedBox(height: tokens.spaceSm),
+          DesignButton(
+            label: 'Alle anzeigen',
+            variant: DesignButtonVariant.text,
+            icon: Icons.list_rounded,
+            onPressed: _searching ? null : () => _load(''),
+          ),
           if (_searching) ...[
             SizedBox(height: tokens.spaceSm),
             Center(
@@ -534,7 +553,7 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
           if (_results.isNotEmpty) ...[
             SizedBox(height: tokens.spaceSm),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 220),
+              constraints: const BoxConstraints(maxHeight: 320),
               child: ListView.builder(
                 shrinkWrap: true,
                 itemCount: _results.length,
@@ -550,6 +569,7 @@ class _AccommodationSheetState extends State<_AccommodationSheet> {
                     ),
                     title: item.name,
                     subtitle: item.address,
+                    padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
                     onTap: () => _select(item),
                   );
                 },
@@ -900,6 +920,7 @@ class _InvitePicker extends StatelessWidget {
                     label: 'Einladen',
                     color: tokens.primary,
                   ),
+                  padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
                   onTap: () => Navigator.pop(context, user.id),
                 );
               },

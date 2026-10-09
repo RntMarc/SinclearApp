@@ -385,6 +385,7 @@ class _ManageParticipantsSheetState extends State<_ManageParticipantsSheet> {
                       icon: Icons.more_vert_rounded,
                       onPressed: () => _openActions(entry),
                     ),
+                    padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
                   );
                 },
               ),
@@ -447,6 +448,7 @@ class _CandidatePicker extends StatelessWidget {
                     label: 'Hinzufügen',
                     color: tokens.primary,
                   ),
+                  padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
                   onTap: () => Navigator.pop(context, candidate.id),
                 );
               },
