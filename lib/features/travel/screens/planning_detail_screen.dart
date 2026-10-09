@@ -305,16 +305,24 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
       initial: existing,
     );
     if (draft == null || !mounted) return;
-    await _run(
-      () => _service.setTransport(
+    await _run(() => _saveTransport(draft));
+  }
+
+  /// Speichert die Transportangaben; `both` setzt Hin- und Rückfahrt zugleich.
+  Future<void> _saveTransport(PlanningTransportDraft draft) async {
+    final directions = draft.direction == 'both'
+        ? const ['outbound', 'return']
+        : [draft.direction];
+    for (final direction in directions) {
+      await _service.setTransport(
         widget.id,
-        direction: draft.direction,
+        direction: direction,
         mode: draft.mode,
         offersRide: draft.offersRide,
         availableSeats: draft.availableSeats,
         notes: draft.notes,
-      ),
-    );
+      );
+    }
   }
 
   Future<void> _createAccommodation() async {

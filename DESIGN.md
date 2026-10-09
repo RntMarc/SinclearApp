@@ -154,6 +154,17 @@ nach.
   Hinweistext und sind bis zur Erfüllung ihrer Vorbedingung deaktiviert
   (`onPressed: null`, gefüllte Variante → sichtbarer grauer Zustand).
 
+### Listen & Touch-Ziele
+- **Antippbare Listenzeilen** (Personen, Unterkünfte, Menüeinträge) müssen auf
+  Touchscreens sicher treffbar sein (Richtwert ≥ 48 px Zeilenhöhe).
+- Selektierbare `DesignListTile` in Auswahl-/Picker-Listen erhalten dazu
+  vertikales Innen-Padding:
+  `padding: EdgeInsets.symmetric(vertical: tokens.spaceSm)`.
+- `DesignListTile` bringt selbst bewusst **kein** vertikales Padding mit
+  (Default `EdgeInsets.zero`), damit es in Containern mit eigenem Rhythmus
+  (z. B. `DesignCard.list`, das bereits `spaceMd` zwischen Kindern setzt)
+  nicht doppelt spaced wird. Den Abstand setzt der Aufrufer bewusst.
+
 ## Layout
 
 ### Breakpoint

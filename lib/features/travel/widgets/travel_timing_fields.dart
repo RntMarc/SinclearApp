@@ -30,6 +30,14 @@ class TravelTimingInput {
   });
 }
 
+/// Sinnvolle Auto-Endzeit zu einem gewählten Beginn.
+///
+/// Getaktet: eine Stunde später. Ganztägig: derselbe Tag. Dient als
+/// Vorbelegung, damit das Ende nicht mühsam gesucht werden muss.
+DateTime autoEndForStart(DateTime start, {required bool allDay}) => allDay
+    ? DateTime(start.year, start.month, start.day)
+    : start.add(const Duration(hours: 1));
+
 class TravelTimingFields extends StatefulWidget {
   const TravelTimingFields({
     required this.initial,
@@ -82,6 +90,46 @@ class _TravelTimingFieldsState extends State<TravelTimingFields> {
     _emit();
   }
 
+  /// Setzt den Beginn und füllt das Ende automatisch vor, wenn es fehlt oder
+  /// vor dem neuen Beginn läge.
+  void _onStartChanged(DateTime value) {
+    setState(() {
+      if (_allDay) {
+        _startDate = value;
+        final end = _endDate;
+        if (end == null || end.isBefore(value)) {
+          _endDate = autoEndForStart(value, allDay: true);
+        }
+      } else {
+        _startAt = value;
+        final end = _endAt;
+        if (end == null || end.isBefore(value)) {
+          _endAt = autoEndForStart(value, allDay: false);
+        }
+      }
+    });
+    _emit();
+  }
+
+  /// Übernimmt das Ende, lehnt aber ein Ende vor dem Beginn ab.
+  void _onEndChanged(DateTime value) {
+    final start = _allDay ? _startDate : _startAt;
+    if (start != null && value.isBefore(start)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ende darf nicht vor dem Beginn liegen.')),
+      );
+      return;
+    }
+    setState(() {
+      if (_allDay) {
+        _endDate = value;
+      } else {
+        _endAt = value;
+      }
+    });
+    _emit();
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
@@ -122,16 +170,7 @@ class _TravelTimingFieldsState extends State<TravelTimingFields> {
           hint: 'Beginn',
           showTime: !_allDay,
           value: _allDay ? _startDate : _startAt,
-          onChanged: (value) {
-            setState(() {
-              if (_allDay) {
-                _startDate = value;
-              } else {
-                _startAt = value;
-              }
-            });
-            _emit();
-          },
+          onChanged: _onStartChanged,
         ),
         SizedBox(height: tokens.spaceMd),
         _label(tokens, 'Ende'),
@@ -140,16 +179,7 @@ class _TravelTimingFieldsState extends State<TravelTimingFields> {
           hint: 'Ende',
           showTime: !_allDay,
           value: _allDay ? _endDate : _endAt,
-          onChanged: (value) {
-            setState(() {
-              if (_allDay) {
-                _endDate = value;
-              } else {
-                _endAt = value;
-              }
-            });
-            _emit();
-          },
+          onChanged: _onEndChanged,
         ),
       ],
     );
