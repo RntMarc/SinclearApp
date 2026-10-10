@@ -62,6 +62,9 @@ import 'features/home/dashboard_layout_store.dart';
 import 'features/notifications/services/notification_content_resolver.dart';
 import 'features/notifications/services/notification_service.dart';
 import 'features/notifications/models/notification_item.dart';
+import 'features/widgets/widget_data_sync.dart';
+import 'features/widgets/widget_launch_handler.dart';
+import 'features/widgets/widget_sync_observer.dart';
 import 'router/router.dart';
 
 /// Pending cold-start notification route. Set when the notification tap
@@ -74,6 +77,10 @@ String? _pendingNotificationRoute;
 /// Der aktive Router; gesetzt nach der Erstellung in `_bootstrap`.
 /// Taps, die danach eintreffen (App läuft), navigieren direkt.
 GoRouter? _router;
+
+/// Hält den Widget-Tap-Handler am Leben (verwaltet eine Stream-Subscription).
+// ignore: unused_element
+WidgetLaunchHandler? _widgetLaunchHandler;
 
 void main() {
   runZonedGuarded(
@@ -279,6 +286,17 @@ Future<void> _bootstrap() async {
 
   if (!kIsWeb) {
     DeepLinkHandler().init(router);
+  }
+
+  // Widgets (nur Android): Taps auf Widgets routen und die Widget-Daten
+  // aktualisieren, wenn die App in den Hintergrund wechselt.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    _widgetLaunchHandler = WidgetLaunchHandler()..init(router);
+    WidgetsBinding.instance.addObserver(
+      WidgetSyncObserver(
+        sync: () => syncWidgetsHeadless(api: api, storage: TokenStorage()),
+      ),
+    );
   }
 
   final initialDesign = await DesignPreferences.load();

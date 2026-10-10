@@ -8,9 +8,11 @@ import 'package:workmanager/workmanager.dart';
 
 import '../../../core/config/notification_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/token_refresh.dart';
 import '../../../core/notifications/local_notification_helper.dart';
 import '../../../core/storage/token_storage.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../widgets/widget_data_sync.dart';
 import '../models/notification_item.dart';
 import 'polling_background_store.dart';
 
@@ -87,11 +89,15 @@ Future<bool> pollNotificationsHeadless({bool force = false}) async {
 
     final api = ApiClient(baseUrl: baseUrl);
     try {
-      return await runHeadlessPoll(
+      final storage = TokenStorage();
+      final ok = await runHeadlessPoll(
         api: api,
-        storage: TokenStorage(),
+        storage: storage,
         store: store,
       );
+      // Widget-Daten im selben Poll aktualisieren (kein eigener Worker).
+      await syncWidgetsHeadless(api: api, storage: storage);
+      return ok;
     } finally {
       api.dispose();
     }
@@ -108,30 +114,17 @@ Future<bool> pollNotificationsHeadless({bool force = false}) async {
 
 /// Kern des Hintergrund-Polls mit injizierten Abhängigkeiten (testbar).
 ///
-/// `ponytail:` Der Access-Token-Refresh ist hier minimal dupliziert (statt
-/// `AuthService` wiederzuverwenden, der im Hintergrund-Isolate nicht existiert).
-/// Upgrade: gemeinsamer Refresh-Helper in `core/`.
+/// Der Access-Token-Refresh liegt im gemeinsamen Helfer
+/// `core/network/token_refresh.dart`, da auch die Widget-Synchronisation
+/// ihn im Hintergrund-Isolate braucht.
 @visibleForTesting
 Future<bool> runHeadlessPoll({
   required ApiClient api,
   required TokenStorage storage,
   required PollingBackgroundStore store,
 }) async {
-  final refreshToken = await storage.getRefreshToken();
-  if (refreshToken == null) return false;
-
-  final refreshed = await api.post(
-    '/auth/refresh',
-    body: {'refresh_token': refreshToken},
-  );
-  final accessToken = refreshed['access_token'] as String;
-  final newRefresh = refreshed['refresh_token'] as String?;
-  if (newRefresh != null) {
-    await storage.saveRefreshToken(
-      newRefresh,
-      refreshed['expires_at'] as int? ?? 0,
-    );
-  }
+  final accessToken = await refreshAccessToken(api, storage);
+  if (accessToken == null) return false;
 
   final cursor = await store.lastSeen();
   final response = await api.get(
