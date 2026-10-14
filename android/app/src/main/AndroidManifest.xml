@@ -76,6 +76,40 @@
                 <data android:scheme="https" android:host="sinclear.de" android:pathPrefix="/api/v2/html/public/recipe" />
             </intent-filter>
         </activity>
+        <!-- Homescreen-/Lockscreen-Widgets (Glance, siehe lib/features/widgets/). -->
+        <receiver
+            android:name=".widgets.ActivityWidgetReceiver"
+            android:label="Aktivität"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_activity" />
+        </receiver>
+        <receiver
+            android:name=".widgets.TodayWidgetReceiver"
+            android:label="Heute"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today" />
+        </receiver>
+        <receiver
+            android:name=".widgets.TripWidgetReceiver"
+            android:label="Nächste Reise"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_trip" />
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

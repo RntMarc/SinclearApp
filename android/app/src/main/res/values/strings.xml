@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="dav_account_label">Beyond</string>
+    <string name="widget_activity_description">Ungelesene Forum-Beiträge auf einen Blick</string>
+    <string name="widget_today_description">Die Termine des heutigen Tages</string>
+    <string name="widget_trip_description">Die nächste Reise mit Countdown</string>
 </resources>

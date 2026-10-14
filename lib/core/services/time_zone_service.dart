@@ -1,4 +1,7 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -9,6 +12,10 @@ import 'package:timezone/timezone.dart' as tz;
 /// und muss vor jeder Nutzung der Zeitzonen-Helfer bereitstehen.
 class TimeZoneService {
   static const String fallback = 'UTC';
+
+  /// Key, unter dem die effektive Zeitzone für das Hintergrund-Polling
+  /// (Widget-Synchronisation) in `shared_preferences` abgelegt wird.
+  static const String storedTimezoneKey = 'beyond.timezone';
 
   String _device = fallback;
   String _preference = '';
@@ -30,6 +37,7 @@ class TimeZoneService {
     } catch (_) {
       _device = fallback;
     }
+    unawaited(_persist());
   }
 
   /// Uebernimmt die gespeicherte Nutzerpraeferenz; null/leer bedeutet
@@ -38,6 +46,18 @@ class TimeZoneService {
     _preference = timezone == null || timezone.trim().isEmpty
         ? ''
         : normalize(timezone);
+    unawaited(_persist());
+  }
+
+  /// Persistiert die effektive Zeitzone, damit das Hintergrund-Polling
+  /// (ohne [TimeZoneService]) „heute" in der richtigen Zeitzone ermittelt.
+  Future<void> _persist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(storedTimezoneKey, effective);
+    } catch (_) {
+      // Persistenz ist ein Nice-to-have; das Polling faellt auf UTC zurueck.
+    }
   }
 
   /// Liefert den kanonischen IANA-Namen oder [fallback].
