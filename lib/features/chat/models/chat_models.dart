@@ -18,6 +18,10 @@ const List<String> kReactionEmojis = [
 /// `DirectMessageService::REPLY_PREVIEW_LENGTH`.
 const int kReplyPreviewLength = 150;
 
+/// Zeitfenster, in dem die API eine Bearbeitung eigener Nachrichten erlaubt.
+/// Spiegelt `DirectMessageService::EDIT_WINDOW_SECONDS`.
+const Duration kMessageEditWindow = Duration(minutes: 10);
+
 /// Nutzer-Kurzform, wie sie die Chat-Endpunkte liefern (`id`,
 /// `displayName`, `avatar`).
 class ChatUser {
@@ -285,4 +289,16 @@ class DirectMessage {
       createdAt: parseApiDate(json['createdAt'] as String),
     );
   }
+}
+
+/// Prüft, ob die API eine Bearbeitung dieser Nachricht noch erlaubt: nur
+/// innerhalb von [kMessageEditWindow] nach dem Erstellen.
+///
+/// Die API erzwingt das Fenster serverseitig; dieser Check ist nur eine
+/// UI-Schätzung (Geräteuhr kann abweichen), bei Abweichungen antwortet
+/// `PATCH /chat/messages/{id}` mit `edit_window_expired`.
+bool canEditMessage(DirectMessage message, {DateTime? now}) {
+  if (message.deleted) return false;
+  final reference = now ?? DateTime.now();
+  return reference.difference(message.createdAt) <= kMessageEditWindow;
 }

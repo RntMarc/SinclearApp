@@ -426,7 +426,13 @@ Design-Tokens bekommt.
 - **`DesignChatComposer`** (`composite`) – Eingabefeld mit Edit- und
   Antwort-Modus. Im Antwort-Modus (`replySenderName`, `replySnippet`,
   `onCancelReply`) erscheint ein Banner über dem Feld (analog Edit-Banner,
-  beide Modi sind exklusiv).
+  beide Modi sind exklusiv). `onSend` liefert `Future<bool>`: nur bei Erfolg
+  wird das Feld geleert, bei einem Fehlschlag bleiben Text, Modus und Banner
+  stehen (erneutes Senden möglich). Beim Verlassen des Edit-Modus – Speichern
+  wie Abbrechen – kehrt der vorherige Entwurf ins Feld zurück, damit der
+  bearbeitete Text nicht versehentlich als neue Nachricht gesendet wird.
+  Während des Sendens ersetzt ein Spinner den Senden-Button, die
+  Abbrechen-Buttons der Banner sind sichtbar deaktiviert.
 - **`DesignPollCard`** (`composite`) – Modell-freier Listeneintrag einer
   Umfrage aus `DesignCard` + `DesignText` + `DesignBadge`: Typ-Label/Icon,
   Titel, Ersteller/Frist, Status; `pulseColor` für ungelesene Umfragen und

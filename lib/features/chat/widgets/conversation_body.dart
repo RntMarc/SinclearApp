@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 
 import '../../../core/di/app_scope.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
@@ -83,15 +84,27 @@ class _ConversationBodyState extends State<ConversationBody> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _maybeMarkRead();
-      final list = _scope?.chat.conversations;
-      if (list != null) {
-        for (final c in list) {
-          if (c.id == widget.conversationId) {
-            if (mounted) setState(() => _conversation = c);
-            break;
-          }
-        }
+      final scope = _scope;
+      if (scope == null) return;
+      for (final c in scope.chat.conversations) {
+        if (c.id != widget.conversationId) continue;
+        setState(() => _conversation = c);
+        break;
       }
+      _dropDeletedTargets(scope.chat.messagesOf(widget.conversationId));
+    });
+  }
+
+  /// Beendet Edit-/Antwortmodus, wenn die Zielnachricht inzwischen gelöscht
+  /// wurde (eigenes Löschen oder Änderung von einem anderen Gerät).
+  void _dropDeletedTargets(List<DirectMessage>? messages) {
+    if (messages == null) return;
+    bool isGone(DirectMessage? target) =>
+        target != null && messages.any((m) => m.id == target.id && m.deleted);
+    if (!isGone(_editingMessage) && !isGone(_replyTo)) return;
+    setState(() {
+      if (isGone(_editingMessage)) _editingMessage = null;
+      if (isGone(_replyTo)) _replyTo = null;
     });
   }
 
@@ -154,14 +167,12 @@ class _ConversationBodyState extends State<ConversationBody> {
 
   // ─── Senden / Bearbeiten ──────────────────────────────────────────────
 
-  Future<void> _send(String text) async {
+  /// Sendet eine neue Nachricht; `false`, wenn der Server sie ablehnt.
+  Future<bool> _send(String text) async {
     final scope = _scope;
-    if (scope == null) return;
+    if (scope == null) return false;
     final replyTo = _replyTo;
-    setState(() {
-      _sending = true;
-      _replyTo = null;
-    });
+    setState(() => _sending = true);
     try {
       await scope.chat.sendMessage(
         widget.conversationId,
@@ -169,23 +180,19 @@ class _ConversationBodyState extends State<ConversationBody> {
         replyToMessageId: replyTo?.id,
       );
       _maybeMarkRead();
+      if (mounted) setState(() => _replyTo = null);
+      return true;
     } catch (e, st) {
       _log.warning('Sending message failed', e, st);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: DesignText(
-            'Senden fehlgeschlagen. Bitte erneut versuchen.',
-            color: DesignTheme.of(context).textOnPrimary,
-          ),
-        ),
-      );
+      if (mounted) _showError('Senden fehlgeschlagen. Bitte erneut versuchen.');
+      return false;
     } finally {
       if (mounted) setState(() => _sending = false);
     }
   }
 
   void _startEdit(DirectMessage message) {
+    if (_sending) return;
     setState(() {
       _editingMessage = message;
       _replyTo = null;
@@ -193,10 +200,12 @@ class _ConversationBodyState extends State<ConversationBody> {
   }
 
   void _cancelEdit() {
+    if (_sending) return;
     setState(() => _editingMessage = null);
   }
 
   void _startReply(DirectMessage message) {
+    if (_sending) return;
     setState(() {
       _replyTo = message;
       _editingMessage = null;
@@ -204,7 +213,15 @@ class _ConversationBodyState extends State<ConversationBody> {
   }
 
   void _cancelReply() {
+    if (_sending) return;
     setState(() => _replyTo = null);
+  }
+
+  void _showError(String message) {
+    final tokens = DesignTheme.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: DesignText(message, color: tokens.textOnPrimary)),
+    );
   }
 
   /// Anzeigename eines Absenders (eigene Nachrichten als „Du").
@@ -213,27 +230,33 @@ class _ConversationBodyState extends State<ConversationBody> {
     return displayName.isNotEmpty ? displayName : 'Unbekannt';
   }
 
-  Future<void> _submitEdit(String newContent) async {
+  /// Speichert die Bearbeitung; `false` lässt Modus und Text stehen, damit
+  /// der Nutzer erneut senden kann.
+  Future<bool> _submitEdit(String newContent) async {
     final scope = _scope;
     final msg = _editingMessage;
-    if (scope == null || msg == null) return;
-    setState(() {
-      _editingMessage = null;
-      _sending = true;
-    });
+    if (scope == null || msg == null) return false;
+    setState(() => _sending = true);
     try {
       await scope.chat.editMessage(widget.conversationId, msg.id, newContent);
+      if (mounted) setState(() => _editingMessage = null);
+      return true;
+    } on ApiException catch (e) {
+      _log.warning('Editing message failed', e);
+      if (mounted) {
+        _showError(
+          e.errorCode == 'edit_window_expired'
+              ? 'Die Bearbeitungszeit ist abgelaufen.'
+              : 'Bearbeitung fehlgeschlagen. Bitte erneut versuchen.',
+        );
+      }
+      return false;
     } catch (e, st) {
       _log.warning('Editing message failed', e, st);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: DesignText(
-            'Bearbeitung fehlgeschlagen. Bitte erneut versuchen.',
-            color: DesignTheme.of(context).textOnPrimary,
-          ),
-        ),
-      );
+      if (mounted) {
+        _showError('Bearbeitung fehlgeschlagen. Bitte erneut versuchen.');
+      }
+      return false;
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -242,6 +265,7 @@ class _ConversationBodyState extends State<ConversationBody> {
   // ─── Löschen ──────────────────────────────────────────────────────────
 
   Future<void> _confirmDelete(DirectMessage message) async {
+    if (_sending) return;
     final tokens = DesignTheme.of(context);
     final confirmed = await showDesignSheet<bool>(
       context: context,
@@ -338,15 +362,16 @@ class _ConversationBodyState extends State<ConversationBody> {
             ),
           ],
           if (isOwn && !message.deleted) ...[
-            DesignListTile(
-              leading: Icon(Icons.edit_rounded, color: tokens.textHigh),
-              title: 'Bearbeiten',
-              padding: tilePadding,
-              onTap: () {
-                Navigator.pop(context);
-                _startEdit(message);
-              },
-            ),
+            if (canEditMessage(message))
+              DesignListTile(
+                leading: Icon(Icons.edit_rounded, color: tokens.textHigh),
+                title: 'Bearbeiten',
+                padding: tilePadding,
+                onTap: () {
+                  Navigator.pop(context);
+                  _startEdit(message);
+                },
+              ),
             DesignListTile(
               leading: Icon(Icons.delete_rounded, color: tokens.danger),
               title: 'Löschen',
@@ -416,20 +441,13 @@ class _ConversationBodyState extends State<ConversationBody> {
 
   Future<void> _toggleReaction(DirectMessage message, String emoji) async {
     final scope = _scope;
-    if (scope == null) return;
+    if (scope == null || _sending) return;
     try {
       await scope.chat.toggleReaction(widget.conversationId, message, emoji);
     } catch (e, st) {
       _log.warning('Reaction failed', e, st);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: DesignText(
-            'Reaktion fehlgeschlagen. Bitte erneut versuchen.',
-            color: DesignTheme.of(context).textOnPrimary,
-          ),
-        ),
-      );
+      _showError('Reaktion fehlgeschlagen. Bitte erneut versuchen.');
     }
   }
 
@@ -697,7 +715,9 @@ class _ConversationBodyState extends State<ConversationBody> {
                         edited: message.editedAt != null,
                         read: isOwn && message.seq <= otherLastReadSeq,
                         linkPreview: _linkPreview(message),
-                        onLongPress: () => _showMessageActions(message),
+                        onLongPress: _sending
+                            ? null
+                            : () => _showMessageActions(message),
                         highlighted: _highlightedMessageId == message.id,
                         replySenderName: reply != null
                             ? _senderLabel(
@@ -718,7 +738,7 @@ class _ConversationBodyState extends State<ConversationBody> {
                               selected: r.isMine(userId),
                             ),
                         ],
-                        onReactionTap: message.deleted
+                        onReactionTap: message.deleted || _sending
                             ? null
                             : (emoji) => _toggleReaction(message, emoji),
                         senderName: isGroup && !isOwn

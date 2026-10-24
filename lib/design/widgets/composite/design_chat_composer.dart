@@ -13,14 +13,19 @@ import '../primitives/design_icon_button.dart';
 /// **Edit-Modus:** Wird [editInitialText] gesetzt, wechselt der Composer
 /// in den Bearbeitungsmodus — der Text wird vorausgefüllt, ein Label mit
 /// Abbrechen-Button erscheint über dem Eingabefeld, und das Sende-Icon
-/// wechselt zu einem Häkchen.
+/// wechselt zu einem Häkchen. Beim Verlassen des Modus (Speichern oder
+/// Abbrechen) kehrt der vorherige Entwurf zurück, damit ein gespeicherter
+/// Nachrichtentext nicht als neue Nachricht im Feld stehen bleibt.
 class DesignChatComposer extends StatefulWidget {
   final String hintText;
 
   /// `true`, während die Nachricht auf den Server gesendet wird.
   final bool sending;
 
-  final ValueChanged<String> onSend;
+  /// Meldet den Text und liefert `true`, wenn das Senden erfolgreich war.
+  /// Nur dann leert der Composer das Feld; bei `false` bleibt der Text zum
+  /// erneuten Senden stehen.
+  final Future<bool> Function(String) onSend;
 
   /// Wenn gesetzt, wird der Composer im Bearbeitungsmodus angezeigt mit
   /// diesem Text als Startwert. Der Parent muß [onCancelEdit] aufrufen,
@@ -67,37 +72,55 @@ class _DesignChatComposerState extends State<DesignChatComposer> {
   static const _maxLength = 2000;
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
-  bool _previousIsEditing = false;
+
+  /// Text, der vor dem Start der Bearbeitung im Feld stand.
+  String _draftBeforeEdit = '';
+
+  /// Lokales Lock: gesetzt, bevor auf den Server gewartet wird, damit ein
+  /// zweiter Tap/Enter im selben Frame keinen zweiten Request auslöst.
+  bool _submitting = false;
 
   bool get _isEditing => widget.editInitialText != null;
+
+  bool get _busy => _submitting || widget.sending;
 
   @override
   void initState() {
     super.initState();
-    if (_isEditing) {
-      _controller.text = widget.editInitialText!;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _focusNode.requestFocus();
-        _controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: _controller.text.length),
-        );
-      });
-    }
+    final initial = widget.editInitialText;
+    if (initial != null) _fillWithEditText(initial);
   }
 
   @override
   void didUpdateWidget(covariant DesignChatComposer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_isEditing && !_previousIsEditing) {
-      _controller.text = widget.editInitialText!;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _focusNode.requestFocus();
-        _controller.selection = TextSelection.fromPosition(
-          TextPosition(offset: _controller.text.length),
-        );
-      });
+    final wasEditing = oldWidget.editInitialText != null;
+    final isEditing = widget.editInitialText != null;
+    if (!wasEditing && isEditing) {
+      _draftBeforeEdit = _controller.text;
+      _fillWithEditText(widget.editInitialText);
+    } else if (wasEditing &&
+        isEditing &&
+        oldWidget.editInitialText != widget.editInitialText) {
+      // Wechsel des Bearbeitungsziels: Entwurf bleibt gesichert.
+      _fillWithEditText(widget.editInitialText);
+    } else if (wasEditing && !isEditing) {
+      // Speichern oder Abbrechen: der Text der bearbeiteten Nachricht darf
+      // nicht als neue Nachricht im Feld zurückbleiben.
+      _controller.text = _draftBeforeEdit;
+      _draftBeforeEdit = '';
     }
-    _previousIsEditing = _isEditing;
+  }
+
+  void _fillWithEditText(String? text) {
+    _controller.text = text ?? '';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusNode.requestFocus();
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
+    });
   }
 
   @override
@@ -107,11 +130,20 @@ class _DesignChatComposerState extends State<DesignChatComposer> {
     super.dispose();
   }
 
-  void _send() {
+  Future<void> _send() async {
     final text = _controller.text.trim();
-    if (text.isEmpty || widget.sending) return;
-    widget.onSend(text);
-    if (!_isEditing) _controller.clear();
+    if (text.isEmpty || _busy) return;
+    final wasEditing = _isEditing;
+    setState(() => _submitting = true);
+    try {
+      final sent = await widget.onSend(text);
+      if (!mounted || !sent) return;
+      // Im Edit-Modus räumt der Moduswechsel das Feld auf. Beim normalen
+      // Senden nur löschen, wenn währenddessen kein neuer Text getippt wurde.
+      if (!wasEditing && _controller.text.trim() == text) _controller.clear();
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -124,15 +156,16 @@ class _DesignChatComposerState extends State<DesignChatComposer> {
           _ComposerBanner(
             icon: Icons.edit_rounded,
             label: widget.editLabel ?? 'Nachricht bearbeiten',
-            onCancel: widget.onCancelEdit,
+            onCancel: _busy ? null : widget.onCancelEdit,
           )
         else if (widget.replySnippet != null)
           _ComposerBanner(
             icon: Icons.reply_rounded,
-            label: 'Antwort an '
+            label:
+                'Antwort an '
                 '${widget.replySenderName?.isNotEmpty == true ? widget.replySenderName : 'Nachricht'}',
             snippet: widget.replySnippet,
-            onCancel: widget.onCancelReply,
+            onCancel: _busy ? null : widget.onCancelReply,
           ),
         Container(
           decoration: BoxDecoration(
@@ -166,22 +199,21 @@ class _DesignChatComposerState extends State<DesignChatComposer> {
                 ),
               ),
               SizedBox(width: tokens.spaceSm),
-              widget.sending
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: tokens.primary,
-                      ),
-                    )
-                  : DesignIconButton(
-                      icon: _isEditing
-                          ? Icons.check_rounded
-                          : Icons.send_rounded,
-                      tinted: true,
-                      onPressed: _send,
-                    ),
+              if (_busy)
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: tokens.primary,
+                  ),
+                )
+              else
+                DesignIconButton(
+                  icon: _isEditing ? Icons.check_rounded : Icons.send_rounded,
+                  tinted: true,
+                  onPressed: _send,
+                ),
             ],
           ),
         ),
@@ -195,6 +227,8 @@ class _ComposerBanner extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? snippet;
+
+  /// `null` deaktiviert den Abbrechen-Button (z. B. während gesendet wird).
   final VoidCallback? onCancel;
 
   const _ComposerBanner({
@@ -244,9 +278,12 @@ class _ComposerBanner extends StatelessWidget {
               ],
             ),
           ),
-          DesignIconButton(
-            icon: Icons.close_rounded,
-            onPressed: onCancel,
+          Opacity(
+            opacity: onCancel == null ? 0.4 : 1,
+            child: DesignIconButton(
+              icon: Icons.close_rounded,
+              onPressed: onCancel,
+            ),
           ),
         ],
       ),
