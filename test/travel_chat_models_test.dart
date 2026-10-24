@@ -172,4 +172,41 @@ void main() {
       expect(event.conversationId, isNull);
     });
   });
+
+  group('canEditMessage (10-Minuten-Fenster)', () {
+    DirectMessage message({bool deleted = false}) => DirectMessage(
+      id: 'm1',
+      seq: 1,
+      conversationId: 'c1',
+      senderId: 'u1',
+      sender: const ChatUser(id: 'u1'),
+      content: 'Hallo',
+      deleted: deleted,
+      createdAt: DateTime(2026, 5, 1, 12),
+    );
+
+    test('erlaubt Bearbeitung innerhalb des Fensters', () {
+      expect(
+        canEditMessage(message(), now: DateTime(2026, 5, 1, 12, 9, 59)),
+        isTrue,
+      );
+    });
+
+    test('verweigert Bearbeitung nach dem Fenster', () {
+      expect(
+        canEditMessage(message(), now: DateTime(2026, 5, 1, 12, 10, 1)),
+        isFalse,
+      );
+    });
+
+    test('gelöschte Nachrichten sind nie bearbeitbar', () {
+      expect(
+        canEditMessage(
+          message(deleted: true),
+          now: DateTime(2026, 5, 1, 12, 1),
+        ),
+        isFalse,
+      );
+    });
+  });
 }
