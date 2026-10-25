@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
+import '../../../core/utils/url_helper.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_chat_composer.dart';
@@ -38,8 +39,6 @@ class ConversationBody extends StatefulWidget {
 }
 
 class _ConversationBodyState extends State<ConversationBody> {
-  static final _urlPattern = RegExp(r'https?://[^\s]+');
-
   /// Grobe Bubble-Höhe für den Sprung zu einer noch nicht gerenderten
   /// Nachricht (variable Höhen – wird per `ensureVisible` nachjustiert).
   static const double _estimatedBubbleExtent = 90;
@@ -780,9 +779,9 @@ class _ConversationBodyState extends State<ConversationBody> {
 
   Widget? _linkPreview(DirectMessage message) {
     if (message.deleted || message.type != 'text') return null;
-    final match = _urlPattern.firstMatch(message.content);
-    if (match == null) return null;
-    return OgPreviewCard(url: match.group(0)!);
+    final url = firstUrlIn(message.content);
+    if (url == null) return null;
+    return OgPreviewCard(url: url);
   }
 }
 

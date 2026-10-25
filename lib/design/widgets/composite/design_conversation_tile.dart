@@ -95,6 +95,7 @@ class DesignConversationTile extends StatelessWidget {
                   color: tokens.textHigh,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  linkify: false,
                 ),
                 SizedBox(height: tokens.spaceXs),
                 DesignText(

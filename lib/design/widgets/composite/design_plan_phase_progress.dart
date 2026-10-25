@@ -74,6 +74,7 @@ class _PhaseRow extends StatelessWidget {
             phase.label,
             style: DesignTextStyle.body,
             color: tokens.textHigh,
+            linkify: false,
           ),
         ),
         SizedBox(width: tokens.spaceSm),

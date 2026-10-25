@@ -93,6 +93,7 @@ class DesignPickerField extends StatelessWidget {
                         item.label,
                         style: DesignTextStyle.body,
                         color: selected ? tokens.primary : tokens.textHigh,
+                        linkify: false,
                       ),
                     ),
                     if (selected)
@@ -144,6 +145,7 @@ class DesignPickerField extends StatelessWidget {
                 color: label != null ? tokens.textHigh : tokens.textLow,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                linkify: false,
               ),
             ),
             SizedBox(width: tokens.spaceSm),

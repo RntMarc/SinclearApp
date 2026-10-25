@@ -219,7 +219,12 @@ class DesignMessageBubble extends StatelessWidget {
                     color: tokens.primary,
                   ),
                 ),
-              DesignText(text, style: DesignTextStyle.body, color: fg),
+              DesignText(
+                text,
+                style: DesignTextStyle.body,
+                color: fg,
+                linkColor: isOwn ? tokens.textOnPrimary : null,
+              ),
               if (edited)
                 Padding(
                   padding: EdgeInsets.only(top: tokens.spaceXs),

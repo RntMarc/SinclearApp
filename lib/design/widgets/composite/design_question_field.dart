@@ -589,6 +589,7 @@ class _DateTrigger extends StatelessWidget {
                 color: value == null ? tokens.textLow : tokens.textHigh,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                linkify: false,
               ),
             ),
           ],
