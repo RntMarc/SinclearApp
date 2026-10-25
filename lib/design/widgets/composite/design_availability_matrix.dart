@@ -70,6 +70,7 @@ class DesignAvailabilityMatrix extends StatelessWidget {
                         options[i].label,
                         style: DesignTextStyle.body,
                         color: tokens.textHigh,
+                        linkify: false,
                       ),
                     ),
                     if (options[i].isCounterProposal)

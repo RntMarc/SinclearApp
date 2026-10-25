@@ -43,6 +43,7 @@ class DesignListTile extends StatelessWidget {
                   title,
                   style: DesignTextStyle.body,
                   color: tokens.textHigh,
+                  linkify: false,
                 ),
                 if (subtitle != null) ...<Widget>[
                   SizedBox(height: tokens.spaceXs),

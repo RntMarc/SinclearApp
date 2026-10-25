@@ -35,6 +35,22 @@ damit Font, Weight und Farbe aus den aktiven `DesignTokens` kommen:
 - Keine hardcoded Farben in Text-Styles – Farbe kommt aus
   `DesignTokens` (`tokens.textHigh` / `tokens.textLow`).
 
+### Links in Texten
+- `DesignText` erkennt vollständige `http://`/`https://`-URLs und rendert sie
+  als antippbare, unterstrichene Links; der Tap öffnet sie extern über
+  `launchExternalUrl` (Web: neuer Tab).
+- Verlinkt wird **nur Fließtext** (`DesignTextStyle.body`), also
+  Beschreibungen, Nachrichten, Beiträge, Notizen. Titel (`title`, `display`,
+  `subtitle`), Labels und Buttons bleiben Klartext. Body-gestylte Namen oder
+  Werte in Controls (Listenzeilen, Picker, Datumsfelder, Optionen) setzen
+  `linkify: false`.
+- Linkfarbe über `linkColor` (Default `tokens.primary`). Auf gefüllten
+  Flächen die Vordergrundfarbe übergeben, z. B. `tokens.textOnPrimary` in
+  eigenen Chat-Blasen.
+- Nicht erkannt werden `www.` ohne Schema, nackte Domains und `mailto:`.
+  Satzzeichen am URL-Ende bleiben Klartext, balancierte Klammern gehören zur
+  URL (`…/Alpha_(Begriff)`).
+
 ## Farben
 
 ### Strategie
