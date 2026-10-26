@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/di/app_scope.dart';
 import '../../design/theme/design_theme.dart';
 import '../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../design/widgets/composite/design_tab_bar.dart';
 import '../../design/widgets/foundation/design_surface.dart';
 import '../../design/widgets/foundation/design_text.dart';
-import '../../design/widgets/primitives/design_badge.dart';
 import '../../design/widgets/primitives/design_fab.dart';
 import '../../design/widgets/primitives/press_scale.dart';
 import '../chat/widgets/chat_tab.dart';
@@ -113,7 +113,6 @@ class _HomeTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
     final scope = AppScope.of(context);
     return ListenableBuilder(
       listenable: Listenable.merge([scope.notification, scope.chat]),
@@ -122,84 +121,24 @@ class _HomeTabBar extends StatelessWidget {
           ...scope.notification.unreadConversationIds,
           ...scope.chat.unreadConversationIds,
         };
-        return Padding(
-          padding: EdgeInsets.fromLTRB(
-            tokens.spaceLg,
-            tokens.spaceMd,
-            tokens.spaceLg,
-            tokens.spaceLg,
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: tokens.surfaceVariant.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(tokens.radiusPill),
-              border: Border.all(color: tokens.border.withValues(alpha: 0.5)),
+        return DesignTabBar(
+          index: index,
+          onChanged: onChanged,
+          items: <DesignTabBarItem>[
+            const DesignTabBarItem(
+              icon: Icons.space_dashboard_rounded,
+              label: 'Dashboard',
             ),
-            child: Row(
-              children: [
-                _segment(
-                  context,
-                  tokens,
-                  active: index == 0,
-                  icon: Icons.space_dashboard_rounded,
-                  label: 'Dashboard',
-                  onTap: () => onChanged(0),
-                ),
-                _segment(
-                  context,
-                  tokens,
-                  active: index == 1,
-                  icon: Icons.chat_rounded,
-                  label: 'Chat',
-                  unread: unreadIds,
-                  onTap: () => onChanged(1),
-                ),
-              ],
+            DesignTabBarItem(
+              icon: Icons.chat_rounded,
+              label: 'Chat',
+              badgeLabel: unreadIds.isEmpty
+                  ? null
+                  : (unreadIds.length > 99 ? '99+' : '${unreadIds.length}'),
             ),
-          ),
+          ],
         );
       },
-    );
-  }
-
-  Widget _segment(
-    BuildContext context,
-    DesignTokens tokens, {
-    required bool active,
-    required IconData icon,
-    required String label,
-    Set<String> unread = const {},
-    required VoidCallback onTap,
-  }) {
-    final fg = active ? tokens.textOnPrimary : tokens.textHigh;
-    return Expanded(
-      child: PressScale(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: tokens.spaceSm),
-          decoration: BoxDecoration(
-            color: active ? tokens.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(tokens.radiusPill),
-            boxShadow: active ? tokens.glowShadow : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 18, color: fg),
-              SizedBox(width: tokens.spaceSm),
-              DesignText(label, style: DesignTextStyle.label, color: fg),
-              if (unread.isNotEmpty) ...[
-                SizedBox(width: tokens.spaceSm),
-                DesignBadge(
-                  label: unread.length > 99 ? '99+' : '${unread.length}',
-                  color: tokens.accentA,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

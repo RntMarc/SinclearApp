@@ -49,17 +49,20 @@ class _GameHeroesTabState extends State<GameHeroesTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Wrap(
-          spacing: tokens.spaceSm,
-          runSpacing: tokens.spaceXs,
-          children: <Widget>[
-            for (final sort in _HeroSort.values)
-              DesignChip(
-                label: _sortLabel(sort),
-                selected: sort == _sort,
-                onTap: () => setState(() => _sort = sort),
-              ),
-          ],
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+          child: Wrap(
+            spacing: tokens.spaceSm,
+            runSpacing: tokens.spaceXs,
+            children: <Widget>[
+              for (final sort in _HeroSort.values)
+                DesignChip(
+                  label: _sortLabel(sort),
+                  selected: sort == _sort,
+                  onTap: () => setState(() => _sort = sort),
+                ),
+            ],
+          ),
         ),
         SizedBox(height: tokens.spaceMd),
         for (final hero in heroes) ...<Widget>[

@@ -81,12 +81,14 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
+    var heroesOpened = false;
     await tester.pumpWidget(
       _wrap(
         GameOverviewTab(
           data: stats,
           summary: GameSummary.fromStats(stats),
           timezone: 'Europe/Berlin',
+          onOpenHeroes: () => heroesOpened = true,
         ),
       ),
     );
@@ -97,6 +99,9 @@ void main() {
     expect(find.text('Letzte Spiele'), findsOneWidget);
     expect(find.text('Top-Helden'), findsOneWidget);
     expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('Seven'));
+    expect(heroesOpened, isTrue);
   });
 
   testWidgets('Helden-Tab sortiert und rendert Hero-Karten', (tester) async {

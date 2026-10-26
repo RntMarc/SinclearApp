@@ -10,11 +10,17 @@ class GameDefinition {
     required this.slug,
     required this.name,
     required this.icon,
+    this.logoAsset,
   });
 
   final String slug;
   final String name;
+
+  /// Fallback-Icon, wenn kein [logoAsset] hinterlegt ist.
   final IconData icon;
+
+  /// Pfad zum Spiel-Logo im Asset-Bundle (optional).
+  final String? logoAsset;
 }
 
 const List<GameDefinition> gameCatalog = <GameDefinition>[
@@ -22,6 +28,7 @@ const List<GameDefinition> gameCatalog = <GameDefinition>[
     slug: 'deadlock',
     name: 'Deadlock',
     icon: Icons.sports_esports_rounded,
+    logoAsset: 'assets/games/deadlock.png',
   ),
 ];
 

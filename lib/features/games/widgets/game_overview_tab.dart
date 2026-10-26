@@ -18,12 +18,16 @@ class GameOverviewTab extends StatelessWidget {
     required this.data,
     required this.summary,
     required this.timezone,
+    required this.onOpenHeroes,
     super.key,
   });
 
   final DeadlockStats data;
   final GameSummary summary;
   final String timezone;
+
+  /// Öffnet den Helden-Tab (Tipp auf die Top-Helden).
+  final VoidCallback onOpenHeroes;
 
   @override
   Widget build(BuildContext context) {
@@ -108,10 +112,30 @@ class GameOverviewTab extends StatelessWidget {
         ),
         SizedBox(height: tokens.spaceLg),
         DesignCard(
+          onTap: onOpenHeroes,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const DesignText('Top-Helden', style: DesignTextStyle.subtitle),
+              Row(
+                children: <Widget>[
+                  const Expanded(
+                    child: DesignText(
+                      'Top-Helden',
+                      style: DesignTextStyle.subtitle,
+                    ),
+                  ),
+                  DesignText(
+                    'alle ansehen',
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: tokens.primary,
+                  ),
+                ],
+              ),
               SizedBox(height: tokens.spaceMd),
               if (summary.heroes.isEmpty)
                 DesignText(
@@ -132,8 +156,8 @@ class GameOverviewTab extends StatelessWidget {
                       label: hero.displayName,
                       fraction: hero.winRate,
                       valueText:
-                          '${formatPercent(hero.winRate)} · '
-                          '${hero.matchesPlayed} Spiele',
+                          '${formatPlayedMinutes(hero.timePlayedSeconds)} · '
+                          '${formatPercent(hero.winRate)}',
                     ),
                   ),
             ],
