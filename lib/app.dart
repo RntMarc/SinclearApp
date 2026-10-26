@@ -13,6 +13,7 @@ import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
+import 'features/games/services/games_service.dart';
 import 'features/chat/services/chat_service.dart';
 import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
@@ -53,6 +54,7 @@ class SinclearApp extends StatelessWidget {
   final CalendarService calendar;
   final FeedbackService feedback;
   final ForumService forum;
+  final GamesService games;
   final ChatService chat;
   final LocationSharingService locationSharing;
   final RecipesService recipes;
@@ -135,6 +137,7 @@ class SinclearApp extends StatelessWidget {
     required this.calendar,
     required this.feedback,
     required this.forum,
+    required this.games,
     required this.chat,
     required this.locationSharing,
     required this.recipes,
@@ -194,6 +197,7 @@ class SinclearApp extends StatelessWidget {
       calendar: calendar,
       feedback: feedback,
       forum: forum,
+      games: games,
       chat: chat,
       locationSharing: locationSharing,
       recipes: recipes,

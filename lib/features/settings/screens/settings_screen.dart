@@ -182,6 +182,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () => context.push('/einstellungen/social'),
                     ),
                     DesignListTile(
+                      leading: const Icon(Icons.sports_esports_rounded),
+                      title: 'Spiele',
+                      subtitle: 'Steam-ID verknüpfen und Statistiken ansehen',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/einstellungen/spiele'),
+                    ),
+                    DesignListTile(
                       leading: const Icon(Icons.chat_rounded),
                       title: 'Kontaktmöglichkeiten',
                       subtitle: _contactSummary(user.contact),

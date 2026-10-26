@@ -71,6 +71,10 @@ import '../features/showcase/screens/design_showcase_screen.dart';
 import '../features/stories/screens/story_deep_link_screen.dart';
 import '../features/subscription/screens/subscription_list_screen.dart';
 import '../features/chat/screens/conversation_screen.dart';
+import '../features/games/screens/games_screen.dart';
+import '../features/games/screens/game_stats_screen.dart';
+import '../features/games/screens/game_compare_screen.dart';
+import '../features/games/screens/manage_games_screen.dart';
 
 GoRouter createRouter(AuthService auth, {String? initialLocation}) {
   return GoRouter(
@@ -337,6 +341,32 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
             builder: (context, state) => const PhotosScreen(),
           ),
           GoRoute(
+            path: '/spiele',
+            builder: (context, state) => const GamesScreen(),
+            routes: [
+              GoRoute(
+                path: ':game',
+                builder: (context, state) => GameStatsScreen(
+                  game: state.pathParameters['game']!,
+                  userId: state.uri.queryParameters['spieler'],
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'vergleich',
+                    builder: (context, state) => GameCompareScreen(
+                      game: state.pathParameters['game']!,
+                      userIds: (state.uri.queryParameters['userIds'] ?? '')
+                          .split(',')
+                          .map((id) => id.trim())
+                          .where((id) => id.isNotEmpty)
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          GoRoute(
             path: '/kontakte',
             builder: (context, state) => const ContactsScreen(),
             routes: [
@@ -455,6 +485,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
               GoRoute(
                 path: 'social',
                 builder: (context, state) => const EditSocialScreen(),
+              ),
+              GoRoute(
+                path: 'spiele',
+                builder: (context, state) => const ManageGamesScreen(),
               ),
               GoRoute(
                 path: 'kontakt',

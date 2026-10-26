@@ -14,6 +14,8 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../games/models/game_catalog.dart';
+import '../../games/models/game_models.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/user_models.dart';
@@ -29,6 +31,7 @@ class UserDetailScreen extends StatefulWidget {
 
 class _UserDetailScreenState extends State<UserDetailScreen> {
   UserDetailPublic? _user;
+  List<GameAccount> _games = const <GameAccount>[];
   bool _loading = true;
   String? _error;
   bool _isSelf = false;
@@ -49,9 +52,22 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       final scope = AppScope.of(context);
       await scope.auth.getAccessToken();
       final user = await scope.user.get(widget.id);
+      var games = const <GameAccount>[];
+      try {
+        games = await scope.games.listForUser(widget.id);
+      } catch (e, st) {
+        // Das Profil bleibt nutzbar, auch wenn die Spiele-Liste nicht lädt.
+        developer.log(
+          'Failed to load user games',
+          error: e,
+          stackTrace: st,
+          name: 'user_detail',
+        );
+      }
       if (!mounted) return;
       setState(() {
         _user = user;
+        _games = games;
         _isSelf = scope.auth.userId == widget.id;
         _loading = false;
         _error = null;
@@ -249,6 +265,34 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 const DesignText('Kontakt', style: DesignTextStyle.subtitle),
                 SizedBox(height: tokens.spaceSm),
                 DesignCard.list(children: contactTiles),
+              ],
+              if (_games.isNotEmpty) ...<Widget>[
+                SizedBox(height: tokens.spaceXl),
+                const DesignText('Spiele', style: DesignTextStyle.subtitle),
+                SizedBox(height: tokens.spaceSm),
+                DesignCard.list(
+                  children: <Widget>[
+                    for (final account in _games)
+                      DesignListTile(
+                        leading: DesignAvatar(
+                          imageUrl: account.avatarUrl,
+                          name: account.displayName ?? account.game,
+                          size: 40,
+                        ),
+                        title: account.displayName ?? account.accountId,
+                        subtitle:
+                            '${gameForSlug(account.game)?.name ?? account.game}'
+                            ' · Steam-ID ${account.accountId}',
+                        trailing: Icon(
+                          Icons.chevron_right_rounded,
+                          color: tokens.textLow,
+                        ),
+                        onTap: () => context.push(
+                          '/spiele/${account.game}?spieler=${widget.id}',
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ],
           ),
