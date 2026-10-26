@@ -8,12 +8,12 @@ import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
+import '../../../design/widgets/composite/design_tab_bar.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
-import '../../../design/widgets/primitives/design_chip.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/game_catalog.dart';
 import '../models/game_models.dart';
@@ -82,26 +82,12 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
 
     try {
       final stats = await scope.games.stats(widget.game, targetUserId);
-      String? displayName;
-      String? imageUrl;
-      try {
-        final user = await scope.user.get(targetUserId);
-        displayName = user.base.displayName;
-        imageUrl = user.base.image;
-      } catch (e, st) {
-        // Statistiken bleiben nutzbar, auch wenn das Profil nicht lädt.
-        developer.log(
-          'Failed to load game stats profile',
-          error: e,
-          stackTrace: st,
-          name: 'games',
-        );
-      }
+      final account = await _loadSteamAccount(scope, targetUserId);
       if (!mounted) return;
       setState(() {
         _stats = stats;
-        _displayName = displayName ?? 'Spieler';
-        _imageUrl = imageUrl;
+        _displayName = account?.displayName ?? 'Spieler';
+        _imageUrl = account?.avatarUrl;
         _loading = false;
       });
     } catch (e, st) {
@@ -119,6 +105,28 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
         _error = gameErrorMessage(e);
       });
     }
+  }
+
+  /// Steam-Name und -Avatar des verknüpften Accounts.
+  ///
+  /// Die Statistik-Antwort enthält nur die `accountId`; die Profildaten kommen
+  /// laut API aus `/user/{userId}/games`.
+  Future<GameAccount?> _loadSteamAccount(AppScope scope, String userId) async {
+    try {
+      final accounts = await scope.games.listForUser(userId);
+      for (final account in accounts) {
+        if (account.game == widget.game) return account;
+      }
+    } catch (e, st) {
+      // Statistiken bleiben nutzbar, auch wenn das Steam-Profil nicht lädt.
+      developer.log(
+        'Failed to load Steam profile',
+        error: e,
+        stackTrace: st,
+        name: 'games',
+      );
+    }
+    return null;
   }
 
   bool get _isSelf {
@@ -226,7 +234,6 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
                           _emptyState(context)
                         else ...<Widget>[
                           _tabs(context),
-                          SizedBox(height: tokens.spaceMd),
                           _tabContent(context, _stats!.stats!),
                         ],
                       ],
@@ -240,29 +247,20 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
 
   Widget _tabs(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-      child: Wrap(
-        spacing: tokens.spaceSm,
-        runSpacing: tokens.spaceXs,
-        children: <Widget>[
-          DesignChip(
-            label: 'Übersicht',
-            selected: _tab == _StatsTab.overview,
-            onTap: () => setState(() => _tab = _StatsTab.overview),
-          ),
-          DesignChip(
-            label: 'Helden',
-            selected: _tab == _StatsTab.heroes,
-            onTap: () => setState(() => _tab = _StatsTab.heroes),
-          ),
-          DesignChip(
-            label: 'Matches',
-            selected: _tab == _StatsTab.matches,
-            onTap: () => setState(() => _tab = _StatsTab.matches),
-          ),
-        ],
+    return DesignTabBar(
+      index: _tab.index,
+      onChanged: (index) => setState(() => _tab = _StatsTab.values[index]),
+      padding: EdgeInsets.fromLTRB(
+        tokens.spaceLg,
+        tokens.spaceLg,
+        tokens.spaceLg,
+        tokens.spaceMd,
       ),
+      items: const <DesignTabBarItem>[
+        DesignTabBarItem(icon: Icons.insights_rounded, label: 'Übersicht'),
+        DesignTabBarItem(icon: Icons.shield_rounded, label: 'Helden'),
+        DesignTabBarItem(icon: Icons.history_rounded, label: 'Matches'),
+      ],
     );
   }
 
@@ -274,6 +272,7 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
         data: data,
         summary: summary,
         timezone: timezone,
+        onOpenHeroes: () => setState(() => _tab = _StatsTab.heroes),
       ),
       _StatsTab.heroes => GameHeroesTab(
         heroes: data.heroStats,

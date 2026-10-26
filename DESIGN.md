@@ -418,6 +418,12 @@ Design-Tokens bekommt.
   Abstand). Parameter: `title` (`title`-Style, normal case), `leading`
   (z.B. Zurück-Button), `actions` (Liste). Einsatz in Sub-Seiten, die einen
   eigenen Zurück-Button/Titel/Aktionen brauchen.
+- **`DesignTabBar`** (`composite`) – Segmentierte Tab-Leiste im Pill-Stil
+  (z.B. Dashboard | Chat oder Übersicht | Helden | Matches). Genau ein
+  `DesignTabBarItem` (Icon, Label, optionaler Badge-Zähler) ist aktiv; die
+  Einträge teilen sich die volle Breite. `padding` steuert den äußeren
+  Abstand (Default wie im Home-Screen: `spaceMd` oben, `spaceLg` sonst).
+  Für Sortier- oder Mehrfachfilter bleiben `DesignChip`s die richtige Wahl.
 - **`DesignPulseDot`** (`primitives`) – Pulsierender Statuspunkt. Parameter:
   `size`, `color`, `semanticLabel`. Markiert ungelesene Aktivität (Standard-
   color `accentA`), dient aber auch als Online-Indikator (`success`, Label
@@ -523,16 +529,25 @@ Kacheln greedy auf 2/3/4 Spalten (mobil/Tablet/Desktop).
 Der Spiele-Bereich (`lib/features/games/`, Routen `/spiele`,
 `/spiele/:game`, `/spiele/:game/vergleich` und `/einstellungen/spiele`) nutzt
 ausschließlich den Katalog (`DesignSurface`, `DesignCard`, `DesignChip`,
-`DesignAvatar`, `DesignButton`, `DesignSubpageHeader`, `showDesignSheet`) und
-ergänzt die Statistik-Widgets `DesignStatTile`, `DesignMetricBar`,
-`DesignBarChart`, `DesignComparisonTable` und `DesignOutcomeStrip`.
+`DesignTabBar`, `DesignAvatar`, `DesignButton`, `DesignSubpageHeader`,
+`showDesignSheet`) und ergänzt die Statistik-Widgets `DesignStatTile`,
+`DesignMetricBar`, `DesignBarChart`, `DesignComparisonTable` und
+`DesignOutcomeStrip`.
 Feature-spezifisch bleiben nur die Datenmodelle (`GameAccount`,
-`DeadlockStats`, `GameSummary`), der `GamesService`,
-`GameResultBadge` (`widgets/game_result_badge.dart`, mappt
+`DeadlockStats`, `GameSummary`), der `GamesService`, das Spiel-Logo
+(`widgets/game_logo.dart`, Asset aus `GameDefinition.logoAsset` mit
+Icon-Fallback), `GameResultBadge` (`widgets/game_result_badge.dart`, mappt
 `MatchOutcome` → `DesignBadge`) und die drei Tab-Inhalte
 (`game_overview_tab.dart`, `game_heroes_tab.dart`, `game_matches_tab.dart`).
 Die Spieler-Auswahl (`player_picker_sheet.dart`) komponiert
 `showDesignSheet` + `DesignTextField` + `DesignListTile` + `DesignAvatar`.
+
+Die Tabs (Übersicht | Helden | Matches) laufen über `DesignTabBar` – die
+Sortier-Chips im Helden-Tab bleiben `DesignChip`s, damit Tabs und Filter
+visuell unterscheidbar sind. Name und Avatar in der Spieler-Infobox kommen
+aus dem verknüpften Steam-Account (`/user/{userId}/games`), nicht aus dem
+Beyond-Profil. Die Top-Helden der Übersicht sind nach gespielter Zeit
+sortiert und öffnen beim Tipp den Helden-Tab.
 
 Helden- und Rang-Bilder kommen als URLs aus der API (Deadlock-Assets); fehlen
 sie, greift der Client auf `Held #id` bzw. die lokale Rang-Tabelle zurück.

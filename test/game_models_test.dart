@@ -244,6 +244,26 @@ void main() {
       expect(summary.recentMatches, hasLength(3));
     });
 
+    test('sortiert Top-Helden nach gespielter Zeit statt nach Matches', () {
+      final summary = GameSummary.fromStats(
+        DeadlockStats.fromJson(<String, dynamic>{
+          'heroStats': <dynamic>[
+            _heroJson(matches: 10, wins: 5, minutes: 30),
+            _heroJson(
+              heroId: 7,
+              heroName: 'Wraith',
+              matches: 2,
+              wins: 2,
+              minutes: 300,
+            ),
+          ],
+        }),
+      );
+
+      expect(summary.heroes.first.displayName, 'Wraith');
+      expect(summary.topHero?.displayName, 'Wraith');
+    });
+
     test('leere Statistiken ergeben einen leeren Summary', () {
       final summary = GameSummary.fromStats(const DeadlockStats());
       expect(summary.matches, 0);

@@ -467,7 +467,7 @@ class GameSummary {
 
     final heroes =
         stats.heroStats.where((hero) => hero.matchesPlayed > 0).toList()
-          ..sort((a, b) => b.matchesPlayed.compareTo(a.matchesPlayed));
+          ..sort(_compareHeroesByTime);
 
     return GameSummary(
       matches: matches,
@@ -490,6 +490,13 @@ class GameSummary {
       recentMatches.where((match) => match.outcome == MatchOutcome.loss).length;
 
   DeadlockHeroStat? get topHero => heroes.isEmpty ? null : heroes.first;
+
+  /// Meistgespielte Helden zuerst; bei Gleichstand entscheiden die Matches.
+  static int _compareHeroesByTime(DeadlockHeroStat a, DeadlockHeroStat b) {
+    final byTime = b.timePlayedSeconds.compareTo(a.timePlayedSeconds);
+    if (byTime != 0) return byTime;
+    return b.matchesPlayed.compareTo(a.matchesPlayed);
+  }
 
   static void _addWeight(
     Map<String, double> weights,

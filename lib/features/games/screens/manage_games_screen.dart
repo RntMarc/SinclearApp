@@ -20,6 +20,7 @@ import '../models/game_catalog.dart';
 import '../models/game_models.dart';
 import '../utils/game_error_messages.dart';
 import '../utils/steam_id.dart';
+import '../widgets/game_logo.dart';
 
 /// Verwaltet die eigenen verknüpften Spiele-Accounts.
 class ManageGamesScreen extends StatefulWidget {
@@ -218,15 +219,7 @@ class _GameAccountCard extends StatelessWidget {
                   size: 48,
                 )
               else
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: tokens.surfaceVariant,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(game.icon, color: tokens.primary, size: 24),
-                ),
+                GameLogo(game: game),
               SizedBox(width: tokens.spaceMd),
               Expanded(
                 child: Column(
