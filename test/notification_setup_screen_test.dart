@@ -14,6 +14,7 @@ import 'package:sinclear_beyond/features/chat/services/chat_service.dart';
 import 'package:sinclear_beyond/features/explore/services/explore_service.dart';
 import 'package:sinclear_beyond/features/feedback/services/feedback_service.dart';
 import 'package:sinclear_beyond/features/forum/services/forum_service.dart';
+import 'package:sinclear_beyond/features/games/services/games_service.dart';
 import 'package:sinclear_beyond/features/home/dashboard_cache.dart';
 import 'package:sinclear_beyond/features/home/dashboard_controller.dart';
 import 'package:sinclear_beyond/features/home/dashboard_layout_store.dart';
@@ -155,6 +156,7 @@ AppScope _buildScope({
 }) {
   final user = UserService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
+  final games = GamesService(api: api, auth: auth);
   final timeZones = TimeZoneService();
   final calendar = CalendarService(api: api, auth: auth, timeZones: timeZones);
   final travel = TravelService(api: api, auth: auth);
@@ -175,6 +177,7 @@ AppScope _buildScope({
     calendar: calendar,
     feedback: FeedbackService(api: api, auth: auth),
     forum: forum,
+    games: games,
     chat: ChatService(api: api, auth: auth),
     locationSharing: LocationSharingService(api: api, auth: auth),
     recipes: recipes,

@@ -29,6 +29,7 @@ import 'features/calendar/services/calendar_service.dart';
 import 'features/explore/services/explore_service.dart';
 import 'features/feedback/services/feedback_service.dart';
 import 'features/forum/services/forum_service.dart';
+import 'features/games/services/games_service.dart';
 import 'features/chat/services/chat_service.dart';
 import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
@@ -163,6 +164,7 @@ Future<void> _bootstrap() async {
   final calendar = CalendarService(api: api, auth: auth, timeZones: timeZones);
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
+  final games = GamesService(api: api, auth: auth);
   final chat = ChatService(api: api, auth: auth);
   final locationSharing = LocationSharingService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
@@ -322,6 +324,7 @@ Future<void> _bootstrap() async {
       calendar: calendar,
       feedback: feedback,
       forum: forum,
+      games: games,
       chat: chat,
       locationSharing: locationSharing,
       recipes: recipes,

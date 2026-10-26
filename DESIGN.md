@@ -469,6 +469,25 @@ Design-Tokens bekommt.
   über `onChanged(optionId, value)`.
 - **`DesignPollResultBar`** (`composite`) – Ergebnisbalken aus `DesignCard` +
   `DesignText` mit Füllbreite aus `percentage`.
+- **`DesignMetricBar`** (`composite`) – modellfreier Anteils-/Fortschrittsbalken
+  (Label, Wert, Füllgrad 0…1) aus Token-Palette; Grundlage für Winrates und
+  Helden-Anteile. Zeigt den Wert zusätzlich als Text und Semantik-Label.
+- **`DesignStatTile`** (`composite`) – kompakte Kennzahl-Karte (Label, Wert,
+  optionales Icon, `emphasis`) aus `DesignCard` + `DesignText`; der Aufrufer
+  steuert das Raster (z. B. zwei Spalten mobil, drei auf Tablets).
+- **`DesignBarChart`** (`composite`) – vertikales Balkendiagramm ohne externe
+  Chart-Dependency. Parameter: `bars` (Liste aus `DesignBar {value, label,
+  semanticLabel, color}`), `height`, `emptyLabel`. Jeder Balken erhält ein
+  vollständiges Semantik-Label; Werte werden nicht nur über Höhe/Farbe
+  transportiert.
+- **`DesignComparisonTable`** (`composite`) – modellfreier Vergleich mehrerer
+  Spalten. `rows` bestehen aus `DesignComparisonRow {label, values,
+  sortValues?, higherIsBetter}`; der eindeutig bessere Wert wird mit einem
+  Pokal-Icon und Primärfarbe markiert, Gleichstände bleiben unmarkiert.
+- **`DesignOutcomeStrip`** (`composite`) – kompakte Ergebnis-Reihe (z. B. die
+  letzten 20 Spiele) aus `DesignOutcomeItem {label, shortLabel?, tone}`. Die
+  Information steht immer als Text („S“/„N“) **und** als Semantik-Label bereit;
+  `DesignOutcomeTone` liefert die zusätzliche Farbcodierung.
 - **`DesignPlanPhaseProgress`** (`composite`) – modellfreie Fortschrittsanzeige
   der Planungsphasen aus `DesignCard` + `DesignText` + `DesignBadge`. Parameter:
   `phases` (Liste aus `DesignPlanPhase {label, status}` mit
@@ -498,4 +517,25 @@ und hält nur zwei feature-spezifische Adapter:
 Das Masonry-Layout kommt ohne zusätzliche Dependency aus: die reine
 Hilfsfunktion `distributeIntoColumns` (`utils/masonry.dart`) verteilt die
 Kacheln greedy auf 2/3/4 Spalten (mobil/Tablet/Desktop).
+
+### Feature-Adapter: Spiele
+
+Der Spiele-Bereich (`lib/features/games/`, Routen `/spiele`,
+`/spiele/:game`, `/spiele/:game/vergleich` und `/einstellungen/spiele`) nutzt
+ausschließlich den Katalog (`DesignSurface`, `DesignCard`, `DesignChip`,
+`DesignAvatar`, `DesignButton`, `DesignSubpageHeader`, `showDesignSheet`) und
+ergänzt die Statistik-Widgets `DesignStatTile`, `DesignMetricBar`,
+`DesignBarChart`, `DesignComparisonTable` und `DesignOutcomeStrip`.
+Feature-spezifisch bleiben nur die Datenmodelle (`GameAccount`,
+`DeadlockStats`, `GameSummary`), der `GamesService`,
+`GameResultBadge` (`widgets/game_result_badge.dart`, mappt
+`MatchOutcome` → `DesignBadge`) und die drei Tab-Inhalte
+(`game_overview_tab.dart`, `game_heroes_tab.dart`, `game_matches_tab.dart`).
+Die Spieler-Auswahl (`player_picker_sheet.dart`) komponiert
+`showDesignSheet` + `DesignTextField` + `DesignListTile` + `DesignAvatar`.
+
+Helden- und Rang-Bilder kommen als URLs aus der API (Deadlock-Assets); fehlen
+sie, greift der Client auf `Held #id` bzw. die lokale Rang-Tabelle zurück.
+Spielzeiten und Match-Daten werden in der effektiven Nutzer-Zeitzone
+(`TimeZoneService.effective`) angezeigt.
 
