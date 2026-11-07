@@ -7,7 +7,9 @@ plugins {
 
 android {
     namespace = "de.sinclear.beyond"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_local_notifications 23.x and androidx.core 1.19 require API 37;
+    // keep this above flutter.compileSdkVersion (36) until Flutter bumps its default.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
