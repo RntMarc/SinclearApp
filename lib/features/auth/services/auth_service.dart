@@ -136,26 +136,35 @@ class AuthService extends ChangeNotifier {
     if (kDebugMode) {
       developer.log('_doRefresh: calling /auth/refresh', name: 'auth');
     }
-    final data = await _api.post(
-      '/auth/refresh',
-      body: {'refresh_token': refresh},
-    );
-    _accessToken = data['access_token'] as String;
-    _accessTokenExpiry =
-        DateTime.now().millisecondsSinceEpoch ~/ 1000 +
-        (data['expires_in'] as int);
-    final newRefresh = data['refresh_token'] as String;
-    await _storage.saveRefreshToken(
-      newRefresh,
-      data['expires_at'] as int? ?? 0,
-    );
-    if (kDebugMode) {
-      developer.log(
-        '_doRefresh: success, token expires in ${data['expires_in']}s',
-        name: 'auth',
+    try {
+      final data = await _api.post(
+        '/auth/refresh',
+        body: {'refresh_token': refresh},
       );
+      _accessToken = data['access_token'] as String;
+      _accessTokenExpiry =
+          DateTime.now().millisecondsSinceEpoch ~/ 1000 +
+          (data['expires_in'] as int);
+      final newRefresh = data['refresh_token'] as String;
+      await _storage.saveRefreshToken(
+        newRefresh,
+        data['expires_at'] as int? ?? 0,
+      );
+      if (kDebugMode) {
+        developer.log(
+          '_doRefresh: success, token expires in ${data['expires_in']}s',
+          name: 'auth',
+        );
+      }
+      return _accessToken!;
+    } on ApiException catch (e) {
+      // Ungültiges/abgelaufenes Refresh-Token: sauber ausloggen statt in einem
+      // Zustand zu verharren, in dem jeder weitere Request mit 401 fehlschlägt.
+      if (e.statusCode == 401) {
+        await logout();
+      }
+      rethrow;
     }
-    return _accessToken!;
   }
 
   /// Holt einen Centrifugo-Connection-Token samt WebSocket-URL.

@@ -78,7 +78,7 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
       _log.severe('Failed to load planning detail', e, st);
       if (!mounted) return;
       setState(() {
-        _error = 'Die Planung konnte nicht geladen werden.';
+        _error = describeApiError(e);
         _loading = false;
       });
     }
@@ -126,7 +126,7 @@ class _PlanningDetailScreenState extends State<PlanningDetailScreen> {
       if (!mounted) return false;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Aktion fehlgeschlagen.')));
+      ).showSnackBar(SnackBar(content: Text(describeApiError(e))));
       return false;
     } finally {
       if (mounted) setState(() => _busy = false);

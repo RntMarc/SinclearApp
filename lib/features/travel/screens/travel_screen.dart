@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/network/api_client.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
@@ -16,7 +17,6 @@ import '../models/travel_models.dart';
 import '../models/travel_planning_models.dart';
 import '../screens/event_detail_screen.dart';
 import '../screens/pt_search_screen.dart';
-import '../services/travel_service.dart';
 import '../widgets/pt_journey_card.dart';
 import '../widgets/travel_create_sheet.dart';
 
@@ -28,10 +28,9 @@ class TravelScreen extends StatefulWidget {
 }
 
 class _TravelScreenState extends State<TravelScreen> {
-  TravelService get _service => AppScope.of(context).travel;
-
   bool _loading = true;
   String? _error;
+  String? _partialError;
   List<TimelineEntry> _current = [];
   List<TimelineEntry> _future = [];
   List<TimelineEntry> _past = [];
@@ -69,29 +68,43 @@ class _TravelScreenState extends State<TravelScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _partialError = null;
     });
 
-    try {
-      final tripsFuture = _service.list(limit: 100);
-      final standaloneFuture = _service.getStandaloneEvents(limit: 100);
-      final planningFuture = AppScope.of(context).planning.list(limit: 100);
-      final ptFuture = AppScope.of(
-        context,
-      ).publicTransport.listJourneys(limit: 100);
-      final results = await Future.wait([
-        tripsFuture,
-        standaloneFuture,
-        planningFuture,
-        ptFuture,
-      ]);
-      if (!mounted) return;
+    final scope = AppScope.of(context);
+    final travel = scope.travel;
+    final planningService = scope.planning;
+    final ptService = scope.publicTransport;
 
-      final trips = results[0] as TravelTripListResponse;
-      final standalone = results[1] as TravelStandaloneEventListResponse;
-      final planning = results[2] as PlanningTripListResponse;
-      final ptResponse = results[3] as PtSavedJourneyListResponse;
+    // Die vier Bereiche werden unabhängig geladen, damit ein einzelner
+    // fehlschlagender Endpunkt nicht die komplette Reisen-Seite blockiert.
+    final results = await Future.wait<Object?>([
+      _guard(() => travel.list(limit: 100)),
+      _guard(() => travel.getStandaloneEvents(limit: 100)),
+      _guard(() => planningService.list(limit: 100)),
+      _guard(() => ptService.listJourneys(limit: 100)),
+    ]);
 
-      final entries = <TimelineEntry>[
+    final trips = results[0] as TravelTripListResponse?;
+    final standalone = results[1] as TravelStandaloneEventListResponse?;
+    final planning = results[2] as PlanningTripListResponse?;
+    final ptResponse = results[3] as PtSavedJourneyListResponse?;
+
+    if (!mounted) return;
+
+    if (trips == null &&
+        standalone == null &&
+        planning == null &&
+        ptResponse == null) {
+      setState(() {
+        _error = _partialError ?? 'Die Reisen konnten nicht geladen werden.';
+        _loading = false;
+      });
+      return;
+    }
+
+    final entries = <TimelineEntry>[
+      if (trips != null)
         for (final t in trips.data)
           TimelineEntry(
             id: t.id,
@@ -105,6 +118,7 @@ class _TravelScreenState extends State<TravelScreen> {
             endDate: t.endDate,
             isTrip: true,
           ),
+      if (standalone != null)
         for (final e in standalone.data)
           TimelineEntry(
             id: e.id,
@@ -118,42 +132,46 @@ class _TravelScreenState extends State<TravelScreen> {
             endDate: e.endDate,
             isTrip: false,
           ),
-      ];
+    ];
 
-      final now = DateTime.now();
-      final current = <TimelineEntry>[];
-      final future = <TimelineEntry>[];
-      final past = <TimelineEntry>[];
+    final now = DateTime.now();
+    final current = <TimelineEntry>[];
+    final future = <TimelineEntry>[];
+    final past = <TimelineEntry>[];
 
-      for (final entry in entries) {
-        if (entry.startInstant.isBefore(now) && entry.endInstant.isAfter(now)) {
-          current.add(entry);
-        } else if (entry.startInstant.isAfter(now)) {
-          future.add(entry);
-        } else {
-          past.add(entry);
-        }
+    for (final entry in entries) {
+      if (entry.startInstant.isBefore(now) && entry.endInstant.isAfter(now)) {
+        current.add(entry);
+      } else if (entry.startInstant.isAfter(now)) {
+        future.add(entry);
+      } else {
+        past.add(entry);
       }
+    }
 
-      current.sort((a, b) => a.startInstant.compareTo(b.startInstant));
-      future.sort((a, b) => a.startInstant.compareTo(b.startInstant));
-      past.sort((a, b) => b.endInstant.compareTo(a.endInstant));
+    current.sort((a, b) => a.startInstant.compareTo(b.startInstant));
+    future.sort((a, b) => a.startInstant.compareTo(b.startInstant));
+    past.sort((a, b) => b.endInstant.compareTo(a.endInstant));
 
-      setState(() {
-        _current = current;
-        _future = future;
-        _past = past;
-        _ptJourneys = ptResponse.data;
-        _planning = planning.data;
-        _loading = false;
-      });
+    setState(() {
+      _current = current;
+      _future = future;
+      _past = past;
+      _ptJourneys = ptResponse?.data ?? <PtSavedJourney>[];
+      _planning = planning?.data ?? <PlanningTrip>[];
+      _loading = false;
+    });
+  }
+
+  /// Lädt einen Bereich und fängt Fehler ab, statt die ganze Seite scheitern
+  /// zu lassen. Merkt sich die erste Fehlermeldung für einen Hinweis.
+  Future<T?> _guard<T>(Future<T> Function() fn) async {
+    try {
+      return await fn();
     } catch (e, st) {
-      developer.log('Failed to load travel', error: e, stackTrace: st);
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      developer.log('Failed to load travel section', error: e, stackTrace: st);
+      _partialError ??= describeApiError(e);
+      return null;
     }
   }
 
@@ -239,6 +257,12 @@ class _TravelScreenState extends State<TravelScreen> {
                       style: DesignTextStyle.body,
                       color: tokens.textHigh,
                     ),
+                    SizedBox(height: tokens.spaceSm),
+                    DesignText(
+                      _error!,
+                      style: DesignTextStyle.label,
+                      color: tokens.textLow,
+                    ),
                     SizedBox(height: tokens.spaceMd),
                     DesignButton(
                       variant: DesignButtonVariant.outlined,
@@ -296,6 +320,7 @@ class _TravelScreenState extends State<TravelScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_partialError != null) _buildPartialErrorBanner(),
             if (_planning.isNotEmpty) ..._buildPlanningSection(),
             if (_current.isNotEmpty)
               ..._buildSection('Aktuelle Reisen', _current),
@@ -306,6 +331,32 @@ class _TravelScreenState extends State<TravelScreen> {
             SizedBox(height: tokens.spaceXxl + 80),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPartialErrorBanner() {
+    final tokens = DesignTheme.of(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        tokens.spaceLg,
+        tokens.spaceMd,
+        tokens.spaceLg,
+        0,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, size: 18, color: tokens.textLow),
+          SizedBox(width: tokens.spaceSm),
+          Expanded(
+            child: DesignText(
+              'Einige Bereiche konnten nicht geladen werden: $_partialError',
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ),
+        ],
       ),
     );
   }
