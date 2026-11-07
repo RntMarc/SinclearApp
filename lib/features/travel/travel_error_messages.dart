@@ -33,6 +33,6 @@ String travelErrorMessage(ApiException error) {
     _ =>
       error.message?.isNotEmpty == true
           ? error.message!
-          : 'Die Aktion ist fehlgeschlagen.',
+          : 'Fehler ${error.statusCode} (${error.errorCode})',
   };
 }

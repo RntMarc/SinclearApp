@@ -71,7 +71,7 @@ class _PlanningCreateScreenState extends State<PlanningCreateScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Fehler beim Erstellen.')));
+      ).showSnackBar(SnackBar(content: Text(describeApiError(e))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

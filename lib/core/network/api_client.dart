@@ -29,6 +29,32 @@ class ApiException implements Exception {
   }
 }
 
+/// Beschreibt einen beim API-Zugriff aufgetretenen Fehler für die UI.
+///
+/// Im Gegensatz zu einer pauschalen Meldung nennt sie bei [ApiException] den
+/// HTTP-Status und den Fehlercode (z. B. `rate_limit_exceeded`), damit
+/// auffällt, was tatsächlich fehlschlägt. Netzwerk- und Timeout-Fehler haben
+/// eigene, verständliche Texte.
+String describeApiError(
+  Object error, {
+  String fallback = 'Die Anfrage ist fehlgeschlagen.',
+}) {
+  if (error is ApiException) {
+    final code = error.errorCode;
+    final detail = error.message?.isNotEmpty == true
+        ? ' — ${error.message}'
+        : '';
+    return 'Fehler ${error.statusCode} ($code)$detail';
+  }
+  if (error is TimeoutException) {
+    return 'Zeitüberschreitung: Der Server hat nicht rechtzeitig geantwortet.';
+  }
+  if (error is http.ClientException) {
+    return 'Netzwerkfehler: ${error.message}';
+  }
+  return fallback;
+}
+
 class ApiClient {
   final String baseUrl;
   final http.Client _client;
@@ -63,6 +89,7 @@ class ApiClient {
       );
     }
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
+      http.Response? retryResponse;
       try {
         final response = await _client
             .post(
@@ -74,9 +101,11 @@ class ApiClient {
         if (kDebugMode) {
           _logResponse('POST', uri.toString(), response);
         }
-        if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
+        if (!_shouldRetry('POST', response.statusCode) ||
+            attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
+        retryResponse = response;
       } on TimeoutException {
         if (kDebugMode) {
           _log.fine('POST $uri timed out (attempt $attempt/$maxGetAttempts)');
@@ -90,7 +119,7 @@ class ApiClient {
         }
         if (attempt == maxGetAttempts) rethrow;
       }
-      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
+      await Future<void>.delayed(_retryDelay(retryResponse, attempt));
     }
     throw StateError('POST retry loop exited unexpectedly.');
   }
@@ -108,6 +137,7 @@ class ApiClient {
       _log.fine('GET $uri');
     }
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
+      http.Response? retryResponse;
       try {
         final response = await _client
             .get(uri, headers: _headers(token: token))
@@ -115,9 +145,11 @@ class ApiClient {
         if (kDebugMode) {
           _logResponse('GET', uri.toString(), response);
         }
-        if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
+        if (!_shouldRetry('GET', response.statusCode) ||
+            attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
+        retryResponse = response;
       } on TimeoutException {
         if (kDebugMode) {
           _log.fine('GET $uri timed out (attempt $attempt/$maxGetAttempts)');
@@ -130,7 +162,7 @@ class ApiClient {
         if (attempt == maxGetAttempts) rethrow;
       }
 
-      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
+      await Future<void>.delayed(_retryDelay(retryResponse, attempt));
     }
 
     throw StateError('GET retry loop exited unexpectedly.');
@@ -218,6 +250,7 @@ class ApiClient {
       _log.fine('DELETE $uri');
     }
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
+      http.Response? retryResponse;
       try {
         final request = http.Request('DELETE', uri);
         request.headers.addAll(_headers(token: token));
@@ -230,9 +263,11 @@ class ApiClient {
           _logResponse('DELETE', uri.toString(), response);
         }
         if (response.statusCode == 204) return <String, dynamic>{};
-        if (!_shouldRetry(response.statusCode) || attempt == maxGetAttempts) {
+        if (!_shouldRetry('DELETE', response.statusCode) ||
+            attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
+        retryResponse = response;
       } on TimeoutException {
         if (kDebugMode) {
           _log.fine('DELETE $uri timed out (attempt $attempt/$maxGetAttempts)');
@@ -246,7 +281,7 @@ class ApiClient {
         }
         if (attempt == maxGetAttempts) rethrow;
       }
-      await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
+      await Future<void>.delayed(_retryDelay(retryResponse, attempt));
     }
     throw StateError('DELETE retry loop exited unexpectedly.');
   }
@@ -259,8 +294,27 @@ class ApiClient {
     _log.fine('$method $uri ${response.statusCode} body=$bodyPreview');
   }
 
-  bool _shouldRetry(int statusCode) {
-    return statusCode == 408 || statusCode == 429 || statusCode >= 500;
+  /// Ob ein Request erneut versucht werden soll.
+  ///
+  /// `408` und `5xx` sind transient und werden erneut versucht. `429` (Too
+  /// Many Requests) wird nur für idempotente Lesezugriffe wiederholt —
+  /// Schreiboperationen erneut zu senden würde das Rate-Limit verstärken bzw.
+  /// doppelte Schreibvorgänge riskieren.
+  bool _shouldRetry(String method, int statusCode) {
+    if (statusCode == 408 || statusCode >= 500) return true;
+    return statusCode == 429 && method == 'GET';
+  }
+
+  /// Backoff zwischen Retries. Respektiert den `Retry-After`-Header
+  /// (Sekunden) und fällt sonst auf einen kurzen, exponentiell wachsenden
+  /// Abstand zurück.
+  Duration _retryDelay(http.Response? response, int attempt) {
+    final retryAfter = response?.headers['retry-after'];
+    final seconds = retryAfter == null ? null : int.tryParse(retryAfter.trim());
+    if (seconds != null && seconds > 0) {
+      return Duration(seconds: seconds);
+    }
+    return Duration(milliseconds: 250 * attempt);
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
