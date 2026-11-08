@@ -29,6 +29,7 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/umfragen')) return 'UMFRAGEN';
   if (location.startsWith('/fotos')) return 'FOTOS';
   if (location.startsWith('/spiele')) return 'SPIELE';
+  if (location.startsWith('/arcade')) return 'ARCADE';
   if (location.startsWith('/chat')) return 'CHAT';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
   if (location.startsWith('/abos')) return 'ABOS';
@@ -52,6 +53,7 @@ ShellNavCategory shellCategoryForLocation(String location) {
       location.startsWith('/forum') ||
       location.startsWith('/fotos') ||
       location.startsWith('/spiele') ||
+      location.startsWith('/arcade') ||
       location.startsWith('/rezepte')) {
     return ShellNavCategory.gemeinschaft;
   }
@@ -291,6 +293,13 @@ class ShellNavContent extends StatelessWidget {
               label: 'Spiele',
               active: _isActive('/spiele'),
               onTap: () => onNavigate('/spiele'),
+            ),
+            _tile(
+              context,
+              icon: Icons.videogame_asset_rounded,
+              label: 'Arcade',
+              active: _isActive('/arcade'),
+              onTap: () => onNavigate('/arcade'),
             ),
             _tile(
               context,
@@ -703,6 +712,11 @@ class ShellMobileBottomNav extends StatelessWidget {
               'Spiele',
               Icons.sports_esports_rounded,
               '/spiele',
+            ),
+            const ShellSheetItem(
+              'Arcade',
+              Icons.videogame_asset_rounded,
+              '/arcade',
             ),
             const ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
           ],

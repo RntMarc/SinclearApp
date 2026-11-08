@@ -75,6 +75,7 @@ import '../features/games/screens/games_screen.dart';
 import '../features/games/screens/game_stats_screen.dart';
 import '../features/games/screens/game_compare_screen.dart';
 import '../features/games/screens/manage_games_screen.dart';
+import '../features/arcade/screens/arcade_screen.dart';
 
 GoRouter createRouter(AuthService auth, {String? initialLocation}) {
   return GoRouter(
@@ -108,6 +109,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
           location.startsWith('/abos') ||
           location.startsWith('/stories') ||
           location.startsWith('/chat') ||
+          location.startsWith('/arcade') ||
           location.startsWith('/design-showcase');
 
       if (loggedIn &&
@@ -365,6 +367,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                 ],
               ),
             ],
+          ),
+          GoRoute(
+            path: '/arcade',
+            builder: (context, state) => const ArcadeScreen(),
           ),
           GoRoute(
             path: '/kontakte',

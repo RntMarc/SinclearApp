@@ -21,6 +21,7 @@ import 'package:sinclear_beyond/features/explore/services/explore_service.dart';
 import 'package:sinclear_beyond/features/feedback/services/feedback_service.dart';
 import 'package:sinclear_beyond/features/forum/services/forum_service.dart';
 import 'package:sinclear_beyond/features/games/services/games_service.dart';
+import 'package:sinclear_beyond/features/arcade/services/arcade_service.dart';
 import 'package:sinclear_beyond/features/home/dashboard_cache.dart';
 import 'package:sinclear_beyond/features/home/dashboard_controller.dart';
 import 'package:sinclear_beyond/features/home/dashboard_layout_store.dart';
@@ -699,6 +700,7 @@ AppScope _buildScope({
   final feedback = FeedbackService(api: api, auth: auth);
   final forum = ForumService(api: api, auth: auth);
   final games = GamesService(api: api, auth: auth);
+  final arcade = ArcadeService(api: api, auth: auth);
   final chat = ChatService(api: api, auth: auth);
   final locationSharing = LocationSharingService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
@@ -745,6 +747,7 @@ AppScope _buildScope({
     feedback: feedback,
     forum: forum,
     games: games,
+    arcade: arcade,
     chat: chat,
     locationSharing: locationSharing,
     recipes: recipes,
