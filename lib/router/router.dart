@@ -67,7 +67,6 @@ import '../features/polls/screens/poll_invites_screen.dart';
 import '../features/polls/screens/poll_list_screen.dart';
 import '../features/polls/screens/poll_results_screen.dart';
 import '../features/moderation/screens/moderation_requests_screen.dart';
-import '../features/showcase/screens/design_showcase_screen.dart';
 import '../features/stories/screens/story_deep_link_screen.dart';
 import '../features/subscription/screens/subscription_list_screen.dart';
 import '../features/chat/screens/conversation_screen.dart';
@@ -109,8 +108,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
           location.startsWith('/abos') ||
           location.startsWith('/stories') ||
           location.startsWith('/chat') ||
-          location.startsWith('/arcade') ||
-          location.startsWith('/design-showcase');
+          location.startsWith('/arcade');
 
       if (loggedIn &&
           !auth.onboardingCompleted &&
@@ -129,11 +127,6 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
         return '/';
       }
       if (!loggedIn && location == '/benachrichtigungen/einrichten') return '/';
-      if (loggedIn &&
-          location.startsWith('/design-showcase') &&
-          !auth.isAdmin) {
-        return '/home';
-      }
       if (loggedIn && location == '/') return '/home';
       if (!loggedIn && isAuth) return '/';
       return null;
@@ -343,7 +336,7 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
             builder: (context, state) => const PhotosScreen(),
           ),
           GoRoute(
-            path: '/spiele',
+            path: '/karriere',
             builder: (context, state) => const GamesScreen(),
             routes: [
               GoRoute(
@@ -551,10 +544,6 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
           GoRoute(
             path: '/abos',
             builder: (context, state) => const SubscriptionListScreen(),
-          ),
-          GoRoute(
-            path: '/design-showcase',
-            builder: (context, state) => const DesignShowcaseScreen(),
           ),
         ],
       ),

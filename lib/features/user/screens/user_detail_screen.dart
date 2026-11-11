@@ -288,7 +288,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                           color: tokens.textLow,
                         ),
                         onTap: () => context.push(
-                          '/spiele/${account.game}?spieler=${widget.id}',
+                          '/karriere/${account.game}?spieler=${widget.id}',
                         ),
                       ),
                   ],

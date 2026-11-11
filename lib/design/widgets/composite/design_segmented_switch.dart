@@ -5,12 +5,11 @@ import '../../theme/design_theme.dart';
 import '../foundation/design_text.dart';
 import '../primitives/press_scale.dart';
 
-/// The design switcher shown at the top of the showcase. It re-styles itself
+/// The design switcher. It re-styles itself
 /// to match the active design and updates the in-memory [DesignScope] notifier
 /// when a segment is tapped, which instantly re-themes every catalog widget.
 class DesignSegmentedSwitch extends StatelessWidget {
   const DesignSegmentedSwitch({super.key});
-
 
   @override
   Widget build(BuildContext context) {

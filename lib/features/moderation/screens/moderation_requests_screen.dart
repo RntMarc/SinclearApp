@@ -1,14 +1,17 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../design/theme/design_theme.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_divider.dart';
+import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../models/moderation_models.dart';
 
 /// Eigene Meldungen und Anfragen inklusive Status und Admin-Kommentar.
@@ -97,7 +100,20 @@ class _ModerationRequestsScreenState extends State<ModerationRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    return DesignSurface(child: _buildBody(tokens));
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignSubpageHeader(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            title: 'Mod-Anfragen',
+          ),
+          Expanded(child: _buildBody(tokens)),
+        ],
+      ),
+    );
   }
 
   Widget _buildBody(DesignTokens tokens) {

@@ -153,7 +153,7 @@ class _GamesScreenState extends State<GamesScreen> {
                 game: game,
                 account: _accountFor(game.slug),
                 stats: _stats[game.slug],
-                onOpen: () => context.push('/spiele/${game.slug}'),
+                onOpen: () => context.push('/karriere/${game.slug}'),
                 onManage: () => context.push('/einstellungen/spiele'),
               ),
             SizedBox(height: tokens.spaceLg),

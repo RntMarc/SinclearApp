@@ -416,6 +416,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
 
+                const SizedBox(height: 8),
+
+                // Feedback & support section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: DesignText(
+                    'Feedback & Support',
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                ),
+                DesignCard.list(
+                  children: [
+                    DesignListTile(
+                      leading: const Icon(Icons.feedback_rounded),
+                      title: 'Feedback',
+                      subtitle: 'Ideen, Wünsche und Fehler melden',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/feedback'),
+                    ),
+                    DesignListTile(
+                      leading: const Icon(Icons.flag_rounded),
+                      title: 'Mod-Anfragen',
+                      subtitle: 'Eigene Meldungen und deren Status',
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push('/mod-anfragen'),
+                    ),
+                    const DesignListTile(
+                      leading: Icon(Icons.admin_panel_settings_rounded),
+                      title: 'Admin',
+                      subtitle: 'Bald verfügbar',
+                    ),
+                    const DesignListTile(
+                      leading: Icon(Icons.history_rounded),
+                      title: 'Changelog',
+                      subtitle: 'Bald verfügbar',
+                    ),
+                  ],
+                ),
+
                 // App section
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
