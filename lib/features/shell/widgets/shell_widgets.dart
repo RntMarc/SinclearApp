@@ -22,18 +22,19 @@ String shellTitleForLocation(String location) {
   if (location.startsWith('/reisen')) return 'REISEN & EVENTS';
   if (location.startsWith('/kontakte')) return 'KONTAKTE';
   if (location.startsWith('/standort')) return 'STANDORT';
-  if (location.startsWith('/einstellungen')) return 'EINSTELLUNGEN';
-  if (location.startsWith('/feedback')) return 'FEEDBACK';
-  if (location.startsWith('/mod-anfragen')) return 'MOD-ANFRAGEN';
+  if (location.startsWith('/einstellungen') ||
+      location.startsWith('/feedback') ||
+      location.startsWith('/mod-anfragen')) {
+    return 'EINSTELLUNGEN';
+  }
   if (location.startsWith('/forum')) return 'FORUM';
   if (location.startsWith('/umfragen')) return 'UMFRAGEN';
   if (location.startsWith('/fotos')) return 'FOTOS';
-  if (location.startsWith('/spiele')) return 'SPIELE';
+  if (location.startsWith('/karriere')) return 'KARRIERE';
   if (location.startsWith('/arcade')) return 'ARCADE';
   if (location.startsWith('/chat')) return 'CHAT';
   if (location.startsWith('/rezepte')) return 'REZEPTE';
   if (location.startsWith('/abos')) return 'ABOS';
-  if (location.startsWith('/design-showcase')) return 'DESIGN SHOWCASE';
   return 'HOME';
 }
 
@@ -41,19 +42,20 @@ String shellTitleForLocation(String location) {
 // Mobile Bottom Navigation
 // ---------------------------------------------------------------------------
 
-enum ShellNavCategory { system, gemeinschaft, home, unterwegs, organisation }
+enum ShellNavCategory { spiele, gemeinschaft, home, unterwegs, organisation }
 
-ShellNavCategory shellCategoryForLocation(String location) {
+ShellNavCategory? shellCategoryForLocation(String location) {
   if (location.startsWith('/einstellungen') ||
       location.startsWith('/feedback') ||
       location.startsWith('/mod-anfragen')) {
-    return ShellNavCategory.system;
+    return null;
+  }
+  if (location.startsWith('/karriere') || location.startsWith('/arcade')) {
+    return ShellNavCategory.spiele;
   }
   if (location.startsWith('/kontakte') ||
       location.startsWith('/forum') ||
       location.startsWith('/fotos') ||
-      location.startsWith('/spiele') ||
-      location.startsWith('/arcade') ||
       location.startsWith('/rezepte')) {
     return ShellNavCategory.gemeinschaft;
   }
@@ -229,35 +231,20 @@ class ShellNavContent extends StatelessWidget {
               active: _isActive('/home'),
               onTap: () => onNavigate('/home'),
             ),
-            if (AppScope.of(context).auth.isAdmin)
-              _tile(
-                context,
-                icon: Icons.palette_rounded,
-                label: '👑 Design Showcase',
-                active: _isActive('/design-showcase'),
-                onTap: () => onNavigate('/design-showcase'),
-              ),
-            _header(context, 'SYSTEM'),
+            _header(context, 'SPIELE'),
             _tile(
               context,
-              icon: Icons.settings_rounded,
-              label: 'Einstellungen',
-              active: _isActive('/einstellungen'),
-              onTap: () => onNavigate('/einstellungen'),
+              icon: Icons.emoji_events_rounded,
+              label: 'Karriere',
+              active: _isActive('/karriere'),
+              onTap: () => onNavigate('/karriere'),
             ),
             _tile(
               context,
-              icon: Icons.flag_rounded,
-              label: 'Mod-Anfragen',
-              active: _isActive('/mod-anfragen'),
-              onTap: () => onNavigate('/mod-anfragen'),
-            ),
-            _tile(
-              context,
-              icon: Icons.feedback_rounded,
-              label: 'Feedback',
-              active: _isActive('/feedback'),
-              onTap: () => onNavigate('/feedback'),
+              icon: Icons.videogame_asset_rounded,
+              label: 'Arcade',
+              active: _isActive('/arcade'),
+              onTap: () => onNavigate('/arcade'),
             ),
             _header(context, 'GEMEINSCHAFT'),
             _tile(
@@ -286,20 +273,6 @@ class ShellNavContent extends StatelessWidget {
               label: 'Fotos',
               active: _isActive('/fotos'),
               onTap: () => onNavigate('/fotos'),
-            ),
-            _tile(
-              context,
-              icon: Icons.sports_esports_rounded,
-              label: 'Spiele',
-              active: _isActive('/spiele'),
-              onTap: () => onNavigate('/spiele'),
-            ),
-            _tile(
-              context,
-              icon: Icons.videogame_asset_rounded,
-              label: 'Arcade',
-              active: _isActive('/arcade'),
-              onTap: () => onNavigate('/arcade'),
             ),
             _tile(
               context,
@@ -466,8 +439,11 @@ class ShellDesktop extends StatelessWidget {
             DesignAppBar(
               title: shellTitleForLocation(location),
               actions: [
-                if (location == '/home') const ShellDashboardEditButton(),
-                const ShellShareButton(),
+                if (location == '/home') ...[
+                  const ShellDashboardEditButton(),
+                  const ShellSettingsButton(),
+                ] else
+                  const ShellShareButton(),
               ],
             ),
             Expanded(
@@ -519,8 +495,11 @@ class ShellMobile extends StatelessWidget {
             DesignAppBar(
               title: title,
               actions: [
-                if (location == '/home') const ShellDashboardEditButton(),
-                const ShellShareButton(),
+                if (location == '/home') ...[
+                  const ShellDashboardEditButton(),
+                  const ShellSettingsButton(),
+                ] else
+                  const ShellShareButton(),
               ],
             ),
             Expanded(child: child),
@@ -549,9 +528,9 @@ class ShellMobileBottomNav extends StatelessWidget {
 
     final items = <({IconData icon, String label, ShellNavCategory category})>[
       (
-        icon: Icons.settings_rounded,
-        label: 'System',
-        category: ShellNavCategory.system,
+        icon: Icons.sports_esports_rounded,
+        label: 'Spiele',
+        category: ShellNavCategory.spiele,
       ),
       (
         icon: Icons.people_rounded,
@@ -656,38 +635,21 @@ class ShellMobileBottomNav extends StatelessWidget {
     switch (category) {
       case ShellNavCategory.home:
         context.go('/home');
-      case ShellNavCategory.system:
+      case ShellNavCategory.spiele:
         _showCategorySheet(
           context,
-          category: 'System',
+          category: 'Spiele',
           items: [
-            if (AppScope.of(context).auth.isAdmin)
-              const ShellSheetItem(
-                '👑 Design Showcase',
-                Icons.palette_rounded,
-                '/design-showcase',
-              ),
             const ShellSheetItem(
-              'Einstellungen',
-              Icons.settings_rounded,
-              '/einstellungen',
+              'Karriere',
+              Icons.emoji_events_rounded,
+              '/karriere',
             ),
             const ShellSheetItem(
-              'Admin',
-              Icons.admin_panel_settings_rounded,
-              null,
+              'Arcade',
+              Icons.videogame_asset_rounded,
+              '/arcade',
             ),
-            const ShellSheetItem(
-              'Mod-Anfragen',
-              Icons.flag_rounded,
-              '/mod-anfragen',
-            ),
-            const ShellSheetItem(
-              'Feedback',
-              Icons.feedback_rounded,
-              '/feedback',
-            ),
-            const ShellSheetItem('Changelog', Icons.history_rounded, null),
           ],
         );
       case ShellNavCategory.gemeinschaft:
@@ -707,16 +669,6 @@ class ShellMobileBottomNav extends StatelessWidget {
               'Fotos',
               Icons.photo_library_rounded,
               '/fotos',
-            ),
-            const ShellSheetItem(
-              'Spiele',
-              Icons.sports_esports_rounded,
-              '/spiele',
-            ),
-            const ShellSheetItem(
-              'Arcade',
-              Icons.videogame_asset_rounded,
-              '/arcade',
             ),
             const ShellSheetItem('Kontakte', Icons.people_rounded, '/kontakte'),
           ],
@@ -833,6 +785,23 @@ class ShellDashboardEditButton extends StatelessWidget {
           onPressed: dashboard.toggleEditing,
         );
       },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Settings Button (nur auf der Start-Seite, statt des Teilen-Buttons)
+// ---------------------------------------------------------------------------
+
+/// Öffnet die Einstellungen über ein Zahnrad oben rechts (nur auf `/home`).
+class ShellSettingsButton extends StatelessWidget {
+  const ShellSettingsButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DesignIconButton(
+      icon: Icons.settings_rounded,
+      onPressed: () => context.push('/einstellungen'),
     );
   }
 }

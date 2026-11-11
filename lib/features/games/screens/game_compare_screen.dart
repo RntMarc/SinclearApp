@@ -140,7 +140,7 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
     );
     if (player == null || !mounted) return;
     context.go(
-      '/spiele/${widget.game}/vergleich'
+      '/karriere/${widget.game}/vergleich'
       '?userIds=${first.userId},${player.userId}',
     );
   }

@@ -3,8 +3,7 @@ import '../../theme/design_theme.dart';
 import '../foundation/design_text.dart';
 import '../primitives/press_scale.dart';
 
-/// A navigation entry (icon + label) with an active highlight. Used in the
-/// showcase to demonstrate navigation styling for each design.
+/// A navigation entry (icon + label) with an active highlight.
 class DesignNavItem extends StatelessWidget {
   const DesignNavItem({
     required this.icon,

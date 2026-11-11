@@ -1,8 +1,8 @@
-/// The selectable design directions shown in the Design Showcase.
+/// The selectable design directions.
 ///
 /// Each variant resolves to a full [DesignTokens] set (light + dark) via
 /// [AppDesign.resolve]. The active variant is held in memory by [DesignScope]
-/// and can be switched at runtime from the showcase screen.
+/// and can be switched at runtime via [DesignScope].
 enum DesignVariant {
   /// Playful, squircle shapes, springy tap feedback, pastel gradients.
   materiaPop,
@@ -22,7 +22,7 @@ enum DesignVariant {
 }
 
 extension DesignVariantX on DesignVariant {
-  /// Human readable name used in docs and the showcase.
+  /// Human readable name used in docs and the settings switcher.
   String get label {
     switch (this) {
       case DesignVariant.materiaPop:

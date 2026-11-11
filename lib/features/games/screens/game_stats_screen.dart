@@ -143,7 +143,7 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
       excludedUserIds: <String>{targetUserId},
     );
     if (player == null || !mounted) return;
-    context.go('/spiele/${widget.game}?spieler=${player.userId}');
+    context.go('/karriere/${widget.game}?spieler=${player.userId}');
   }
 
   Future<void> _compare() async {
@@ -157,7 +157,7 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
     );
     if (player == null || !mounted) return;
     context.push(
-      '/spiele/${widget.game}/vergleich'
+      '/karriere/${widget.game}/vergleich'
       '?userIds=$targetUserId,${player.userId}',
     );
   }

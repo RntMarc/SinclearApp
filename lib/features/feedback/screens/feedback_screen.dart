@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
@@ -12,6 +13,7 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
+import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/feedback_models.dart';
@@ -204,7 +206,20 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     final auth = AppScope.of(context).auth;
     final currentUserId = auth.userId ?? '';
     final isAdmin = auth.isAdmin;
-    return DesignSurface(child: _buildBody(currentUserId, isAdmin));
+    return DesignSurface(
+      child: Column(
+        children: [
+          DesignSubpageHeader(
+            leading: DesignIconButton(
+              icon: Icons.arrow_back_rounded,
+              onPressed: () => context.pop(),
+            ),
+            title: 'Feedback',
+          ),
+          Expanded(child: _buildBody(currentUserId, isAdmin)),
+        ],
+      ),
+    );
   }
 
   Widget _buildBody(String currentUserId, bool isAdmin) {

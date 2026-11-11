@@ -1,7 +1,7 @@
 name: sinclear_beyond
 description: "Unsere neue Community-Plattform ist da. Gemeinsam sind wir Sinclear."
 publish_to: 'none'
-version: 0.10.1+100003   # Remember to up the number every time (don't ask why it's so high already)
+version: 0.10.2+100004   # Remember to up the number every time (don't ask why it's so high already)
 
 environment:
   sdk: ^3.12.2

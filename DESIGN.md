@@ -80,7 +80,7 @@ Fest definierte Kategorien in fester Reihenfolge:
 
 | Index | Kategorie | Icon | Enthält |
 |---|---|---|---|
-| 0 | System | `settings_rounded` | Einstellungen, Admin, Feedback, Changelog |
+| 0 | Spiele | `sports_esports_rounded` | Karriere, Arcade |
 | 1 | Gemeinschaft | `people_rounded` | Forum, Kritik, Rezepte, Fotos, Kontakte |
 | 2 | Start | `home_rounded` | Home |
 | 3 | Unterwegs | `explore_rounded` | Entdecken, Reisen, Standort |
@@ -88,7 +88,9 @@ Fest definierte Kategorien in fester Reihenfolge:
 
 - Jeder Kategorie-Tap öffnet ein Bottom-Sheet mit den Untereinträgen.
 - Der aktive Tab wird per `_categoryForLocation()` anhand der Route bestimmt.
-- **Feedback** gehört zu **System** (nicht Start).
+- **Einstellungen**, **Feedback** und **Mod-Anfragen** werden über den
+  Zahnrad-Button auf der Startseite erreicht; dort ist keine Kategorie aktiv.
+- **Karriere** und **Arcade** gehören zu **Spiele**.
 - **Forum** und **Kontakte** gehören zu **Gemeinschaft**.
 
 ### Desktop (Seitenleiste)
@@ -97,13 +99,16 @@ Fest definierte Kategorien in fester Reihenfolge:
 - Sidebar ist immer sichtbar (ausgeklappt).
 - Kategorie-Labels: `label`-Style mit `tokens.primary`, `FontWeight.w600`,
   `letterSpacing: 0.5`.
-- Reihenfolge: Start → System → Gemeinschaft → Unterwegs → Organisation.
+- Reihenfolge: Start → Spiele → Gemeinschaft → Unterwegs → Organisation.
 - Sub-Routes (z.B. `/einstellungen/profil`) heben die übergeordnete Seite hervor.
 
 ### Route-Zuordnung
 Sub-Seiten gehören immer zur Kategorie ihrer übergeordneten Seite:
-- `/einstellungen/*` → System
-- `/feedback/*` → System
+- `/karriere/*` → Spiele
+- `/arcade` → Spiele
+- `/einstellungen/*` → keine Kategorie aktiv
+- `/feedback/*` → keine Kategorie aktiv
+- `/mod-anfragen/*` → keine Kategorie aktiv
 - `/forum/*` → Gemeinschaft
 - `/fotos` → Gemeinschaft
 - `/kontakte/*` → Gemeinschaft
@@ -200,17 +205,16 @@ nach.
 
 ---
 
-# Eigenes Design-System (Design Showcase)
+# Eigenes Design-System
 
 Nein, das ist **nicht** separat – das obige Design-System **ist** das
-Produktions-Design. Der **Design Showcase** (`/design-showcase`) dient als
-lebende Referenz und zum Umschalten der drei Design-Varianten.
+Produktions-Design.
 
 ## Grundprinzipien
 1. **Ein Widget-Katalog** – alle Widgets leben unter `lib/design/` und werden
    von Screens nur zusammengesetzt, nie lokal neu definiert.
 2. **Hierarchie & Vererbung** – Widgets bauen aufeinander auf (Foundation →
-   Primitive → Composite → Showcase). `DesignButton` erbt über eine
+   Primitive → Composite). `DesignButton` erbt über eine
    `PressScale`-Basis; `DesignCard` nutzt `DesignGlass`/`DesignSurface`.
 3. **Variablenbasiertes Farbschema** – keine hart codierten Farben. Alle Werte
    kommen aus `DesignTokens`; pro Design gibt es Light- und Dark-Instanzen.
@@ -246,8 +250,7 @@ wenn nichts gespeichert ist. Geladen wird in `main.dart`
 
 **Auswahl in den Einstellungen:** Unter *Einstellungen → Erscheinungsbild*
 kann der Nutzer die Variante über den Katalog-`DesignSegmentedSwitch` wählen;
-die Änderung wird sofort persistiert und wirkt auf den Showcase sowie auf
-migrierte Screens.
+die Änderung wird sofort persistiert und wirkt auf die migrierten Screens.
 
 ## Widget-Katalog (Struktur)
 ```
@@ -271,8 +274,6 @@ lib/design/
     composite/                   # Layer 2: AppBar, SubpageHeader, BottomSheet,
                                   #          NavItem, SegmentedSwitch, ListTile,
                                   #          UserCard
-    showcase/                    # Layer 3: ShowcaseSection, ColorSwatch,
-                                 #          TokenSpec
 ```
 
 ## Token-Spezifikation (Beispiel Materia Pop, Light)
@@ -286,20 +287,12 @@ pro Design/Modus neu belegt. Auszug:
   body 15/w400 · label 13/w600` (Chivo)
 - Effekte: `grainOpacity 0.04 · glassBlur 6 · glassOpacity 0.65 · glowBlur 26 · useGlass false`
 
-Die Showcase-Screens rendern die aktuelle Palette (`DesignColorSwatch`) und
-eine Mess-Tabelle (`DesignTokenSpec`) live für das gewählte Design.
-
 ## Zugriff in Widgets
 ```dart
 final tokens = DesignTheme.of(context);          // aktive DesignTokens
 final variant = DesignScope.variantOf(context);  // aktives Design
 DesignScope.notifierOf(context).value = DesignVariant.auroraGlass; // umschalten
 ```
-
-## Verknüpfung
-Der Showcase ist über das Hauptmenü erreichbar (Sidebar + System-Sheet,
-Eintrag **Design Showcase**, Icon `palette_rounded`) und unter der Route
-`/design-showcase` eingehängt.
 
 ## Governance & Migrationsregeln
 Ab der Migration der bestehenden Screens gilt zwingend:
@@ -526,8 +519,8 @@ Kacheln greedy auf 2/3/4 Spalten (mobil/Tablet/Desktop).
 
 ### Feature-Adapter: Spiele
 
-Der Spiele-Bereich (`lib/features/games/`, Routen `/spiele`,
-`/spiele/:game`, `/spiele/:game/vergleich` und `/einstellungen/spiele`) nutzt
+Der Spiele-Bereich (`lib/features/games/`, Routen `/karriere`,
+`/karriere/:game`, `/karriere/:game/vergleich` und `/einstellungen/spiele`) nutzt
 ausschließlich den Katalog (`DesignSurface`, `DesignCard`, `DesignChip`,
 `DesignTabBar`, `DesignAvatar`, `DesignButton`, `DesignSubpageHeader`,
 `showDesignSheet`) und ergänzt die Statistik-Widgets `DesignStatTile`,

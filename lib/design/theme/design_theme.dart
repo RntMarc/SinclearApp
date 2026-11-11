@@ -97,8 +97,8 @@ class DesignScope extends StatefulWidget {
 
   /// The resolved tokens for the active variant and current brightness.
   static DesignTokens of(BuildContext context) {
-    final inherited =
-        context.dependOnInheritedWidgetOfExactType<_DesignInherited>()!;
+    final inherited = context
+        .dependOnInheritedWidgetOfExactType<_DesignInherited>()!;
     final brightness = Theme.of(context).brightness;
     return AppDesign.resolve(
       inherited.variant,
@@ -107,7 +107,7 @@ class DesignScope extends StatefulWidget {
     );
   }
 
-  /// The underlying notifier, so controls (e.g. the showcase switcher) can
+  /// The underlying notifier, so controls (e.g. the design switcher) can
   /// change the active design.
   static ValueNotifier<DesignVariant> notifierOf(BuildContext context) {
     return context
@@ -128,10 +128,9 @@ class _DesignScopeState extends State<DesignScope> {
   void initState() {
     super.initState();
     _grain = widget.grain ?? ValueNotifier<double>(0.0);
-    _themeMode = widget.themeMode ??
-        ValueNotifier<ThemeMode>(ThemeMode.system);
-    _customAccent = widget.customAccent ??
-        ValueNotifier<Color>(const Color(0xFF0064EA));
+    _themeMode = widget.themeMode ?? ValueNotifier<ThemeMode>(ThemeMode.system);
+    _customAccent =
+        widget.customAccent ?? ValueNotifier<Color>(const Color(0xFF0064EA));
     widget.variant.addListener(_onChanged);
     _grain.addListener(_onChanged);
     _themeMode.addListener(_onChanged);
@@ -152,14 +151,14 @@ class _DesignScopeState extends State<DesignScope> {
     }
     if (oldWidget.themeMode != widget.themeMode) {
       _themeMode.removeListener(_onChanged);
-      _themeMode = widget.themeMode ??
-          ValueNotifier<ThemeMode>(ThemeMode.system);
+      _themeMode =
+          widget.themeMode ?? ValueNotifier<ThemeMode>(ThemeMode.system);
       _themeMode.addListener(_onChanged);
     }
     if (oldWidget.customAccent != widget.customAccent) {
       _customAccent.removeListener(_onChanged);
-      _customAccent = widget.customAccent ??
-          ValueNotifier<Color>(const Color(0xFF0064EA));
+      _customAccent =
+          widget.customAccent ?? ValueNotifier<Color>(const Color(0xFF0064EA));
       _customAccent.addListener(_onChanged);
     }
     _onChanged();

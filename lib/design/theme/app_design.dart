@@ -9,7 +9,7 @@ import '../tokens/solstice_tokens.dart';
 
 /// Resolves a concrete [DesignTokens] set for a [DesignVariant] and brightness.
 ///
-/// This is the single place that maps the showcase directions to their
+/// This is the single place that maps the design directions to their
 /// token instances, so adding a new design only requires a new case here.
 class AppDesign {
   AppDesign._();
@@ -25,13 +25,13 @@ class AppDesign {
       DesignVariant.liquidPulse => LiquidPulseTokens(brightness),
       DesignVariant.solstice => SolsticeTokens(brightness),
       DesignVariant.custom => CustomTokens(
-          customAccent ?? const Color(0xFF0064EA),
-          brightness,
-        ),
+        customAccent ?? const Color(0xFF0064EA),
+        brightness,
+      ),
     };
   }
 
-  /// All variants in display order, used by the showcase switcher.
+  /// All variants in display order, used by the design switcher.
   static const List<DesignVariant> all = <DesignVariant>[
     DesignVariant.materiaPop,
     DesignVariant.auroraGlass,
