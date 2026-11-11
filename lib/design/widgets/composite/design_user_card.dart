@@ -3,6 +3,7 @@ import '../foundation/design_text.dart';
 import '../primitives/design_avatar.dart';
 import '../primitives/design_badge.dart';
 import '../primitives/design_card.dart';
+import '../primitives/design_icon_button.dart';
 
 /// A person/contact row built entirely from catalog primitives.
 ///
@@ -15,6 +16,8 @@ class DesignUserCard extends StatelessWidget {
     required this.name,
     this.subtitle,
     this.isSelf = false,
+    this.isCloseFriend = false,
+    this.onToggleCloseFriend,
     this.onTap,
     super.key,
   });
@@ -23,6 +26,8 @@ class DesignUserCard extends StatelessWidget {
   final String name;
   final String? subtitle;
   final bool isSelf;
+  final bool isCloseFriend;
+  final VoidCallback? onToggleCloseFriend;
   final VoidCallback? onTap;
 
   @override
@@ -33,11 +38,7 @@ class DesignUserCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: <Widget>[
-          DesignAvatar(
-            imageUrl: imageUrl,
-            name: name,
-            size: 48,
-          ),
+          DesignAvatar(imageUrl: imageUrl, name: name, size: 48),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -59,6 +60,14 @@ class DesignUserCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onToggleCloseFriend != null)
+            DesignIconButton(
+              icon: isCloseFriend
+                  ? Icons.star_rounded
+                  : Icons.star_border_rounded,
+              tinted: isCloseFriend,
+              onPressed: onToggleCloseFriend,
+            ),
           if (isSelf) const DesignBadge(label: 'Das bist du'),
         ],
       ),

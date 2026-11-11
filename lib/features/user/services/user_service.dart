@@ -27,6 +27,18 @@ class UserService {
     return UserDetailPublicResponse.fromJson(data).data;
   }
 
+  // ─── Close friends ────────────────────────────────────────────────────
+
+  /// Markiert [userId] als engen Freund (ausgehende Richtung, idempotent).
+  Future<void> markCloseFriend(String userId) async {
+    await _api.put('/user/me/close-friends/$userId', token: await _token());
+  }
+
+  /// Entfernt die enge-Freund-Markierung für [userId] (idempotent).
+  Future<void> unmarkCloseFriend(String userId) async {
+    await _api.delete('/user/me/close-friends/$userId', token: await _token());
+  }
+
   // ─── Own profile (private) ────────────────────────────────────────────
 
   Future<UserMe> getMe() async {

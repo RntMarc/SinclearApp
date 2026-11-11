@@ -18,6 +18,7 @@ class ContactsScreen extends StatefulWidget {
 
 class _ContactsScreenState extends State<ContactsScreen> {
   final List<UserBasePublic> users = [];
+  final Set<String> closeFriendIds = <String>{};
   bool isLoading = true;
   String? error;
   String? currentUserId;
@@ -45,6 +46,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
         users
           ..clear()
           ..addAll(loaded);
+        closeFriendIds
+          ..clear()
+          ..addAll(loaded.where((u) => u.isCloseFriend).map((u) => u.id));
         currentUserId = scope.auth.userId;
         isLoading = false;
       });
@@ -54,6 +58,35 @@ class _ContactsScreenState extends State<ContactsScreen> {
         error = 'Kontakte konnten nicht geladen werden.';
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _toggleCloseFriend(UserBasePublic user) async {
+    final scope = AppScope.of(context);
+    final wasCloseFriend = closeFriendIds.contains(user.id);
+    setState(() {
+      wasCloseFriend
+          ? closeFriendIds.remove(user.id)
+          : closeFriendIds.add(user.id);
+    });
+    try {
+      if (wasCloseFriend) {
+        await scope.user.unmarkCloseFriend(user.id);
+      } else {
+        await scope.user.markCloseFriend(user.id);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        wasCloseFriend
+            ? closeFriendIds.add(user.id)
+            : closeFriendIds.remove(user.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enge-Freunde-Status konnte nicht geändert werden.'),
+        ),
+      );
     }
   }
 
@@ -127,6 +160,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
               child: UserCard(
                 user: user,
                 isSelf: isSelf,
+                isCloseFriend: closeFriendIds.contains(user.id),
+                onToggleCloseFriend: isSelf
+                    ? null
+                    : () => _toggleCloseFriend(user),
                 onTap: () => context.push('/kontakte/${user.id}'),
               ),
             );

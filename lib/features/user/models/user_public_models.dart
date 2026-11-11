@@ -10,6 +10,7 @@ class UserBasePublic {
   final String createdAt;
   final bool onboardingCompleted;
   final String? birthday;
+  final bool isCloseFriend;
 
   const UserBasePublic({
     required this.id,
@@ -23,6 +24,7 @@ class UserBasePublic {
     required this.createdAt,
     required this.onboardingCompleted,
     this.birthday,
+    this.isCloseFriend = false,
   });
 
   factory UserBasePublic.fromJson(Map<String, dynamic> json) {
@@ -44,6 +46,7 @@ class UserBasePublic {
         defaultValue: false,
       ),
       birthday: json['birthday'] as String?,
+      isCloseFriend: _coerceBool(json['isCloseFriend'], defaultValue: false),
     );
   }
 }
