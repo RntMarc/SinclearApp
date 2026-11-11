@@ -6,13 +6,17 @@ import '../models/user_models.dart';
 class UserCard extends StatelessWidget {
   final UserBasePublic user;
   final bool isSelf;
+  final bool isCloseFriend;
   final VoidCallback onTap;
+  final VoidCallback? onToggleCloseFriend;
 
   const UserCard({
     super.key,
     required this.user,
     required this.isSelf,
+    this.isCloseFriend = false,
     required this.onTap,
+    this.onToggleCloseFriend,
   });
 
   @override
@@ -21,6 +25,8 @@ class UserCard extends StatelessWidget {
       imageUrl: user.image,
       name: user.displayName,
       isSelf: isSelf,
+      isCloseFriend: isCloseFriend,
+      onToggleCloseFriend: onToggleCloseFriend,
       onTap: onTap,
     );
   }

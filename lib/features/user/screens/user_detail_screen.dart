@@ -35,6 +35,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   bool _loading = true;
   String? _error;
   bool _isSelf = false;
+  bool _isCloseFriend = false;
   bool _hasLoaded = false;
 
   @override
@@ -69,6 +70,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         _user = user;
         _games = games;
         _isSelf = scope.auth.userId == widget.id;
+        _isCloseFriend = user.base.isCloseFriend;
         _loading = false;
         _error = null;
       });
@@ -233,6 +235,14 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      DesignIconButton(
+                        icon: _isCloseFriend
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        tinted: _isCloseFriend,
+                        onPressed: _toggleCloseFriend,
+                      ),
+                      SizedBox(width: tokens.spaceSm),
                       DesignButton(
                         variant: DesignButtonVariant.outlined,
                         icon: Icons.flag_rounded,
@@ -299,6 +309,33 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _toggleCloseFriend() async {
+    final scope = AppScope.of(context);
+    final wasCloseFriend = _isCloseFriend;
+    setState(() => _isCloseFriend = !wasCloseFriend);
+    try {
+      if (wasCloseFriend) {
+        await scope.user.unmarkCloseFriend(widget.id);
+      } else {
+        await scope.user.markCloseFriend(widget.id);
+      }
+    } catch (e, st) {
+      developer.log(
+        'toggleCloseFriend failed',
+        error: e,
+        stackTrace: st,
+        name: 'user_detail',
+      );
+      if (!mounted) return;
+      setState(() => _isCloseFriend = wasCloseFriend);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enge-Freunde-Status konnte nicht geändert werden.'),
+        ),
+      );
+    }
   }
 
   Future<void> _report() async {
