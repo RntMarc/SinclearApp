@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/token_refresh.dart';
 import '../../../core/storage/token_storage.dart';
 import '../models/auth_models.dart';
 
@@ -83,7 +84,7 @@ class AuthService extends ChangeNotifier {
 
   Future<String> getAccessToken() async {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    if (_accessToken != null && now < _accessTokenExpiry) {
+    if (_accessToken != null && now < _accessTokenExpiry - tokenClockSkewSeconds) {
       if (kDebugMode) {
         developer.log(
           'getAccessToken: returning cached token (expires in ${_accessTokenExpiry - now}s)',
@@ -121,42 +122,19 @@ class AuthService extends ChangeNotifier {
 
   Future<String> _doRefresh() async {
     if (kDebugMode) {
-      developer.log(
-        '_doRefresh: loading refresh token from storage',
-        name: 'auth',
-      );
-    }
-    final refresh = await _storage.getRefreshToken();
-    if (refresh == null) {
-      if (kDebugMode) {
-        developer.log('_doRefresh: no refresh token in storage', name: 'auth');
-      }
-      throw const ApiException(errorCode: 'not_logged_in', statusCode: 401);
-    }
-    if (kDebugMode) {
-      developer.log('_doRefresh: calling /auth/refresh', name: 'auth');
+      developer.log('_doRefresh: delegating to refreshAccessToken', name: 'auth');
     }
     try {
-      final data = await _api.post(
-        '/auth/refresh',
-        body: {'refresh_token': refresh},
-      );
-      _accessToken = data['access_token'] as String;
-      _accessTokenExpiry =
-          DateTime.now().millisecondsSinceEpoch ~/ 1000 +
-          (data['expires_in'] as int);
-      final newRefresh = data['refresh_token'] as String;
-      await _storage.saveRefreshToken(
-        newRefresh,
-        data['expires_at'] as int? ?? 0,
-      );
-      if (kDebugMode) {
-        developer.log(
-          '_doRefresh: success, token expires in ${data['expires_in']}s',
-          name: 'auth',
-        );
+      final token = await refreshAccessToken(_api, _storage);
+      if (token == null) {
+        if (kDebugMode) {
+          developer.log('_doRefresh: no refresh token in storage', name: 'auth');
+        }
+        throw const ApiException(errorCode: 'not_logged_in', statusCode: 401);
       }
-      return _accessToken!;
+      _accessToken = token;
+      _accessTokenExpiry = await _storage.getAccessTokenExpiry();
+      return token;
     } on ApiException catch (e) {
       // Ungültiges/abgelaufenes Refresh-Token: sauber ausloggen statt in einem
       // Zustand zu verharren, in dem jeder weitere Request mit 401 fehlschlägt.
@@ -220,9 +198,14 @@ class AuthService extends ChangeNotifier {
 
   Future<RefreshTokenResponse> verifyCode({
     String? email,
+    String? sessionId,
     required String code,
   }) async {
-    final body = OtpVerifyRequest(email: email, code: code).toJson();
+    final body = OtpVerifyRequest(
+      email: email,
+      sessionId: sessionId,
+      code: code,
+    ).toJson();
     final data = await _api.post('/auth/login/otp/verify', body: body);
     final response = RefreshTokenResponse.fromJson(data);
     await _storage.saveRefreshToken(response.refreshToken, response.expiresAt);
@@ -253,9 +236,27 @@ class AuthService extends ChangeNotifier {
 
   Future<void> logout() async {
     if (kDebugMode) developer.log('logout: clearing tokens', name: 'auth');
+    // Serverseitig abmelden (best effort): Refresh-Token widerrufen + JTI des
+    // Access-Tokens blacklisten. Fehler werden bewusst ignoriert — das lokale
+    // Aufräumen ist entscheidend.
+    try {
+      final refresh = await _storage.getRefreshToken();
+      if (refresh != null) {
+        await _api.post(
+          '/auth/logout',
+          body: {'refresh_token': refresh},
+          token: _accessToken,
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) developer.log('logout: server call failed: $e', name: 'auth');
+    }
     _accessToken = null;
     _accessTokenExpiry = 0;
     _loggedIn = false;
+    // Session-Version erhöhen, bevor die Tokens gelöscht werden: laufende
+    // Hintergrund-Refreshes verwerfen dadurch ihr Ergebnis (kein Re-Login).
+    await _storage.incrementSessionVersion();
     await _storage.clearTokens();
     notifyListeners();
     if (kDebugMode) developer.log('User logged out', name: 'auth');

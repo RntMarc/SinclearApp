@@ -101,7 +101,7 @@ class ApiClient {
         if (kDebugMode) {
           _logResponse('POST', uri.toString(), response);
         }
-        if (!_shouldRetry('POST', response.statusCode) ||
+        if (!_shouldRetry('POST', response.statusCode, path) ||
             attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
@@ -145,7 +145,7 @@ class ApiClient {
         if (kDebugMode) {
           _logResponse('GET', uri.toString(), response);
         }
-        if (!_shouldRetry('GET', response.statusCode) ||
+        if (!_shouldRetry('GET', response.statusCode, path) ||
             attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
@@ -263,7 +263,7 @@ class ApiClient {
           _logResponse('DELETE', uri.toString(), response);
         }
         if (response.statusCode == 204) return <String, dynamic>{};
-        if (!_shouldRetry('DELETE', response.statusCode) ||
+        if (!_shouldRetry('DELETE', response.statusCode, path) ||
             attempt == maxGetAttempts) {
           return _handleResponse(response);
         }
@@ -300,7 +300,12 @@ class ApiClient {
   /// Many Requests) wird nur für idempotente Lesezugriffe wiederholt —
   /// Schreiboperationen erneut zu senden würde das Rate-Limit verstärken bzw.
   /// doppelte Schreibvorgänge riskieren.
-  bool _shouldRetry(String method, int statusCode) {
+  ///
+  /// `/auth/refresh` und `/auth/logout` werden NIE wiederholt: Ein Refresh-Token
+  /// ist Single-Use — ein automatischer Re-Send nach Timeout/5xx würde den
+  /// bereits rotierten Token erneut senden und damit `401` + Logout auslösen.
+  bool _shouldRetry(String method, int statusCode, String path) {
+    if (path == '/auth/refresh' || path == '/auth/logout') return false;
     if (statusCode == 408 || statusCode >= 500) return true;
     return statusCode == 429 && method == 'GET';
   }

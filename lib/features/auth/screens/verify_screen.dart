@@ -47,6 +47,10 @@ class _VerifyScreenState extends State<VerifyScreen> {
       ? (GoRouterState.of(context).extra as Map)['discordUrl'] as String?
       : null;
 
+  String? get _sessionId => GoRouterState.of(context).extra is Map
+      ? (GoRouterState.of(context).extra as Map)['sessionId'] as String?
+      : null;
+
   String get _descriptionText {
     if (_method == 'discord' || _method == 'discord_register') {
       return 'Gib den Pairing-Code aus deinem Discord-Browser-Tab ein.';
@@ -72,6 +76,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
       final auth = scope.auth;
       await auth.verifyCode(
         email: _method == 'email' ? _email : null,
+        sessionId: _method == 'email' ? null : _sessionId,
         code: code,
       );
       if (!mounted) return;

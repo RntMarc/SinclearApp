@@ -7,12 +7,14 @@ class OtpRequest {
 
 class OtpVerifyRequest {
   final String? email;
+  final String? sessionId;
   final String code;
-  const OtpVerifyRequest({this.email, required this.code});
+  const OtpVerifyRequest({this.email, this.sessionId, required this.code});
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{'code': code};
     if (email != null) map['email'] = email;
+    if (sessionId != null) map['session_id'] = sessionId;
     return map;
   }
 }
@@ -28,10 +30,14 @@ class OtpSentResponse {
 
 class DiscordStartResponse {
   final String url;
-  const DiscordStartResponse({required this.url});
+  final String? sessionId;
+  const DiscordStartResponse({required this.url, this.sessionId});
 
   factory DiscordStartResponse.fromJson(Map<String, dynamic> json) {
-    return DiscordStartResponse(url: json['url'] as String);
+    return DiscordStartResponse(
+      url: json['url'] as String,
+      sessionId: json['session_id'] as String?,
+    );
   }
 }
 
