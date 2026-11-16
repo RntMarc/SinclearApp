@@ -1,0 +1,16 @@
+# Öffentliche Client-Konfiguration.
+#
+# Diese Datei wird als Asset mit Web-App und APK ausgeliefert und ist für
+# jeden lesbar. Hier dürfen ausschließlich öffentliche Werte stehen.
+# NIEMALS Zugangsdaten, Passwörter oder Tokens eintragen.
+#
+# Deployment-Secrets (FTP_*) bleiben in der lokalen `.env` und werden nur von
+# `deploy.py` gelesen. Sie dürfen nicht in dieses Asset wandern.
+
+API_BASE_URL=https://sinclear.de/api/v2
+APP_ID=de.sinclear.beyond
+
+# Optional: Preview-API für den Debug-Umschalter. Bei fehlendem Eintrag wird
+# die Release-API verwendet. Alternativ per
+# `--dart-define=API_BASE_URL=…` beim Build setzen.
+# PREVIEW_API_BASE_URL=https://preview.sinclear.de/api/v2

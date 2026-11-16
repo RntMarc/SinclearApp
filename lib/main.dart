@@ -110,11 +110,25 @@ Future<void> _bootstrap() async {
   }
 
   await initializeDateFormatting('de');
-  await dotenv.load();
+  // Nur die öffentliche Client-Konfiguration wird ausgeliefert. Die lokale
+  // `.env` mit Deploy-Zugangsdaten bleibt ausschließlich bei `deploy.py` und
+  // darf niemals als Asset im App- oder Web-Build landen.
+  await dotenv.load(fileName: 'assets/env');
 
-  final releaseUrl =
-      dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000/api/v2';
-  final previewUrl = dotenv.env['PREVIEW_API_BASE_URL'] ?? releaseUrl;
+  // `--dart-define=API_BASE_URL=…` hat Vorrang (Preview-Deploy). So lässt sich
+  // eine Umgebung beim Build setzen, ohne Secrets in den Build zu schreiben.
+  const definedBaseUrl = String.fromEnvironment('API_BASE_URL');
+  final configuredReleaseUrl = dotenv.env['API_BASE_URL'];
+  final releaseUrl = definedBaseUrl.isNotEmpty
+      ? definedBaseUrl
+      : (configuredReleaseUrl != null && configuredReleaseUrl.isNotEmpty
+            ? configuredReleaseUrl
+            : 'http://localhost:8000/api/v2');
+  final configuredPreviewUrl = dotenv.env['PREVIEW_API_BASE_URL'];
+  final previewUrl =
+      configuredPreviewUrl != null && configuredPreviewUrl.isNotEmpty
+      ? configuredPreviewUrl
+      : releaseUrl;
   final apiEnvironment = apiEnvironmentSwitchEnabled
       ? await ApiEnvironmentPreference.load()
       : ApiEnvironment.release;
@@ -124,7 +138,10 @@ Future<void> _bootstrap() async {
     previewUrl: previewUrl,
     allowSelection: apiEnvironmentSwitchEnabled,
   );
-  final appId = dotenv.env['APP_ID'] ?? 'de.example.beyond';
+  final configuredAppId = dotenv.env['APP_ID'];
+  final appId = configuredAppId != null && configuredAppId.isNotEmpty
+      ? configuredAppId
+      : 'de.example.beyond';
   final apiUri = Uri.tryParse(baseUrl);
   final appBaseUrl = apiUri != null
       ? '${apiUri.scheme}://${apiUri.host}'
