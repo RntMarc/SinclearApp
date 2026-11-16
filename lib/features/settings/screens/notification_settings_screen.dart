@@ -394,7 +394,9 @@ class _NotificationSettingsScreenState
             'Systemeinstellungen aktivieren.',
           );
         case NotificationMethodOutcome.unavailable:
-          break;
+          _showSnack(
+            'Google Firebase (FCM) ist auf diesem Gerät nicht verfügbar.',
+          );
       }
     } catch (e, st) {
       developer.log(

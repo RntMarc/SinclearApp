@@ -35,6 +35,7 @@ import 'features/weather/services/weather_service.dart';
 import 'features/weather/services/user_weather_location_service.dart';
 import 'features/home/dashboard_controller.dart';
 import 'features/home/dashboard_widget_repository.dart';
+import 'features/notifications/services/fcm_push_service.dart';
 import 'features/notifications/services/notification_content_resolver.dart';
 import 'features/notifications/services/notification_method_coordinator.dart';
 import 'features/notifications/services/notification_service.dart';
@@ -76,6 +77,7 @@ class SinclearApp extends StatelessWidget {
   final NotificationService notification;
   final NotificationContentResolver notificationContent;
   final UnifiedPushService unifiedPush;
+  final FcmPushService? fcmPush;
   final WebPushService webPush;
   final ForegroundPollingService foregroundPolling;
   final NotificationMethodCoordinator notificationCoordinator;
@@ -159,6 +161,7 @@ class SinclearApp extends StatelessWidget {
     required this.notification,
     required this.notificationContent,
     required this.unifiedPush,
+    this.fcmPush,
     required this.webPush,
     required this.foregroundPolling,
     required this.notificationCoordinator,
@@ -220,6 +223,7 @@ class SinclearApp extends StatelessWidget {
       notification: notification,
       notificationContent: notificationContent,
       unifiedPush: unifiedPush,
+      fcmPush: fcmPush,
       webPush: webPush,
       foregroundPolling: foregroundPolling,
       notificationCoordinator: notificationCoordinator,

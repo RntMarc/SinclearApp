@@ -63,10 +63,19 @@ class NotificationService extends ChangeNotifier {
     _pollingTimer = null;
   }
 
+  /// Löst sofort einen einzelnen Poll-Zyklus aus (z. B. nach einem anonymen
+  /// FCM-Wakeup im Vordergrund).
+  Future<void> pollOnce({required Future<String> Function() getToken}) =>
+      _poll(getToken);
+
   Future<void> _poll(Future<String> Function() getToken) async {
     try {
       final token = await getToken();
-      _lastSeen ??= await _backgroundStore?.lastSeen();
+      final persistedSeen = await _backgroundStore?.lastSeen();
+      if (persistedSeen != null &&
+          (_lastSeen == null || persistedSeen.compareTo(_lastSeen!) > 0)) {
+        _lastSeen = persistedSeen;
+      }
       final queryParams = <String, String>{};
       if (_lastSeen != null) {
         queryParams['since'] = _lastSeen!;
@@ -88,7 +97,6 @@ class NotificationService extends ChangeNotifier {
       if (items.isNotEmpty) {
         _lastSeen = toApiDate(items.first.createdAt, withMilliseconds: true);
         unawaited(_backgroundStore?.setLastSeen(_lastSeen!));
-        final newItems = items.where((item) => _seenIds.add(item.id)).toList();
 
         var registryChanged = false;
         for (final item in items) {
@@ -98,6 +106,18 @@ class NotificationService extends ChangeNotifier {
           }
         }
         if (registryChanged) notifyListeners();
+
+        final inMemoryNew = items
+            .where(
+              (item) => _seenIds.add(PollingBackgroundStore.dedupeKeyFor(item)),
+            )
+            .toList();
+        if (inMemoryNew.isEmpty) return;
+
+        final store = _backgroundStore;
+        final newItems = store != null
+            ? await store.filterAndMarkNew(inMemoryNew)
+            : inMemoryNew;
 
         if (newItems.isEmpty) return;
         _controller.add(newItems);
@@ -194,15 +214,35 @@ class NotificationService extends ChangeNotifier {
   }
 
   /// Registriert eine außerhalb des Pollings empfangene Benachrichtigung
-  /// (z. B. via UnifiedPush) als ungelesen.
-  void registerIncoming(NotificationItem item) {
+  /// (z. B. via UnifiedPush) als ungelesen und markiert sie als gesehen,
+  /// damit ein späterer Poll sie nicht erneut als Banner anzeigt.
+  ///
+  /// Liefert `true`, wenn die Benachrichtigung auf diesem Gerät noch nicht
+  /// angezeigt wurde (und somit angezeigt werden soll).
+  Future<bool> registerIncoming(NotificationItem item) async {
     _unreadById[item.id] = item;
+    final dedupeKey = PollingBackgroundStore.dedupeKeyFor(item);
+    final isNewInMemory = _seenIds.add(dedupeKey);
+    final itemCursor = toApiDate(item.createdAt, withMilliseconds: true);
+    if (_lastSeen == null || itemCursor.compareTo(_lastSeen!) > 0) {
+      _lastSeen = itemCursor;
+    }
     notifyListeners();
+
+    final store = _backgroundStore;
+    if (store != null) {
+      await store.setLastSeen(itemCursor);
+      final isNewInStore = await store.markAsShown(item);
+      return isNewInMemory && isNewInStore;
+    }
+    return isNewInMemory;
   }
 
   /// Leert die Unread-Registry (Logout), damit nach einem erneuten Login
   /// keine veralteten Markierungen des vorherigen Nutzers sichtbar sind.
   void clear() {
+    _seenIds.clear();
+    _lastSeen = null;
     if (_unreadById.isEmpty) return;
     _unreadById.clear();
     notifyListeners();

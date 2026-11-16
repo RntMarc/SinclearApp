@@ -2,14 +2,18 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:unifiedpush/unifiedpush.dart';
 import '../../../core/network/api_client.dart';
 import '../models/notification_item.dart';
 
 class UnifiedPushService extends ChangeNotifier {
+  static const _savedEndpointKey = 'unifiedpush_saved_endpoint';
+
   final ApiClient _api;
   String? _token;
   String? _savedEndpoint;
+  void Function(NotificationItem item)? _onMessage;
 
   bool _initialized = false;
 
@@ -20,6 +24,9 @@ class UnifiedPushService extends ChangeNotifier {
     void Function(NotificationItem item)? onMessage,
   }) {
     _token = token;
+    if (onMessage != null) {
+      _onMessage = onMessage;
+    }
     if (_initialized) return;
 
     UnifiedPush.initialize(
@@ -43,7 +50,7 @@ class UnifiedPushService extends ChangeNotifier {
         try {
           final json = jsonDecode(utf8.decode(message.content));
           final item = NotificationItem.fromJson(json as Map<String, dynamic>);
-          onMessage?.call(item);
+          _onMessage?.call(item);
         } catch (e) {
           developer.log('Failed to parse UP message: $e', name: 'unifiedpush');
         }
@@ -76,6 +83,11 @@ class UnifiedPushService extends ChangeNotifier {
   }
 
   Future<void> _registerEndpoint(String endpoint) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_savedEndpointKey, endpoint);
+    } catch (_) {}
+
     if (_token == null) return;
 
     try {
@@ -90,6 +102,11 @@ class UnifiedPushService extends ChangeNotifier {
   }
 
   Future<void> _unregisterEndpoint(String endpoint) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_savedEndpointKey);
+    } catch (_) {}
+
     if (_token == null) return;
 
     try {
@@ -106,7 +123,8 @@ class UnifiedPushService extends ChangeNotifier {
     }
   }
 
-  Future<void> unregister() async {
+  Future<void> unregister({String? token}) async {
+    if (token != null) _token = token;
     try {
       await UnifiedPush.unregister();
     } catch (e) {
@@ -115,8 +133,15 @@ class UnifiedPushService extends ChangeNotifier {
         name: 'unifiedpush',
       );
     }
-    if (_savedEndpoint != null) {
-      await _unregisterEndpoint(_savedEndpoint!);
+    var endpoint = _savedEndpoint;
+    if (endpoint == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        endpoint = prefs.getString(_savedEndpointKey);
+      } catch (_) {}
+    }
+    if (endpoint != null && endpoint.isNotEmpty) {
+      await _unregisterEndpoint(endpoint);
       _savedEndpoint = null;
     }
   }

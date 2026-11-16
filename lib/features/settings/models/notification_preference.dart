@@ -11,7 +11,8 @@ enum NotificationMethod {
   /// Push über einen UnifiedPush-Distributor (nur Android).
   unifiedPush,
 
-  /// Google FCM – geplant, noch nicht verfügbar.
+  /// Google FCM (nur Android; überträgt ausschließlich ein anonymes
+  /// Wake-up-Signal ohne persönliche Inhalte).
   fcm,
 }
 
@@ -26,14 +27,19 @@ extension NotificationMethodX on NotificationMethod {
     NotificationMethod.polling => 'Regelmäßiges Abrufen im Hintergrund',
     NotificationMethod.unifiedPush =>
       'Push über einen Distributor (z. B. ntfy)',
-    NotificationMethod.fcm => 'Google Firebase Cloud Messaging',
+    NotificationMethod.fcm =>
+      'Google Firebase (anonymes Wake-up ohne Inhaltsdaten)',
   };
 
   /// Auf dieser Plattform wählbare Methoden.
   static List<NotificationMethod> availableFor() {
     if (kIsWeb) return const [NotificationMethod.polling];
     if (Platform.isAndroid) {
-      return const [NotificationMethod.polling, NotificationMethod.unifiedPush];
+      return const [
+        NotificationMethod.polling,
+        NotificationMethod.unifiedPush,
+        NotificationMethod.fcm,
+      ];
     }
     return const [NotificationMethod.polling];
   }

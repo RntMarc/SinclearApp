@@ -141,7 +141,8 @@ Future<bool> runHeadlessPoll({
       .toList();
 
   await LocalNotificationHelper.init();
-  for (final item in items.take(_maxShownPerPoll)) {
+  final freshItems = await store.filterAndMarkNew(items);
+  for (final item in freshItems.take(_maxShownPerPoll)) {
     await LocalNotificationHelper.show(
       id: stableNotificationId(item.id),
       title: _title(item),

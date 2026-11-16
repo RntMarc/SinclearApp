@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import '../../../core/notifications/local_notification_helper.dart';
 import '../../settings/models/notification_preference.dart';
 import '../models/notification_item.dart';
+import 'fcm_push_service.dart';
 import 'foreground_polling_service.dart';
 import 'notification_service.dart';
 import 'unified_push_service.dart';
@@ -22,18 +23,17 @@ enum NotificationMethodOutcome {
   /// Kein Distributor installiert; UnifiedPush kann nicht genutzt werden.
   noDistributor,
 
-  /// Methode nicht verfügbar (FCM).
+  /// Methode nicht verfügbar (z. B. FCM ohne Google Play Services).
   unavailable,
 }
 
 /// Einzige Stelle für Auswahl → Prüfung → Setup einer Zustell-Methode.
 ///
-/// Bündelt die zuvor in `notification_settings_screen.dart` und
-/// `verify_screen.dart` duplizierte Logik. UI (Distributor-Picker,
-/// Fehlermeldungen) bleibt beim Aufrufer, der das [NotificationMethodOutcome]
-/// auswertet.
+/// Bündelt die Setup- und Wechsel-Logik zwischen Polling, UnifiedPush und FCM
+/// (nur Android; Web nutzt immer Browser-Web-Push).
 class NotificationMethodCoordinator {
   final UnifiedPushService unifiedPush;
+  final FcmPushService? fcmPush;
   final NotificationService notification;
   final ForegroundPollingService foregroundPolling;
   final Future<String> Function() getToken;
@@ -49,6 +49,7 @@ class NotificationMethodCoordinator {
 
   NotificationMethodCoordinator({
     required this.unifiedPush,
+    this.fcmPush,
     required this.notification,
     required this.foregroundPolling,
     required this.getToken,
@@ -63,8 +64,8 @@ class NotificationMethodCoordinator {
 
   /// Richtet [method] ein und prüft die Voraussetzungen.
   ///
-  /// [previous] ist die zuvor aktive Methode, damit ein Wechsel von
-  /// UnifiedPush zu Polling den Distributor sauber abmeldet.
+  /// [previous] ist die zuvor aktive Methode, damit ein Wechsel die alte
+  /// Subscription bzw. den alten Hintergrunddienst sauber beendet.
   Future<NotificationMethodOutcome> apply(
     NotificationMethod method, {
     NotificationMethod? previous,
@@ -73,6 +74,8 @@ class NotificationMethodCoordinator {
       case NotificationMethod.polling:
         if (previous == NotificationMethod.unifiedPush) {
           await unifiedPush.unregister();
+        } else if (previous == NotificationMethod.fcm) {
+          await fcmPush?.unregister();
         }
         final started = await foregroundPolling.start();
         if (!started) return NotificationMethodOutcome.permissionDenied;
@@ -82,14 +85,16 @@ class NotificationMethodCoordinator {
       case NotificationMethod.unifiedPush:
         await foregroundPolling.stop();
         notification.stopPolling();
+        if (previous == NotificationMethod.fcm) {
+          await fcmPush?.unregister();
+        }
         if (!await requestPermission()) {
           return NotificationMethodOutcome.permissionDenied;
         }
         unifiedPush.init(
           token: await getToken(),
           onMessage: (item) {
-            notification.registerIncoming(item);
-            onPushMessage?.call(item);
+            unawaited(_handleIncomingPushItem(item));
           },
         );
 
@@ -105,7 +110,30 @@ class NotificationMethodCoordinator {
         return NotificationMethodOutcome.needsDistributor;
 
       case NotificationMethod.fcm:
-        return NotificationMethodOutcome.unavailable;
+        final fcm = fcmPush;
+        if (fcm == null) return NotificationMethodOutcome.unavailable;
+        await foregroundPolling.stop();
+        notification.stopPolling();
+        if (previous == NotificationMethod.unifiedPush) {
+          await unifiedPush.unregister();
+        }
+        if (!await requestPermission()) {
+          return NotificationMethodOutcome.permissionDenied;
+        }
+        final ok = await fcm.setup(
+          getToken: getToken,
+          onWakeup: () => notification.pollOnce(getToken: getToken),
+        );
+        return ok
+            ? NotificationMethodOutcome.applied
+            : NotificationMethodOutcome.unavailable;
+    }
+  }
+
+  Future<void> _handleIncomingPushItem(NotificationItem item) async {
+    final shouldShow = await notification.registerIncoming(item);
+    if (shouldShow) {
+      onPushMessage?.call(item);
     }
   }
 

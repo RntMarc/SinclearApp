@@ -10,9 +10,20 @@ import '../../polls/services/polls_service.dart';
 import '../../user/services/user_service.dart';
 import '../models/notification_item.dart';
 
-/// Stabile, nicht-negative Android-Notification-ID, abgeleitet aus der
-/// Notification-UUID (Android akzeptiert nur ints >= 0).
-int localNotificationId(String id) => id.hashCode & 0x7fffffff;
+/// Deterministische, prozessübergreifend stabile Android-Notification-ID
+/// aus der Notification-UUID (FNV-1a 32 Bit, >= 0).
+///
+/// `String.hashCode` ist in Dart nicht über Isolates/Prozesse hinweg stabil —
+/// dieselbe UUID würde in Main-Isolate und Background-Isolate sonst zwei
+/// verschiedene Android-Notification-IDs erzeugen.
+int localNotificationId(String id) {
+  var hash = 0x811c9dc5;
+  for (final unit in id.codeUnits) {
+    hash ^= unit;
+    hash = (hash * 0x01000193) & 0xffffffff;
+  }
+  return hash & 0x7fffffff;
+}
 
 /// Vollständig aufbereiteter Inhalt einer Benachrichtigung: bereit zur
 /// Anzeige und zur Navigation. [route] ist `null`, wenn kein Ziel bestimmt

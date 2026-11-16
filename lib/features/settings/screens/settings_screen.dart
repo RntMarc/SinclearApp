@@ -624,12 +624,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
       try {
+        final token = await scope.auth.getAccessToken();
         if (kIsWeb) {
-          final token = await scope.auth.getAccessToken();
           await scope.webPush.unsubscribe(token: token);
         } else if (scope.notificationMethod.value ==
             NotificationMethod.unifiedPush) {
-          await scope.unifiedPush.unregister();
+          await scope.unifiedPush.unregister(token: token);
+        } else if (scope.notificationMethod.value == NotificationMethod.fcm) {
+          await scope.fcmPush?.unregister(token: token);
         }
       } catch (e) {
         developer.log('Push unregister failed: $e', name: 'settings.logout');

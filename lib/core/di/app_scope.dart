@@ -12,6 +12,7 @@ import '../../features/arcade/services/arcade_service.dart';
 import '../../features/chat/services/chat_service.dart';
 import '../../features/location_sharing/services/location_sharing_service.dart';
 import '../../features/moderation/services/moderation_service.dart';
+import '../../features/notifications/services/fcm_push_service.dart';
 import '../../features/notifications/services/notification_content_resolver.dart';
 import '../../features/notifications/services/notification_method_coordinator.dart';
 import '../../features/notifications/services/notification_service.dart';
@@ -77,6 +78,7 @@ class AppScope extends InheritedWidget {
   /// Text und Deep-Link — einheitlich für Polling, Push und Inbox.
   final NotificationContentResolver notificationContent;
   final UnifiedPushService unifiedPush;
+  final FcmPushService? fcmPush;
   final WebPushService webPush;
 
   /// Steuert das Hintergrund-Polling (Foreground-Service + WorkManager).
@@ -128,6 +130,7 @@ class AppScope extends InheritedWidget {
     required this.timeZones,
     required this.notificationContent,
     required this.unifiedPush,
+    this.fcmPush,
     required this.webPush,
     required this.foregroundPolling,
     required this.notificationCoordinator,

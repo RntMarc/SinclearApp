@@ -1,3 +1,4 @@
+import '../../../core/config/notification_config.dart';
 import '../../../core/utils/date_utils.dart';
 
 /// Eine einzelne Objekt-Referenz innerhalb von [NotificationItem.data].
@@ -64,10 +65,22 @@ class NotificationItem {
     required this.createdAt,
   });
 
-  /// `true`, wenn die API Titel und Text vollständig mitgeliefert hat —
-  /// dann muss nichts nachgeladen werden.
-  bool get hasApiContent =>
-      title != null && title!.isNotEmpty && text != null && text!.isNotEmpty;
+  /// `true`, wenn die API Titel und einen spezifischen (nicht-generischen) Text
+  /// vollständig mitgeliefert hat — dann muss nichts nachgeladen werden.
+  ///
+  /// Entspricht [text] lediglich dem generalisierten Platzhalter-Text aus
+  /// [NotificationTypeLabel.fallbackBody] (z. B. „Jemand hat eine neue Story
+  /// veröffentlicht."), gilt die Benachrichtigung als noch nicht angereichert,
+  /// damit [NotificationContentResolver] den echten Namen/Inhalt nachlädt.
+  bool get hasApiContent {
+    if (title == null || title!.isEmpty || text == null || text!.isEmpty) {
+      return false;
+    }
+    if (data.isNotEmpty && text == NotificationTypeLabel.fallbackBody(type)) {
+      return false;
+    }
+    return true;
+  }
 
   /// Die ID des Objekts mit der Rolle [relation], oder `null`, wenn kein
   /// solcher Eintrag in [data] existiert.

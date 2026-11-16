@@ -166,12 +166,19 @@ _MethodInfo _infoFor(NotificationMethod method) {
     ),
     NotificationMethod.fcm => (
       how:
-          'Google Firebase Cloud Messaging ist der Push-Dienst von Google. '
-          'Die Integration ist in Beyond derzeit nicht verfügbar.',
-      pros: ['Weit verbreiteter Standard-Dienst.'],
+          'Google Firebase Cloud Messaging (FCM) weckt Beyond bei neuen '
+          'Ereignissen über ein rein anonymes Signal auf. Über Google-Server '
+          'werden niemals Namen, Texte oder Chatnachrichten übertragen – die '
+          'App lädt den eigentlichen Inhalt erst nach dem Aufwachen direkt und '
+          'verschlüsselt vom Sinclear-Server nach.',
+      pros: [
+        'Funktioniert auf Geräten mit Google Play-Diensten sofort ohne Zusatz-App.',
+        'Sehr akkusparend und zuverlässige Echtzeit-Zustellung.',
+        'Keinerlei persönliche Inhalte oder Namen im FCM-Payload.',
+      ],
       cons: [
-        'Aus Datenschutzgründen derzeit nicht aktiviert.',
-        'Nachrichten würden über Google-Server laufen.',
+        'Erfordert installierte Google Play-Dienste auf dem Smartphone.',
+        'Google erfährt den Zeitpunkt, zu dem dein Gerät geweckt wird (Metadaten).',
       ],
     ),
   };

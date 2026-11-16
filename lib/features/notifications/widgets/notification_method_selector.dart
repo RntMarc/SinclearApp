@@ -1,11 +1,7 @@
-import 'dart:io' show Platform;
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
-import '../../../design/widgets/primitives/design_badge.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../../settings/models/notification_preference.dart';
@@ -42,8 +38,6 @@ class NotificationMethodSelector extends StatelessWidget {
             saving: saving,
             onSelect: onSelect,
           ),
-        if (!kIsWeb && Platform.isAndroid)
-          const _FcmTile(method: NotificationMethod.fcm),
       ],
     );
   }
@@ -93,30 +87,6 @@ class _MethodTile extends StatelessWidget {
         ],
       ),
       onTap: saving ? null : () => onSelect(method),
-    );
-  }
-}
-
-class _FcmTile extends StatelessWidget {
-  const _FcmTile({required this.method});
-
-  final NotificationMethod method;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = DesignTheme.of(context);
-    return DesignListTile(
-      leading: Icon(Icons.cloud_rounded, color: tokens.textHigh),
-      title: method.label,
-      subtitle: 'Google Firebase Cloud Messaging – geplant',
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _InfoButton(method: method),
-          SizedBox(width: tokens.spaceSm),
-          const DesignBadge(label: 'Bald verfügbar'),
-        ],
-      ),
     );
   }
 }

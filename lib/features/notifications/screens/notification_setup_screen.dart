@@ -98,8 +98,14 @@ class _NotificationSetupScreenState extends State<NotificationSetupScreen> {
                 'Distributor oder wähle eine andere Option.';
           });
         case NotificationMethodOutcome.needsDistributor:
-        case NotificationMethodOutcome.unavailable:
           break;
+        case NotificationMethodOutcome.unavailable:
+          setState(() {
+            _error =
+                'Google Firebase (FCM) ist auf diesem Gerät nicht verfügbar '
+                '(z. B. fehlende Google Play-Dienste). Bitte wähle '
+                'UnifiedPush oder Polling.';
+          });
       }
     } catch (e, st) {
       developer.log(

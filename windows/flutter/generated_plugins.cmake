@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   file_selector_windows
+  firebase_core
   flutter_timezone
   geolocator_windows
   screen_brightness_windows

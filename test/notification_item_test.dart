@@ -44,7 +44,15 @@ void main() {
       expect(item.type, 'forum_reply');
       expect(item.title, 'Neue Antwort auf deinen Kommentar');
       expect(item.text, 'Jemand hat auf deinen Kommentar geantwortet.');
-      expect(item.hasApiContent, isTrue);
+      // Der generische Platzhalter-Text gilt bei vorhandenen Relations-Daten
+      // als noch nicht angereichert, damit der Client den echten Namen nachlädt.
+      expect(item.hasApiContent, isFalse);
+
+      final enriched = NotificationItem.fromJson({
+        ...forumReplyJson,
+        'text': 'James hat auf deinen Kommentar geantwortet.',
+      });
+      expect(enriched.hasApiContent, isTrue);
       expect(item.data, hasLength(6));
       expect(item.data.first.relation, 'reply_author');
       expect(item.data.first.object, 'User');

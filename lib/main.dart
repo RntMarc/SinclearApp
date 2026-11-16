@@ -35,6 +35,7 @@ import 'features/chat/services/chat_service.dart';
 import 'features/location_sharing/services/location_sharing_service.dart';
 import 'features/moderation/services/moderation_service.dart';
 import 'features/notifications/services/background_poller.dart';
+import 'features/notifications/services/fcm_push_service.dart';
 import 'features/notifications/services/foreground_polling_service.dart';
 import 'features/notifications/services/notification_method_coordinator.dart';
 import 'features/notifications/services/polling_background_store.dart';
@@ -198,9 +199,11 @@ Future<void> _bootstrap() async {
     backgroundStore: pollingStore,
   );
   final unifiedPush = UnifiedPushService(api: api);
+  final fcmPush = FcmPushService(api: api);
   final foregroundPolling = ForegroundPollingService(store: pollingStore);
   final notificationCoordinator = NotificationMethodCoordinator(
     unifiedPush: unifiedPush,
+    fcmPush: fcmPush,
     notification: notification,
     foregroundPolling: foregroundPolling,
     getToken: auth.getAccessToken,
@@ -251,12 +254,20 @@ Future<void> _bootstrap() async {
             unifiedPush.init(
               token: token,
               onMessage: (item) {
-                notification.registerIncoming(item);
-                unawaited(notificationContent.showLocal(item));
+                unawaited(() async {
+                  final shouldShow = await notification.registerIncoming(item);
+                  if (shouldShow) {
+                    await notificationContent.showLocal(item);
+                  }
+                }());
               },
             );
           case NotificationMethod.fcm:
-            break;
+            await fcmPush.setup(
+              getToken: auth.getAccessToken,
+              onWakeup: () =>
+                  notification.pollOnce(getToken: auth.getAccessToken),
+            );
         }
       } catch (e, st) {
         developer.log(
@@ -349,6 +360,7 @@ Future<void> _bootstrap() async {
       notification: notification,
       notificationContent: notificationContent,
       unifiedPush: unifiedPush,
+      fcmPush: fcmPush,
       webPush: webPush,
       foregroundPolling: foregroundPolling,
       notificationCoordinator: notificationCoordinator,

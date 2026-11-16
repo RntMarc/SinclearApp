@@ -116,6 +116,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Default-Konfiguration für FCM (falls genutzt). FCM sendet
+             ausschließlich anonyme Data-Only Wake-up-Nachrichten. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="sinclear_main" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileProvider"
