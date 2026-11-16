@@ -23,6 +23,10 @@ enum NotificationMethodOutcome {
   /// Kein Distributor installiert; UnifiedPush kann nicht genutzt werden.
   noDistributor,
 
+  /// Registrierung beim Zustelldienst fehlgeschlagen. Die bisherige Methode
+  /// bleibt aktiv.
+  registrationFailed,
+
   /// Methode nicht verfügbar (z. B. FCM ohne Google Play Services).
   unavailable,
 }
@@ -64,34 +68,23 @@ class NotificationMethodCoordinator {
 
   /// Richtet [method] ein und prüft die Voraussetzungen.
   ///
-  /// [previous] ist die zuvor aktive Methode, damit ein Wechsel die alte
-  /// Subscription bzw. den alten Hintergrunddienst sauber beendet.
-  Future<NotificationMethodOutcome> apply(
-    NotificationMethod method, {
-    NotificationMethod? previous,
-  }) async {
+  /// Die bisherige Methode bleibt aktiv, bis die neue nachweislich
+  /// funktioniert (Endpoint bzw. Token serverseitig registriert). Erst dann
+  /// werden Polling, UnifiedPush und FCM der anderen Methoden beendet.
+  Future<NotificationMethodOutcome> apply(NotificationMethod method) async {
     switch (method) {
       case NotificationMethod.polling:
-        if (previous == NotificationMethod.unifiedPush) {
-          await unifiedPush.unregister();
-        } else if (previous == NotificationMethod.fcm) {
-          await fcmPush?.unregister();
-        }
         final started = await foregroundPolling.start();
         if (!started) return NotificationMethodOutcome.permissionDenied;
         notification.startPolling(getToken: getToken);
+        await _deactivateOthers(NotificationMethod.polling);
         return NotificationMethodOutcome.applied;
 
       case NotificationMethod.unifiedPush:
-        await foregroundPolling.stop();
-        notification.stopPolling();
-        if (previous == NotificationMethod.fcm) {
-          await fcmPush?.unregister();
-        }
         if (!await requestPermission()) {
           return NotificationMethodOutcome.permissionDenied;
         }
-        unifiedPush.init(
+        await unifiedPush.init(
           token: await getToken(),
           onMessage: (item) {
             unawaited(_handleIncomingPushItem(item));
@@ -99,7 +92,10 @@ class NotificationMethodCoordinator {
         );
 
         if (await unifiedPush.registeredDistributor() != null) {
-          await unifiedPush.register();
+          if (!await unifiedPush.register()) {
+            return NotificationMethodOutcome.registrationFailed;
+          }
+          await _deactivateOthers(NotificationMethod.unifiedPush);
           return NotificationMethodOutcome.applied;
         }
 
@@ -112,11 +108,6 @@ class NotificationMethodCoordinator {
       case NotificationMethod.fcm:
         final fcm = fcmPush;
         if (fcm == null) return NotificationMethodOutcome.unavailable;
-        await foregroundPolling.stop();
-        notification.stopPolling();
-        if (previous == NotificationMethod.unifiedPush) {
-          await unifiedPush.unregister();
-        }
         if (!await requestPermission()) {
           return NotificationMethodOutcome.permissionDenied;
         }
@@ -124,9 +115,26 @@ class NotificationMethodCoordinator {
           getToken: getToken,
           onWakeup: () => notification.pollOnce(getToken: getToken),
         );
-        return ok
-            ? NotificationMethodOutcome.applied
-            : NotificationMethodOutcome.unavailable;
+        if (!ok) return NotificationMethodOutcome.registrationFailed;
+        await _deactivateOthers(NotificationMethod.fcm);
+        return NotificationMethodOutcome.applied;
+    }
+  }
+
+  /// Beendet alle Zustellwege außer [keep].
+  ///
+  /// Wird erst nach erfolgreichem Setup der neuen Methode aufgerufen, damit
+  /// ein Fehlschlag die bisherige Zustellung nicht abwürgt.
+  Future<void> _deactivateOthers(NotificationMethod keep) async {
+    if (keep != NotificationMethod.polling) {
+      await foregroundPolling.stop();
+      notification.stopPolling();
+    }
+    if (keep != NotificationMethod.unifiedPush) {
+      await unifiedPush.unregister();
+    }
+    if (keep != NotificationMethod.fcm) {
+      await fcmPush?.unregister();
     }
   }
 
@@ -143,7 +151,8 @@ class NotificationMethodCoordinator {
   /// nicht als erfolgreich gelten.
   Future<bool> selectDistributor(String distributor) async {
     try {
-      await unifiedPush.selectDistributor(distributor);
+      if (!await unifiedPush.selectDistributor(distributor)) return false;
+      await _deactivateOthers(NotificationMethod.unifiedPush);
       return true;
     } catch (e, st) {
       developer.log(

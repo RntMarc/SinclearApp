@@ -251,7 +251,7 @@ Future<void> _bootstrap() async {
             await foregroundPolling.start(requestPermission: false);
             notification.startPolling(getToken: auth.getAccessToken);
           case NotificationMethod.unifiedPush:
-            unifiedPush.init(
+            await unifiedPush.init(
               token: token,
               onMessage: (item) {
                 unawaited(() async {
@@ -263,11 +263,18 @@ Future<void> _bootstrap() async {
               },
             );
           case NotificationMethod.fcm:
-            await fcmPush.setup(
+            final fcmReady = await fcmPush.setup(
               getToken: auth.getAccessToken,
               onWakeup: () =>
                   notification.pollOnce(getToken: auth.getAccessToken),
             );
+            if (!fcmReady) {
+              _showNotificationSetupError(
+                'Google-FCM konnte nicht eingerichtet werden. Bitte wähle in '
+                'den Einstellungen unter Benachrichtigungen eine andere '
+                'Zustell-Methode.',
+              );
+            }
         }
       } catch (e, st) {
         developer.log(
@@ -381,6 +388,18 @@ Future<void> _bootstrap() async {
   // hier ausgeführt, sobald der Navigator-Context verfügbar ist. (Der
   // Cold-Start-Tap selbst ist bereits als initialLocation im Router.)
   _tryNavigatePendingNavigation(router);
+}
+
+/// Zeigt eine Fehlermeldung, sobald der erste Frame steht.
+///
+/// Kaltstart-Fehler passieren vor `runApp`; der ScaffoldMessenger existiert
+/// erst mit dem ersten Frame.
+void _showNotificationSetupError(String message) {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    appScaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  });
 }
 
 void _handleNotificationTap(

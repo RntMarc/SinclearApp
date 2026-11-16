@@ -170,7 +170,10 @@ _MethodInfo _infoFor(NotificationMethod method) {
           'Ereignissen über ein rein anonymes Signal auf. Über Google-Server '
           'werden niemals Namen, Texte oder Chatnachrichten übertragen – die '
           'App lädt den eigentlichen Inhalt erst nach dem Aufwachen direkt und '
-          'verschlüsselt vom Sinclear-Server nach.',
+          'verschlüsselt vom Sinclear-Server nach. Google sieht dabei '
+          'technische Metadaten wie den Geräte-Token, die IP-Adresse und den '
+          'Zeitpunkt des Weckrufs; Nachrichteninhalte und persönliche Daten '
+          'werden bestmöglich geschützt.',
       pros: [
         'Funktioniert auf Geräten mit Google Play-Diensten sofort ohne Zusatz-App.',
         'Sehr akkusparend und zuverlässige Echtzeit-Zustellung.',

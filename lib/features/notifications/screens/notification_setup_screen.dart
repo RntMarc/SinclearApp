@@ -60,10 +60,7 @@ class _NotificationSetupScreenState extends State<NotificationSetupScreen> {
     });
     try {
       final coordinator = scope.notificationCoordinator;
-      var outcome = await coordinator.apply(
-        method,
-        previous: scope.notificationMethod.value,
-      );
+      var outcome = await coordinator.apply(method);
 
       if (outcome == NotificationMethodOutcome.needsDistributor) {
         if (!mounted) return;
@@ -99,6 +96,13 @@ class _NotificationSetupScreenState extends State<NotificationSetupScreen> {
           });
         case NotificationMethodOutcome.needsDistributor:
           break;
+        case NotificationMethodOutcome.registrationFailed:
+          setState(() {
+            _error =
+                'Die Registrierung beim Benachrichtigungsdienst ist '
+                'fehlgeschlagen. Bitte versuche es erneut oder wähle eine '
+                'andere Option.';
+          });
         case NotificationMethodOutcome.unavailable:
           setState(() {
             _error =

@@ -46,6 +46,12 @@ import 'features/settings/models/notification_preference.dart';
 import 'features/settings/models/map_app_preference.dart';
 import 'core/notifications/notification_lifecycle_observer.dart';
 
+/// Globaler Zugriff auf den SnackBar-Host der App.
+///
+/// Wird für Fehlermeldungen benötigt, die vor dem ersten Frame entstehen
+/// (z. B. fehlgeschlagenes FCM-Setup beim Kaltstart).
+final appScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 class SinclearApp extends StatelessWidget {
   final AuthService auth;
   final ExploreService explore;
@@ -258,6 +264,7 @@ class SinclearApp extends StatelessWidget {
                 final tokens = DesignTheme.of(context);
                 return MaterialApp.router(
                   title: 'Sinclear Beyond',
+                  scaffoldMessengerKey: appScaffoldMessengerKey,
                   debugShowCheckedModeBanner: false,
                   theme: ThemeData(
                     useMaterial3: true,

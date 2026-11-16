@@ -358,13 +358,12 @@ class _NotificationSettingsScreenState
   /// gemeinsamen Koordinator (Setup + Prüfungen an einer Stelle).
   Future<void> _applyNotificationMethod(NotificationMethod method) async {
     final scope = AppScope.of(context);
-    final previous = scope.notificationMethod.value;
-    if (method == previous) return;
+    if (method == scope.notificationMethod.value) return;
 
     setState(() => _savingNotificationMethod = true);
     try {
       final coordinator = scope.notificationCoordinator;
-      final outcome = await coordinator.apply(method, previous: previous);
+      final outcome = await coordinator.apply(method);
       if (!mounted) return;
 
       switch (outcome) {
@@ -387,6 +386,11 @@ class _NotificationSettingsScreenState
         case NotificationMethodOutcome.noDistributor:
           await Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const NoDistributorScreen()),
+          );
+        case NotificationMethodOutcome.registrationFailed:
+          _showSnack(
+            'Registrierung fehlgeschlagen – die bisherige Methode bleibt '
+            'aktiv.',
           );
         case NotificationMethodOutcome.permissionDenied:
           _showSnack(

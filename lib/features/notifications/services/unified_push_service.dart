@@ -17,28 +17,33 @@ class UnifiedPushService extends ChangeNotifier {
 
   bool _initialized = false;
 
+  /// Wartet auf den Endpoint der laufenden Registrierung. `null`, wenn keine
+  /// Registrierung angefordert wurde (z. B. Endpoint-Rotation im Betrieb).
+  Completer<bool>? _registration;
+
   UnifiedPushService({required this._api});
 
-  void init({
+  Future<void> init({
     required String token,
     void Function(NotificationItem item)? onMessage,
-  }) {
+  }) async {
     _token = token;
     if (onMessage != null) {
       _onMessage = onMessage;
     }
     if (_initialized) return;
 
-    UnifiedPush.initialize(
-      onNewEndpoint: (PushEndpoint endpoint, String instance) {
-        _savedEndpoint = endpoint.url;
-        _registerEndpoint(endpoint.url);
+    await UnifiedPush.initialize(
+      onNewEndpoint: (PushEndpoint endpoint, String instance) async {
+        final registered = await _registerEndpoint(endpoint.url);
+        _finishRegistration(registered);
       },
       onRegistrationFailed: (FailedReason reason, String? instance) {
         developer.log(
           'UnifiedPush registration failed: $reason',
           name: 'unifiedpush',
         );
+        _finishRegistration(false);
       },
       onUnregistered: (String instance) {
         if (_savedEndpoint != null) {
@@ -71,24 +76,78 @@ class UnifiedPushService extends ChangeNotifier {
     return UnifiedPush.getDistributors();
   }
 
-  /// Registriert die App beim aktuell eingerichteten Distributor.
-  Future<void> register() async {
-    if (kIsWeb) return;
-    await UnifiedPush.register();
+  /// Registriert die App beim aktuell eingerichteten Distributor und wartet
+  /// auf den neuen Endpoint inklusive erfolgreicher API-Registrierung.
+  ///
+  /// Liefert nur `true`, wenn der Endpoint wirklich beim Sinclear-Server
+  /// hinterlegt wurde — ein Distributor allein reicht nicht.
+  Future<bool> register() async {
+    if (kIsWeb) return false;
+
+    final completer = Completer<bool>();
+    _registration = completer;
+    try {
+      await UnifiedPush.register();
+    } catch (e) {
+      developer.log(
+        'Failed to register with distributor: $e',
+        name: 'unifiedpush',
+      );
+      _finishRegistration(false);
+      return false;
+    }
+
+    return completer.future.timeout(
+      const Duration(seconds: 20),
+      onTimeout: () async {
+        if (identical(_registration, completer)) _registration = null;
+        // Manche Distributoren melden einen bereits bekannten Endpoint nicht
+        // erneut. Dann den gespeicherten Endpoint direkt (erneut) registrieren
+        // und so auch `lastSeenAt` serverseitig auffrischen.
+        final endpoint = await _savedEndpointOrNull();
+        if (endpoint == null || endpoint.isEmpty) {
+          developer.log(
+            'UnifiedPush registration timed out',
+            name: 'unifiedpush',
+          );
+          return false;
+        }
+        return _registerEndpoint(endpoint);
+      },
+    );
   }
 
-  Future<void> selectDistributor(String distributor) async {
+  /// Speichert [distributor] und registriert ihn; `false` bei Fehlschlag.
+  Future<bool> selectDistributor(String distributor) async {
     await UnifiedPush.saveDistributor(distributor);
-    await UnifiedPush.register();
+    return register();
   }
 
-  Future<void> _registerEndpoint(String endpoint) async {
+  void _finishRegistration(bool success) {
+    final completer = _registration;
+    if (completer == null || completer.isCompleted) return;
+    _registration = null;
+    completer.complete(success);
+  }
+
+  Future<String?> _savedEndpointOrNull() async {
+    if (_savedEndpoint != null) return _savedEndpoint;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_savedEndpointKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> _registerEndpoint(String endpoint) async {
+    _savedEndpoint = endpoint;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_savedEndpointKey, endpoint);
     } catch (_) {}
 
-    if (_token == null) return;
+    if (_token == null) return false;
 
     try {
       await _api.post(
@@ -96,8 +155,10 @@ class UnifiedPushService extends ChangeNotifier {
         body: {'type': 'unifiedpush', 'endpoint': endpoint},
         token: _token,
       );
+      return true;
     } catch (e) {
       developer.log('Failed to register UP endpoint: $e', name: 'unifiedpush');
+      return false;
     }
   }
 
@@ -124,6 +185,7 @@ class UnifiedPushService extends ChangeNotifier {
   }
 
   Future<void> unregister({String? token}) async {
+    _finishRegistration(false);
     if (token != null) _token = token;
     try {
       await UnifiedPush.unregister();

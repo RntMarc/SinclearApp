@@ -30,6 +30,5 @@ class DefaultFirebaseOptions {
     appId: '***REMOVED***',
     messagingSenderId: '***REMOVED***',
     projectId: '***REMOVED***',
-    storageBucket: '***REMOVED***.firebasestorage.app',
   );
 }
