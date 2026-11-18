@@ -25,6 +25,8 @@ Usage:
 
 Umgebungsvariablen in .env (siehe .env.example):
   API_BASE_URL, PREVIEW_API_BASE_URL,
+  FIREBASE_API_KEY, FIREBASE_APP_ID,
+  FIREBASE_MESSAGING_SENDER_ID, FIREBASE_PROJECT_ID,
   FTP_HOST, FTP_USER, FTP_PASS,
   FTP_PROJECT_ROOT_PATH, PREVIEW_FTP_PROJECT_ROOT_PATH
 """
@@ -34,6 +36,7 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -44,6 +47,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 ENV_FILE = ROOT / '.env'
 ENV_EXAMPLE = ROOT / '.env.example'
+
+# Werden nur für den Android-Build als --dart-define übergeben; die Werte
+# bleiben in der lokalen, gitignorierten .env.
+FIREBASE_ENV_KEYS = (
+    'FIREBASE_API_KEY',
+    'FIREBASE_APP_ID',
+    'FIREBASE_MESSAGING_SENDER_ID',
+    'FIREBASE_PROJECT_ID',
+)
 PUBSPEC = ROOT / 'pubspec.yaml'
 BUILD_WEB = ROOT / 'build' / 'web'
 BUILD_APK = ROOT / 'build' / 'app' / 'outputs' / 'flutter-apk' / 'app-release.apk'
@@ -664,10 +676,16 @@ def main():
     dart_define = (
         f' --dart-define=API_BASE_URL={api_base_url}' if is_preview else ''
     )
+    # Firebase-Werte kommen aus der lokalen .env und landen nur im APK-Build.
+    firebase_defines = ''.join(
+        f' --dart-define={key}={shlex.quote(env[key])}'
+        for key in FIREBASE_ENV_KEYS
+        if env.get(key)
+    )
     run_cmd('flutter clean')
     run_cmd('flutter pub get')
     run_cmd(f'flutter build web --release{dart_define}')
-    run_cmd(f'flutter build apk --release{dart_define}')
+    run_cmd(f'flutter build apk --release{dart_define}{firebase_defines}')
 
     if not BUILD_APK.is_file():
         fail(f'APK nicht gefunden: {BUILD_APK}\n'
