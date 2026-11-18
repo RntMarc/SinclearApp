@@ -4,16 +4,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io' show Platform;
+import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/notifications/local_notification_helper.dart';
 import '../../../firebase_options.dart';
 import 'background_poller.dart';
+import 'fcm_setup_result.dart';
 
 /// Top-Level Background-Handler für Google FCM (nur Android).
 ///
@@ -25,6 +28,20 @@ import 'background_poller.dart';
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (kIsWeb) return;
+
+  // Der Handler läuft in einem eigenen Isolate. Plugins (SharedPreferences)
+  // und Firebase müssen dort erneut registriert/initialisiert werden.
+  DartPluginRegistrant.ensureInitialized();
+  try {
+    await _initializeFirebase();
+  } catch (e, st) {
+    developer.log(
+      'Firebase init in background isolate failed',
+      error: e,
+      stackTrace: st,
+      name: 'fcm_push',
+    );
+  }
 
   final ok = await pollNotificationsHeadless(force: true);
   if (!ok) {
@@ -41,6 +58,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+/// Initialisiert Firebase idempotent im aktuellen Isolate.
+Future<void> _initializeFirebase() async {
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+}
+
 /// Verwaltet die Google-FCM-Integration (ausschließlich natives Android).
 ///
 /// Web/PWA verwendet niemals FCM, sondern immer Browser-Web-Push (`web/sw.js`).
@@ -54,6 +80,7 @@ class FcmPushService extends ChangeNotifier {
   StreamSubscription<RemoteMessage>? _foregroundMessageSub;
   String? _fcmToken;
   bool _firebaseInitialized = false;
+  bool _serverNotConfigured = false;
 
   FcmPushService({required ApiClient api}) : _api = api;
 
@@ -61,60 +88,51 @@ class FcmPushService extends ChangeNotifier {
 
   /// Initialisiert Firebase (nur Android), holt das FCM-Token, registriert es
   /// als `type: 'fcm'` bei der API und lauscht auf Wakeup-Pushes.
-  Future<bool> setup({
+  Future<FcmSetupResult> setup({
     required Future<String> Function() getToken,
     required Future<void> Function() onWakeup,
   }) async {
-    if (!_isAndroid) return false;
+    if (!_isAndroid) return FcmSetupResult.unavailable;
     _getToken = getToken;
     _onWakeup = onWakeup;
+
+    final hadToken = await _hasSavedToken();
+    _serverNotConfigured = false;
 
     try {
       await _ensureFirebaseInitialized();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      _listenForMessages();
 
       final messaging = FirebaseMessaging.instance;
-      // Datenschutz-Default: Ohne aktive FCM-Nutzung erzeugt Firebase keinen
-      // Token. Erst nach erfolgreicher Registrierung bleibt die
-      // Auto-Initialisierung aktiv.
-      await _setAutoInitEnabled(false);
       final settings = await messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
       if (settings.authorizationStatus == AuthorizationStatus.denied) {
-        return false;
+        return FcmSetupResult.permissionDenied;
       }
+
+      // Das Manifest deaktiviert die native Auto-Init beim Prozessstart.
+      // Erst die ausdrückliche Zustimmung oben darf einen Token erzeugen.
+      await _setAutoInitEnabled(true);
 
       final fcmToken = await messaging.getToken();
       if (fcmToken == null || fcmToken.isEmpty) {
-        return false;
+        return hadToken ? FcmSetupResult.ready : FcmSetupResult.failed;
       }
-      final hadToken = await _hasSavedToken();
       _fcmToken = fcmToken;
-      if (!await _registerToken(fcmToken)) {
+      if (!await _registerToken(fcmToken) &&
+          (_serverNotConfigured || !hadToken)) {
         // Ein transientes Registrierungsproblem darf eine bereits bestehende
         // Zustellung nicht zerstören; nur einen nie registrierten Token
-        // verwerfen, damit Google nichts Verwaistes behält.
-        if (!hadToken) await _discardToken();
-        return false;
+        // verwerfen, damit Google nichts Verwaistes behält. Eine explizite
+        // Server-Ablehnung (FCM nicht konfiguriert) ist kein transienter Fall.
+        await _discardToken();
+        return FcmSetupResult.failed;
       }
-      await _setAutoInitEnabled(true);
-
-      _tokenRefreshSub ??= messaging.onTokenRefresh.listen((newToken) {
-        _fcmToken = newToken;
-        unawaited(_registerToken(newToken));
-      });
-
-      _foregroundMessageSub ??= FirebaseMessaging.onMessage.listen((_) {
-        final callback = _onWakeup;
-        if (callback != null) {
-          unawaited(callback());
-        }
-      });
-
-      return true;
+      return FcmSetupResult.ready;
     } catch (e, st) {
       developer.log(
         'FCM setup failed',
@@ -122,7 +140,12 @@ class FcmPushService extends ChangeNotifier {
         stackTrace: st,
         name: 'fcm_push',
       );
-      return false;
+      // Kurzzeitig offline beim Kaltstart: Ein bereits serverseitig
+      // registrierter Token bleibt gültig, kein Setup-Fehler in der UI.
+      if (hadToken && _firebaseInitialized) return FcmSetupResult.ready;
+      return _isUnavailable(e)
+          ? FcmSetupResult.unavailable
+          : FcmSetupResult.failed;
     }
   }
 
@@ -170,12 +193,24 @@ class FcmPushService extends ChangeNotifier {
 
   Future<void> _ensureFirebaseInitialized() async {
     if (_firebaseInitialized) return;
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    }
+    await _initializeFirebase();
     _firebaseInitialized = true;
+  }
+
+  void _listenForMessages() {
+    _tokenRefreshSub ??= FirebaseMessaging.instance.onTokenRefresh.listen((
+      newToken,
+    ) {
+      _fcmToken = newToken;
+      unawaited(_registerToken(newToken));
+    });
+
+    _foregroundMessageSub ??= FirebaseMessaging.onMessage.listen((_) {
+      final callback = _onWakeup;
+      if (callback != null) {
+        unawaited(callback());
+      }
+    });
   }
 
   /// Registriert [endpoint] bei der API und meldet nur bei Erfolg `true`.
@@ -193,6 +228,12 @@ class FcmPushService extends ChangeNotifier {
         body: {'type': 'fcm', 'endpoint': endpoint},
         token: accessToken,
       );
+    } on ApiException catch (e) {
+      if (e.statusCode == 503 && e.errorCode == 'fcm_not_configured') {
+        _serverNotConfigured = true;
+      }
+      developer.log('Failed to register FCM token: $e', name: 'fcm_push');
+      return false;
     } catch (e) {
       developer.log('Failed to register FCM token: $e', name: 'fcm_push');
       return false;
@@ -237,5 +278,18 @@ class FcmPushService extends ChangeNotifier {
     } catch (e) {
       developer.log('Failed to set FCM auto-init: $e', name: 'fcm_push');
     }
+  }
+
+  /// Erkennt fehlende Google Play-Dienste, damit die UI `unavailable`
+  /// statt eines generischen Registrierungsfehlers anzeigen kann.
+  bool _isUnavailable(Object error) {
+    final code = switch (error) {
+      FirebaseException(:final code) => code,
+      PlatformException(:final code) => code,
+      _ => '',
+    };
+    return code == 'MISSING_INSTANCEID_SERVICE' ||
+        code == 'missing-instanceid-service' ||
+        code == 'SERVICE_NOT_AVAILABLE';
   }
 }

@@ -564,14 +564,15 @@ def post_process_web(version, version_code):
             )
 
         # 2. Service Worker Registrierung anpassen (absoluter Pfad + Version-Busting)
-        # Wir wollen sicherstellen dass es /firebase-messaging-sw.js?v=... ist
-        # damit er Root-Scope behält aber bei jedem Update neu geladen wird.
+        # /sw.js bleibt der Web-Push-Service-Worker (VAPID); er muss im Root
+        # liegen, damit er den vollen Scope behält, und wird bei jedem Update
+        # über den Query-Parameter neu geladen.
         sw_pattern = re.compile(
             r"navigator\.serviceWorker\.register\(['\"][^'\"]+['\"]\)"
         )
         full_ver = f"{version}+{version_code}"
         updated_content = sw_pattern.sub(
-            f"navigator.serviceWorker.register('/firebase-messaging-sw.js?v={full_ver}')",
+            f"navigator.serviceWorker.register('/sw.js?v={full_ver}')",
             updated_content
         )
 
@@ -581,10 +582,10 @@ def post_process_web(version, version_code):
     if not DRY_RUN:
         # version.json
         shutil.copy2(BUILD_WEB / 'version.json', DIST / 'version.json')
-        # firebase-messaging-sw.js (muss im Root liegen für vollen Scope)
-        sw_file = BUILD_WEB / 'firebase-messaging-sw.js'
+        # sw.js (muss im Root liegen für vollen Scope)
+        sw_file = BUILD_WEB / 'sw.js'
         if sw_file.exists():
-            shutil.copy2(sw_file, DIST / 'firebase-messaging-sw.js')
+            shutil.copy2(sw_file, DIST / 'sw.js')
         # .htaccess
         htaccess_root = ROOT / 'web' / '.htaccess'
         if htaccess_root.exists():
@@ -734,7 +735,7 @@ def main():
         # vorher zu löschen.
         print(f'    {GR}Root-Dateien ersetzen …{R}')
         for root_file in ('index.html', 'version.json', '.htaccess',
-                          'firebase-messaging-sw.js', 'manifest.json'):
+                          'sw.js', 'manifest.json'):
             local_file = DIST / root_file
             if local_file.exists():
                 ftp_upload_file(ftp, str(local_file), root_file)

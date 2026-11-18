@@ -108,16 +108,23 @@ class NotificationMethodCoordinator {
       case NotificationMethod.fcm:
         final fcm = fcmPush;
         if (fcm == null) return NotificationMethodOutcome.unavailable;
-        if (!await requestPermission()) {
-          return NotificationMethodOutcome.permissionDenied;
-        }
-        final ok = await fcm.setup(
+        // Die Berechtigung wird in setup() über FirebaseMessaging angefragt —
+        // kein zweiter Dialog über LocalNotificationHelper.
+        final result = await fcm.setup(
           getToken: getToken,
           onWakeup: () => notification.pollOnce(getToken: getToken),
         );
-        if (!ok) return NotificationMethodOutcome.registrationFailed;
-        await _deactivateOthers(NotificationMethod.fcm);
-        return NotificationMethodOutcome.applied;
+        switch (result) {
+          case FcmSetupResult.ready:
+            await _deactivateOthers(NotificationMethod.fcm);
+            return NotificationMethodOutcome.applied;
+          case FcmSetupResult.permissionDenied:
+            return NotificationMethodOutcome.permissionDenied;
+          case FcmSetupResult.unavailable:
+            return NotificationMethodOutcome.unavailable;
+          case FcmSetupResult.failed:
+            return NotificationMethodOutcome.registrationFailed;
+        }
     }
   }
 

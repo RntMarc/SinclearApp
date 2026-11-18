@@ -25,6 +25,7 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Must match android/app/google-services.json (project `***REMOVED***`).
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: '***REMOVED***',
     appId: '***REMOVED***',

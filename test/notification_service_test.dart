@@ -797,4 +797,31 @@ void main() {
       });
     });
   });
+
+  group('fetchById', () {
+    test('loads a single notification and registers it as unread', () async {
+      mockApi.responses.add({
+        'data': {
+          'id': 'n1',
+          'type': 'forum_reply',
+          'data': [
+            {'relation': 'parent_forum', 'object': 'Forum', 'identifier': 'f1'},
+          ],
+          'createdAt': '2026-08-10 14:30:00',
+        },
+      });
+
+      final item = await service.fetchById('n1', token: 'test-token');
+
+      expect(item?.id, 'n1');
+      expect(mockApi.calledPaths.last, '/notifications/n1');
+      expect(service.unreadForumIds, contains('f1'));
+    });
+
+    test('returns null when the payload has no data object', () async {
+      mockApi.responses.add({'data': null});
+
+      expect(await service.fetchById('n1', token: 'test-token'), isNull);
+    });
+  });
 }

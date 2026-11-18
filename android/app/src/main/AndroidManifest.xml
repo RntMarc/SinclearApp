@@ -118,6 +118,16 @@
             android:value="2" />
         <!-- Default-Konfiguration für FCM (falls genutzt). FCM sendet
              ausschließlich anonyme Data-Only Wake-up-Nachrichten. -->
+        <!-- Datenschutz-Opt-in: Das native Firebase-SDK darf beim App-Start
+             weder automatisch Verbindung aufnehmen noch einen Token erzeugen.
+             Erst FcmPushService.setup() aktiviert die Auto-Init nach der
+             ausdrücklichen Zustimmung des Nutzers. -->
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_analytics_collection_enabled"
+            android:value="false" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="sinclear_main" />

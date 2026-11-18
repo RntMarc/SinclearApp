@@ -86,13 +86,14 @@ class _FakeUnifiedPush extends UnifiedPushService {
 }
 
 class _FakeFcmPush extends FcmPushService {
-  _FakeFcmPush(ApiClient api, {this.setupResult = true}) : super(api: api);
+  _FakeFcmPush(ApiClient api, {this.setupResult = FcmSetupResult.ready})
+    : super(api: api);
 
-  final bool setupResult;
+  final FcmSetupResult setupResult;
   bool unregistered = false;
 
   @override
-  Future<bool> setup({
+  Future<FcmSetupResult> setup({
     required Future<String> Function() getToken,
     required Future<void> Function() onWakeup,
   }) async => setupResult;
@@ -112,7 +113,7 @@ void main() {
     List<String> distributors = const [],
     bool permissionGranted = true,
     bool selectFails = false,
-    bool fcmSetupResult = true,
+    FcmSetupResult fcmSetupResult = FcmSetupResult.ready,
     bool upRegisterResult = true,
     _FakeUnifiedPush? unifiedPush,
     _FakeFcmPush? fcmPush,
@@ -182,21 +183,28 @@ void main() {
 
   test('FCM mit Berechtigung und erfolgreichem Setup → applied', () async {
     final outcome = await build(
-      fcmSetupResult: true,
+      fcmSetupResult: FcmSetupResult.ready,
     ).apply(NotificationMethod.fcm);
     expect(outcome, NotificationMethodOutcome.applied);
   });
 
   test('FCM ohne Berechtigung → permissionDenied', () async {
     final outcome = await build(
-      permissionGranted: false,
+      fcmSetupResult: FcmSetupResult.permissionDenied,
     ).apply(NotificationMethod.fcm);
     expect(outcome, NotificationMethodOutcome.permissionDenied);
   });
 
+  test('FCM ohne Google Play-Dienste → unavailable', () async {
+    final outcome = await build(
+      fcmSetupResult: FcmSetupResult.unavailable,
+    ).apply(NotificationMethod.fcm);
+    expect(outcome, NotificationMethodOutcome.unavailable);
+  });
+
   test('FCM bei fehlgeschlagener Registrierung → registrationFailed', () async {
     final outcome = await build(
-      fcmSetupResult: false,
+      fcmSetupResult: FcmSetupResult.failed,
     ).apply(NotificationMethod.fcm);
     expect(outcome, NotificationMethodOutcome.registrationFailed);
   });
@@ -204,7 +212,7 @@ void main() {
   test('FCM-Fehlschlag lässt UnifiedPush aktiv', () async {
     final api = ApiClient(baseUrl: 'http://test');
     final unifiedPush = _FakeUnifiedPush(api, distributor: 'ntfy');
-    final fcmPush = _FakeFcmPush(api, setupResult: false);
+    final fcmPush = _FakeFcmPush(api, setupResult: FcmSetupResult.failed);
 
     final outcome = await build(
       unifiedPush: unifiedPush,
@@ -218,7 +226,7 @@ void main() {
   test('FCM-Erfolg meldet UnifiedPush erst danach ab', () async {
     final api = ApiClient(baseUrl: 'http://test');
     final unifiedPush = _FakeUnifiedPush(api, distributor: 'ntfy');
-    final fcmPush = _FakeFcmPush(api, setupResult: true);
+    final fcmPush = _FakeFcmPush(api, setupResult: FcmSetupResult.ready);
 
     final outcome = await build(
       unifiedPush: unifiedPush,

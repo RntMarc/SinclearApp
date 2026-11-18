@@ -280,17 +280,31 @@ Future<void> _bootstrap() async {
               },
             );
           case NotificationMethod.fcm:
-            final fcmReady = await fcmPush.setup(
+            final fcmResult = await fcmPush.setup(
               getToken: auth.getAccessToken,
               onWakeup: () =>
                   notification.pollOnce(getToken: auth.getAccessToken),
             );
-            if (!fcmReady) {
-              _showNotificationSetupError(
-                'Google-FCM konnte nicht eingerichtet werden. Bitte wähle in '
-                'den Einstellungen unter Benachrichtigungen eine andere '
-                'Zustell-Methode.',
-              );
+            switch (fcmResult) {
+              case FcmSetupResult.ready:
+                break;
+              case FcmSetupResult.permissionDenied:
+                _showNotificationSetupError(
+                  'Benachrichtigungen sind nicht erlaubt. Bitte in den '
+                  'Systemeinstellungen aktivieren.',
+                );
+              case FcmSetupResult.unavailable:
+                _showNotificationSetupError(
+                  'Google Firebase (FCM) ist auf diesem Gerät nicht verfügbar. '
+                  'Bitte wähle in den Einstellungen unter Benachrichtigungen '
+                  'eine andere Zustell-Methode.',
+                );
+              case FcmSetupResult.failed:
+                _showNotificationSetupError(
+                  'Google-FCM konnte nicht eingerichtet werden. Bitte wähle in '
+                  'den Einstellungen unter Benachrichtigungen eine andere '
+                  'Zustell-Methode.',
+                );
             }
         }
       } catch (e, st) {
@@ -423,7 +437,7 @@ void _handleNotificationTap(
   String? payload, {
   required AuthService auth,
   required NotificationService notification,
-}) {
+}) async {
   NotificationItem? item;
   if (payload != null) {
     try {
@@ -434,6 +448,26 @@ void _handleNotificationTap(
     } catch (e, st) {
       developer.log(
         'Notification tap payload invalid',
+        error: e,
+        stackTrace: st,
+        name: 'notification_tap',
+      );
+    }
+  }
+
+  // Anonymer FCM-Fallback kennt nur die ID (`type: unknown`): die echte
+  // Benachrichtigung nachladen, damit der Tap korrekt routet.
+  if (item != null && item.type == 'unknown' && item.id.isNotEmpty) {
+    try {
+      item =
+          await notification.fetchById(
+            item.id,
+            token: await auth.getAccessToken(),
+          ) ??
+          item;
+    } catch (e, st) {
+      developer.log(
+        'Failed to fetch tapped notification',
         error: e,
         stackTrace: st,
         name: 'notification_tap',

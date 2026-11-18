@@ -141,6 +141,24 @@ class NotificationService extends ChangeNotifier {
     }
   }
 
+  /// Lädt eine einzelne Benachrichtigung (`GET /notifications/{id}`).
+  ///
+  /// Nötig für Tap-Payloads, die nur die ID kennen (anonymer FCM-Fallback):
+  /// Damit öffnet der Tap die echte Benachrichtigung samt Relationen statt
+  /// eines generischen Ziels.
+  Future<NotificationItem?> fetchById(
+    String id, {
+    required String token,
+  }) async {
+    final response = await _api.get('/notifications/$id', token: token);
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) return null;
+    final item = NotificationItem.fromJson(data);
+    _unreadById[item.id] = item;
+    notifyListeners();
+    return item;
+  }
+
   Future<void> markRead(List<String> ids, {required String token}) async {
     if (ids.isEmpty) return;
     var removed = false;
