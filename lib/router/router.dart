@@ -557,11 +557,12 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
 }
 
 /// Entdecken-Seiten, die auch ohne Login erreichbar sind (Liste, Kategorien,
-/// Details). Die Erstellen-Flows unter `/entdecken/neu` bleiben angemeldeten
-/// Nutzern vorbehalten.
+/// Details). Die Erstellen-Flows unter `/entdecken/neu` und die Sammlung
+/// (`/entdecken/sammlung`) bleiben angemeldeten Nutzern vorbehalten.
 bool _isGuestExplore(String location) {
   return location.startsWith('/entdecken') &&
-      !location.startsWith('/entdecken/neu');
+      !location.startsWith('/entdecken/neu') &&
+      !location.startsWith('/entdecken/sammlung');
 }
 
 /// Rezepte-Seiten, die auch ohne Login erreichbar sind (Liste, Katalog,
