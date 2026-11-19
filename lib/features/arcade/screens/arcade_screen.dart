@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -10,6 +11,19 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../models/arcade_models.dart';
+
+/// Window target for opening an arcade game on the current platform.
+///
+/// On web the game must load in the current tab: iOS Safari blocks
+/// `window.open` popups inside standalone PWAs, and the session request's
+/// `await` has already consumed the click's user gesture by then. Native
+/// platforms ignore the window name.
+///
+/// ponytail: a new tab would keep the app alive, but needs a window opened
+/// synchronously in the click handler; upgrade there if the game page offers
+/// a reliable way back to the PWA.
+@visibleForTesting
+String? arcadeWindowName({required bool isWeb}) => isWeb ? '_self' : null;
 
 /// Übersicht der selbst gehosteten Arcade-Browser-Spiele.
 ///
@@ -72,8 +86,18 @@ class _ArcadeScreenState extends State<ArcadeScreen> {
     try {
       final session = await AppScope.of(context).arcade.startSession(game.slug);
       final uri = Uri.tryParse(session.playUrl);
-      if (uri == null ||
-          !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (uri == null || uri.host.isEmpty) {
+        _showError();
+        return;
+      }
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: arcadeWindowName(isWeb: kIsWeb),
+      );
+      // url_launcher_web always reports success because it opens with
+      // `noopener`, so only native launch results are meaningful.
+      if (!kIsWeb && !launched) {
         _showError();
       }
     } catch (e, st) {
