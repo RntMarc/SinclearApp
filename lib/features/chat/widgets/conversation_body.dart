@@ -139,19 +139,6 @@ class _ConversationBodyState extends State<ConversationBody> {
     final scope = _scope;
     if (scope == null) return;
     await scope.chat.markConversationRead(widget.conversationId);
-    final ids = scope.notification.unreadIdsForConversation(
-      widget.conversationId,
-    );
-    if (ids.isNotEmpty) {
-      try {
-        await scope.notification.markRead(
-          ids,
-          token: await scope.auth.getAccessToken(),
-        );
-      } catch (e, st) {
-        _log.warning('markRead failed', e, st);
-      }
-    }
   }
 
   void _maybeMarkRead() {

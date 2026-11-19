@@ -185,7 +185,6 @@ Future<void> _bootstrap() async {
   final forum = ForumService(api: api, auth: auth);
   final games = GamesService(api: api, auth: auth);
   final arcade = ArcadeService(api: api, auth: auth);
-  final chat = ChatService(api: api, auth: auth);
   final locationSharing = LocationSharingService(api: api, auth: auth);
   final recipes = RecipesService(api: api, auth: auth);
   final photos = PhotosService(api: api, auth: auth);
@@ -215,6 +214,7 @@ Future<void> _bootstrap() async {
     contentResolver: notificationContent,
     backgroundStore: pollingStore,
   );
+  final chat = ChatService(api: api, auth: auth, notification: notification);
   final unifiedPush = UnifiedPushService(api: api);
   final fcmPush = FcmPushService(api: api);
   final foregroundPolling = ForegroundPollingService(store: pollingStore);

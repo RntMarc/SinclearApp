@@ -100,6 +100,7 @@ class NotificationService extends ChangeNotifier {
 
         var registryChanged = false;
         for (final item in items) {
+          if (item.isRead) continue;
           if (!_unreadById.containsKey(item.id)) {
             _unreadById[item.id] = item;
             registryChanged = true;
@@ -154,8 +155,10 @@ class NotificationService extends ChangeNotifier {
     final data = response['data'];
     if (data is! Map<String, dynamic>) return null;
     final item = NotificationItem.fromJson(data);
-    _unreadById[item.id] = item;
-    notifyListeners();
+    if (!item.isRead) {
+      _unreadById[item.id] = item;
+      notifyListeners();
+    }
     return item;
   }
 
@@ -216,6 +219,7 @@ class NotificationService extends ChangeNotifier {
           .map(
             (json) => NotificationItem.fromJson(json as Map<String, dynamic>),
           )
+          .where((item) => !item.isRead)
           .toList();
       _unreadById
         ..clear()
@@ -238,7 +242,7 @@ class NotificationService extends ChangeNotifier {
   /// Liefert `true`, wenn die Benachrichtigung auf diesem Gerät noch nicht
   /// angezeigt wurde (und somit angezeigt werden soll).
   Future<bool> registerIncoming(NotificationItem item) async {
-    _unreadById[item.id] = item;
+    if (!item.isRead) _unreadById[item.id] = item;
     final dedupeKey = PollingBackgroundStore.dedupeKeyFor(item);
     final isNewInMemory = _seenIds.add(dedupeKey);
     final itemCursor = toApiDate(item.createdAt, withMilliseconds: true);

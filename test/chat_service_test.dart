@@ -7,6 +7,8 @@ import 'package:sinclear_beyond/features/auth/services/auth_service.dart';
 import 'package:sinclear_beyond/features/chat/models/chat_models.dart';
 import 'package:sinclear_beyond/features/chat/services/centrifugo_service.dart';
 import 'package:sinclear_beyond/features/chat/services/chat_service.dart';
+import 'package:sinclear_beyond/features/notifications/models/notification_item.dart';
+import 'package:sinclear_beyond/features/notifications/services/notification_service.dart';
 
 class _MockApiClient extends ApiClient {
   final List<Map<String, dynamic>> responses = [];
@@ -224,15 +226,18 @@ void main() {
 
   late _MockApiClient api;
   late _FakeCentrifugo centrifugo;
+  late NotificationService notificationService;
   late ChatService service;
   var notified = 0;
 
   setUp(() {
     api = _MockApiClient();
     centrifugo = _FakeCentrifugo(_FakeAuth(api));
+    notificationService = NotificationService(api: api);
     service = ChatService(
       api: api,
       auth: _FakeAuth(api),
+      notification: notificationService,
       centrifugo: centrifugo,
     );
     notified = 0;
@@ -241,6 +246,7 @@ void main() {
 
   tearDown(() {
     service.dispose();
+    notificationService.dispose();
   });
 
   test(
@@ -693,6 +699,40 @@ void main() {
       );
     },
   );
+
+  test('markConversationRead entfernt ungelesene Chat-Notifications', () async {
+    api.responses.add({
+      'data': [_conversationJson('convA', unread: 3)],
+    });
+    await service.refreshConversations();
+    api.responses.add({
+      'data': [
+        _messageJson('m1', 5, 'convA', 'a'),
+        _messageJson('m2', 8, 'convA', 'b'),
+      ],
+    });
+    await service.getMessages('convA');
+
+    await notificationService.registerIncoming(
+      NotificationItem(
+        id: 'n1',
+        type: 'direct_message',
+        data: const [
+          NotificationRelation(
+            relation: 'conversation',
+            object: 'ChatConversation',
+            identifier: 'convA',
+          ),
+        ],
+        createdAt: DateTime.utc(2026, 8, 16, 10),
+      ),
+    );
+    expect(notificationService.hasUnreadChatContent, isTrue);
+
+    await service.markConversationRead('convA');
+
+    expect(notificationService.hasUnreadChatContent, isFalse);
+  });
 
   test('markConversationRead ist No-op, wenn alles gelesen ist', () async {
     api.responses.add({

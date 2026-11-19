@@ -219,6 +219,27 @@ void main() {
 
       expect(mockApi.calledPaths.length, callCount);
     });
+
+    test('already-read notifications do not enter the registry', () async {
+      mockApi.responses.add({
+        'notifications': [
+          {
+            'id': '1',
+            'type': 'poll_invite',
+            'isRead': true,
+            'data': [
+              {'relation': 'poll', 'object': 'Poll', 'identifier': 'pollA'},
+            ],
+            'createdAt': '2026-08-10 14:30:00',
+          },
+        ],
+      });
+
+      service.startPolling(getToken: () async => 'test-token');
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(service.hasUnreadPollContent, isFalse);
+    });
   });
 
   group('stopPolling', () {
@@ -381,6 +402,26 @@ void main() {
       service.clear();
 
       expect(service.hasUnreadForumContent, isFalse);
+    });
+
+    test('refreshUnread ignores already-read notifications', () async {
+      mockApi.responses.add({
+        'notifications': [
+          {
+            'id': '1',
+            'type': 'trip_user_added',
+            'isRead': true,
+            'data': [
+              {'relation': 'trip', 'object': 'Trip', 'identifier': 'tripA'},
+            ],
+            'createdAt': '2026-08-10 14:30:00',
+          },
+        ],
+      });
+
+      await service.refreshUnread(token: 'test-token');
+
+      expect(service.hasUnreadTripContent, isFalse);
     });
 
     test('registerIncoming adds an item to the registry', () {
@@ -816,6 +857,25 @@ void main() {
       expect(item?.id, 'n1');
       expect(mockApi.calledPaths.last, '/notifications/n1');
       expect(service.unreadForumIds, contains('f1'));
+    });
+
+    test('does not register an already-read notification', () async {
+      mockApi.responses.add({
+        'data': {
+          'id': 'n1',
+          'type': 'forum_reply',
+          'isRead': true,
+          'data': [
+            {'relation': 'parent_forum', 'object': 'Forum', 'identifier': 'f1'},
+          ],
+          'createdAt': '2026-08-10 14:30:00',
+        },
+      });
+
+      final item = await service.fetchById('n1', token: 'test-token');
+
+      expect(item?.id, 'n1');
+      expect(service.unreadForumIds, isEmpty);
     });
 
     test('returns null when the payload has no data object', () async {

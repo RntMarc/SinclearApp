@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
+import '../../notifications/services/notification_service.dart';
 import '../models/chat_models.dart';
 import 'centrifugo_service.dart';
 
@@ -27,11 +28,13 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
   ChatService({
     required ApiClient api,
     required AuthService auth,
+    NotificationService? notification,
     CentrifugoService? centrifugo,
     this.conversationsTtl = const Duration(seconds: 60),
     DateTime Function() clock = DateTime.now,
   }) : _api = api,
        _auth = auth,
+       _notification = notification,
        _centrifugo = centrifugo ?? CentrifugoService(auth: auth),
        _clock = clock {
     _eventSub = _centrifugo.events.listen(_onCentrifugoEvent);
@@ -41,6 +44,7 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
 
   final ApiClient _api;
   final AuthService _auth;
+  final NotificationService? _notification;
   final CentrifugoService _centrifugo;
   StreamSubscription<CentrifugoEvent>? _eventSub;
   StreamSubscription<void>? _reconnectedSub;
@@ -658,6 +662,9 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
     final index = _conversations.indexWhere((c) => c.id == conversationId);
     if (index < 0) return;
     final c = _conversations[index];
+
+    await _clearNotification(conversationId);
+
     if (maxSeq <= c.lastReadSeq && c.unreadCount == 0) return;
     if (maxSeq > c.lastReadSeq) {
       try {
@@ -686,6 +693,17 @@ class ChatService extends ChangeNotifier with WidgetsBindingObserver {
       updatedAt: c.updatedAt,
     );
     notifyListeners();
+  }
+
+  /// Entfernt die noch ungelesenen `direct_message`-Notifications der
+  /// Konversation, damit Chat-Badge und Notification-Punkt nicht
+  /// auseinanderlaufen (z. B. bei einer im offenen Chat empfangenen Nachricht).
+  Future<void> _clearNotification(String conversationId) async {
+    final notification = _notification;
+    if (notification == null) return;
+    final ids = notification.unreadIdsForConversation(conversationId);
+    if (ids.isEmpty) return;
+    await notification.markRead(ids, token: await _token());
   }
 
   // ─── Nachrichten-Aktionen ──────────────────────────────────────────────

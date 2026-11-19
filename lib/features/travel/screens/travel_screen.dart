@@ -313,23 +313,27 @@ class _TravelScreenState extends State<TravelScreen> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_partialError != null) _buildPartialErrorBanner(),
-            if (_planning.isNotEmpty) ..._buildPlanningSection(),
-            if (_current.isNotEmpty)
-              ..._buildSection('Aktuelle Reisen', _current),
-            if (_future.isNotEmpty)
-              ..._buildSection('Kommende Reisen', _future),
-            if (_ptJourneys.isNotEmpty) ..._buildPtSection(),
-            if (_past.isNotEmpty) ..._buildSection('Vergangene Reisen', _past),
-            SizedBox(height: tokens.spaceXxl + 80),
-          ],
+    return ListenableBuilder(
+      listenable: AppScope.of(context).notification,
+      builder: (context, _) => RefreshIndicator(
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_partialError != null) _buildPartialErrorBanner(),
+              if (_planning.isNotEmpty) ..._buildPlanningSection(),
+              if (_current.isNotEmpty)
+                ..._buildSection('Aktuelle Reisen', _current),
+              if (_future.isNotEmpty)
+                ..._buildSection('Kommende Reisen', _future),
+              if (_ptJourneys.isNotEmpty) ..._buildPtSection(),
+              if (_past.isNotEmpty)
+                ..._buildSection('Vergangene Reisen', _past),
+              SizedBox(height: tokens.spaceXxl + 80),
+            ],
+          ),
         ),
       ),
     );
@@ -363,6 +367,9 @@ class _TravelScreenState extends State<TravelScreen> {
 
   List<Widget> _buildSection(String title, List<TimelineEntry> entries) {
     final tokens = DesignTheme.of(context);
+    final notification = AppScope.of(context).notification;
+    final unreadTripIds = notification.unreadTripIds;
+    final unreadEventIds = notification.unreadStandaloneEventIds;
     return [
       Padding(
         padding: EdgeInsets.fromLTRB(
@@ -378,6 +385,7 @@ class _TravelScreenState extends State<TravelScreen> {
         ),
       ),
       ...entries.map((entry) {
+        final unreadIds = entry.isTrip ? unreadTripIds : unreadEventIds;
         return DesignCard(
           margin: EdgeInsets.fromLTRB(
             tokens.spaceLg,
@@ -386,6 +394,7 @@ class _TravelScreenState extends State<TravelScreen> {
             tokens.spaceXs,
           ),
           padding: EdgeInsets.all(tokens.spaceMd),
+          pulseColor: unreadIds.contains(entry.id) ? tokens.accentA : null,
           onTap: entry.isTrip
               ? () => context.go('/reisen/${entry.id}')
               : () => Navigator.push(
