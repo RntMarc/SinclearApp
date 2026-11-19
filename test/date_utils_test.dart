@@ -221,6 +221,12 @@ void main() {
         '01.07.2026 – 03.07.2026',
       );
     });
+
+    test('formatDayRange fällt bei fehlendem Start/Ende zurück', () {
+      expect(formatDayRange(DateTime(2026, 7, 1), null), '01.07.2026');
+      expect(formatDayRange(null, DateTime(2026, 7, 3)), '03.07.2026');
+      expect(formatDayRange(null, null), emptyRangeLabel);
+    });
   });
 
   group('Zeitzonen-Helfer', () {
@@ -294,6 +300,29 @@ void main() {
           'Europe/Berlin',
         ),
         '01.07.2026 10:00 – 02.07.2026 11:00',
+      );
+    });
+
+    test('formatInstantRangeInZone fällt bei fehlendem Start/Ende zurück', () {
+      expect(
+        formatInstantRangeInZone(
+          DateTime.utc(2026, 7, 1, 8),
+          null,
+          'Europe/Berlin',
+        ),
+        '01.07.2026 10:00 – 10:00',
+      );
+      expect(
+        formatInstantRangeInZone(
+          null,
+          DateTime.utc(2026, 7, 1, 9, 30),
+          'Europe/Berlin',
+        ),
+        '01.07.2026 11:30 – 11:30',
+      );
+      expect(
+        formatInstantRangeInZone(null, null, 'Europe/Berlin'),
+        emptyRangeLabel,
       );
     });
 

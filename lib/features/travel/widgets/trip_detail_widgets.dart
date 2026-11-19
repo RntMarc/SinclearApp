@@ -67,10 +67,10 @@ class TripOverviewSection extends StatelessWidget {
           SizedBox(height: tokens.spaceSm),
           DesignText(
             trip.allDay
-                ? formatDayRange(trip.startDate!, trip.endDate!)
+                ? formatDayRange(trip.startDate, trip.endDate)
                 : formatInstantRangeInZone(
-                    trip.startAt!,
-                    trip.endAt!,
+                    trip.startAt,
+                    trip.endAt,
                     trip.timezone,
                   ),
             style: DesignTextStyle.label,
@@ -576,10 +576,10 @@ class TripEventCard extends StatelessWidget {
             SizedBox(height: tokens.spaceXs),
             DesignText(
               event.allDay
-                  ? formatDayRange(event.startDate!, event.endDate!)
+                  ? formatDayRange(event.startDate, event.endDate)
                   : formatInstantRangeInZone(
-                      event.startAt!,
-                      event.endAt!,
+                      event.startAt,
+                      event.endAt,
                       event.timezone,
                     ),
               style: DesignTextStyle.label,

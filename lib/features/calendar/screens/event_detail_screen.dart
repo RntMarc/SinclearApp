@@ -400,10 +400,10 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       icon: Icons.access_time_rounded,
                       label: 'Zeitraum',
                       value: event.allDay
-                          ? formatDayRange(event.startDate!, event.endDate!)
+                          ? formatDayRange(event.startDate, event.endDate)
                           : formatInstantRangeInZone(
-                              event.startAt!,
-                              event.endAt!,
+                              event.startAt,
+                              event.endAt,
                               event.timezone,
                             ),
                     ),

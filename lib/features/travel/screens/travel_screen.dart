@@ -38,6 +38,9 @@ class _TravelScreenState extends State<TravelScreen> {
   List<PlanningTrip> _planning = [];
   bool _hasLoaded = false;
 
+  /// Ein einzelner Bereich darf die Seite nie unbegrenzt im Ladezustand halten.
+  static const _sectionTimeout = Duration(seconds: 20);
+
   @override
   void initState() {
     super.initState();
@@ -71,103 +74,112 @@ class _TravelScreenState extends State<TravelScreen> {
       _partialError = null;
     });
 
-    final scope = AppScope.of(context);
-    final travel = scope.travel;
-    final planningService = scope.planning;
-    final ptService = scope.publicTransport;
+    try {
+      final scope = AppScope.of(context);
+      final travel = scope.travel;
+      final planningService = scope.planning;
+      final ptService = scope.publicTransport;
 
-    // Die vier Bereiche werden unabhängig geladen, damit ein einzelner
-    // fehlschlagender Endpunkt nicht die komplette Reisen-Seite blockiert.
-    final results = await Future.wait<Object?>([
-      _guard(() => travel.list(limit: 100)),
-      _guard(() => travel.getStandaloneEvents(limit: 100)),
-      _guard(() => planningService.list(limit: 100)),
-      _guard(() => ptService.listJourneys(limit: 100)),
-    ]);
+      // Die vier Bereiche werden unabhängig geladen, damit ein einzelner
+      // fehlschlagender Endpunkt nicht die komplette Reisen-Seite blockiert.
+      final results = await Future.wait<Object?>([
+        _guard(() => travel.list(limit: 100)),
+        _guard(() => travel.getStandaloneEvents(limit: 100)),
+        _guard(() => planningService.list(limit: 100)),
+        _guard(() => ptService.listJourneys(limit: 100)),
+      ]);
 
-    final trips = results[0] as TravelTripListResponse?;
-    final standalone = results[1] as TravelStandaloneEventListResponse?;
-    final planning = results[2] as PlanningTripListResponse?;
-    final ptResponse = results[3] as PtSavedJourneyListResponse?;
+      final trips = results[0] as TravelTripListResponse?;
+      final standalone = results[1] as TravelStandaloneEventListResponse?;
+      final planning = results[2] as PlanningTripListResponse?;
+      final ptResponse = results[3] as PtSavedJourneyListResponse?;
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (trips == null &&
-        standalone == null &&
-        planning == null &&
-        ptResponse == null) {
+      if (trips == null &&
+          standalone == null &&
+          planning == null &&
+          ptResponse == null) {
+        setState(() {
+          _error = _partialError ?? 'Die Reisen konnten nicht geladen werden.';
+          _loading = false;
+        });
+        return;
+      }
+
+      final entries = <TimelineEntry>[
+        if (trips != null)
+          for (final t in trips.data)
+            TimelineEntry(
+              id: t.id,
+              name: t.name,
+              description: t.description,
+              allDay: t.allDay,
+              timezone: t.timezone,
+              startAt: t.startAt,
+              endAt: t.endAt,
+              startDate: t.startDate,
+              endDate: t.endDate,
+              isTrip: true,
+            ),
+        if (standalone != null)
+          for (final e in standalone.data)
+            TimelineEntry(
+              id: e.id,
+              name: e.name,
+              description: e.description,
+              allDay: e.allDay,
+              timezone: e.timezone,
+              startAt: e.startAt,
+              endAt: e.endAt,
+              startDate: e.startDate,
+              endDate: e.endDate,
+              isTrip: false,
+            ),
+      ];
+
+      final now = DateTime.now();
+      final current = <TimelineEntry>[];
+      final future = <TimelineEntry>[];
+      final past = <TimelineEntry>[];
+
+      for (final entry in entries) {
+        if (entry.startInstant.isBefore(now) && entry.endInstant.isAfter(now)) {
+          current.add(entry);
+        } else if (entry.startInstant.isAfter(now)) {
+          future.add(entry);
+        } else {
+          past.add(entry);
+        }
+      }
+
+      current.sort((a, b) => a.startInstant.compareTo(b.startInstant));
+      future.sort((a, b) => a.startInstant.compareTo(b.startInstant));
+      past.sort((a, b) => b.endInstant.compareTo(a.endInstant));
+
       setState(() {
-        _error = _partialError ?? 'Die Reisen konnten nicht geladen werden.';
+        _current = current;
+        _future = future;
+        _past = past;
+        _ptJourneys = ptResponse?.data ?? <PtSavedJourney>[];
+        _planning = planning?.data ?? <PlanningTrip>[];
         _loading = false;
       });
-      return;
+    } catch (e, st) {
+      developer.log('Failed to load travel', error: e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _error = describeApiError(e);
+        _loading = false;
+      });
     }
-
-    final entries = <TimelineEntry>[
-      if (trips != null)
-        for (final t in trips.data)
-          TimelineEntry(
-            id: t.id,
-            name: t.name,
-            description: t.description,
-            allDay: t.allDay,
-            timezone: t.timezone,
-            startAt: t.startAt,
-            endAt: t.endAt,
-            startDate: t.startDate,
-            endDate: t.endDate,
-            isTrip: true,
-          ),
-      if (standalone != null)
-        for (final e in standalone.data)
-          TimelineEntry(
-            id: e.id,
-            name: e.name,
-            description: e.description,
-            allDay: e.allDay,
-            timezone: e.timezone,
-            startAt: e.startAt,
-            endAt: e.endAt,
-            startDate: e.startDate,
-            endDate: e.endDate,
-            isTrip: false,
-          ),
-    ];
-
-    final now = DateTime.now();
-    final current = <TimelineEntry>[];
-    final future = <TimelineEntry>[];
-    final past = <TimelineEntry>[];
-
-    for (final entry in entries) {
-      if (entry.startInstant.isBefore(now) && entry.endInstant.isAfter(now)) {
-        current.add(entry);
-      } else if (entry.startInstant.isAfter(now)) {
-        future.add(entry);
-      } else {
-        past.add(entry);
-      }
-    }
-
-    current.sort((a, b) => a.startInstant.compareTo(b.startInstant));
-    future.sort((a, b) => a.startInstant.compareTo(b.startInstant));
-    past.sort((a, b) => b.endInstant.compareTo(a.endInstant));
-
-    setState(() {
-      _current = current;
-      _future = future;
-      _past = past;
-      _ptJourneys = ptResponse?.data ?? <PtSavedJourney>[];
-      _planning = planning?.data ?? <PlanningTrip>[];
-      _loading = false;
-    });
   }
 
   /// Lädt einen Bereich und fängt Fehler ab, statt die ganze Seite scheitern
   /// zu lassen. Merkt sich die erste Fehlermeldung für einen Hinweis.
   Future<T?> _guard<T>(Future<T> Function() fn) async {
     try {
-      return await fn();
+      return await fn().timeout(_sectionTimeout);
     } catch (e, st) {
       developer.log('Failed to load travel section', error: e, stackTrace: st);
       _partialError ??= describeApiError(e);
@@ -431,10 +443,10 @@ class _TravelScreenState extends State<TravelScreen> {
                     SizedBox(height: tokens.spaceXs),
                     DesignText(
                       entry.allDay
-                          ? formatDayRange(entry.startDate!, entry.endDate!)
+                          ? formatDayRange(entry.startDate, entry.endDate)
                           : formatInstantRangeInZone(
-                              entry.startAt!,
-                              entry.endAt!,
+                              entry.startAt,
+                              entry.endAt,
                               entry.timezone,
                             ),
                       style: DesignTextStyle.label,
@@ -479,9 +491,7 @@ class _TravelScreenState extends State<TravelScreen> {
         final done = PlanningPhase.order
             .where((topic) => trip.topicStatusFor(topic) == 'completed')
             .length;
-        final dateLabel = trip.hasDate
-            ? _planningDateText(trip)
-            : 'Kein Termin festgelegt';
+        final dateLabel = _planningDateText(trip);
         return DesignCard(
           margin: EdgeInsets.fromLTRB(
             tokens.spaceLg,
@@ -549,19 +559,9 @@ class _TravelScreenState extends State<TravelScreen> {
     ];
   }
 
-  String _planningDateText(PlanningTrip trip) {
-    if (trip.allDay && trip.startDate != null) {
-      return formatDayRange(trip.startDate!, trip.endDate ?? trip.startDate!);
-    }
-    if (!trip.allDay && trip.startAt != null) {
-      return formatInstantRangeInZone(
-        trip.startAt!,
-        trip.endAt ?? trip.startAt!,
-        trip.timezone,
-      );
-    }
-    return 'Kein Termin festgelegt';
-  }
+  String _planningDateText(PlanningTrip trip) => trip.allDay
+      ? formatDayRange(trip.startDate, trip.endDate)
+      : formatInstantRangeInZone(trip.startAt, trip.endAt, trip.timezone);
 
   List<Widget> _buildPtSection() {
     final tokens = DesignTheme.of(context);

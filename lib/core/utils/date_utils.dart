@@ -140,15 +140,24 @@ String formatDateTimeInZone(DateTime instant, String timezone) =>
       instantToWallTime(instant, timezone),
     );
 
-/// Formatiert einen Instant-Bereich in der Zielzeitzone:
-/// eintägig `dd.MM.yyyy HH:mm – HH:mm`, sonst mit beiden Daten.
+/// Anzeige für Einträge ohne jegliche Zeitangabe.
+const emptyRangeLabel = 'Kein Termin festgelegt';
+
+/// Formatiert einen Instant-Bereich in der Zielzeitzone.
+///
+/// Fehlt der Start, wird der Ende-Wert verwendet; fehlen beide, wird
+/// [emptyRangeLabel] zurückgegeben. Eintägig `dd.MM.yyyy HH:mm – HH:mm`,
+/// sonst mit beiden Daten.
 String formatInstantRangeInZone(
-  DateTime start,
-  DateTime end,
+  DateTime? start,
+  DateTime? end,
   String timezone,
 ) {
-  final s = instantToWallTime(start, timezone);
-  final e = instantToWallTime(end, timezone);
+  final startInstant = start ?? end;
+  if (startInstant == null) return emptyRangeLabel;
+  final endInstant = end ?? startInstant;
+  final s = instantToWallTime(startInstant, timezone);
+  final e = instantToWallTime(endInstant, timezone);
   if (s.year == e.year && s.month == e.month && s.day == e.day) {
     return '${DateFormat('dd.MM.yyyy HH:mm').format(s)} – '
         '${DateFormat('HH:mm').format(e)}';
@@ -221,11 +230,16 @@ String formatTime(DateTime date) {
   return DateFormat('HH:mm').format(local);
 }
 
-/// Datumsbereich ohne Uhrzeit für ganztägige Einträge: `dd.MM.yyyy` bei
-/// eintägigen, sonst `dd.MM.yyyy – dd.MM.yyyy`.
-String formatDayRange(DateTime start, DateTime end) {
-  final s = start.toLocal();
-  final e = end.toLocal();
+/// Datumsbereich ohne Uhrzeit für ganztägige Einträge.
+///
+/// Fehlt der Start, wird der Ende-Wert verwendet; fehlen beide, wird
+/// [emptyRangeLabel] zurückgegeben. Eintägig `dd.MM.yyyy`, sonst
+/// `dd.MM.yyyy – dd.MM.yyyy`.
+String formatDayRange(DateTime? start, DateTime? end) {
+  final startDate = start ?? end;
+  if (startDate == null) return emptyRangeLabel;
+  final s = startDate.toLocal();
+  final e = (end ?? startDate).toLocal();
   if (s.year == e.year && s.month == e.month && s.day == e.day) {
     return DateFormat('dd.MM.yyyy').format(s);
   }
