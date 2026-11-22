@@ -96,4 +96,32 @@ class StoriesService extends ChangeNotifier {
     final data = await _api.get('/stories/$id/viewers', token: await _token());
     return StoryViewersResponse.fromJson(data).data;
   }
+
+  /// Reaktionen einer Story laden (leichtgewichtig, ohne Story-Bild).
+  Future<List<StoryReaction>> getReactions(String id) async {
+    final data = await _api.get(
+      '/stories/$id/reactions',
+      token: await _token(),
+    );
+    return StoryReactionsResponse.fromJson(data).data;
+  }
+
+  /// Eigene Reaktion setzen oder ersetzen; liefert die aktualisierte Liste.
+  Future<List<StoryReaction>> react(String id, String emoji) async {
+    final data = await _api.put(
+      '/stories/$id/reaction',
+      body: {'emoji': emoji},
+      token: await _token(),
+    );
+    return StoryReactionsResponse.fromJson(data).data;
+  }
+
+  /// Eigene Reaktion entfernen; liefert die aktualisierte Liste.
+  Future<List<StoryReaction>> removeReaction(String id) async {
+    final data = await _api.delete(
+      '/stories/$id/reaction',
+      token: await _token(),
+    );
+    return StoryReactionsResponse.fromJson(data).data;
+  }
 }

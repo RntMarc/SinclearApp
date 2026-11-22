@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
+import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/foundation/design_text.dart';
+import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/press_scale.dart';
 import '../models/stories_models.dart';
@@ -48,6 +50,13 @@ class _StoryViewerState extends State<StoryViewer> {
   bool _busy = false;
   double _dragDistance = 0;
 
+  /// Reaktionen je Story-ID (neueste zuerst), beim Anzeigen geladen.
+  final Map<String, List<StoryReaction>> _reactionsByStory = {};
+
+  /// Ob die vertikale Emoji-Auswahl über dem Reaktions-Button offen ist.
+  bool _pickerOpen = false;
+  bool _reactionBusy = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +64,7 @@ class _StoryViewerState extends State<StoryViewer> {
     final initialPage = _pageIndexForGroup(widget.initialIndex);
     _pageController = PageController(initialPage: initialPage);
     _currentPage = initialPage;
+    _loadReactions(widget.storyIds[initialPage]);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         widget.currentStoryId.value = widget.storyIds[initialPage];
@@ -117,7 +127,11 @@ class _StoryViewerState extends State<StoryViewer> {
       _close();
       return;
     }
-    setState(() => _currentPage = page);
+    setState(() {
+      _currentPage = page;
+      _pickerOpen = false;
+    });
+    _loadReactions(widget.storyIds[page]);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) widget.currentStoryId.value = widget.storyIds[page];
     });
@@ -146,8 +160,7 @@ class _StoryViewerState extends State<StoryViewer> {
 
   bool _isDeletable(String storyId) => widget.deletableById[storyId] ?? false;
 
-  bool _isReportable(String storyId) =>
-      widget.reportableById[storyId] ?? false;
+  bool _isReportable(String storyId) => widget.reportableById[storyId] ?? false;
 
   void _showViewers(String storyId) {
     showStoryViewersSheet(context, storyId: storyId, service: widget.service);
@@ -234,6 +247,58 @@ class _StoryViewerState extends State<StoryViewer> {
   }
 
   // ---------------------------------------------------------------------------
+  // Reactions
+  // ---------------------------------------------------------------------------
+
+  /// Nur fremde Stories dürfen reagiert werden (Ersteller ausgeschlossen).
+  /// `_isReportable` ist exakt „nicht eigener Autor“.
+  bool _canReact(String storyId) => _isReportable(storyId);
+
+  Future<void> _loadReactions(String storyId) async {
+    try {
+      final reactions = await widget.service.getReactions(storyId);
+      if (!mounted) return;
+      setState(() => _reactionsByStory[storyId] = reactions);
+    } catch (_) {
+      // Reaktionen sind nicht kritisch; alte Daten bleiben sichtbar.
+    }
+  }
+
+  Future<void> _toggleReaction(String storyId, String emoji) async {
+    if (_reactionBusy) return;
+    final userId = AppScope.of(context).auth.userId;
+    final current = _reactionsByStory[storyId] ?? const <StoryReaction>[];
+    StoryReaction? mine;
+    for (final reaction in current) {
+      if (reaction.isMine(userId)) {
+        mine = reaction;
+        break;
+      }
+    }
+
+    setState(() => _reactionBusy = true);
+    try {
+      final updated = mine?.emoji == emoji
+          ? await widget.service.removeReaction(storyId)
+          : await widget.service.react(storyId, emoji);
+      if (!mounted) return;
+      setState(() {
+        _reactionsByStory[storyId] = updated;
+        _pickerOpen = false;
+        _reactionBusy = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _reactionBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reaktion fehlgeschlagen. Bitte erneut versuchen.'),
+        ),
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
 
@@ -241,6 +306,16 @@ class _StoryViewerState extends State<StoryViewer> {
   Widget build(BuildContext context) {
     final storyId = widget.storyIds[_currentPage];
     final groupIndex = _groupIndexForPage(_currentPage);
+    final userId = AppScope.of(context).auth.userId;
+    final canReact = _canReact(storyId);
+    final reactions = _reactionsByStory[storyId] ?? const <StoryReaction>[];
+    String? selectedEmoji;
+    for (final reaction in reactions) {
+      if (reaction.isMine(userId)) {
+        selectedEmoji = reaction.emoji;
+        break;
+      }
+    }
 
     return Container(
       color: Colors.black,
@@ -273,13 +348,13 @@ class _StoryViewerState extends State<StoryViewer> {
                       onTap: _canGoBack ? _goBack : null,
                     ),
                   ),
-                    Expanded(
-                      flex: 2,
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: _goForward,
-                      ),
+                  Expanded(
+                    flex: 2,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _goForward,
                     ),
+                  ),
                 ],
               ),
             ),
@@ -307,8 +382,7 @@ class _StoryViewerState extends State<StoryViewer> {
                         _ViewersButton(
                           onTap: _busy ? null : () => _showViewers(storyId),
                         ),
-                      if (!_isReportable(storyId))
-                        const SizedBox(width: 8),
+                      if (!_isReportable(storyId)) const SizedBox(width: 8),
                       _ReportButton(
                         onTap: _busy ? null : () => _report(storyId),
                       ),
@@ -335,6 +409,57 @@ class _StoryViewerState extends State<StoryViewer> {
                 ),
               ),
             ),
+
+            // Bottom-left: reaction button, picker and reactions bar
+            if (canReact || reactions.isNotEmpty)
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: 16,
+                      bottom: 24,
+                      right: _isDeletable(storyId) ? 72 : 16,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_pickerOpen && canReact) ...[
+                          _ReactionPicker(
+                            selectedEmoji: selectedEmoji,
+                            busy: _reactionBusy,
+                            onSelect: (emoji) =>
+                                _toggleReaction(storyId, emoji),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (canReact)
+                              _ReactionButton(
+                                active: _pickerOpen,
+                                onTap: _reactionBusy
+                                    ? null
+                                    : () => setState(
+                                        () => _pickerOpen = !_pickerOpen,
+                                      ),
+                              ),
+                            if (canReact && reactions.isNotEmpty)
+                              const SizedBox(width: 8),
+                            if (reactions.isNotEmpty)
+                              Flexible(
+                                child: _ReactionRow(reactions: reactions),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -404,9 +529,7 @@ class _HeaderOverlay extends StatelessWidget {
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          shadows: [
-                            Shadow(blurRadius: 4, color: Colors.black),
-                          ],
+                          shadows: [Shadow(blurRadius: 4, color: Colors.black)],
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -599,6 +722,187 @@ class _ViewersButton extends StatelessWidget {
             size: 20,
           ),
         ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Story reactions
+// =============================================================================
+
+class _ReactionButton extends StatelessWidget {
+  const _ReactionButton({required this.onTap, required this.active});
+
+  final VoidCallback? onTap;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Reaktion auswählen',
+      button: true,
+      child: PressScale(
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active
+                ? Colors.white.withValues(alpha: 0.22)
+                : Colors.black.withValues(alpha: 0.55),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+          ),
+          child: const Icon(
+            Icons.add_reaction_outlined,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Vertikale Emoji-Auswahl, die über dem Reaktions-Button aufklappt.
+class _ReactionPicker extends StatelessWidget {
+  const _ReactionPicker({
+    required this.selectedEmoji,
+    required this.busy,
+    required this.onSelect,
+  });
+
+  final String? selectedEmoji;
+  final bool busy;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final emoji in kStoryReactionEmojis)
+                _ReactionPickerItem(
+                  emoji: emoji,
+                  selected: emoji == selectedEmoji,
+                  onTap: busy ? null : () => onSelect(emoji),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReactionPickerItem extends StatelessWidget {
+  const _ReactionPickerItem({
+    required this.emoji,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String emoji;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Mit $emoji reagieren',
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: 38,
+          height: 38,
+          margin: const EdgeInsets.symmetric(vertical: 1),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: selected
+                ? Colors.white.withValues(alpha: 0.25)
+                : Colors.transparent,
+          ),
+          child: Text(emoji, style: const TextStyle(fontSize: 20)),
+        ),
+      ),
+    );
+  }
+}
+
+/// Horizontale Leiste der Reaktionen: Profilbild mit darüber gelagertem,
+/// leicht gekipptem Emoji. Bei Überlauf horizontal scrollbar.
+class _ReactionRow extends StatelessWidget {
+  const _ReactionRow({required this.reactions});
+
+  final List<StoryReaction> reactions;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: true,
+        itemCount: reactions.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          final reaction = reactions[index];
+          final name = reaction.displayName.trim().isEmpty
+              ? 'Unbekannt'
+              : reaction.displayName;
+          return Semantics(
+            label: '${reaction.emoji} von $name',
+            child: Center(
+              child: SizedBox(
+                width: 34,
+                height: 34,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    DesignAvatar(
+                      imageUrl: reaction.avatar,
+                      name: reaction.displayName,
+                      size: 30,
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Transform.rotate(
+                        angle: -0.35,
+                        child: Text(
+                          reaction.emoji,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            shadows: [
+                              Shadow(blurRadius: 3, color: Colors.black),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

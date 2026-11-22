@@ -1,5 +1,64 @@
 import 'package:flutter/material.dart';
 
+/// Allowlist der Story-Reaktions-Emojis. Bewusst eigenständig von den
+/// Chat-Reaktionen (`kReactionEmojis`) gepflegt; spiegelt aktuell
+/// `StoryReactionService::ALLOWED_EMOJIS` der API (normalisiert, ohne
+/// Unicode-Variation-Selectoren).
+const List<String> kStoryReactionEmojis = [
+  '👍',
+  '❤',
+  '😂',
+  '😮',
+  '😢',
+  '🎉',
+  '🔥',
+  '👏',
+];
+
+/// Eine Emoji-Reaktion auf eine Story (genau eine pro Nutzer).
+class StoryReaction {
+  final String userId;
+  final String displayName;
+  final String? avatar;
+  final String emoji;
+  final String createdAt;
+
+  const StoryReaction({
+    required this.userId,
+    this.displayName = '',
+    this.avatar,
+    required this.emoji,
+    required this.createdAt,
+  });
+
+  /// Ob [userId] der Verfasser dieser Reaktion ist.
+  bool isMine(String? userId) => userId != null && this.userId == userId;
+
+  factory StoryReaction.fromJson(Map<String, dynamic> json) => StoryReaction(
+    userId: json['userId'] as String? ?? '',
+    displayName: json['displayName'] as String? ?? '',
+    avatar: json['avatar'] as String?,
+    emoji: json['emoji'] as String? ?? '',
+    createdAt: json['createdAt'] as String? ?? '',
+  );
+}
+
+/// Antwort von `GET|PUT|DELETE /stories/{id}/reaction(s)`.
+class StoryReactionsResponse {
+  final List<StoryReaction> data;
+
+  const StoryReactionsResponse({required this.data});
+
+  factory StoryReactionsResponse.fromJson(Map<String, dynamic> json) {
+    return StoryReactionsResponse(
+      data: (json['data'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(StoryReaction.fromJson)
+          .toList(),
+    );
+  }
+}
+
 /// Eine einzelne Story eines Nutzers.
 ///
 /// `image` ist Base64 (ggf. mit `data:`-Präfix) und wird vom Client dekodiert.

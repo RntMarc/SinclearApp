@@ -18,11 +18,7 @@ Scaffold buildStoryPage({
 }) {
   return Scaffold(
     backgroundColor: Colors.black,
-    body: StoryPageBody(
-      story: story,
-      onShown: onShown,
-      service: service,
-    ),
+    body: StoryPageBody(story: story, onShown: onShown, service: service),
   );
 }
 
@@ -85,9 +81,8 @@ Widget _bottomOverlay(Story story, int? viewCount) {
     alignment: Alignment.bottomLeft,
     child: Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 48, 20, 16),
-      decoration: (caption != null && caption.isNotEmpty) ||
-              viewCount != null
+      padding: const EdgeInsets.fromLTRB(20, 48, 20, 80),
+      decoration: (caption != null && caption.isNotEmpty) || viewCount != null
           ? const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -192,7 +187,11 @@ class _ViewCountChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.remove_red_eye_rounded, color: Colors.white, size: 12),
+            const Icon(
+              Icons.remove_red_eye_rounded,
+              color: Colors.white,
+              size: 12,
+            ),
             const SizedBox(width: 4),
             Text(
               label,
