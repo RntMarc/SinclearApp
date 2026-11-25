@@ -1,6 +1,8 @@
 // Firebase client configuration is injected at build time (see deploy.py),
-// never committed. Local Android builds fall back to the gitignored
-// android/app/google-services.json via the Google Services Gradle plugin.
+// never committed. deploy.py also regenerates the gitignored
+// android/app/google-services.json from the same .env values, so the native
+// SDK and these options always match. Local Android builds without
+// --dart-define fall back to the native resources from google-services.json.
 // ignore_for_file: type=lint
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'

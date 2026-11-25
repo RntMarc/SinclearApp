@@ -59,10 +59,26 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 /// Initialisiert Firebase idempotent im aktuellen Isolate.
+///
+/// Auf Android existiert die native `[DEFAULT]`-App bereits, sobald eine
+/// `google-services.json` eingebunden ist (FirebaseInitProvider). Beim Build
+/// wird diese Datei aus derselben `.env` erzeugt wie die `--dart-define`-
+/// Werte, deshalb sind beide Quellen identisch. Weichen sie dennoch ab
+/// (z. B. alter lokaler Build), gewinnt die native Konfiguration: Sie ist die
+/// einzige, die Firebase Installations für den Token-Abruf verwendet.
 Future<void> _initializeFirebase() async {
-  if (Firebase.apps.isEmpty) {
+  if (Firebase.apps.isNotEmpty) return;
+
+  try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } on FirebaseException catch (e) {
+    if (e.code != 'duplicate-app' || Firebase.apps.isEmpty) rethrow;
+    developer.log(
+      'Native Firebase app differs from build options; using '
+      'google-services.json configuration',
+      name: 'fcm_push',
     );
   }
 }
@@ -101,8 +117,20 @@ class FcmPushService extends ChangeNotifier {
 
     try {
       await _ensureFirebaseInitialized();
+    } catch (e, st) {
+      developer.log(
+        'FCM firebase_init failed',
+        error: e,
+        stackTrace: st,
+        name: 'fcm_push',
+      );
+      return _isUnavailable(e)
+          ? FcmSetupResult.unavailable
+          : FcmSetupResult.failed;
+    }
+
+    try {
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-      _listenForMessages();
 
       final messaging = FirebaseMessaging.instance;
       final settings = await messaging.requestPermission(
@@ -110,16 +138,38 @@ class FcmPushService extends ChangeNotifier {
         badge: true,
         sound: true,
       );
-      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+      if (settings.authorizationStatus != AuthorizationStatus.authorized &&
+          settings.authorizationStatus != AuthorizationStatus.provisional) {
+        developer.log(
+          'FCM permission not granted: ${settings.authorizationStatus}',
+          name: 'fcm_push',
+        );
         return FcmSetupResult.permissionDenied;
       }
 
       // Das Manifest deaktiviert die native Auto-Init beim Prozessstart.
       // Erst die ausdrückliche Zustimmung oben darf einen Token erzeugen.
+      // Listener erst danach: vorher gibt es nichts zu registrieren.
       await _setAutoInitEnabled(true);
+      _listenForMessages();
 
-      final fcmToken = await messaging.getToken();
+      final String? fcmToken;
+      try {
+        fcmToken = await messaging.getToken();
+      } catch (e, st) {
+        developer.log(
+          'FCM fcm_get_token failed',
+          error: e,
+          stackTrace: st,
+          name: 'fcm_push',
+        );
+        if (hadToken) return FcmSetupResult.ready;
+        return _isUnavailable(e)
+            ? FcmSetupResult.unavailable
+            : FcmSetupResult.failed;
+      }
       if (fcmToken == null || fcmToken.isEmpty) {
+        developer.log('FCM token is empty', name: 'fcm_push');
         return hadToken ? FcmSetupResult.ready : FcmSetupResult.failed;
       }
       _fcmToken = fcmToken;
@@ -232,10 +282,14 @@ class FcmPushService extends ChangeNotifier {
       if (e.statusCode == 503 && e.errorCode == 'fcm_not_configured') {
         _serverNotConfigured = true;
       }
-      developer.log('Failed to register FCM token: $e', name: 'fcm_push');
+      developer.log(
+        'FCM api_register_token failed: status=${e.statusCode} '
+        'code=${e.errorCode}',
+        name: 'fcm_push',
+      );
       return false;
     } catch (e) {
-      developer.log('Failed to register FCM token: $e', name: 'fcm_push');
+      developer.log('FCM api_register_token failed: $e', name: 'fcm_push');
       return false;
     }
 

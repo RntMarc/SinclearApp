@@ -56,6 +56,15 @@ FIREBASE_ENV_KEYS = (
     'FIREBASE_MESSAGING_SENDER_ID',
     'FIREBASE_PROJECT_ID',
 )
+
+# Das Google-Services-Gradle-Plugin übersetzt diese Datei in native
+# Firebase-Ressourcen (values.xml, FirebaseInitProvider). Sie ist gitignored
+# und wird vor dem APK-Build aus der `.env` neu erzeugt, damit native
+# Konfiguration und Dart-FirebaseOptions niemals auseinanderlaufen — sonst
+# wirft `Firebase.initializeApp` `[core/duplicate-app]` oder Firebase
+# Installations authentifiziert sich mit einem veralteten API-Key.
+GOOGLE_SERVICES = ROOT / 'android' / 'app' / 'google-services.json'
+DEFAULT_PACKAGE_NAME = 'de.sinclear.beyond'
 PUBSPEC = ROOT / 'pubspec.yaml'
 BUILD_WEB = ROOT / 'build' / 'web'
 BUILD_APK = ROOT / 'build' / 'app' / 'outputs' / 'flutter-apk' / 'app-release.apk'
@@ -148,6 +157,77 @@ def load_env():
         fail(f'Fehlende Variablen in .env: {", ".join(sorted(missing))}')
 
     return env
+
+
+def sync_google_services(env):
+    """Schreibt `android/app/google-services.json` aus der `.env`.
+
+    Die `.env` ist die einzige Quelle der FCM-Client-Konfiguration; die Datei
+    ist gitignored und wird vor jedem APK-Build neu erzeugt. So nutzen das
+    native SDK und der Dart-Code garantiert denselben (ggf. rotierten)
+    API-Key. `--dart-define` bekommt danach exakt dieselben Werte.
+    """
+    values = {
+        key: env.get(key, '').strip() for key in FIREBASE_ENV_KEYS
+    }
+    missing = [key for key, value in values.items() if not value]
+    if missing:
+        fail(
+            'Fehlende Firebase-Werte in .env: '
+            + ', '.join(sorted(missing))
+        )
+
+    # Paketname aus der bestehenden Datei übernehmen, damit ein abweichend
+    # konfigurierter Client nicht stillschweigend überschrieben wird.
+    package_name = DEFAULT_PACKAGE_NAME
+    if GOOGLE_SERVICES.exists():
+        try:
+            existing = json.loads(
+                GOOGLE_SERVICES.read_text(encoding='utf-8')
+            )
+            package_name = (
+                existing['client'][0]['client_info']
+                ['android_client_info']['package_name']
+            )
+        except (OSError, ValueError, KeyError, IndexError, TypeError):
+            pass
+
+    project_id = values['FIREBASE_PROJECT_ID']
+    data = {
+        'project_info': {
+            'project_number': values['FIREBASE_MESSAGING_SENDER_ID'],
+            'project_id': project_id,
+            'storage_bucket': f'{project_id}.firebasestorage.app',
+        },
+        'client': [
+            {
+                'client_info': {
+                    'mobilesdk_app_id': values['FIREBASE_APP_ID'],
+                    'android_client_info': {'package_name': package_name},
+                },
+                'oauth_client': [],
+                'api_key': [{'current_key': values['FIREBASE_API_KEY']}],
+                'services': {
+                    'appinvite_service': {'other_platform_oauth_client': []},
+                },
+                'configuration_version': '1',
+            }
+        ],
+    }
+
+    if DRY_RUN:
+        print(
+            f'    {GR}→ {GOOGLE_SERVICES.relative_to(ROOT)} '
+            f'aus .env erzeugen{R}'
+        )
+        return
+
+    GOOGLE_SERVICES.parent.mkdir(parents=True, exist_ok=True)
+    GOOGLE_SERVICES.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False) + '\n',
+        encoding='utf-8',
+    )
+    print(f'    {G}✔  Firebase-Konfiguration aus .env geschrieben{R}')
 
 
 def prompt_environment():
@@ -677,6 +757,9 @@ def main():
         f' --dart-define=API_BASE_URL={api_base_url}' if is_preview else ''
     )
     # Firebase-Werte kommen aus der lokalen .env und landen nur im APK-Build.
+    # Dieselben Werte schreiben wir in google-services.json, damit das native
+    # SDK (FirebaseInstallations/FCM) den rotierten Key ebenfalls nutzt.
+    sync_google_services(env)
     firebase_defines = ''.join(
         f' --dart-define={key}={shlex.quote(env[key])}'
         for key in FIREBASE_ENV_KEYS
