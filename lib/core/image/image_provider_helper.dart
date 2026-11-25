@@ -7,6 +7,41 @@ import 'package:logging/logging.dart';
 
 final _log = Logger('image');
 
+/// Eine zerlegte Bildquelle.
+///
+/// Der Low-Data-Modus der API liefert Bilder als
+/// `data:image/webp;preview=1;hash=<xxh128>;base64,<thumb>` aus. [isPreview]
+/// kennzeichnet solche Vorschaubilder, [fullQualityHash] enthält die Adresse,
+/// über die die volle Qualität (`GET /media/{hash}`) nachgeladen werden kann.
+class ParsedImageSource {
+  final String source;
+  final bool isPreview;
+  final String? fullQualityHash;
+
+  const ParsedImageSource({
+    required this.source,
+    required this.isPreview,
+    this.fullQualityHash,
+  });
+}
+
+/// Zerlegt [source] in ihre Bestandteile.
+ParsedImageSource parseImageSource(String? source) {
+  if (source == null || source.isEmpty) {
+    return ParsedImageSource(source: source ?? '', isPreview: false);
+  }
+  if (source.startsWith('data:') && source.contains(';base64')) {
+    final isPreview = source.contains('preview=1');
+    final match = RegExp(r'hash=([0-9a-fA-F]{16,64})').firstMatch(source);
+    return ParsedImageSource(
+      source: source,
+      isPreview: isPreview,
+      fullQualityHash: match?.group(1),
+    );
+  }
+  return ParsedImageSource(source: source, isPreview: false);
+}
+
 /// Decodierte Bild-Bytes, keyed by Quellstring, damit derselbe Bildinhalt
 /// app-übergreifend auf dieselbe [Uint8List] (und damit denselben
 /// [MemoryImage]) abgebildet wird. Ohne diesen Cache erzeugt jeder Rebuild

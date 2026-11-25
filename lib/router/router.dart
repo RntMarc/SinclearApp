@@ -46,6 +46,7 @@ import '../features/settings/screens/mcp_keys_screen.dart';
 import '../features/settings/screens/dav_tokens_screen.dart';
 import '../features/settings/screens/lametric_screen.dart';
 import '../features/settings/screens/map_app_screen.dart';
+import '../features/settings/screens/media_quality_screen.dart';
 import '../features/settings/screens/time_zone_screen.dart';
 import '../features/settings/screens/location_sharing_settings_screen.dart';
 import '../features/settings/screens/location_sharing_create_screen.dart';
@@ -516,6 +517,10 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
               GoRoute(
                 path: 'karte',
                 builder: (context, state) => const MapAppScreen(),
+              ),
+              GoRoute(
+                path: 'daten',
+                builder: (context, state) => const MediaQualityScreen(),
               ),
               GoRoute(
                 path: 'zeitzone',

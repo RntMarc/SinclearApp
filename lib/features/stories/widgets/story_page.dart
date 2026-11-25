@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/base64_helper.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/widgets/design_adaptive_image.dart';
 import '../models/stories_models.dart';
 import '../services/stories_service.dart';
 
@@ -126,16 +126,11 @@ Widget _storyImage(String image) {
   const fallback = Center(
     child: Icon(Icons.image_rounded, color: Colors.white38, size: 48),
   );
-  try {
-    final bytes = decodeBase64Image(image);
-    return Image.memory(
-      bytes,
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) => fallback,
-    );
-  } catch (_) {
-    return fallback;
-  }
+  return DesignAdaptiveImage(
+    source: image,
+    fit: BoxFit.contain,
+    placeholder: fallback,
+  );
 }
 
 class _TimestampChip extends StatelessWidget {

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../network/api_client.dart';
+import '../network/network_quality_service.dart';
+import '../media/media_service.dart';
 import '../services/android_update_service.dart';
 import '../services/web_update_service.dart';
 import '../services/time_zone_service.dart';
@@ -24,6 +27,7 @@ import '../../features/polls/services/polls_service.dart';
 import '../../features/recipes/services/recipes_service.dart';
 import '../../features/settings/models/notification_preference.dart';
 import '../../features/settings/models/map_app_preference.dart';
+import '../../features/settings/models/media_quality_preference.dart';
 import '../../features/settings/services/dav_token_service.dart';
 import '../../features/settings/services/dav_sync_service.dart';
 import '../../features/settings/services/lametric_token_service.dart';
@@ -40,6 +44,9 @@ import '../../features/home/dashboard_controller.dart';
 import '../../features/home/dashboard_widget_repository.dart';
 
 class AppScope extends InheritedWidget {
+  final ApiClient api;
+  final MediaService media;
+  final NetworkQualityService networkQuality;
   final AuthService auth;
   final ExploreService explore;
   final TravelService travel;
@@ -93,11 +100,17 @@ class AppScope extends InheritedWidget {
   /// Aktuell gewählte Karten-App (lokal persistiert).
   final ValueNotifier<MapApp> mapApp;
 
+  /// Aktuell gewählte Bildqualität (lokal persistiert).
+  final ValueNotifier<MediaQuality> mediaQuality;
+
   final String appBaseUrl;
   final String apiBaseUrl;
 
   const AppScope({
     super.key,
+    required this.api,
+    required this.media,
+    required this.networkQuality,
     required this.auth,
     required this.explore,
     required this.travel,
@@ -136,6 +149,7 @@ class AppScope extends InheritedWidget {
     required this.notificationCoordinator,
     required this.notificationMethod,
     required this.mapApp,
+    required this.mediaQuality,
     this.webUpdate,
     required this.appBaseUrl,
     required this.apiBaseUrl,

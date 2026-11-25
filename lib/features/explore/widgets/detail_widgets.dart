@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -7,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/image/image_compressor.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/widgets/design_adaptive_image.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_map_card.dart';
@@ -565,19 +565,13 @@ class _ReviewPhoto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
-    try {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(tokens.radiusMd),
-        child: Image.memory(
-          base64Decode(photo),
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const SizedBox.shrink(),
-        ),
-      );
-    } catch (_) {
-      return const SizedBox.shrink();
-    }
+    return DesignAdaptiveImage(
+      source: photo,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      borderRadius: BorderRadius.circular(tokens.radiusMd),
+      placeholder: const SizedBox.shrink(),
+    );
   }
 }
 

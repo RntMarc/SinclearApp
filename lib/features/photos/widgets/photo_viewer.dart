@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/di/app_scope.dart';
 import '../../../core/utils/url_helper.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../models/photo_models.dart';
@@ -69,7 +70,11 @@ class _FullPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (photo.regular == null) {
+    // Bei schlechter Verbindung das kleine Vorschaubild statt des großen
+    // Originals verwenden, damit der Viewer zügig öffnet.
+    final lowData = AppScope.of(context).networkQuality.lowData;
+    final url = (lowData ? photo.thumb : null) ?? photo.regular;
+    if (url == null) {
       return const Center(
         child: Icon(
           Icons.broken_image_rounded,
@@ -81,7 +86,7 @@ class _FullPhoto extends StatelessWidget {
     return InteractiveViewer(
       maxScale: 4,
       child: CachedNetworkImage(
-        imageUrl: photo.regular!,
+        imageUrl: url,
         fit: BoxFit.contain,
         placeholder: (_, _) =>
             const Center(child: CircularProgressIndicator(color: Colors.white)),

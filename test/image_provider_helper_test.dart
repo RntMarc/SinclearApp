@@ -45,4 +45,25 @@ void main() {
       expect(identical(a.bytes, b.bytes), isFalse);
     });
   });
+
+  group('parseImageSource', () {
+    test('erkennt Vorschaubilder inkl. Inhalts-Hash', () {
+      final parsed = parseImageSource(
+        'data:image/webp;preview=1;hash=0123456789abcdef0123456789abcdef;base64,AAA',
+      );
+
+      expect(parsed.isPreview, isTrue);
+      expect(parsed.fullQualityHash, '0123456789abcdef0123456789abcdef');
+    });
+
+    test('normale Quellen sind keine Vorschau', () {
+      expect(parseImageSource('https://example.com/x.png').isPreview, isFalse);
+      expect(parseImageSource('data:image/png;base64,AAA').isPreview, isFalse);
+      expect(
+        parseImageSource('data:image/png;base64,AAA').fullQualityHash,
+        isNull,
+      );
+      expect(parseImageSource(null).isPreview, isFalse);
+    });
+  });
 }

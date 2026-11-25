@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/utils/base64_helper.dart';
+import '../../../core/widgets/design_adaptive_image.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
@@ -30,12 +30,12 @@ class ForumHeaderCard extends StatelessWidget {
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(tokens.radiusLg),
                 ),
-                child: Image.memory(
-                  decodeBase64Image(forum.image!),
+                child: DesignAdaptiveImage(
+                  source: forum.image,
                   width: double.infinity,
                   height: 120,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
+                  placeholder: Container(
                     height: 120,
                     color: tokens.primary.withValues(alpha: 0.15),
                     child: Center(

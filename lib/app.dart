@@ -4,6 +4,9 @@ import 'design/design_variant.dart';
 import 'design/theme/design_preferences.dart';
 import 'design/theme/design_theme.dart';
 import 'core/di/app_scope.dart';
+import 'core/network/api_client.dart';
+import 'core/network/network_quality_service.dart';
+import 'core/media/media_service.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
 import 'core/services/time_zone_service.dart';
@@ -44,6 +47,7 @@ import 'features/notifications/services/unified_push_service.dart';
 import 'features/notifications/services/web_push_service.dart';
 import 'features/settings/models/notification_preference.dart';
 import 'features/settings/models/map_app_preference.dart';
+import 'features/settings/models/media_quality_preference.dart';
 import 'core/notifications/notification_lifecycle_observer.dart';
 
 /// Globaler Zugriff auf den SnackBar-Host der App.
@@ -53,6 +57,9 @@ import 'core/notifications/notification_lifecycle_observer.dart';
 final appScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 class SinclearApp extends StatelessWidget {
+  final ApiClient api;
+  final MediaService media;
+  final NetworkQualityService networkQuality;
   final AuthService auth;
   final ExploreService explore;
   final TravelService travel;
@@ -98,12 +105,18 @@ class SinclearApp extends StatelessWidget {
   /// Initial, lokal gespeicherte Karten-App-Präferenz.
   final MapApp initialMapApp;
 
+  /// Initial, lokal gespeicherte Bildqualitäts-Präferenz.
+  final MediaQuality initialMediaQuality;
+
   /// Aktive Zustell-Methode; Änderungen werden in der UI sofort wirksam
   /// (z. B. Lifecycle-Observer pollt nur bei [NotificationMethod.polling]).
   final ValueNotifier<NotificationMethod> notificationMethod;
 
   /// Aktive Karten-App; Änderungen werden sofort persistiert.
   final ValueNotifier<MapApp> mapApp;
+
+  /// Aktive Bildqualität; Änderungen werden sofort persistiert.
+  final ValueNotifier<MediaQuality> mediaQuality;
 
   /// Initial, locally persisted design variant (survives logout/login).
   final DesignVariant initialDesignVariant;
@@ -138,6 +151,9 @@ class SinclearApp extends StatelessWidget {
     required this.initialGrainOpacity,
     required this.initialThemeMode,
     required this.initialCustomAccent,
+    required this.api,
+    required this.media,
+    required this.networkQuality,
     required this.auth,
     required this.explore,
     required this.travel,
@@ -176,6 +192,7 @@ class SinclearApp extends StatelessWidget {
     required this.timeZones,
     required this.initialNotificationMethod,
     required this.initialMapApp,
+    required this.initialMediaQuality,
     required this.router,
     required this.appBaseUrl,
     required this.apiBaseUrl,
@@ -195,11 +212,15 @@ class SinclearApp extends StatelessWidget {
        notificationMethod = ValueNotifier<NotificationMethod>(
          initialNotificationMethod,
        ),
-       mapApp = MapAppController(initialMapApp);
+       mapApp = MapAppController(initialMapApp),
+       mediaQuality = MediaQualityController(initialMediaQuality);
 
   @override
   Widget build(BuildContext context) {
     return AppScope(
+      api: api,
+      media: media,
+      networkQuality: networkQuality,
       auth: auth,
       explore: explore,
       travel: travel,
@@ -238,6 +259,7 @@ class SinclearApp extends StatelessWidget {
       timeZones: timeZones,
       notificationMethod: notificationMethod,
       mapApp: mapApp,
+      mediaQuality: mediaQuality,
       webUpdate: webUpdate,
       appBaseUrl: appBaseUrl,
       apiBaseUrl: apiBaseUrl,

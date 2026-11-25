@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
+import 'network_quality_service.dart';
+
 class ApiException implements Exception {
   final String errorCode;
   final String? message;
@@ -59,22 +61,48 @@ class ApiClient {
   final String baseUrl;
   final http.Client _client;
   final Duration timeout;
+  final Duration connectTimeout;
   final int maxGetAttempts;
+  final NetworkQualityService? networkQuality;
   final Logger _log = Logger('api_client');
 
   ApiClient({
     required this.baseUrl,
     http.Client? client,
     this.timeout = const Duration(seconds: 30),
+    this.connectTimeout = const Duration(seconds: 8),
     this.maxGetAttempts = 3,
+    this.networkQuality,
   }) : _client = client ?? http.Client();
 
-  Map<String, String> _headers({String? token}) {
+  Map<String, String> _headers({String? token, bool lowData = false}) {
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
     }
+    if (lowData) {
+      headers['X-Media-Quality'] = 'low';
+    }
     return headers;
+  }
+
+  /// Sendet einen Request und trennt Verbindungs- von Body-Timeout.
+  ///
+  /// [`connectTimeout`] gilt für Verbindungsaufbau und Time-to-First-Byte
+  /// (`send()` liefert, sobald die Header da sind); [`timeout`] begrenzt das
+  /// Lesen des Bodys. So bricht ein hängender Server zügig ab, ohne dass ein
+  /// langsamer, aber aktiver Download fälschlich gekappt wird.
+  Future<http.Response> _send(
+    String method,
+    Uri uri, {
+    Map<String, String>? headers,
+    String? body,
+  }) async {
+    final request = http.Request(method, uri);
+    request.headers.addAll(headers ?? const {});
+    if (body != null) request.body = body;
+    final streamed = await _client.send(request).timeout(connectTimeout);
+    return http.Response.fromStream(streamed).timeout(timeout);
   }
 
   Future<Map<String, dynamic>> post(
@@ -83,21 +111,22 @@ class ApiClient {
     String? token,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
+    final lowData = networkQuality?.lowData ?? false;
     if (kDebugMode) {
       _log.fine(
         'POST $uri body=${body != null ? _truncateJson(body) : 'null'}',
       );
     }
+    final encoded = body != null ? jsonEncode(body) : null;
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
       http.Response? retryResponse;
       try {
-        final response = await _client
-            .post(
-              uri,
-              headers: _headers(token: token),
-              body: body != null ? jsonEncode(body) : null,
-            )
-            .timeout(timeout);
+        final response = await _send(
+          'POST',
+          uri,
+          headers: _headers(token: token, lowData: lowData),
+          body: encoded,
+        );
         if (kDebugMode) {
           _logResponse('POST', uri.toString(), response);
         }
@@ -136,14 +165,22 @@ class ApiClient {
     if (kDebugMode) {
       _log.fine('GET $uri');
     }
+    // Bei schlechter Verbindung (bzw. nach einem Timeout) auf Vorschaubilder
+    // umschalten, damit zumindest der Text zügig ankommt.
+    var lowData = networkQuality?.lowData ?? false;
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
       http.Response? retryResponse;
       try {
-        final response = await _client
-            .get(uri, headers: _headers(token: token))
-            .timeout(timeout);
+        final response = await _send(
+          'GET',
+          uri,
+          headers: _headers(token: token, lowData: lowData),
+        );
         if (kDebugMode) {
           _logResponse('GET', uri.toString(), response);
+        }
+        if (!lowData) {
+          networkQuality?.reportOk();
         }
         if (!_shouldRetry('GET', response.statusCode, path) ||
             attempt == maxGetAttempts) {
@@ -151,11 +188,18 @@ class ApiClient {
         }
         retryResponse = response;
       } on TimeoutException {
+        networkQuality?.reportSlow();
         if (kDebugMode) {
           _log.fine('GET $uri timed out (attempt $attempt/$maxGetAttempts)');
         }
+        // Fallback: derselbe Request erneut, aber mit Vorschaubildern. So
+        // bekommt der Nutzer auch bei Edge/2G noch den Text.
+        if (!lowData) {
+          lowData = true;
+        }
         if (attempt == maxGetAttempts) rethrow;
       } on http.ClientException {
+        networkQuality?.reportSlow();
         if (kDebugMode) {
           _log.fine('GET $uri client error (attempt $attempt/$maxGetAttempts)');
         }
@@ -179,13 +223,12 @@ class ApiClient {
       _log.fine('PUT $uri body=$bodyPreview');
     }
     final encodedBody = body != null ? jsonEncode(body) : null;
-    final response = await _client
-        .put(
-          uri,
-          headers: _headers(token: token),
-          body: encodedBody,
-        )
-        .timeout(timeout);
+    final response = await _send(
+      'PUT',
+      uri,
+      headers: _headers(token: token, lowData: networkQuality?.lowData ?? false),
+      body: encodedBody,
+    );
     if (kDebugMode) {
       _log.fine(
         'PUT response status=${response.statusCode} body=${response.body.length > 500 ? '${response.body.substring(0, 500)}...' : response.body}',
@@ -225,18 +268,16 @@ class ApiClient {
       _log.fine('PATCH $uri body=$bodyPreview');
     }
     final encodedBody = body != null ? jsonEncode(body) : null;
-    final response = await _client
-        .send(
-          http.Request('PATCH', uri)
-            ..headers.addAll(_headers(token: token))
-            ..body = encodedBody ?? '',
-        )
-        .timeout(timeout);
-    final httpResponse = await http.Response.fromStream(response);
+    final response = await _send(
+      'PATCH',
+      uri,
+      headers: _headers(token: token, lowData: networkQuality?.lowData ?? false),
+      body: encodedBody,
+    );
     if (kDebugMode) {
-      _log.fine('PATCH response status=${httpResponse.statusCode}');
+      _log.fine('PATCH response status=${response.statusCode}');
     }
-    return _handleResponse(httpResponse);
+    return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> delete(
@@ -249,16 +290,16 @@ class ApiClient {
     if (kDebugMode) {
       _log.fine('DELETE $uri');
     }
+    final encodedBody = body != null ? jsonEncode(body) : null;
     for (var attempt = 1; attempt <= maxGetAttempts; attempt++) {
       http.Response? retryResponse;
       try {
-        final request = http.Request('DELETE', uri);
-        request.headers.addAll(_headers(token: token));
-        if (body != null) {
-          request.body = jsonEncode(body);
-        }
-        final streamed = await _client.send(request).timeout(timeout);
-        final response = await http.Response.fromStream(streamed);
+        final response = await _send(
+          'DELETE',
+          uri,
+          headers: _headers(token: token, lowData: networkQuality?.lowData ?? false),
+          body: encodedBody,
+        );
         if (kDebugMode) {
           _logResponse('DELETE', uri.toString(), response);
         }
@@ -284,6 +325,17 @@ class ApiClient {
       await Future<void>.delayed(_retryDelay(retryResponse, attempt));
     }
     throw StateError('DELETE retry loop exited unexpectedly.');
+  }
+
+  /// Lädt das Original-Base64 eines zuvor als Vorschaubild ausgelieferten
+  /// Bildes (`GET /media/{hash}`). `null`, wenn nicht vorhanden.
+  Future<String?> fullImage(String hash, {String? token}) async {
+    final data = await get('/media/$hash', token: token);
+    final inner = data['data'];
+    if (inner is Map && inner['image'] is String) {
+      return inner['image'] as String;
+    }
+    return null;
   }
 
   void _logResponse(String method, String uri, http.Response response) {

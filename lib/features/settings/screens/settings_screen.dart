@@ -25,6 +25,7 @@ import '../../user/models/user_models.dart';
 import '../models/api_environment.dart';
 import '../models/notification_preference.dart';
 import '../models/map_app_preference.dart';
+import '../models/media_quality_preference.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -314,6 +315,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: current.label,
                           trailing: const Icon(Icons.chevron_right_rounded),
                           onTap: () => context.push('/einstellungen/karte'),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Media quality section
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: DesignText(
+                    'Daten & Medien',
+                    style: DesignTextStyle.label,
+                    color: tokens.primary,
+                  ),
+                ),
+                DesignCard.list(
+                  children: [
+                    ListenableBuilder(
+                      listenable: AppScope.of(context).mediaQuality,
+                      builder: (context, _) {
+                        final current =
+                            AppScope.of(context).mediaQuality.value;
+                        return DesignListTile(
+                          leading: const Icon(Icons.data_saver_on_rounded),
+                          title: 'Bildqualität',
+                          subtitle: current.label,
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => context.push('/einstellungen/daten'),
                         );
                       },
                     ),

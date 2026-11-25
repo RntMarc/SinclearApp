@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sinclear_beyond/core/di/app_scope.dart';
+import 'package:sinclear_beyond/core/media/media_service.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';
+import 'package:sinclear_beyond/core/network/network_quality_service.dart';
 import 'package:sinclear_beyond/core/services/android_update_service.dart';
 import 'package:sinclear_beyond/core/services/time_zone_service.dart';
 import 'package:sinclear_beyond/core/storage/token_storage.dart';
@@ -33,6 +35,7 @@ import 'package:sinclear_beyond/features/notifications/services/web_push_service
 import 'package:sinclear_beyond/features/photos/services/photos_service.dart';
 import 'package:sinclear_beyond/features/recipes/services/recipes_service.dart';
 import 'package:sinclear_beyond/features/settings/models/map_app_preference.dart';
+import 'package:sinclear_beyond/features/settings/models/media_quality_preference.dart';
 import 'package:sinclear_beyond/features/settings/models/notification_preference.dart';
 import 'package:sinclear_beyond/features/settings/services/dav_sync_service.dart';
 import 'package:sinclear_beyond/features/settings/services/dav_token_service.dart';
@@ -170,6 +173,11 @@ AppScope _buildScope({
   final weatherLocations = UserWeatherLocationService(api: api, auth: auth);
   final davTokens = DavTokenService(api: api, auth: auth);
   return AppScope(
+    api: api,
+    media: MediaService(api: api, auth: auth),
+    networkQuality: NetworkQualityService(
+      ValueNotifier<MediaQuality>(MediaQuality.auto),
+    ),
     auth: auth,
     explore: ExploreService(api: api, auth: auth),
     travel: travel,
@@ -230,6 +238,7 @@ AppScope _buildScope({
       NotificationMethod.polling,
     ),
     mapApp: ValueNotifier<MapApp>(MapApp.ask),
+    mediaQuality: ValueNotifier<MediaQuality>(MediaQuality.auto),
     appBaseUrl: api.baseUrl,
     apiBaseUrl: api.baseUrl,
     child: child,

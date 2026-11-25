@@ -4,6 +4,7 @@ import '../../../core/di/app_scope.dart';
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/url_helper.dart';
+import '../../../core/widgets/design_adaptive_image.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
@@ -215,35 +216,14 @@ class RecipeImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = resolveImageProvider(image);
-    final widget = _buildImage(context);
+    final imageWidget = _buildImage(context);
     return Padding(
       padding: EdgeInsets.only(bottom: tokens.spaceLg),
       child: GestureDetector(
         onTap: provider == null ? null : () => _openViewer(context),
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(tokens.radiusLg),
-              child: widget,
-            ),
-            if (provider != null)
-              Positioned(
-                right: tokens.spaceSm,
-                bottom: tokens.spaceSm,
-                child: Container(
-                  padding: EdgeInsets.all(tokens.spaceXs),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.open_in_full_rounded,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-          ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(tokens.radiusLg),
+          child: imageWidget,
         ),
       ),
     );
@@ -258,14 +238,13 @@ class RecipeImage extends StatelessWidget {
   }
 
   Widget _buildImage(BuildContext context) {
-    final provider = resolveImageProvider(image);
-    if (provider == null) return _imagePlaceholder;
-    return Image(
-      image: provider,
+    if (resolveImageProvider(image) == null) return _imagePlaceholder;
+    return DesignAdaptiveImage(
+      source: image,
       width: double.infinity,
       height: 220,
       fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => _imagePlaceholder,
+      placeholder: _imagePlaceholder,
     );
   }
 

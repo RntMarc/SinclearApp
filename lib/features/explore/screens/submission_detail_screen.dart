@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -6,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
+import '../../../core/widgets/design_adaptive_image.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -182,14 +182,12 @@ class _SubmissionDetailScreenState extends State<SubmissionDetailScreen> {
           ),
           SizedBox(height: tokens.spaceLg),
           if (s.photo != null) ...[
-            ClipRRect(
+            DesignAdaptiveImage(
+              source: s.photo,
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
               borderRadius: BorderRadius.circular(tokens.radiusMd),
-              child: Image.memory(
-                base64Decode(s.photo!),
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
             ),
             SizedBox(height: tokens.spaceLg),
           ],

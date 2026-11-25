@@ -20,6 +20,8 @@ import 'core/logging.dart';
 import 'core/notifications/local_notification_helper.dart';
 import 'core/url_strategy.dart';
 import 'core/network/api_client.dart';
+import 'core/network/network_quality_service.dart';
+import 'core/media/media_service.dart';
 import 'core/services/android_update_service.dart';
 import 'core/services/web_update_service.dart';
 import 'core/services/time_zone_service.dart';
@@ -48,6 +50,7 @@ import 'features/stories/services/stories_service.dart';
 import 'features/settings/models/api_environment.dart';
 import 'features/settings/models/notification_preference.dart';
 import 'features/settings/models/map_app_preference.dart';
+import 'features/settings/models/media_quality_preference.dart';
 import 'features/settings/services/dav_token_service.dart';
 import 'features/settings/services/dav_sync_service.dart';
 import 'features/settings/services/lametric_token_service.dart';
@@ -153,10 +156,20 @@ Future<void> _bootstrap() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('api_base_url', baseUrl);
 
-  final api = ApiClient(baseUrl: baseUrl);
+  // Bildqualität: Präferenz laden und dem Netzwerk-Stack bereitstellen. Der
+  // ApiClient nutzt den Service, um bei schlechter Verbindung automatisch auf
+  // Vorschaubilder umzuschalten.
+  final initialMediaQuality = await MediaQualityPreference.load();
+  final mediaQuality = MediaQualityController(initialMediaQuality);
+  final networkQuality = NetworkQualityService(mediaQuality);
+
+  final api = ApiClient(baseUrl: baseUrl, networkQuality: networkQuality);
   final storage = TokenStorage();
   final auth = AuthService(api: api, storage: storage);
   await auth.init();
+
+  // Lädt volle Bildqualität für Vorschaubild-Hashes nach (lokal gecacht).
+  final media = MediaService(api: api, auth: auth);
 
   // Nach auth.init(): Zeitzonen-Datenbank laden und Geraetezeitzone lesen.
   final timeZones = TimeZoneService();
@@ -366,6 +379,9 @@ Future<void> _bootstrap() async {
 
   runApp(
     SinclearApp(
+      api: api,
+      media: media,
+      networkQuality: networkQuality,
       auth: auth,
       explore: explore,
       travel: travel,
@@ -404,6 +420,7 @@ Future<void> _bootstrap() async {
       notificationCoordinator: notificationCoordinator,
       initialNotificationMethod: initialNotificationMethod,
       initialMapApp: initialMapApp,
+      initialMediaQuality: initialMediaQuality,
       initialDesignVariant: initialDesign,
       initialGrainOpacity: initialGrainOpacity,
       initialThemeMode: initialThemeMode,
