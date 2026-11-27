@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../../core/utils/date_utils.dart' as app_date;
 import '../../../core/utils/spotify_helper.dart';
 import '../../../design/theme/design_theme.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Scales its child down slightly while pressed, giving a springy feel that
 /// several designs use for tactile feedback.

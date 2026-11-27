@@ -1,6 +1,6 @@
 import 'dart:developer' as developer;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';

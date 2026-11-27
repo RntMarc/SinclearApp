@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/design/design_variant.dart';
 import 'package:sinclear_beyond/design/theme/design_theme.dart';

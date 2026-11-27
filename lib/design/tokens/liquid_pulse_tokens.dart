@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'design_tokens.dart';
 
 /// Dark, energetic direction inspired by music apps: near-black surfaces,

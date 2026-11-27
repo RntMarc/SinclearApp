@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../foundation/design_text.dart';
 import '../primitives/design_avatar.dart';
 import '../primitives/design_badge.dart';

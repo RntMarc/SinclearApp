@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Ein einzelner, serialisierbarer Anzeige-Datensatz eines Dashboard-Widgets.
 abstract class DashboardRow {

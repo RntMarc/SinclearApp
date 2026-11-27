@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../core/image/image_provider_helper.dart';
 import '../../../core/utils/date_utils.dart';

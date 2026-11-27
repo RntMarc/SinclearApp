@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../theme/design_theme.dart';
 
 /// Hairline divider that uses the design's [DesignTokens.divider] color.

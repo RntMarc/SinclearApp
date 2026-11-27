@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'design_tokens.dart';
 
 /// Warm, golden direction: amber primary, rich gradients and a luxurious

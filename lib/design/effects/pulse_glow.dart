@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../theme/design_theme.dart';
 
 /// Umrandet sein Kind mit einem sanft pulsierenden farbigen Glow an der Kante

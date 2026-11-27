@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/foundation.dart';
 import '../../features/notifications/services/notification_service.dart';
 import '../../features/settings/models/notification_preference.dart';

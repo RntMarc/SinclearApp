@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Allowlist der Story-Reaktions-Emojis. Bewusst eigenständig von den
 /// Chat-Reaktionen (`kReactionEmojis`) gepflegt; spiegelt aktuell

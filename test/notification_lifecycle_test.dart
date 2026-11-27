@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/notifications/notification_lifecycle_observer.dart';
 import 'package:sinclear_beyond/core/network/api_client.dart';

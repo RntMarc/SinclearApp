@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../design_variant.dart';
 import '../tokens/aurora_glass_tokens.dart';
 import '../tokens/custom_tokens.dart';

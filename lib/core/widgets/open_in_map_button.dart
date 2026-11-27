@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../features/settings/models/map_app_preference.dart';
 import '../di/app_scope.dart';

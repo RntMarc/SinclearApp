@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../theme/design_theme.dart';
 
 /// Pulsierender farbiger Punkt zur Kennzeichnung ungelesener Aktivität.

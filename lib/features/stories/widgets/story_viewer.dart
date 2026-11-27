@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';

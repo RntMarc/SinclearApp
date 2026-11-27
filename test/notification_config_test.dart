@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sinclear_beyond/core/config/notification_config.dart';
 import 'package:sinclear_beyond/features/notifications/models/notification_item.dart';

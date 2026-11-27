@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../network/api_client.dart';
 import '../network/network_quality_service.dart';
 import '../media/media_service.dart';
