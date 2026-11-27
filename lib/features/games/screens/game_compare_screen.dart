@@ -41,6 +41,7 @@ class GameCompareScreen extends StatefulWidget {
 class _GameCompareScreenState extends State<GameCompareScreen> {
   List<GamePlayer> _players = const <GamePlayer>[];
   bool _loading = true;
+  bool _unsupported = false;
   String? _error;
 
   bool _hasLoaded = false;
@@ -67,7 +68,17 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _unsupported = false;
     });
+    if (widget.game == 'minecraft') {
+      setState(() {
+        _loading = false;
+        _unsupported = true;
+        _error =
+            'Der Spieler-Vergleich ist für Minecraft noch nicht verfügbar.';
+      });
+      return;
+    }
     try {
       final scope = AppScope.of(context);
       final ids = widget.userIds.take(2).toList();
@@ -182,14 +193,16 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
         Icon(Icons.error_outline_rounded, size: 48, color: tokens.danger),
         SizedBox(height: tokens.spaceSm),
         DesignText(_error!, textAlign: TextAlign.center),
-        SizedBox(height: tokens.spaceLg),
-        Center(
-          child: DesignButton(
-            label: 'Erneut versuchen',
-            variant: DesignButtonVariant.outlined,
-            onPressed: _load,
+        if (!_unsupported) ...<Widget>[
+          SizedBox(height: tokens.spaceLg),
+          Center(
+            child: DesignButton(
+              label: 'Erneut versuchen',
+              variant: DesignButtonVariant.outlined,
+              onPressed: _load,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

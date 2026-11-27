@@ -4,15 +4,26 @@ import '../../../core/network/api_client.dart';
 ///
 /// Einzige Stelle für die Zuordnung (API-Doku `games`); unbekannte Codes
 /// fallen auf die Server-Nachricht bzw. eine generische Meldung zurück.
-String gameErrorMessage(Object error) {
+/// Mit [game] `minecraft` werden Minecraft-spezifische Texte verwendet.
+String gameErrorMessage(Object error, {String? game}) {
   if (error is! ApiException) {
     return 'Die Anfrage ist fehlgeschlagen. Bitte versuche es erneut.';
   }
+  final isMinecraft = game == 'minecraft';
   return switch (error.errorCode) {
     'invalid_account_id' =>
-      'Die Steam-ID ist ungültig. Erlaubt sind SteamID3 (max. 10 Ziffern) '
-          'oder SteamID64.',
-    'account_not_found' => 'Zu dieser Steam-ID wurde kein Profil gefunden.',
+      isMinecraft
+          ? 'Bitte gib eine gültige Minecraft-UUID oder einen Spielernamen '
+                '(3–16 Zeichen) ein.'
+          : 'Die Steam-ID ist ungültig. Erlaubt sind SteamID3 (max. 10 Ziffern) '
+                'oder SteamID64.',
+    'account_not_found' =>
+      isMinecraft
+          ? 'Zu dieser UUID bzw. diesem Spielernamen wurde kein Minecraft-Account '
+                'gefunden.'
+          : 'Zu dieser Steam-ID wurde kein Profil gefunden.',
+    'account_already_linked' =>
+      'Dieser Account ist bereits mit einem anderen Nutzer verknüpft.',
     'game_api_unavailable' =>
       'Die Spiele-API ist gerade nicht erreichbar. Bitte später erneut '
           'versuchen.',

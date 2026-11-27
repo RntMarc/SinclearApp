@@ -527,23 +527,37 @@ ausschließlich den Katalog (`DesignSurface`, `DesignCard`, `DesignChip`,
 `DesignMetricBar`, `DesignBarChart`, `DesignComparisonTable` und
 `DesignOutcomeStrip`.
 Feature-spezifisch bleiben nur die Datenmodelle (`GameAccount`,
-`DeadlockStats`, `GameSummary`), der `GamesService`, das Spiel-Logo
-(`widgets/game_logo.dart`, Asset aus `GameDefinition.logoAsset` mit
+`DeadlockStats`, `MinecraftStats`, `GameSummary`), der `GamesService`, das
+Spiel-Logo (`widgets/game_logo.dart`, Asset aus `GameDefinition.logoAsset` mit
 Icon-Fallback), `GameResultBadge` (`widgets/game_result_badge.dart`, mappt
-`MatchOutcome` → `DesignBadge`) und die drei Tab-Inhalte
-(`game_overview_tab.dart`, `game_heroes_tab.dart`, `game_matches_tab.dart`).
+`MatchOutcome` → `DesignBadge`) und die Tab-Inhalte (`game_overview_tab.dart`,
+`game_heroes_tab.dart`, `game_matches_tab.dart`, `minecraft_overview_tab.dart`,
+`minecraft_sources_tab.dart`).
 Die Spieler-Auswahl (`player_picker_sheet.dart`) komponiert
 `showDesignSheet` + `DesignTextField` + `DesignListTile` + `DesignAvatar`.
 
-Die Tabs (Übersicht | Helden | Matches) laufen über `DesignTabBar` – die
-Sortier-Chips im Helden-Tab bleiben `DesignChip`s, damit Tabs und Filter
+Die Tabs laufen über `DesignTabBar`: Deadlock zeigt
+**Übersicht | Helden | Matches**, Minecraft **Übersicht | Server | Statistiken**
+– die Sortier-Chips im Helden-Tab bleiben `DesignChip`s, damit Tabs und Filter
 visuell unterscheidbar sind. Name und Avatar in der Spieler-Infobox kommen
-aus dem verknüpften Steam-Account (`/user/{userId}/games`), nicht aus dem
-Beyond-Profil. Die Top-Helden der Übersicht sind nach gespielter Zeit
+aus dem verknüpften Spiele-Account (`/user/{userId}/games`), nicht aus dem
+Beyond-Profil. Die Top-Helden der Deadlock-Übersicht sind nach gespielter Zeit
 sortiert und öffnen beim Tipp den Helden-Tab.
 
 Helden- und Rang-Bilder kommen als URLs aus der API (Deadlock-Assets); fehlen
 sie, greift der Client auf `Held #id` bzw. die lokale Rang-Tabelle zurück.
+Minecraft-Statistiken werden je Server/Welt ausgeliefert; die Übersicht
+aggregiert sie, der Server-Tab zeigt die Quellen einzeln und der
+Statistiken-Tab listet alle Zähler durchsuchbar und lazy (`SliverList`).
+Dafür werden Ticks (20 Ticks = 1 s) und Zentimeter über die Helfer in
+`utils/game_format.dart` in Dauer bzw. Meter/Kilometer umgerechnet. Ein
+Spieler-Vergleich ist für Minecraft vorerst nicht verfügbar.
 Spielzeiten und Match-Daten werden in der effektiven Nutzer-Zeitzone
 (`TimeZoneService.effective`) angezeigt.
+
+Die Account-Eingabe unterscheidet sich pro Spiel (`utils/game_account.dart`):
+Deadlock akzeptiert SteamID3/SteamID64, Minecraft eine UUID (mit/ohne
+Bindestriche) oder einen Mojang-Username. Die jeweilige Bezeichnung
+(„Steam-ID“/„UUID“) kommt aus `gameAccountIdLabel`. Logos liegen unter
+`assets/games/deadlock.png` und `assets/games/minecraft.png`.
 

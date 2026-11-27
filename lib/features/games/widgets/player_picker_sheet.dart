@@ -217,6 +217,17 @@ class _GamePlayerPickerSheetState extends State<_GamePlayerPickerSheet> {
   }
 
   String _subtitle(GamePlayer player) {
+    final minecraft = player.minecraft;
+    if (minecraft != null) {
+      final name = minecraft.playerName;
+      final sourceCount = minecraft.sources.length;
+      final parts = <String>[
+        if (name != null && name.isNotEmpty) name,
+        '${formatTicksAsDuration(minecraft.playTimeTicks)} Spielzeit',
+        '$sourceCount ${sourceCount == 1 ? 'Welt' : 'Welten'}',
+      ];
+      return parts.join(' · ');
+    }
     final summary = player.summary;
     final rank = player.rank?.label;
     final parts = <String>[

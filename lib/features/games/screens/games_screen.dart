@@ -12,7 +12,9 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../models/game_catalog.dart';
 import '../models/game_models.dart';
+import '../utils/game_account.dart';
 import '../utils/game_error_messages.dart';
+import '../utils/game_format.dart';
 import '../widgets/game_logo.dart';
 
 /// Übersicht der unterstützten Spiele mit den eigenen Statistiken.
@@ -141,8 +143,7 @@ class _GamesScreenState extends State<GamesScreen> {
               padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
               child: DesignText(
                 'Vergleiche deine Spielstatistiken mit anderen Beyond-Nutzern. '
-                'Die Daten stammen aus den öffentlichen Spiel-APIs und werden '
-                'stündlich aktualisiert.',
+                'Die Daten stammen aus den Spiel-APIs bzw. dem Minecraft-Server.',
                 style: DesignTextStyle.body,
                 color: tokens.textLow,
               ),
@@ -193,10 +194,19 @@ class _GameOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final linked = account != null;
+    final isMinecraft = game.slug == 'minecraft';
+    final minecraft = stats?.minecraft;
     final summary = stats?.stats == null
         ? null
         : GameSummary.fromStats(stats!.stats!);
     final rank = stats?.stats?.rank;
+    final subtitle = linked
+        ? (isMinecraft
+              ? (minecraft?.playerName ??
+                    account!.displayName ??
+                    'Noch keine Statistiken')
+              : (rank?.label ?? 'Noch keine Rangdaten'))
+        : 'Nicht verknüpft';
 
     return DesignCard(
       onTap: linked ? onOpen : null,
@@ -214,9 +224,7 @@ class _GameOverviewCard extends StatelessWidget {
                     DesignText(game.name, style: DesignTextStyle.subtitle),
                     SizedBox(height: tokens.spaceXs),
                     DesignText(
-                      linked
-                          ? (rank?.label ?? 'Noch keine Rangdaten')
-                          : 'Nicht verknüpft',
+                      subtitle,
                       style: DesignTextStyle.body,
                       color: linked ? tokens.textHigh : tokens.textLow,
                     ),
@@ -253,17 +261,45 @@ class _GameOverviewCard extends StatelessWidget {
               color: tokens.textLow,
             ),
           ],
+          if (linked && minecraft != null) ...<Widget>[
+            SizedBox(height: tokens.spaceLg),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: _value(
+                    context,
+                    'Spielzeit',
+                    formatTicksAsDuration(minecraft.playTimeTicks),
+                  ),
+                ),
+                Expanded(
+                  child: _value(context, 'Tode', formatInt(minecraft.deaths)),
+                ),
+                Expanded(
+                  child: _value(context, 'Mobs', formatInt(minecraft.mobKills)),
+                ),
+              ],
+            ),
+            SizedBox(height: tokens.spaceSm),
+            DesignText(
+              _syncLine(stats, AppScope.of(context).timeZones.effective),
+              style: DesignTextStyle.label,
+              color: tokens.textLow,
+            ),
+          ],
           if (!linked) ...<Widget>[
             SizedBox(height: tokens.spaceLg),
             DesignButton(
-              label: 'Steam-ID verknüpfen',
+              label: '${game.name} verknüpfen',
               icon: Icons.add_link_rounded,
               onPressed: onManage,
             ),
-          ] else if (stats?.stats == null) ...<Widget>[
+          ] else if (stats?.hasStats != true) ...<Widget>[
             SizedBox(height: tokens.spaceSm),
             DesignText(
-              'Die Statistiken erscheinen nach der nächsten Synchronisierung.',
+              isMinecraft
+                  ? 'Die Statistiken erscheinen, sobald der Server Daten sendet.'
+                  : 'Die Statistiken erscheinen nach der nächsten Synchronisierung.',
               style: DesignTextStyle.label,
               color: tokens.textLow,
             ),
@@ -289,9 +325,12 @@ class _GameOverviewCard extends StatelessWidget {
   }
 
   String _syncLine(GameStatsResponse? stats, String timeZone) {
-    final parts = <String>['Steam-ID ${account!.accountId}'];
-    if (account!.lastSyncedAt != null) {
-      parts.add('synchronisiert ${formatRelativeDate(account!.lastSyncedAt!)}');
+    final parts = <String>[
+      '${gameAccountIdLabel(game.slug)} ${account!.accountId}',
+    ];
+    final lastSynced = stats?.minecraft?.syncedAt ?? account!.lastSyncedAt;
+    if (lastSynced != null) {
+      parts.add('synchronisiert ${formatRelativeDate(lastSynced)}');
     }
     if (stats?.nextRefreshAt != null) {
       final next = formatTimeInZone(

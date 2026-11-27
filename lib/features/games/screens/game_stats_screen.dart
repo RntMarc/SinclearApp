@@ -15,12 +15,17 @@ import '../../../design/widgets/primitives/design_avatar.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_card.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
+import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/game_catalog.dart';
 import '../models/game_models.dart';
+import '../utils/game_account.dart';
 import '../utils/game_error_messages.dart';
+import '../utils/game_format.dart';
 import '../widgets/game_heroes_tab.dart';
 import '../widgets/game_matches_tab.dart';
 import '../widgets/game_overview_tab.dart';
+import '../widgets/minecraft_overview_tab.dart';
+import '../widgets/minecraft_sources_tab.dart';
 import '../widgets/player_picker_sheet.dart';
 
 enum _StatsTab { overview, heroes, matches }
@@ -45,10 +50,25 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
   bool _notLinked = false;
   bool _hasLoaded = false;
   _StatsTab _tab = _StatsTab.overview;
+  final TextEditingController _statsSearch = TextEditingController();
+  String _statsQuery = '';
+
+  bool get _isMinecraft => widget.game == 'minecraft';
+
+  @override
+  void dispose() {
+    _statsSearch.dispose();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant GameStatsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.game != widget.game) {
+      _tab = _StatsTab.overview;
+      _statsQuery = '';
+      _statsSearch.clear();
+    }
     if (oldWidget.userId != widget.userId || oldWidget.game != widget.game) {
       _load();
     }
@@ -82,11 +102,12 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
 
     try {
       final stats = await scope.games.stats(widget.game, targetUserId);
-      final account = await _loadSteamAccount(scope, targetUserId);
+      final account = await _loadGameAccount(scope, targetUserId);
       if (!mounted) return;
       setState(() {
         _stats = stats;
-        _displayName = account?.displayName ?? 'Spieler';
+        _displayName =
+            stats.minecraft?.playerName ?? account?.displayName ?? 'Spieler';
         _imageUrl = account?.avatarUrl;
         _loading = false;
       });
@@ -102,25 +123,25 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
         _loading = false;
         _notLinked =
             e is ApiException && e.errorCode == 'game_account_not_found';
-        _error = gameErrorMessage(e);
+        _error = gameErrorMessage(e, game: widget.game);
       });
     }
   }
 
-  /// Steam-Name und -Avatar des verknüpften Accounts.
+  /// Anzeigename und Avatar des verknüpften Accounts.
   ///
   /// Die Statistik-Antwort enthält nur die `accountId`; die Profildaten kommen
   /// laut API aus `/user/{userId}/games`.
-  Future<GameAccount?> _loadSteamAccount(AppScope scope, String userId) async {
+  Future<GameAccount?> _loadGameAccount(AppScope scope, String userId) async {
     try {
       final accounts = await scope.games.listForUser(userId);
       for (final account in accounts) {
         if (account.game == widget.game) return account;
       }
     } catch (e, st) {
-      // Statistiken bleiben nutzbar, auch wenn das Steam-Profil nicht lädt.
+      // Statistiken bleiben nutzbar, auch wenn das Profil nicht lädt.
       developer.log(
-        'Failed to load Steam profile',
+        'Failed to load game account',
         error: e,
         stackTrace: st,
         name: 'games',
@@ -185,56 +206,33 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
                   )
                 : RefreshIndicator(
                     onRefresh: _load,
-                    child: ListView(
-                      padding: EdgeInsets.only(bottom: tokens.spaceXl),
-                      children: <Widget>[
-                        _PlayerCard(
-                          displayName: _displayName,
-                          imageUrl: _imageUrl,
-                          rank: _stats?.stats?.rank,
-                          stats: _stats,
-                          onSwitch: _switchPlayer,
-                          onCompare: _compare,
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: <Widget>[
+                        SliverToBoxAdapter(
+                          child: _PlayerCard(
+                            displayName: _displayName,
+                            imageUrl: _imageUrl,
+                            badgeLabel: _isMinecraft
+                                ? 'Minecraft'
+                                : (_stats?.stats?.rank?.label ??
+                                      'Unkalibriert'),
+                            badgeIconUrl: _isMinecraft
+                                ? null
+                                : _stats?.stats?.rank?.iconUrl,
+                            accountIdLabel: gameAccountIdLabel(widget.game),
+                            stats: _stats,
+                            onSwitch: _switchPlayer,
+                            onCompare: _isMinecraft ? null : _compare,
+                          ),
                         ),
                         if (_error != null)
-                          Padding(
-                            padding: EdgeInsets.all(tokens.spaceLg),
-                            child: Column(
-                              children: <Widget>[
-                                DesignText(
-                                  _error!,
-                                  style: DesignTextStyle.body,
-                                  color: tokens.danger,
-                                  textAlign: TextAlign.center,
-                                ),
-                                SizedBox(height: tokens.spaceSm),
-                                Wrap(
-                                  spacing: tokens.spaceSm,
-                                  runSpacing: tokens.spaceSm,
-                                  alignment: WrapAlignment.center,
-                                  children: <Widget>[
-                                    DesignButton(
-                                      label: 'Erneut versuchen',
-                                      variant: DesignButtonVariant.outlined,
-                                      onPressed: _load,
-                                    ),
-                                    if (_notLinked && _isSelf)
-                                      DesignButton(
-                                        label: 'Account verknüpfen',
-                                        onPressed: () => context.push(
-                                          '/einstellungen/spiele',
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          )
-                        else if (_stats?.stats == null)
-                          _emptyState(context)
+                          SliverToBoxAdapter(child: _errorState(context))
+                        else if (_stats?.hasStats != true)
+                          SliverToBoxAdapter(child: _emptyState(context))
                         else ...<Widget>[
-                          _tabs(context),
-                          _tabContent(context, _stats!.stats!),
+                          SliverToBoxAdapter(child: _tabs(context)),
+                          ..._contentSlivers(context),
                         ],
                       ],
                     ),
@@ -256,33 +254,215 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
         tokens.spaceLg,
         tokens.spaceMd,
       ),
-      items: const <DesignTabBarItem>[
-        DesignTabBarItem(icon: Icons.insights_rounded, label: 'Übersicht'),
-        DesignTabBarItem(icon: Icons.shield_rounded, label: 'Helden'),
-        DesignTabBarItem(icon: Icons.history_rounded, label: 'Matches'),
-      ],
+      items: _isMinecraft
+          ? const <DesignTabBarItem>[
+              DesignTabBarItem(
+                icon: Icons.insights_rounded,
+                label: 'Übersicht',
+              ),
+              DesignTabBarItem(icon: Icons.dns_rounded, label: 'Server'),
+              DesignTabBarItem(
+                icon: Icons.list_alt_rounded,
+                label: 'Statistiken',
+              ),
+            ]
+          : const <DesignTabBarItem>[
+              DesignTabBarItem(
+                icon: Icons.insights_rounded,
+                label: 'Übersicht',
+              ),
+              DesignTabBarItem(icon: Icons.shield_rounded, label: 'Helden'),
+              DesignTabBarItem(icon: Icons.history_rounded, label: 'Matches'),
+            ],
     );
   }
 
-  Widget _tabContent(BuildContext context, DeadlockStats data) {
+  List<Widget> _contentSlivers(BuildContext context) {
     final timezone = AppScope.of(context).timeZones.effective;
+
+    if (_isMinecraft) {
+      final data = _stats!.minecraft!;
+      return switch (_tab) {
+        _StatsTab.overview => <Widget>[
+          SliverToBoxAdapter(
+            child: MinecraftOverviewTab(data: data, timezone: timezone),
+          ),
+        ],
+        _StatsTab.heroes => <Widget>[
+          SliverToBoxAdapter(
+            child: MinecraftSourcesTab(data: data, timezone: timezone),
+          ),
+        ],
+        _StatsTab.matches => _minecraftStatsSlivers(context, data),
+      };
+    }
+
+    final data = _stats!.stats!;
     final summary = GameSummary.fromStats(data);
-    return switch (_tab) {
-      _StatsTab.overview => GameOverviewTab(
-        data: data,
-        summary: summary,
-        timezone: timezone,
-        onOpenHeroes: () => setState(() => _tab = _StatsTab.heroes),
+    return <Widget>[
+      SliverToBoxAdapter(
+        child: switch (_tab) {
+          _StatsTab.overview => GameOverviewTab(
+            data: data,
+            summary: summary,
+            timezone: timezone,
+            onOpenHeroes: () => setState(() => _tab = _StatsTab.heroes),
+          ),
+          _StatsTab.heroes => GameHeroesTab(
+            heroes: data.heroStats,
+            timezone: timezone,
+          ),
+          _StatsTab.matches => GameMatchesTab(
+            matches: data.matchHistory,
+            timezone: timezone,
+          ),
+        },
       ),
-      _StatsTab.heroes => GameHeroesTab(
-        heroes: data.heroStats,
-        timezone: timezone,
+    ];
+  }
+
+  List<Widget> _minecraftStatsSlivers(
+    BuildContext context,
+    MinecraftStats data,
+  ) {
+    final tokens = DesignTheme.of(context);
+    final items = _minecraftStatItems(data);
+    return <Widget>[
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            tokens.spaceLg,
+            tokens.spaceLg,
+            tokens.spaceLg,
+            tokens.spaceSm,
+          ),
+          child: DesignTextField(
+            hint: 'Statistik suchen',
+            controller: _statsSearch,
+            prefixIcon: Icons.search_rounded,
+            onChanged: (value) => setState(() => _statsQuery = value),
+          ),
+        ),
       ),
-      _StatsTab.matches => GameMatchesTab(
-        matches: data.matchHistory,
-        timezone: timezone,
+      if (items.isEmpty)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.all(tokens.spaceLg),
+            child: DesignText(
+              'Keine Statistik passt zur Suche.',
+              style: DesignTextStyle.body,
+              color: tokens.textLow,
+            ),
+          ),
+        )
+      else
+        SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final item = items[index];
+            if (item is String) {
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                  tokens.spaceLg,
+                  tokens.spaceXs,
+                ),
+                child: DesignText(
+                  minecraftCategoryLabel(item),
+                  style: DesignTextStyle.subtitle,
+                ),
+              );
+            }
+            final entry = item as MinecraftStatEntry;
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: tokens.spaceLg,
+                vertical: tokens.spaceXs,
+              ),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: DesignText(
+                      minecraftStatLabel(entry.stat),
+                      style: DesignTextStyle.body,
+                    ),
+                  ),
+                  SizedBox(width: tokens.spaceSm),
+                  DesignText(
+                    formatMinecraftStatValue(
+                      entry.category,
+                      entry.stat,
+                      entry.value,
+                    ),
+                    style: DesignTextStyle.body,
+                    color: tokens.textHigh,
+                  ),
+                ],
+              ),
+            );
+          }, childCount: items.length),
+        ),
+      SliverToBoxAdapter(child: SizedBox(height: tokens.spaceXl)),
+    ];
+  }
+
+  List<Object> _minecraftStatItems(MinecraftStats data) {
+    final query = _statsQuery.trim().toLowerCase();
+    final entries = data.allEntries.where((entry) {
+      if (query.isEmpty) return true;
+      return minecraftStatLabel(entry.stat).toLowerCase().contains(query) ||
+          entry.stat.toLowerCase().contains(query) ||
+          minecraftCategoryLabel(
+            entry.category,
+          ).toLowerCase().contains(query) ||
+          entry.category.toLowerCase().contains(query);
+    }).toList();
+
+    final items = <Object>[];
+    String? category;
+    for (final entry in entries) {
+      if (entry.category != category) {
+        category = entry.category;
+        items.add(category);
+      }
+      items.add(entry);
+    }
+    return items;
+  }
+
+  Widget _errorState(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    return Padding(
+      padding: EdgeInsets.all(tokens.spaceLg),
+      child: Column(
+        children: <Widget>[
+          DesignText(
+            _error!,
+            style: DesignTextStyle.body,
+            color: tokens.danger,
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: tokens.spaceSm),
+          Wrap(
+            spacing: tokens.spaceSm,
+            runSpacing: tokens.spaceSm,
+            alignment: WrapAlignment.center,
+            children: <Widget>[
+              DesignButton(
+                label: 'Erneut versuchen',
+                variant: DesignButtonVariant.outlined,
+                onPressed: _load,
+              ),
+              if (_notLinked && _isSelf)
+                DesignButton(
+                  label: 'Account verknüpfen',
+                  onPressed: () => context.push('/einstellungen/spiele'),
+                ),
+            ],
+          ),
+        ],
       ),
-    };
+    );
   }
 
   Widget _emptyState(BuildContext context) {
@@ -300,10 +480,16 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
             SizedBox(height: tokens.spaceXs),
             DesignText(
               _isSelf
-                  ? 'Dein Account ist verknüpft. Die Statistiken werden beim '
-                        'nächsten Cron-Lauf in den Cache geschrieben.'
-                  : 'Der Account ist verknüpft, aber es liegen noch keine '
-                        'Statistiken im Cache.',
+                  ? (_isMinecraft
+                        ? 'Dein Account ist verknüpft. Die Statistiken '
+                              'erscheinen, sobald der Server Daten sendet.'
+                        : 'Dein Account ist verknüpft. Die Statistiken werden '
+                              'beim nächsten Cron-Lauf in den Cache geschrieben.')
+                  : (_isMinecraft
+                        ? 'Der Account ist verknüpft, aber es liegen noch keine '
+                              'Minecraft-Statistiken vor.'
+                        : 'Der Account ist verknüpft, aber es liegen noch keine '
+                              'Statistiken im Cache.'),
               style: DesignTextStyle.body,
               color: tokens.textLow,
             ),
@@ -326,18 +512,22 @@ class _PlayerCard extends StatelessWidget {
   const _PlayerCard({
     required this.displayName,
     required this.imageUrl,
-    required this.rank,
+    required this.badgeLabel,
+    this.badgeIconUrl,
+    required this.accountIdLabel,
     required this.stats,
     required this.onSwitch,
-    required this.onCompare,
+    this.onCompare,
   });
 
   final String displayName;
   final String? imageUrl;
-  final DeadlockRank? rank;
+  final String badgeLabel;
+  final String? badgeIconUrl;
+  final String accountIdLabel;
   final GameStatsResponse? stats;
   final VoidCallback onSwitch;
-  final VoidCallback onCompare;
+  final VoidCallback? onCompare;
 
   @override
   Widget build(BuildContext context) {
@@ -364,17 +554,17 @@ class _PlayerCard extends StatelessWidget {
                     SizedBox(height: tokens.spaceXs),
                     Row(
                       children: <Widget>[
-                        if (rank?.iconUrl != null) ...<Widget>[
+                        if (badgeIconUrl != null) ...<Widget>[
                           DesignAvatar(
-                            imageUrl: rank!.iconUrl,
-                            name: rank!.label,
+                            imageUrl: badgeIconUrl,
+                            name: badgeLabel,
                             size: 20,
                           ),
                           SizedBox(width: tokens.spaceXs),
                         ],
                         Flexible(
                           child: DesignText(
-                            rank?.label ?? 'Unkalibriert',
+                            badgeLabel,
                             style: DesignTextStyle.label,
                             color: tokens.primary,
                             maxLines: 1,
@@ -405,11 +595,12 @@ class _PlayerCard extends StatelessWidget {
                 variant: DesignButtonVariant.outlined,
                 onPressed: onSwitch,
               ),
-              DesignButton(
-                label: 'Vergleichen',
-                icon: Icons.compare_arrows_rounded,
-                onPressed: onCompare,
-              ),
+              if (onCompare != null)
+                DesignButton(
+                  label: 'Vergleichen',
+                  icon: Icons.compare_arrows_rounded,
+                  onPressed: onCompare,
+                ),
             ],
           ),
         ],
@@ -420,10 +611,16 @@ class _PlayerCard extends StatelessWidget {
   String _syncLine(String timezone) {
     final parts = <String>[];
     if (stats?.accountId != null && stats!.accountId.isNotEmpty) {
-      parts.add('Steam-ID ${stats!.accountId}');
+      parts.add('$accountIdLabel ${stats!.accountId}');
     }
-    if (stats?.lastRefreshedAt != null) {
-      parts.add('Stand: ${formatRelativeDate(stats!.lastRefreshedAt!)}');
+    final minecraft = stats?.minecraft;
+    if (minecraft != null) {
+      final count = minecraft.sources.length;
+      parts.add('$count ${count == 1 ? 'Welt' : 'Welten'}');
+    }
+    final lastSynced = minecraft?.syncedAt ?? stats?.lastRefreshedAt;
+    if (lastSynced != null) {
+      parts.add('Stand: ${formatRelativeDate(lastSynced)}');
     }
     if (stats?.nextRefreshAt != null) {
       final next = formatTimeInZone(

@@ -16,6 +16,7 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../games/models/game_catalog.dart';
 import '../../games/models/game_models.dart';
+import '../../games/utils/game_account.dart';
 import '../../moderation/models/moderation_models.dart';
 import '../../moderation/widgets/moderation_request_sheet.dart';
 import '../models/user_models.dart';
@@ -292,7 +293,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                         title: account.displayName ?? account.accountId,
                         subtitle:
                             '${gameForSlug(account.game)?.name ?? account.game}'
-                            ' · Steam-ID ${account.accountId}',
+                            ' · ${gameAccountIdLabel(account.game)} ${account.accountId}',
                         trailing: Icon(
                           Icons.chevron_right_rounded,
                           color: tokens.textLow,

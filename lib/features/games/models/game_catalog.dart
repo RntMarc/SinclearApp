@@ -30,6 +30,12 @@ const List<GameDefinition> gameCatalog = <GameDefinition>[
     icon: Icons.sports_esports_rounded,
     logoAsset: 'assets/games/deadlock.png',
   ),
+  GameDefinition(
+    slug: 'minecraft',
+    name: 'Minecraft',
+    icon: Icons.view_in_ar_rounded,
+    logoAsset: 'assets/games/minecraft.png',
+  ),
 ];
 
 /// Liefert die Definition zu einem Spiel-Slug, falls unterstützt.

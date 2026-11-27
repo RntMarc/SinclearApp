@@ -18,8 +18,8 @@ import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../models/game_catalog.dart';
 import '../models/game_models.dart';
+import '../utils/game_account.dart';
 import '../utils/game_error_messages.dart';
-import '../utils/steam_id.dart';
 import '../widgets/game_logo.dart';
 
 /// Verwaltet die eigenen verknüpften Spiele-Accounts.
@@ -106,9 +106,9 @@ class _ManageGamesScreenState extends State<ManageGamesScreen> {
         name: 'games',
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(gameErrorMessage(e))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(gameErrorMessage(e, game: game.slug))),
+      );
     }
   }
 
@@ -205,6 +205,7 @@ class _GameAccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final linked = account != null;
+    final accountIdLabel = gameAccountIdLabel(game.slug);
 
     return DesignCard(
       child: Column(
@@ -229,7 +230,7 @@ class _GameAccountCard extends StatelessWidget {
                     SizedBox(height: tokens.spaceXs),
                     DesignText(
                       linked
-                          ? (account!.displayName ?? 'Steam-Account')
+                          ? (account!.displayName ?? '${game.name}-Account')
                           : 'Nicht verknüpft',
                       style: DesignTextStyle.body,
                       color: linked ? tokens.textHigh : tokens.textLow,
@@ -237,7 +238,7 @@ class _GameAccountCard extends StatelessWidget {
                     if (linked) ...<Widget>[
                       SizedBox(height: tokens.spaceXs),
                       DesignText(
-                        'Steam-ID ${account!.accountId}'
+                        '$accountIdLabel ${account!.accountId}'
                         '${account!.lastSyncedAt != null ? ' · Zuletzt synchronisiert ${formatRelativeDate(account!.lastSyncedAt!)}' : ''}',
                         style: DesignTextStyle.label,
                         color: tokens.textLow,
@@ -254,7 +255,7 @@ class _GameAccountCard extends StatelessWidget {
             runSpacing: tokens.spaceSm,
             children: <Widget>[
               DesignButton(
-                label: linked ? 'Steam-ID ändern' : 'Verknüpfen',
+                label: linked ? '$accountIdLabel ändern' : 'Verknüpfen',
                 icon: linked ? Icons.edit_rounded : Icons.add_link_rounded,
                 variant: linked
                     ? DesignButtonVariant.outlined
@@ -275,7 +276,7 @@ class _GameAccountCard extends StatelessWidget {
   }
 }
 
-/// Sheet zum Verknüpfen/Ändern einer Steam-ID.
+/// Sheet zum Verknüpfen/Ändern einer Account-ID.
 class _LinkGameSheet extends StatefulWidget {
   const _LinkGameSheet({required this.game});
 
@@ -297,12 +298,17 @@ class _LinkGameSheetState extends State<_LinkGameSheet> {
   }
 
   Future<void> _save() async {
-    final accountId = normalizeSteamId(_controller.text);
+    final accountId = normalizeGameAccountId(
+      widget.game.slug,
+      _controller.text,
+    );
     if (accountId == null) {
       setState(() {
-        _error =
-            'Bitte gib eine gültige SteamID3 (max. 10 Ziffern) oder '
-            'SteamID64 ein.';
+        _error = widget.game.slug == 'minecraft'
+            ? 'Bitte gib eine gültige Minecraft-UUID oder einen Spielernamen '
+                  '(3–16 Zeichen) ein.'
+            : 'Bitte gib eine gültige SteamID3 (max. 10 Ziffern) oder '
+                  'SteamID64 ein.';
       });
       return;
     }
@@ -327,7 +333,7 @@ class _LinkGameSheetState extends State<_LinkGameSheet> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = gameErrorMessage(e);
+        _error = gameErrorMessage(e, game: widget.game.slug);
       });
     }
   }
@@ -335,6 +341,7 @@ class _LinkGameSheetState extends State<_LinkGameSheet> {
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
+    final isMinecraft = widget.game.slug == 'minecraft';
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
@@ -347,16 +354,17 @@ class _LinkGameSheetState extends State<_LinkGameSheet> {
           ),
           SizedBox(height: tokens.spaceXs),
           DesignText(
-            'SteamID64 (beginnt mit 7656…) oder SteamID3/Account-ID '
-            '(max. 10 Ziffern).',
+            gameAccountHelp(widget.game.slug),
             style: DesignTextStyle.body,
             color: tokens.textLow,
           ),
           SizedBox(height: tokens.spaceLg),
           DesignTextField(
-            hint: 'z. B. 76561198139938901',
+            hint: gameAccountHint(widget.game.slug),
             controller: _controller,
-            keyboardType: TextInputType.number,
+            keyboardType: isMinecraft
+                ? TextInputType.text
+                : TextInputType.number,
           ),
           if (_error != null) ...<Widget>[
             SizedBox(height: tokens.spaceSm),
@@ -417,8 +425,8 @@ class _UnlinkGameSheet extends StatelessWidget {
         const DesignDivider(),
         SizedBox(height: tokens.spaceLg),
         DesignText(
-          'Die Verknüpfung und die gecachten Statistiken werden entfernt. '
-          'Du kannst die Steam-ID jederzeit erneut hinterlegen.',
+          'Die Verknüpfung wird entfernt. Du kannst den Account jederzeit '
+          'erneut hinterlegen.',
           style: DesignTextStyle.body,
           color: tokens.textLow,
         ),
