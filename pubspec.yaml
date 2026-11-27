@@ -1,7 +1,7 @@
 name: sinclear_beyond
 description: "Unsere neue Community-Plattform ist da. Gemeinsam sind wir Sinclear."
 publish_to: 'none'
-version: 0.10.7+100011   # Remember to up the number every time (don't ask why it's so high already)
+version: 0.10.7+100012   # Remember to up the number every time (don't ask why it's so high already)
 
 environment:
   sdk: ^3.12.2
@@ -25,7 +25,7 @@ dependencies:
   image_picker: ^1.2.2
   web: ^1.1.1
   intl: ^0.20.3
-  table_calendar: ^3.2.0
+  table_calendar: ^4.0.0-dev.1
   image: ^4.9.1
   package_info_plus: ^10.2.1
   open_file: ^4.0.0
