@@ -3,6 +3,7 @@
 import '../../../core/network/api_client.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/game_models.dart';
+import '../models/minecraft_overview.dart';
 
 /// Zugriff auf verknüpfte Spiele-Accounts und Spielstatistiken.
 class GamesService {
@@ -83,6 +84,29 @@ class GamesService {
       }
     }
     return result;
+  }
+
+  /// Aggregierte Übersicht aller getrackten Minecraft-Spieler.
+  ///
+  /// Ohne [serverId] über alle Server; mit [serverId] nur dieser Server.
+  /// [limit] trimmt ausschließlich die Rangliste (1–500).
+  Future<MinecraftOverview> minecraftOverview({
+    String? serverId,
+    int? limit,
+  }) async {
+    final query = <String, String>{
+      if (serverId != null && serverId.isNotEmpty) 'serverId': serverId,
+      if (limit != null) 'limit': '$limit',
+    };
+    final data = await _api.get(
+      '/minecraft/sources',
+      queryParams: query.isEmpty ? null : query,
+      token: await _token(),
+    );
+    final overview = data['data'];
+    return MinecraftOverview.fromJson(
+      overview is Map<String, dynamic> ? overview : const <String, dynamic>{},
+    );
   }
 
   List<GameAccount> _parseAccounts(Map<String, dynamic> data) {

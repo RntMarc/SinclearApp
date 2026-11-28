@@ -81,4 +81,28 @@ void main() {
     expect(find.text('Spielzeit'), findsOneWidget);
     expect(find.text('Distanz'), findsOneWidget);
   });
+
+  testWidgets('Server-Karte öffnet die Server-Statistik', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    String? opened;
+    await tester.pumpWidget(
+      _wrap(
+        MinecraftSourcesTab(
+          data: _stats(),
+          timezone: 'Europe/Berlin',
+          onOpenServer: (serverId) => opened = serverId,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('survival-1 · world'));
+    await tester.pumpAndSettle();
+
+    expect(opened, 'survival-1');
+  });
 }

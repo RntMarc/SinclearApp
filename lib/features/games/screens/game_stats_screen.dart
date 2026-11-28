@@ -9,6 +9,7 @@ import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
 import '../../../design/widgets/composite/design_tab_bar.dart';
+import '../../../design/widgets/composite/design_picker_field.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
@@ -53,6 +54,9 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
   final TextEditingController _statsSearch = TextEditingController();
   String _statsQuery = '';
 
+  /// Server-Filter für Übersicht und Statistiken (null = global).
+  String? _serverFilter;
+
   bool get _isMinecraft => widget.game == 'minecraft';
 
   @override
@@ -67,9 +71,11 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
     if (oldWidget.game != widget.game) {
       _tab = _StatsTab.overview;
       _statsQuery = '';
+      _serverFilter = null;
       _statsSearch.clear();
     }
     if (oldWidget.userId != widget.userId || oldWidget.game != widget.game) {
+      _serverFilter = null;
       _load();
     }
   }
@@ -167,6 +173,10 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
     context.go('/karriere/${widget.game}?spieler=${player.userId}');
   }
 
+  Future<void> _openServer(String serverId) async {
+    await context.push('/karriere/minecraft/server/$serverId');
+  }
+
   Future<void> _compare() async {
     final targetUserId = widget.userId ?? AppScope.of(context).auth.userId;
     if (targetUserId == null) return;
@@ -222,8 +232,14 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
                                 : _stats?.stats?.rank?.iconUrl,
                             accountIdLabel: gameAccountIdLabel(widget.game),
                             stats: _stats,
+                            serverIds:
+                                _stats?.minecraft?.serverIds ??
+                                const <String>[],
+                            serverFilter: _serverFilter,
+                            onServerChanged: (value) =>
+                                setState(() => _serverFilter = value),
                             onSwitch: _switchPlayer,
-                            onCompare: _isMinecraft ? null : _compare,
+                            onCompare: _compare,
                           ),
                         ),
                         if (_error != null)
@@ -281,8 +297,15 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
     final timezone = AppScope.of(context).timeZones.effective;
 
     if (_isMinecraft) {
-      final data = _stats!.minecraft!;
+      final all = _stats!.minecraft!;
+      final data = all.forServer(_serverFilter);
       return switch (_tab) {
+        _StatsTab.overview when data.sources.isEmpty => _noSourceSlivers(
+          context,
+        ),
+        _StatsTab.matches when data.sources.isEmpty => _noSourceSlivers(
+          context,
+        ),
         _StatsTab.overview => <Widget>[
           SliverToBoxAdapter(
             child: MinecraftOverviewTab(data: data, timezone: timezone),
@@ -290,7 +313,11 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
         ],
         _StatsTab.heroes => <Widget>[
           SliverToBoxAdapter(
-            child: MinecraftSourcesTab(data: data, timezone: timezone),
+            child: MinecraftSourcesTab(
+              data: all,
+              timezone: timezone,
+              onOpenServer: _openServer,
+            ),
           ),
         ],
         _StatsTab.matches => _minecraftStatsSlivers(context, data),
@@ -317,6 +344,42 @@ class _GameStatsScreenState extends State<GameStatsScreen> {
             timezone: timezone,
           ),
         },
+      ),
+    ];
+  }
+
+  /// Leerzustand, wenn für den gewählten Server (oder überhaupt) keine Quelle
+  /// vorliegt.
+  List<Widget> _noSourceSlivers(BuildContext context) {
+    final tokens = DesignTheme.of(context);
+    final filtered = _serverFilter != null;
+    return <Widget>[
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(tokens.spaceLg),
+          child: DesignCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                DesignText(
+                  filtered
+                      ? 'Auf diesem Server liegen keine Daten vor.'
+                      : 'Es liegen noch keine Serverdaten vor.',
+                  style: DesignTextStyle.body,
+                  color: tokens.textLow,
+                ),
+                if (filtered) ...<Widget>[
+                  SizedBox(height: tokens.spaceMd),
+                  DesignButton(
+                    label: 'Global anzeigen',
+                    variant: DesignButtonVariant.outlined,
+                    onPressed: () => setState(() => _serverFilter = null),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     ];
   }
@@ -516,6 +579,9 @@ class _PlayerCard extends StatelessWidget {
     this.badgeIconUrl,
     required this.accountIdLabel,
     required this.stats,
+    this.serverIds = const <String>[],
+    this.serverFilter,
+    required this.onServerChanged,
     required this.onSwitch,
     this.onCompare,
   });
@@ -526,6 +592,11 @@ class _PlayerCard extends StatelessWidget {
   final String? badgeIconUrl;
   final String accountIdLabel;
   final GameStatsResponse? stats;
+
+  /// Server des angesehenen Spielers (nur Minecraft).
+  final List<String> serverIds;
+  final String? serverFilter;
+  final ValueChanged<String?> onServerChanged;
   final VoidCallback onSwitch;
   final VoidCallback? onCompare;
 
@@ -603,6 +674,24 @@ class _PlayerCard extends StatelessWidget {
                 ),
             ],
           ),
+          if (serverIds.isNotEmpty) ...<Widget>[
+            SizedBox(height: tokens.spaceMd),
+            DesignPickerField(
+              hint: 'Server',
+              prefixIcon: Icons.dns_rounded,
+              value: serverFilter ?? '',
+              items: <DesignPickerItem>[
+                const DesignPickerItem(
+                  value: '',
+                  label: 'Global (alle Server)',
+                ),
+                for (final serverId in serverIds)
+                  DesignPickerItem(value: serverId, label: serverId),
+              ],
+              onChanged: (value) =>
+                  onServerChanged(value.isEmpty ? null : value),
+            ),
+          ],
         ],
       ),
     );

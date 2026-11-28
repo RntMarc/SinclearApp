@@ -74,6 +74,7 @@ import '../features/chat/screens/conversation_screen.dart';
 import '../features/games/screens/games_screen.dart';
 import '../features/games/screens/game_stats_screen.dart';
 import '../features/games/screens/game_compare_screen.dart';
+import '../features/games/screens/minecraft_server_screen.dart';
 import '../features/games/screens/manage_games_screen.dart';
 import '../features/arcade/screens/arcade_screen.dart';
 
@@ -356,6 +357,12 @@ GoRouter createRouter(AuthService auth, {String? initialLocation}) {
                           .map((id) => id.trim())
                           .where((id) => id.isNotEmpty)
                           .toList(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'server/:serverId',
+                    builder: (context, state) => MinecraftServerScreen(
+                      serverId: state.pathParameters['serverId']!,
                     ),
                   ),
                 ],

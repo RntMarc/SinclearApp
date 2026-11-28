@@ -41,7 +41,6 @@ class GameCompareScreen extends StatefulWidget {
 class _GameCompareScreenState extends State<GameCompareScreen> {
   List<GamePlayer> _players = const <GamePlayer>[];
   bool _loading = true;
-  bool _unsupported = false;
   String? _error;
 
   bool _hasLoaded = false;
@@ -68,17 +67,7 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
     setState(() {
       _loading = true;
       _error = null;
-      _unsupported = false;
     });
-    if (widget.game == 'minecraft') {
-      setState(() {
-        _loading = false;
-        _unsupported = true;
-        _error =
-            'Der Spieler-Vergleich ist für Minecraft noch nicht verfügbar.';
-      });
-      return;
-    }
     try {
       final scope = AppScope.of(context);
       final ids = widget.userIds.take(2).toList();
@@ -102,11 +91,14 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
       for (final id in ids) {
         final statsEntry = byUser[id];
         final user = users[id];
-        if (statsEntry == null) continue;
+        if (statsEntry == null || !_hasComparableStats(statsEntry)) continue;
         players.add(
           GamePlayer(
             userId: id,
-            displayName: user?.displayName ?? 'Spieler',
+            displayName:
+                statsEntry.minecraft?.playerName ??
+                user?.displayName ??
+                'Spieler',
             imageUrl: user?.image,
             stats: statsEntry,
           ),
@@ -138,6 +130,13 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
         _error = gameErrorMessage(e);
       });
     }
+  }
+
+  /// Minecraft gilt erst mit mindestens einer Quelle als vergleichbar.
+  bool _hasComparableStats(GameStatsResponse stats) {
+    final minecraft = stats.minecraft;
+    if (minecraft != null) return minecraft.sources.isNotEmpty;
+    return stats.stats != null;
   }
 
   Future<void> _pickOpponent() async {
@@ -193,16 +192,14 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
         Icon(Icons.error_outline_rounded, size: 48, color: tokens.danger),
         SizedBox(height: tokens.spaceSm),
         DesignText(_error!, textAlign: TextAlign.center),
-        if (!_unsupported) ...<Widget>[
-          SizedBox(height: tokens.spaceLg),
-          Center(
-            child: DesignButton(
-              label: 'Erneut versuchen',
-              variant: DesignButtonVariant.outlined,
-              onPressed: _load,
-            ),
+        SizedBox(height: tokens.spaceLg),
+        Center(
+          child: DesignButton(
+            label: 'Erneut versuchen',
+            variant: DesignButtonVariant.outlined,
+            onPressed: _load,
           ),
-        ],
+        ),
       ],
     );
   }
@@ -211,9 +208,10 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
     final tokens = DesignTheme.of(context);
     final left = _players[0];
     final right = _players[1];
-    final leftSummary = left.summary;
-    final rightSummary = right.summary;
-    final shared = _sharedHeroes(left, right);
+    final isMinecraft = widget.game == 'minecraft';
+    final sharedHeroes = isMinecraft
+        ? const <_SharedHero>[]
+        : _sharedHeroes(left, right);
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -246,72 +244,14 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
           DesignCard(
             child: DesignComparisonTable(
               columns: <String>[left.displayName, right.displayName],
-              rows: <DesignComparisonRow>[
-                _row(
-                  'Rang',
-                  left.rank?.label ?? 'Unkalibriert',
-                  right.rank?.label ?? 'Unkalibriert',
-                  _rankValue(left.rank),
-                  _rankValue(right.rank),
-                ),
-                _row(
-                  'Spiele',
-                  formatInt(leftSummary.matches),
-                  formatInt(rightSummary.matches),
-                  leftSummary.matches.toDouble(),
-                  rightSummary.matches.toDouble(),
-                ),
-                _row(
-                  'Winrate',
-                  formatPercent(leftSummary.winRate),
-                  formatPercent(rightSummary.winRate),
-                  leftSummary.winRate,
-                  rightSummary.winRate,
-                ),
-                _row(
-                  'KDA',
-                  formatDecimal(leftSummary.kda, digits: 2),
-                  formatDecimal(rightSummary.kda, digits: 2),
-                  leftSummary.kda,
-                  rightSummary.kda,
-                ),
-                _row(
-                  'Netto-Wert/Min.',
-                  formatInt(leftSummary.netWorthPerMin.round()),
-                  formatInt(rightSummary.netWorthPerMin.round()),
-                  leftSummary.netWorthPerMin,
-                  rightSummary.netWorthPerMin,
-                ),
-                _row(
-                  'Schaden/Min.',
-                  formatInt(leftSummary.damagePerMin.round()),
-                  formatInt(rightSummary.damagePerMin.round()),
-                  leftSummary.damagePerMin,
-                  rightSummary.damagePerMin,
-                ),
-                _row(
-                  'Genauigkeit',
-                  formatPercent(leftSummary.accuracy),
-                  formatPercent(rightSummary.accuracy),
-                  leftSummary.accuracy,
-                  rightSummary.accuracy,
-                ),
-                _row(
-                  'Top-Held',
-                  leftSummary.topHero?.displayName ?? '–',
-                  rightSummary.topHero?.displayName ?? '–',
-                ),
-                _row(
-                  'Letzte Spiele',
-                  '${leftSummary.recentWins} S / ${leftSummary.recentLosses} N',
-                  '${rightSummary.recentWins} S / ${rightSummary.recentLosses} N',
-                  _recentWinRate(leftSummary),
-                  _recentWinRate(rightSummary),
-                ),
-              ],
+              rows: isMinecraft
+                  ? _minecraftRows(left, right)
+                  : _deadlockRows(left, right),
             ),
           ),
-          if (shared.isNotEmpty) ...<Widget>[
+          if (isMinecraft)
+            ..._sharedSourceSection(context, left, right)
+          else if (sharedHeroes.isNotEmpty) ...<Widget>[
             SizedBox(height: tokens.spaceLg),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
@@ -325,7 +265,7 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
               child: DesignComparisonTable(
                 columns: <String>[left.displayName, right.displayName],
                 rows: <DesignComparisonRow>[
-                  for (final entry in shared)
+                  for (final entry in sharedHeroes)
                     _row(
                       entry.heroName,
                       '${formatPercent(entry.leftWinRate)} (${entry.leftMatches})',
@@ -353,6 +293,205 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
     );
   }
 
+  List<DesignComparisonRow> _deadlockRows(GamePlayer left, GamePlayer right) {
+    final leftSummary = left.summary;
+    final rightSummary = right.summary;
+    return <DesignComparisonRow>[
+      _row(
+        'Rang',
+        left.rank?.label ?? 'Unkalibriert',
+        right.rank?.label ?? 'Unkalibriert',
+        _rankValue(left.rank),
+        _rankValue(right.rank),
+      ),
+      _row(
+        'Spiele',
+        formatInt(leftSummary.matches),
+        formatInt(rightSummary.matches),
+        leftSummary.matches.toDouble(),
+        rightSummary.matches.toDouble(),
+      ),
+      _row(
+        'Winrate',
+        formatPercent(leftSummary.winRate),
+        formatPercent(rightSummary.winRate),
+        leftSummary.winRate,
+        rightSummary.winRate,
+      ),
+      _row(
+        'KDA',
+        formatDecimal(leftSummary.kda, digits: 2),
+        formatDecimal(rightSummary.kda, digits: 2),
+        leftSummary.kda,
+        rightSummary.kda,
+      ),
+      _row(
+        'Netto-Wert/Min.',
+        formatInt(leftSummary.netWorthPerMin.round()),
+        formatInt(rightSummary.netWorthPerMin.round()),
+        leftSummary.netWorthPerMin,
+        rightSummary.netWorthPerMin,
+      ),
+      _row(
+        'Schaden/Min.',
+        formatInt(leftSummary.damagePerMin.round()),
+        formatInt(rightSummary.damagePerMin.round()),
+        leftSummary.damagePerMin,
+        rightSummary.damagePerMin,
+      ),
+      _row(
+        'Genauigkeit',
+        formatPercent(leftSummary.accuracy),
+        formatPercent(rightSummary.accuracy),
+        leftSummary.accuracy,
+        rightSummary.accuracy,
+      ),
+      _row(
+        'Top-Held',
+        leftSummary.topHero?.displayName ?? '–',
+        rightSummary.topHero?.displayName ?? '–',
+      ),
+      _row(
+        'Letzte Spiele',
+        '${leftSummary.recentWins} S / ${leftSummary.recentLosses} N',
+        '${rightSummary.recentWins} S / ${rightSummary.recentLosses} N',
+        _recentWinRate(leftSummary),
+        _recentWinRate(rightSummary),
+      ),
+    ];
+  }
+
+  /// Minecraft-Kennzahlen, über alle Server und Welten summiert.
+  List<DesignComparisonRow> _minecraftRows(GamePlayer left, GamePlayer right) {
+    final l = left.minecraft ?? const MinecraftStats();
+    final r = right.minecraft ?? const MinecraftStats();
+    return <DesignComparisonRow>[
+      _row(
+        'Spielzeit',
+        formatTicksAsDuration(l.playTimeTicks),
+        formatTicksAsDuration(r.playTimeTicks),
+        l.playTimeTicks.toDouble(),
+        r.playTimeTicks.toDouble(),
+      ),
+      _row(
+        'Tode',
+        formatInt(l.deaths),
+        formatInt(r.deaths),
+        l.deaths.toDouble(),
+        r.deaths.toDouble(),
+        false,
+      ),
+      _row(
+        'Mobs getötet',
+        formatInt(l.mobKills),
+        formatInt(r.mobKills),
+        l.mobKills.toDouble(),
+        r.mobKills.toDouble(),
+      ),
+      _row(
+        'Spieler getötet',
+        formatInt(l.playerKills),
+        formatInt(r.playerKills),
+        l.playerKills.toDouble(),
+        r.playerKills.toDouble(),
+      ),
+      _row(
+        'Blöcke abgebaut',
+        formatInt(l.blocksMined),
+        formatInt(r.blocksMined),
+        l.blocksMined.toDouble(),
+        r.blocksMined.toDouble(),
+      ),
+      _row(
+        'Hergestellt',
+        formatInt(l.itemsCrafted),
+        formatInt(r.itemsCrafted),
+        l.itemsCrafted.toDouble(),
+        r.itemsCrafted.toDouble(),
+      ),
+      _row(
+        'Distanz',
+        formatCentimeters(l.distanceCm),
+        formatCentimeters(r.distanceCm),
+        l.distanceCm.toDouble(),
+        r.distanceCm.toDouble(),
+      ),
+      _row(
+        'Sprünge',
+        formatInt(l.jumps),
+        formatInt(r.jumps),
+        l.jumps.toDouble(),
+        r.jumps.toDouble(),
+      ),
+      _row('Server/Welten', '${l.sources.length}', '${r.sources.length}'),
+    ];
+  }
+
+  /// Vergleich der Server/Welten, auf denen beide Spieler getrackt sind.
+  List<Widget> _sharedSourceSection(
+    BuildContext context,
+    GamePlayer left,
+    GamePlayer right,
+  ) {
+    final shared = _sharedSources(left, right);
+    if (shared.isEmpty) return const <Widget>[];
+    final tokens = DesignTheme.of(context);
+    return <Widget>[
+      SizedBox(height: tokens.spaceLg),
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
+        child: const DesignText(
+          'Gemeinsame Server',
+          style: DesignTextStyle.subtitle,
+        ),
+      ),
+      SizedBox(height: tokens.spaceSm),
+      DesignCard(
+        child: DesignComparisonTable(
+          columns: <String>[left.displayName, right.displayName],
+          rows: <DesignComparisonRow>[
+            for (final entry in shared)
+              _row(
+                '${entry.left.serverId} · ${entry.left.world}',
+                _sourceSummary(entry.left),
+                _sourceSummary(entry.right),
+                _sourcePlayTime(entry.left).toDouble(),
+                _sourcePlayTime(entry.right).toDouble(),
+              ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  List<_SharedSource> _sharedSources(GamePlayer left, GamePlayer right) {
+    final other = <String, MinecraftStatsSource>{
+      for (final source
+          in right.minecraft?.sources ?? const <MinecraftStatsSource>[])
+        '${source.serverId}\u0000${source.world}': source,
+    };
+    final shared = <_SharedSource>[];
+    for (final source
+        in left.minecraft?.sources ?? const <MinecraftStatsSource>[]) {
+      final match = other['${source.serverId}\u0000${source.world}'];
+      if (match == null) continue;
+      shared.add(_SharedSource(left: source, right: match));
+    }
+    shared.sort(
+      (a, b) => _sourcePlayTime(b.left).compareTo(_sourcePlayTime(a.left)),
+    );
+    return shared;
+  }
+
+  int _sourcePlayTime(MinecraftStatsSource source) =>
+      source.value('minecraft:custom', 'minecraft:play_time');
+
+  String _sourceSummary(MinecraftStatsSource source) {
+    final deaths = source.value('minecraft:custom', 'minecraft:deaths');
+    return '${formatTicksAsDuration(_sourcePlayTime(source))} · '
+        '${formatInt(deaths)} ${deaths == 1 ? 'Tod' : 'Tode'}';
+  }
+
   Widget _playerTile(BuildContext context, GamePlayer player) {
     final tokens = DesignTheme.of(context);
     final syncedAt = player.stats?.lastRefreshedAt;
@@ -373,7 +512,9 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
         ),
         SizedBox(height: tokens.spaceXs),
         DesignText(
-          player.rank?.label ?? 'Unkalibriert',
+          player.minecraft != null
+              ? 'Minecraft'
+              : (player.rank?.label ?? 'Unkalibriert'),
           style: DesignTextStyle.label,
           color: tokens.primary,
           textAlign: TextAlign.center,
@@ -397,6 +538,7 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
     String rightValue, [
     double? leftSort,
     double? rightSort,
+    bool higherIsBetter = true,
   ]) {
     return DesignComparisonRow(
       label: label,
@@ -404,6 +546,7 @@ class _GameCompareScreenState extends State<GameCompareScreen> {
       sortValues: leftSort == null && rightSort == null
           ? null
           : <double?>[leftSort, rightSort],
+      higherIsBetter: higherIsBetter,
     );
   }
 
@@ -459,4 +602,11 @@ class _SharedHero {
   final int rightMatches;
   final double leftWinRate;
   final double rightWinRate;
+}
+
+class _SharedSource {
+  const _SharedSource({required this.left, required this.right});
+
+  final MinecraftStatsSource left;
+  final MinecraftStatsSource right;
 }

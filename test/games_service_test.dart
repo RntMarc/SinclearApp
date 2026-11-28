@@ -135,4 +135,50 @@ void main() {
     await service.batchStats('deadlock', <String>['u1', 'u1', ' ', 'u2']);
     expect(api.queries.single!['userIds'], 'u1,u2');
   });
+
+  test('minecraftOverview liest die aggregierte Server-Übersicht', () async {
+    api.response = <String, dynamic>{
+      'data': <String, dynamic>{
+        'scope': 'server',
+        'serverId': 'MedionSMP',
+        'servers': <dynamic>[
+          <String, dynamic>{
+            'serverId': 'MedionSMP',
+            'worlds': <String>['world'],
+            'playerCount': 2,
+            'totals': <String, dynamic>{
+              'minecraft:custom': <String, dynamic>{'minecraft:play_time': 180},
+            },
+            'ranking': <dynamic>[],
+          },
+        ],
+      },
+    };
+    final overview = await service.minecraftOverview(
+      serverId: 'MedionSMP',
+      limit: 50,
+    );
+
+    expect(api.paths.single, 'GET /minecraft/sources');
+    expect(api.queries.single, <String, String>{
+      'serverId': 'MedionSMP',
+      'limit': '50',
+    });
+    expect(overview.servers.single.serverId, 'MedionSMP');
+    expect(
+      overview.servers.single.value('minecraft:custom', 'minecraft:play_time'),
+      180,
+    );
+  });
+
+  test('minecraftOverview ohne Filter fragt global ab', () async {
+    api.response = <String, dynamic>{
+      'data': <String, dynamic>{'scope': 'global', 'servers': <dynamic>[]},
+    };
+    final overview = await service.minecraftOverview();
+
+    expect(api.queries.single, isNull);
+    expect(overview.isGlobal, isTrue);
+    expect(overview.servers, isEmpty);
+  });
 }

@@ -14,11 +14,17 @@ class MinecraftOverviewTab extends StatelessWidget {
   const MinecraftOverviewTab({
     required this.data,
     required this.timezone,
+    this.footerLabel,
     super.key,
   });
 
   final MinecraftStats data;
   final String timezone;
+
+  /// Ersetzt die Standard-Fußzeile („N Quellen · Stand …“).
+  ///
+  /// Die Server-Ansicht zeigt damit Spieler-/Weltenzahl statt Quellenzahl.
+  final String? footerLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +56,9 @@ class MinecraftOverviewTab extends StatelessWidget {
         Padding(
           padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
           child: DesignText(
-            '$sourceCount ${sourceCount == 1 ? 'Quelle' : 'Quellen'}'
-            '${syncedAt == null ? '' : ' · Stand ${formatDateTimeInZone(parseApiInstant(syncedAt), timezone)}'}',
+            footerLabel ??
+                '$sourceCount ${sourceCount == 1 ? 'Quelle' : 'Quellen'}'
+                    '${syncedAt == null ? '' : ' · Stand ${formatDateTimeInZone(parseApiInstant(syncedAt), timezone)}'}',
             style: DesignTextStyle.label,
             color: tokens.textLow,
           ),

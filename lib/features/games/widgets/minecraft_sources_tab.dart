@@ -12,11 +12,15 @@ class MinecraftSourcesTab extends StatelessWidget {
   const MinecraftSourcesTab({
     required this.data,
     required this.timezone,
+    this.onOpenServer,
     super.key,
   });
 
   final MinecraftStats data;
   final String timezone;
+
+  /// Öffnet die serverweite Statistik (aggregiert über alle Spieler).
+  final ValueChanged<String>? onOpenServer;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +44,13 @@ class MinecraftSourcesTab extends StatelessWidget {
         for (final source in data.sources) ...<Widget>[
           Padding(
             padding: EdgeInsets.symmetric(horizontal: tokens.spaceLg),
-            child: _SourceCard(source: source, timezone: timezone),
+            child: _SourceCard(
+              source: source,
+              timezone: timezone,
+              onTap: onOpenServer == null
+                  ? null
+                  : () => onOpenServer!(source.serverId),
+            ),
           ),
           SizedBox(height: tokens.spaceMd),
         ],
@@ -59,24 +69,36 @@ class MinecraftSourcesTab extends StatelessWidget {
 }
 
 class _SourceCard extends StatelessWidget {
-  const _SourceCard({required this.source, required this.timezone});
+  const _SourceCard({required this.source, required this.timezone, this.onTap});
 
   final MinecraftStatsSource source;
   final String timezone;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final tokens = DesignTheme.of(context);
     final collectedAt = source.collectedAt;
     return DesignCard(
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          DesignText(
-            '${source.serverId} · ${source.world}',
-            style: DesignTextStyle.subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: DesignText(
+                  '${source.serverId} · ${source.world}',
+                  style: DesignTextStyle.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (onTap != null) ...<Widget>[
+                SizedBox(width: tokens.spaceXs),
+                Icon(Icons.chevron_right_rounded, color: tokens.textLow),
+              ],
+            ],
           ),
           if (collectedAt != null) ...<Widget>[
             SizedBox(height: tokens.spaceXs),

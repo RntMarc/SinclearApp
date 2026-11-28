@@ -520,12 +520,13 @@ Kacheln greedy auf 2/3/4 Spalten (mobil/Tablet/Desktop).
 ### Feature-Adapter: Spiele
 
 Der Spiele-Bereich (`lib/features/games/`, Routen `/karriere`,
-`/karriere/:game`, `/karriere/:game/vergleich` und `/einstellungen/spiele`) nutzt
+`/karriere/:game`, `/karriere/:game/vergleich`,
+`/karriere/:game/server/:serverId` und `/einstellungen/spiele`) nutzt
 ausschließlich den Katalog (`DesignSurface`, `DesignCard`, `DesignChip`,
-`DesignTabBar`, `DesignAvatar`, `DesignButton`, `DesignSubpageHeader`,
-`showDesignSheet`) und ergänzt die Statistik-Widgets `DesignStatTile`,
-`DesignMetricBar`, `DesignBarChart`, `DesignComparisonTable` und
-`DesignOutcomeStrip`.
+`DesignTabBar`, `DesignAvatar`, `DesignButton`, `DesignPickerField`,
+`DesignSubpageHeader`, `showDesignSheet`) und ergänzt die Statistik-Widgets
+`DesignStatTile`, `DesignMetricBar`, `DesignBarChart`,
+`DesignComparisonTable` und `DesignOutcomeStrip`.
 Feature-spezifisch bleiben nur die Datenmodelle (`GameAccount`,
 `DeadlockStats`, `MinecraftStats`, `GameSummary`), der `GamesService`, das
 Spiel-Logo (`widgets/game_logo.dart`, Asset aus `GameDefinition.logoAsset` mit
@@ -549,9 +550,15 @@ sie, greift der Client auf `Held #id` bzw. die lokale Rang-Tabelle zurück.
 Minecraft-Statistiken werden je Server/Welt ausgeliefert; die Übersicht
 aggregiert sie, der Server-Tab zeigt die Quellen einzeln und der
 Statistiken-Tab listet alle Zähler durchsuchbar und lazy (`SliverList`).
-Dafür werden Ticks (20 Ticks = 1 s) und Zentimeter über die Helfer in
-`utils/game_format.dart` in Dauer bzw. Meter/Kilometer umgerechnet. Ein
-Spieler-Vergleich ist für Minecraft vorerst nicht verfügbar.
+Ein `DesignPickerField` neben den Spieler-Aktionen filtert Übersicht und
+Statistiken auf einen Server (Standard: Global). Jede Server-Karte öffnet
+`/karriere/minecraft/server/{serverId}` mit den über alle getrackten Spieler
+summierten Zählern und der Rangliste (auch unverknüpfte Spieler, Daten aus
+`GET /minecraft/sources`). Der Spieler-Vergleich gilt für beide Spiele:
+Deadlock über Rang/Helden, Minecraft über aggregierte Kennzahlen plus eine
+Tabelle der gemeinsamen Server/Welten. Dafür werden Ticks (20 Ticks = 1 s) und
+Zentimeter über die Helfer in `utils/game_format.dart` in Dauer bzw.
+Meter/Kilometer umgerechnet.
 Spielzeiten und Match-Daten werden in der effektiven Nutzer-Zeitzone
 (`TimeZoneService.effective`) angezeigt.
 

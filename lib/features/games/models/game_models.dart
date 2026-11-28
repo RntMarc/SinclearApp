@@ -573,7 +573,7 @@ class MinecraftStatsSource {
       serverId: json['serverId'] as String? ?? '',
       world: json['world'] as String? ?? '',
       collectedAt: json['collectedAt'] as String?,
-      stats: _parseMinecraftStats(json['stats']),
+      stats: parseMinecraftStats(json['stats']),
     );
   }
 
@@ -599,7 +599,12 @@ class MinecraftStatsSource {
   }
 }
 
-Map<String, Map<String, int>> _parseMinecraftStats(dynamic raw) {
+/// Parst `{ "kategorie:name": { "statistik:name": integer } }`.
+///
+/// Vanilla- und Mod-Zähler sind nicht fest verdrahtet; ungültige Werte werden
+/// als `0` gelesen, damit ein einzelner kaputter Zähler die Ansicht nicht
+/// unbrauchbar macht.
+Map<String, Map<String, int>> parseMinecraftStats(dynamic raw) {
   if (raw is! Map<String, dynamic>) {
     return const <String, Map<String, int>>{};
   }
@@ -654,6 +659,30 @@ class MinecraftStats {
   String? get playerName {
     final name = player?.name?.trim();
     return name == null || name.isEmpty ? null : name;
+  }
+
+  /// Alle Server, auf denen der Spieler getrackt wird (unique, sortiert).
+  List<String> get serverIds {
+    final ids = <String>{for (final source in sources) source.serverId};
+    return ids.toList()..sort();
+  }
+
+  /// Kopie, die nur die Quellen des Servers enthält (`null` = alle Server).
+  ///
+  /// Alle übrigen Getter aggregieren über [sources] und liefern damit
+  /// automatisch die Server-Sicht.
+  MinecraftStats forServer(String? serverId) {
+    if (serverId == null) return this;
+    final filtered = sources
+        .where((source) => source.serverId == serverId)
+        .toList(growable: false);
+    if (filtered.length == sources.length) return this;
+    return MinecraftStats(
+      accountId: accountId,
+      player: player,
+      sources: filtered,
+      syncedAt: syncedAt,
+    );
   }
 
   /// Wert eines Zählers, über alle Quellen summiert.
