@@ -9,6 +9,7 @@ import '../../../core/config/osm_config.dart';
 import '../../../core/di/app_scope.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
+import '../../../design/widgets/composite/design_map_attribution.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/foundation/design_surface.dart';
 import '../../../design/widgets/foundation/design_text.dart';
@@ -361,6 +362,7 @@ class _LocationSharingScreenState extends State<LocationSharingScreen>
               ),
               if (circles.isNotEmpty) CircleLayer(circles: circles),
               MarkerLayer(markers: markers),
+              const DesignMapAttribution(),
             ],
           ),
         ),

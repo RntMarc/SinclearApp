@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/osm_config.dart';
+import '../../../design/widgets/composite/design_map_attribution.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/theme/design_theme.dart';
 import '../models/explore_models.dart';
@@ -76,6 +77,7 @@ class _ExploreMapState extends State<ExploreMap> {
           tileProvider: osmTileProvider(),
         ),
         MarkerLayer(markers: markers),
+        const DesignMapAttribution(),
       ],
     );
   }

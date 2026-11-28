@@ -18,6 +18,7 @@ import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_text_field.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
+import '../../../design/widgets/composite/design_map_attribution.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../models/explore_models.dart';
 
@@ -433,6 +434,7 @@ class _SubmitPlaceScreenState extends State<SubmitPlaceScreen> {
                       ),
                     ],
                   ),
+                const DesignMapAttribution(),
               ],
             ),
           ),

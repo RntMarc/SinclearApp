@@ -12,6 +12,7 @@ import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_button.dart';
 import '../../../design/widgets/primitives/design_icon_button.dart';
 import '../../../design/widgets/composite/design_subpage_header.dart';
+import '../../../design/widgets/composite/design_map_attribution.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../models/explore_models.dart';
 import '../screens/submit_place_screen.dart';
@@ -287,6 +288,7 @@ class _SubmissionDetailScreenState extends State<SubmissionDetailScreen> {
                 ),
               ],
             ),
+            const DesignMapAttribution(),
           ],
         ),
       ),

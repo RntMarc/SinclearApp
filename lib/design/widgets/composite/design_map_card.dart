@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../core/config/osm_config.dart';
 import '../../theme/design_theme.dart';
+import 'design_map_attribution.dart';
 import '../foundation/design_text.dart';
 import '../primitives/design_card.dart';
 
@@ -72,6 +73,7 @@ class DesignMapCard extends StatelessWidget {
           tileProvider: osmTileProvider(),
         ),
         if (markers.isNotEmpty) MarkerLayer(markers: markers),
+        const DesignMapAttribution(),
       ],
     );
 

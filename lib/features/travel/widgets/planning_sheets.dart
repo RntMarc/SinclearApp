@@ -8,6 +8,7 @@ import '../../../core/utils/date_utils.dart';
 import '../../../design/theme/design_theme.dart';
 import '../../../design/widgets/composite/design_bottom_sheet.dart';
 import '../../../design/widgets/composite/design_list_tile.dart';
+import '../../../design/widgets/composite/design_map_attribution.dart';
 import '../../../design/widgets/composite/design_map_marker.dart';
 import '../../../design/widgets/foundation/design_text.dart';
 import '../../../design/widgets/primitives/design_avatar.dart';
@@ -768,6 +769,7 @@ class _EventSheetState extends State<_EventSheet> {
                       ),
                     ],
                   ),
+                const DesignMapAttribution(),
               ],
             ),
           ),
